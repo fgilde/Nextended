@@ -22,13 +22,13 @@
     <Otherwise />
   </Choose>
   <ItemGroup>
-    <ProjectReference Include="..\Nextended.Core\nextended.Core.csproj" />
-  </ItemGroup>
-  <ItemGroup>
     <PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.9.4" />
     <PackageReference Include="MSTest.TestAdapter" Version="2.2.3" />
     <PackageReference Include="MSTest.TestFramework" Version="2.2.3" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Nextended.Core\Nextended.Core.csproj" />
   </ItemGroup>
   <Choose>
     <When Condition="'$(VisualStudioVersion)' == '10.0' And '$(IsCodedUITest)' == 'True'">

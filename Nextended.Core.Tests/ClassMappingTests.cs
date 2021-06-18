@@ -4,7 +4,7 @@ using System.Globalization;
 using System.Linq;
 using System.Xml.Serialization;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Nextended.Core.Classes;
+using Nextended.Core.Types;
 using Nextended.Core.Extensions;
 using Nextended.Core.Helper;
 using Nextended.Core.Tests.classes;

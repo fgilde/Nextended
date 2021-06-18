@@ -1,5 +1,5 @@
 ﻿using System;
-using Nextended.Core.Classes;
+using Nextended.Core.Types;
 
 namespace Nextended.Core.Tests.classes
 {
