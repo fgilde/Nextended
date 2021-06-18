@@ -17,6 +17,9 @@
 	<VersionSuffix></VersionSuffix>
 
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <DocumentationFile>..\bin\Nextended.Core\Nextended.Core.xml</DocumentationFile>
+  </PropertyGroup>
   <ItemGroup>
     <Compile Include="..\SolutionInfo.cs">
       <Link>Properties\SolutionInfo.cs</Link>

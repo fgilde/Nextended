@@ -25,6 +25,7 @@ This package is the new version of Nextended.Image nExt was renamed to Nextended
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
     <OutputPath>..\bin\Nextended.Imaging</OutputPath>
+    <DocumentationFile>..\bin\Nextended.Imaging\Nextended.Imaging.xml</DocumentationFile>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
