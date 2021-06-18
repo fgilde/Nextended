@@ -510,7 +510,6 @@ namespace Nextended.Core.Tests
             char[] chars = "Hallo".MapTo<char[]>();
             string hallo = chars.MapTo<string>();
             Assert.AreEqual("Hallo", hallo);
-
         }
 
         [TestMethod]
