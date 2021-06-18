@@ -4,6 +4,7 @@ This Libraray was updated to .net5 and renamed from old "nExt" to Nextended
 Old Nuget Package: https://www.nuget.org/packages/nExt.Core/ (No more updated)
 
 Source for this package: https://github.com/fgilde/Nextended
+Nuget Package https://www.nuget.org/packages/Nextended.Core/
 
 # Description
 
