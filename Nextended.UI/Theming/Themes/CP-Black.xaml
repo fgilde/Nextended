@@ -1,0 +1,1423 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:System="clr-namespace:System;assembly=mscorlib">
+   
+  
+    <LinearGradientBrush StartPoint="0,0"
+                         EndPoint="0,1"
+                         x:Key="{x:Static SystemColors.HighlightBrushKey}"
+                         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
+        <LinearGradientBrush.GradientStops>
+            <GradientStop Color="#FFE3FCD0"
+                          Offset="0" />
+            <GradientStop Color="#FFC5EDA7"
+                          Offset="0.5" />
+            <GradientStop Color="#FFB7E596"
+                          Offset="0.5" />
+            <GradientStop Color="#FFC2ECA4"
+                          Offset="1" />
+        </LinearGradientBrush.GradientStops>
+    </LinearGradientBrush>
+    <SolidColorBrush x:Key="{x:Static SystemColors.HighlightTextBrushKey}"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FF000000</SolidColorBrush>
+    <LinearGradientBrush StartPoint="0,0"
+                         EndPoint="0,1"
+                         x:Key="AboutDialogBackgroundBrush"
+                         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
+        <LinearGradientBrush.GradientStops>
+            <GradientStop Color="#FF959AA6"
+                          Offset="0.013" />
+            <GradientStop Color="#FF4D5056"
+                          Offset="0.993" />
+        </LinearGradientBrush.GradientStops>
+    </LinearGradientBrush>
+    <SolidColorBrush x:Key="AboutDialogForegroundColor"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FFFFFFFF</SolidColorBrush>
+    <RadialGradientBrush RadiusX="0.8"
+                         GradientOrigin="0.5,0.95"
+                         x:Key="ApplicationMenuButtonBrush"
+                         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
+        <RadialGradientBrush.GradientStops>
+            <GradientStop Color="#FF99999C"
+                          Offset="0" />
+            <GradientStop Color="#FF57585B"
+                          Offset="0.343" />
+            <GradientStop Color="#FF434649"
+                          Offset="0.392" />
+            <GradientStop Color="#FF1B2220"
+                          Offset="0.441" />
+            <GradientStop Color="#FF191B1E"
+                          Offset="0.559" />
+            <GradientStop Color="#FF33353E"
+                          Offset="1" />
+        </RadialGradientBrush.GradientStops>
+    </RadialGradientBrush>
+    <RadialGradientBrush RadiusX="0.9"
+                         GradientOrigin="0.5,0.95"
+                         x:Key="ApplicationMenuButtonHoverBrush"
+                         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
+        <RadialGradientBrush.GradientStops>
+            <GradientStop Color="#FF688365"
+                          Offset="0" />
+            <GradientStop Color="#FF8A9586"
+                          Offset="0.143" />
+            <GradientStop Color="#FFB5C88E"
+                          Offset="1" />
+        </RadialGradientBrush.GradientStops>
+    </RadialGradientBrush>
+    <RadialGradientBrush RadiusX="0.9"
+                         GradientOrigin="0.5,0.95"
+                         x:Key="ApplicationMenuButtonPressedBrush"
+                         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
+        <RadialGradientBrush.GradientStops>
+            <GradientStop Color="#FF8A9486"
+                          Offset="0" />
+            <GradientStop Color="#FFABBC8D"
+                          Offset="1" />
+        </RadialGradientBrush.GradientStops>
+    </RadialGradientBrush>
+
+    <SolidColorBrush x:Key="BreadcrumbAnimationBackground" Color="Gray" />
+    <LinearGradientBrush x:Uid="LinearGradientBrush_4"
+                         StartPoint="0,0"
+                         EndPoint="0,1"
+                         x:Key="ButtonCheckedBrush"
+                         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
+        <GradientStop Color="#FFE1FBCE"
+                      Offset="0.033" />
+        <GradientStop Color="#FFC6EEA8"
+                      Offset="0.472" />
+        <GradientStop Color="#FFB7E596"
+                      Offset="0.488" />
+        <GradientStop Color="#FFBEEA9F"
+                      Offset="0.935" />
+    </LinearGradientBrush>
+    <LinearGradientBrush StartPoint="0.5,0"
+                         EndPoint="0.5,1"
+                         x:Key="ButtonDisabledBackground"
+                         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
+        <LinearGradientBrush.GradientStops>
+            <GradientStop Color="#FF46484B"
+                          Offset="0" />
+            <GradientStop Color="#FF212224"
+                          Offset="0.925" />
+        </LinearGradientBrush.GradientStops>
+    </LinearGradientBrush>
+    <SolidColorBrush x:Key="ButtonForegroundColor"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FFFFFFFF</SolidColorBrush>
+    <LinearGradientBrush StartPoint="0.5,0"
+                         EndPoint="0.5,1"
+                         x:Key="ButtonHoverBackground"
+                         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
+        <LinearGradientBrush.GradientStops>
+            <GradientStop Color="#FFDCF9C7"
+                          Offset="0" />
+            <GradientStop Color="#FFC4EDA6"
+                          Offset="0.455" />
+            <GradientStop Color="#FFB7E596"
+                          Offset="0.5" />
+            <GradientStop Color="#FFC1EBA2"
+                          Offset="0.955" />
+        </LinearGradientBrush.GradientStops>
+    </LinearGradientBrush>
+    <LinearGradientBrush StartPoint="0,0"
+                         EndPoint="0,1"
+                         x:Key="ButtonHoverSelectedBrush"
+                         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
+        <LinearGradientBrush.GradientStops>
+            <GradientStop Color="#FF74D52D"
+                          Offset="0" />
+            <GradientStop Color="#FF67BE29"
+                          Offset="0.464" />
+            <GradientStop Color="#FF5AA624"
+                          Offset="0.588" />
+        </LinearGradientBrush.GradientStops>
+    </LinearGradientBrush>
+    <LinearGradientBrush StartPoint="0,0"
+                         EndPoint="0,1"
+                         x:Key="ButtonNormalBackground"
+                         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
+        <LinearGradientBrush.GradientStops>
+            <GradientStop Color="#FF4E5053"
+                          Offset="0" />
+            <GradientStop Color="#FF1E1F21"
+                          Offset="0.437" />
+            <GradientStop Color="#FF000000"
+                          Offset="0.479" />
+        </LinearGradientBrush.GradientStops>
+    </LinearGradientBrush>
+    <SolidColorBrush x:Key="ButtonNormalBorder"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FF000000</SolidColorBrush>
+    <LinearGradientBrush StartPoint="0.5,0"
+                         EndPoint="0.5,1"
+                         x:Key="ButtonNormalBrush"
+                         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
+        <LinearGradientBrush.GradientStops>
+            <GradientStop Color="#FF424547"
+                          Offset="0" />
+            <GradientStop Color="#FF27292B"
+                          Offset="0.309" />
+            <GradientStop Color="#FF000000"
+                          Offset="0.464" />
+        </LinearGradientBrush.GradientStops>
+    </LinearGradientBrush>
+    <LinearGradientBrush StartPoint="0,0"
+                         EndPoint="0,1"
+                         x:Key="ButtonPressedBrush"
+                         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
+        <LinearGradientBrush.GradientStops>
+            <GradientStop Color="#FFD9F7C3"
+                          Offset="0" />
+            <GradientStop Color="#FFB7E596"
+                          Offset="0.513" />
+            <GradientStop Color="#FFC1EBA2"
+                          Offset="1" />
+        </LinearGradientBrush.GradientStops>
+    </LinearGradientBrush>
+    <LinearGradientBrush StartPoint="0,0"
+                         EndPoint="0,1"
+                         x:Key="ButtonSelectedBrush"
+                         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
+        <LinearGradientBrush.GradientStops>
+            <GradientStop Color="#FF8CD65A"
+                          Offset="0" />
+            <GradientStop Color="#FF77D03B"
+                          Offset="0.389" />
+            <GradientStop Color="#FF66BC29"
+                          Offset="0.454" />
+            <GradientStop Color="#FF70C833"
+                          Offset="1" />
+        </LinearGradientBrush.GradientStops>
+    </LinearGradientBrush>
+    <SolidColorBrush x:Key="ChartBackground"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FF4D5056</SolidColorBrush>
+    <SolidColorBrush x:Key="ChartColor00"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FF5E7CB9</SolidColorBrush>
+    <SolidColorBrush x:Key="ChartColor01"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FFB54E51</SolidColorBrush>
+    <SolidColorBrush x:Key="ChartColor02"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FF97BD5C</SolidColorBrush>
+    <SolidColorBrush x:Key="ChartColor03"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FF805E9F</SolidColorBrush>
+    <SolidColorBrush x:Key="ChartColor04"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FF60A9C2</SolidColorBrush>
+    <SolidColorBrush x:Key="ChartColor05"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FFEB954F</SolidColorBrush>
+    <SolidColorBrush x:Key="ChartColor06"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FF8DB5E8</SolidColorBrush>
+    <SolidColorBrush x:Key="ChartColor07"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FFE27F7F</SolidColorBrush>
+    <SolidColorBrush x:Key="ChartColor08"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FFCEEC8F</SolidColorBrush>
+    <SolidColorBrush x:Key="ChartColor09"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FFB893D6</SolidColorBrush>
+    <SolidColorBrush x:Key="ChartColor10"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FF8BDFED</SolidColorBrush>
+    <SolidColorBrush x:Key="ChartColor11"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FFF4D079</SolidColorBrush>
+    <SolidColorBrush x:Key="ChartColor12"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FF3536A1</SolidColorBrush>
+    <SolidColorBrush x:Key="ChartColor13"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FFB21F3D</SolidColorBrush>
+    <SolidColorBrush x:Key="ChartColor14"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FF2B7D24</SolidColorBrush>
+    <SolidColorBrush x:Key="ChartColor15"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FF742976</SolidColorBrush>
+    <SolidColorBrush x:Key="ChartColor16"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FF336C82</SolidColorBrush>
+    <SolidColorBrush x:Key="ChartColor17"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FFE6D84D</SolidColorBrush>
+    <SolidColorBrush x:Key="ChartColor18"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FF5C6383</SolidColorBrush>
+    <SolidColorBrush x:Key="ChartColor19"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FF8B4954</SolidColorBrush>
+    <SolidColorBrush x:Key="ChartColor20"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FF66795B</SolidColorBrush>
+    <SolidColorBrush x:Key="ChartColor21"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FF7F5878</SolidColorBrush>
+    <SolidColorBrush x:Key="ChartColor22"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FF6D7C81</SolidColorBrush>
+    <SolidColorBrush x:Key="ChartColor23"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FFC86D22</SolidColorBrush>
+    <SolidColorBrush x:Key="classicWindowBrush"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FF575A5E</SolidColorBrush>
+    <SolidColorBrush x:Key="ContainerBorder"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FF000000</SolidColorBrush>
+    <LinearGradientBrush StartPoint="0.5,0"
+                         EndPoint="0.5,1"
+                         x:Key="ContainerCenter"
+                         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
+        <LinearGradientBrush.GradientStops>
+            <GradientStop Color="#FF6D767E"
+                          Offset="0.025" />
+            <GradientStop Color="#FF000000"
+                          Offset="0.984" />
+        </LinearGradientBrush.GradientStops>
+    </LinearGradientBrush>
+    <LinearGradientBrush StartPoint="0.5,0"
+                         EndPoint="0.5,1"
+                         x:Key="ContainerCenterDisabled"
+                         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
+        <LinearGradientBrush.GradientStops>
+            <GradientStop Color="#FF494C51"
+                          Offset="0.025" />
+            <GradientStop Color="#FF000000"
+                          Offset="0.984" />
+        </LinearGradientBrush.GradientStops>
+    </LinearGradientBrush>
+    <SolidColorBrush x:Key="ContainerConnectGraph"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FF989DA9</SolidColorBrush>
+    <LinearGradientBrush StartPoint="0.5,0"
+                         EndPoint="0.5,1"
+                         x:Key="ContainerEars"
+                         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
+        <LinearGradientBrush.GradientStops>
+            <GradientStop Color="#FF6D767E"
+                          Offset="0.32" />
+            <GradientStop Color="#FF494C51"
+                          Offset="0.697" />
+        </LinearGradientBrush.GradientStops>
+    </LinearGradientBrush>
+    <SolidColorBrush x:Key="CPLogoTextBrush"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FFFFFFFF</SolidColorBrush>
+    <SolidColorBrush Color="{DynamicResource {x:Static SystemColors.HighlightColorKey}}"
+                     Opacity="0.25"
+                     x:Key="CurrentEntryBackground"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" />
+    <SolidColorBrush x:Key="DefaultContentBackground"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FF232425</SolidColorBrush>
+    <SolidColorBrush x:Key="DefaultDarkWarnlightBlueBrush"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FF5E7CB9</SolidColorBrush>
+    <SolidColorBrush x:Key="DefaultDarkWarnlightGreenBrush"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FF66BC29</SolidColorBrush>
+    <SolidColorBrush x:Key="DefaultDarkWarnlightRedBrush"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FFCC1D00</SolidColorBrush>
+    <SolidColorBrush x:Key="DefaultDarkWarnlightYellowBrush"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FFEEB900</SolidColorBrush>
+    <SolidColorBrush x:Key="DefaultForegroundColor"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FFFFFFFF</SolidColorBrush>
+    <SolidColorBrush x:Key="DefaultHoverForegroundColor"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FF000000</SolidColorBrush>
+    <SolidColorBrush x:Key="DefaultWarnlightBlueBrush"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FF5E7CB9</SolidColorBrush>
+    <SolidColorBrush x:Key="DefaultWarnlightGreenBrush"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FF66BC29</SolidColorBrush>
+    <SolidColorBrush x:Key="DefaultWarnlightRedBrush"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FFCC1D00</SolidColorBrush>
+    <SolidColorBrush x:Key="DefaultWarnlightYellowBrush"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FFFBCD31</SolidColorBrush>
+    <SolidColorBrush x:Key="DialogBackgroundBrush"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FF34363A</SolidColorBrush>
+    <SolidColorBrush x:Key="DialogFooterBackgroundBrush"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FF4D5056</SolidColorBrush>
+    <LinearGradientBrush StartPoint="0,0"
+                         EndPoint="0,1"
+                         x:Key="DisabledBackgroundBrush"
+                         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
+        <LinearGradientBrush.GradientStops>
+            <GradientStop Color="#50000000"
+                          Offset="0" />
+            <GradientStop Color="#40000000"
+                          Offset="1" />
+        </LinearGradientBrush.GradientStops>
+    </LinearGradientBrush>
+    <SolidColorBrush x:Key="DisabledForegroundBrush"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FF8B9097</SolidColorBrush>
+    <SolidColorBrush x:Key="EvenRowBrush"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FF494C51</SolidColorBrush>
+
+    <LinearGradientBrush x:Uid="LinearGradientBrush_17"
+                         StartPoint="0.5,0"
+                         EndPoint="0.5,1"
+                         x:Key="FavoriteStarBackgroundBrush"
+                         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
+        <LinearGradientBrush.GradientStops>
+            <GradientStop x:Uid="GradientStop_71"
+                          Color="#FFFBE88C"
+                          Offset="0.047" />
+            <GradientStop x:Uid="GradientStop_72"
+                          Color="#FFFCE26A"
+                          Offset="0.33" />
+            <GradientStop x:Uid="GradientStop_73"
+                          Color="#FFFCDE57"
+                          Offset="0.354" />
+            <GradientStop x:Uid="GradientStop_74"
+                          Color="#FFC4AF53"
+                          Offset="0.906" />
+        </LinearGradientBrush.GradientStops>
+    </LinearGradientBrush>
+
+    <SolidColorBrush x:Key="GlyphBrush"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FF444444</SolidColorBrush>
+    <SolidColorBrush x:Key="GraphicBackgroundGreen"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FFE4FDD2</SolidColorBrush>
+    <SolidColorBrush x:Key="GraphicBackgroundRed"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FFFDCCAB</SolidColorBrush>
+    <SolidColorBrush x:Key="GraphicBackgroundYellow"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FFFCF1C7</SolidColorBrush>
+    <SolidColorBrush x:Key="GridBorderBrush"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FFD2D2D2</SolidColorBrush>
+    <SolidColorBrush x:Key="GridCaptionRowBrush"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FF252629</SolidColorBrush>
+    <SolidColorBrush x:Key="GridFixedLineBrush"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FFD2D2D2</SolidColorBrush>
+    <SolidColorBrush x:Key="GridHeaderFixedLines"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FF8B9097</SolidColorBrush>
+    <SolidColorBrush x:Key="GridSubCaptionRowBrush"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FF36383C</SolidColorBrush>
+    <SolidColorBrush x:Key="GroupBoxBrush"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FF8B9097</SolidColorBrush>
+    <SolidColorBrush x:Key="HeaderBorderBrush"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FF030303</SolidColorBrush>
+    <LinearGradientBrush StartPoint="0.5,0"
+                         EndPoint="0.5,1"
+                         x:Key="HeaderControlBackgroundBrush"
+                         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
+        <LinearGradientBrush.GradientStops>
+            <GradientStop Color="#FF75797C"
+                          Offset="0" />
+            <GradientStop Color="#FF43464A"
+                          Offset="0.479" />
+            <GradientStop Color="#FF303135"
+                          Offset="0.521" />
+            <GradientStop Color="#FF000000"
+                          Offset="0.563" />
+        </LinearGradientBrush.GradientStops>
+    </LinearGradientBrush>
+    <SolidColorBrush x:Key="HeaderControlForegroundColor"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FFFFFFFF</SolidColorBrush>
+    <LinearGradientBrush StartPoint="0.5,0"
+                         EndPoint="0.5,1"
+                         x:Key="HeaderPanelBackgroundBrush"
+                         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
+        <LinearGradientBrush.GradientStops>
+            <GradientStop Color="#FF75797C"
+                          Offset="0" />
+            <GradientStop Color="#FF43464A"
+                          Offset="0.479" />
+            <GradientStop Color="#FF303135"
+                          Offset="0.521" />
+            <GradientStop Color="#FF000000"
+                          Offset="0.563" />
+        </LinearGradientBrush.GradientStops>
+    </LinearGradientBrush>
+    <LinearGradientBrush StartPoint="0,0"
+                         EndPoint="0,1"
+                         x:Key="HorizontalScrollbarBackground"
+                         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
+        <LinearGradientBrush.GradientStops>
+            <GradientStop Color="#FF4E5053"
+                          Offset="0" />
+            <GradientStop Color="#FF1E1F21"
+                          Offset="0.437" />
+            <GradientStop Color="#FF000000"
+                          Offset="0.479" />
+        </LinearGradientBrush.GradientStops>
+    </LinearGradientBrush>
+    <SolidColorBrush x:Key="HorizontalScrollbarChannelBackground"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#00FFFFFF</SolidColorBrush>
+    <LinearGradientBrush StartPoint="0.5,0"
+                         EndPoint="0.5,1"
+                         x:Key="HorizontalScrollbarHoverBackground"
+                         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
+        <LinearGradientBrush.GradientStops>
+            <GradientStop Color="#FFDCF9C7"
+                          Offset="0" />
+            <GradientStop Color="#FFC4EDA6"
+                          Offset="0.455" />
+            <GradientStop Color="#FFB7E596"
+                          Offset="0.5" />
+            <GradientStop Color="#FFC1EBA2"
+                          Offset="0.955" />
+        </LinearGradientBrush.GradientStops>
+    </LinearGradientBrush>
+    <SolidColorBrush x:Key="HoverLightBackground"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FFEBFADF</SolidColorBrush>
+    <LinearGradientBrush StartPoint="0,0"
+                         EndPoint="0,1"
+                         x:Key="IsHighlightedBackgroundBrush"
+                         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
+        <LinearGradientBrush.GradientStops>
+            <GradientStop Color="#FFD9F7C3"
+                          Offset="0" />
+            <GradientStop Color="#FFB7E596"
+                          Offset="0.513" />
+            <GradientStop Color="#FFC1EBA2"
+                          Offset="1" />
+        </LinearGradientBrush.GradientStops>
+    </LinearGradientBrush>
+    <SolidColorBrush x:Key="IsHighlightedBorderBrush"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FF66BC29</SolidColorBrush>
+    <SolidColorBrush x:Key="MenuBackground"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FF232425</SolidColorBrush>
+    <LinearGradientBrush StartPoint="0.5,0"
+                         EndPoint="0.5,1"
+                         x:Key="MenuItemBackgroundBrush"
+                         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
+        <GradientStop Color="#FF6C6F73"
+                      Offset="0.006" />
+        <GradientStop Color="#FF191A1B"
+                      Offset="0.949" />
+    </LinearGradientBrush>
+    <SolidColorBrush x:Key="MenuItemBorderBrush"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FF808080</SolidColorBrush>
+    <SolidColorBrush x:Key="MenuItemCheckBackgroundBrush"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FFE6F0FA</SolidColorBrush>
+    <SolidColorBrush x:Key="MenuItemForgroundColor"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FFFFFFFF</SolidColorBrush>
+	<SolidColorBrush x:Key="StatusBarItemForgroundColor"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FFFFFFFF</SolidColorBrush>
+    <LinearGradientBrush StartPoint="0,0"
+                         EndPoint="0,1"
+                         x:Key="MenuItemPressedFill"
+                         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
+        <LinearGradientBrush.GradientStops>
+            <GradientStop Color="#28717070"
+                          Offset="0" />
+            <GradientStop Color="#50717070"
+                          Offset="0.75" />
+            <GradientStop Color="#90717070"
+                          Offset="1" />
+        </LinearGradientBrush.GradientStops>
+    </LinearGradientBrush>
+    <LinearGradientBrush StartPoint="0,0"
+                         EndPoint="0,1"
+                         x:Key="MenuItemSelectionFill"
+                         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
+        <LinearGradientBrush.GradientStops>
+            <GradientStop Color="#34C5EBFF"
+                          Offset="0" />
+            <GradientStop Color="#3481D8FF"
+                          Offset="1" />
+        </LinearGradientBrush.GradientStops>
+    </LinearGradientBrush>
+    <SolidColorBrush x:Key="MenuItemSeparatorBrush"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FFFFFFFF</SolidColorBrush>
+    <SolidColorBrush x:Key="MenuItemVerticalBackground"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FF5A5A5A</SolidColorBrush>
+    <SolidColorBrush x:Key="MenuItemVerticalSeparatorBrush"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FFFFFFFF</SolidColorBrush>
+    <SolidColorBrush x:Key="MessageForegroundBrush"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FFFFFFFF</SolidColorBrush>
+    <LinearGradientBrush StartPoint="0,0"
+                         EndPoint="0,1"
+                         x:Key="NavigationWindowButtonGroundBackground"
+                         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
+        <LinearGradientBrush.GradientStops>
+            <GradientStop Color="#FF5F656F"
+                          Offset="0" />
+            <GradientStop Color="#FF3E4349"
+                          Offset="0.051" />
+            <GradientStop Color="#FF1D1F22"
+                          Offset="0.202" />
+            <GradientStop Color="#FF1D1F22"
+                          Offset="0.798" />
+            <GradientStop Color="#FF34383D"
+                          Offset="0.99" />
+        </LinearGradientBrush.GradientStops>
+    </LinearGradientBrush>
+    <SolidColorBrush x:Key="NavigationWindowButtonGroundBorder"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FFD2D2D2</SolidColorBrush>
+    <LinearGradientBrush StartPoint="0,0"
+                         EndPoint="0,1"
+                         x:Key="NavigationWindowDownArrowFill"
+                         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
+        <LinearGradientBrush.GradientStops>
+            <GradientStop Color="#FF43494B"
+                          Offset="0" />
+            <GradientStop Color="#FF000000"
+                          Offset="1" />
+        </LinearGradientBrush.GradientStops>
+    </LinearGradientBrush>
+    <SolidColorBrush x:Key="NavigationWindowNavigationArrowFill"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FFF7F7F7</SolidColorBrush>
+    <SolidColorBrush x:Key="NavigationWindowNavigationArrowStrokeEnabled"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#01FFFFFF</SolidColorBrush>
+    <LinearGradientBrush StartPoint="0.5,0"
+                         EndPoint="0.5,1"
+                         x:Key="NavigationWindowNavigationButtonFillDisabled"
+                         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
+        <LinearGradientBrush.GradientStops>
+            <GradientStop Color="#FF8D8D8D"
+                          Offset="0.538" />
+            <GradientStop Color="#FF7F7F7F"
+                          Offset="0.692" />
+            <GradientStop Color="#AE8D8D8D"
+                          Offset="0.769" />
+        </LinearGradientBrush.GradientStops>
+    </LinearGradientBrush>
+    <LinearGradientBrush StartPoint="0.5,0"
+                         EndPoint="0.5,1"
+                         MappingMode="RelativeToBoundingBox"
+                         x:Key="NavigationWindowNavigationButtonFillEnabled"
+                         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
+        <LinearGradientBrush.GradientStops>
+            <GradientStop Color="#FF9399A5"
+                          Offset="0" />
+            <GradientStop Color="#FF35383D"
+                          Offset="0.654" />
+            <GradientStop Color="#FF222428"
+                          Offset="0.962" />
+        </LinearGradientBrush.GradientStops>
+    </LinearGradientBrush>
+    <LinearGradientBrush StartPoint="0.5,0"
+                         EndPoint="0.5,1"
+                         MappingMode="RelativeToBoundingBox"
+                         x:Key="NavigationWindowNavigationButtonFillHover"
+                         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
+        <LinearGradientBrush.GradientStops>
+            <GradientStop Color="#FFB1B3B4"
+                          Offset="0" />
+            <GradientStop Color="#FF737674"
+                          Offset="1" />
+        </LinearGradientBrush.GradientStops>
+    </LinearGradientBrush>
+    <LinearGradientBrush StartPoint="0.5,0"
+                         EndPoint="0.5,1"
+                         MappingMode="RelativeToBoundingBox"
+                         x:Key="NavigationWindowNavigationButtonFillPressed"
+                         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
+        <LinearGradientBrush.GradientStops>
+            <GradientStop Color="#FFADAFB0"
+                          Offset="0" />
+            <GradientStop Color="#FF717472"
+                          Offset="1" />
+        </LinearGradientBrush.GradientStops>
+    </LinearGradientBrush>
+    <SolidColorBrush x:Key="NavigationWindowNavigationButtonStrokeEnabled"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#7EFFFFFF</SolidColorBrush>
+    <SolidColorBrush x:Key="NavigatorBorderBrush"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FF000000</SolidColorBrush>
+    <SolidColorBrush x:Key="NavigatorContentBackground"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FF232425</SolidColorBrush>
+    
+    <SolidColorBrush x:Key="StatusBarForegroundBrush">#FFFFFFFF</SolidColorBrush>
+    <SolidColorBrush x:Key="NavigatorContentHoverForeground">#FF000000</SolidColorBrush>
+    <LinearGradientBrush StartPoint="0,0"
+                         EndPoint="0,1"
+                         x:Key="NavigatorGroupButtonSelectedBrush"
+                         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
+        <LinearGradientBrush.GradientStops>
+            <GradientStop Color="#FF8CD65A"
+                          Offset="0" />
+            <GradientStop Color="#FF77D03B"
+                          Offset="0.389" />
+            <GradientStop Color="#FF66BC29"
+                          Offset="0.454" />
+            <GradientStop Color="#FF70C833"
+                          Offset="1" />
+        </LinearGradientBrush.GradientStops>
+    </LinearGradientBrush>
+
+    <SolidColorBrush x:Key="NavigatorContentForeground"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FFFFFFFF</SolidColorBrush>
+    <SolidColorBrush x:Key="NavigatorGroupButtonHoverBorderBrush"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FF509320</SolidColorBrush>
+    <LinearGradientBrush StartPoint="0,0"
+                         EndPoint="0,1"
+                         x:Key="NavigatorGroupButtonHoverBrush"
+                         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
+        <LinearGradientBrush.GradientStops>
+            <GradientStop Color="#FFD7F6C1"
+                          Offset="0.047" />
+            <GradientStop Color="#FFC4EDA7"
+                          Offset="0.467" />
+            <GradientStop Color="#FFB7E596"
+                          Offset="0.533" />
+            <GradientStop Color="#FFBFEAA0"
+                          Offset="0.953" />
+        </LinearGradientBrush.GradientStops>
+    </LinearGradientBrush>
+    <SolidColorBrush x:Key="NavigatorGroupCaptionBrush"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FFFFFFFF</SolidColorBrush>
+    <LinearGradientBrush StartPoint="0.5,0"
+                         EndPoint="0.5,1"
+                         x:Key="NavigatorGroupHeaderItemBackgroundBrush"
+                         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
+        <LinearGradientBrush.GradientStops>
+            <GradientStop Color="#FF5A5D5F"
+                          Offset="0.054" />
+            <GradientStop Color="#FF232527"
+                          Offset="0.511" />
+            <GradientStop Color="#FF000000"
+                          Offset="0.566" />
+        </LinearGradientBrush.GradientStops>
+    </LinearGradientBrush>
+    <LinearGradientBrush StartPoint="0.5,0"
+                         EndPoint="0.5,1"
+                         x:Key="NavigatorGroupHeaderItemBorderBrush"
+                         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
+        <LinearGradientBrush.GradientStops>
+            <GradientStop Color="#FF4F5154"
+                          Offset="0" />
+            <GradientStop Color="#FF232527"
+                          Offset="0.353" />
+            <GradientStop Color="#FF000000"
+                          Offset="0.412" />
+            <GradientStop Color="#FF03080C"
+                          Offset="0.882" />
+            <GradientStop Color="#FF14191F"
+                          Offset="0.941" />
+            <GradientStop Color="#FF757A83"
+                          Offset="1" />
+        </LinearGradientBrush.GradientStops>
+    </LinearGradientBrush>
+    <LinearGradientBrush StartPoint="0,0"
+                         EndPoint="0,1"
+                         x:Key="NavigatorGroupHeaderItemHoverBackgroundBrush"
+                         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
+        <LinearGradientBrush.GradientStops>
+            <GradientStop Color="#FFFFFFFF" />
+            <GradientStop Color="#FFDFEBFF"
+                          Offset="0.5" />
+            <GradientStop Color="#FFFFFFFF"
+                          Offset="1" />
+        </LinearGradientBrush.GradientStops>
+    </LinearGradientBrush>
+    <LinearGradientBrush StartPoint="0,0"
+                         EndPoint="0,1"
+                         x:Key="NavigatorGroupHeaderItemPressedBackgroundBrush"
+                         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
+        <LinearGradientBrush.GradientStops>
+            <GradientStop Color="#FFE0F1FF" />
+            <GradientStop Color="#FFCDD9EE"
+                          Offset="0.5" />
+            <GradientStop Color="#FFE0F1FF"
+                          Offset="1" />
+        </LinearGradientBrush.GradientStops>
+    </LinearGradientBrush>
+    <SolidColorBrush x:Key="NavigatorGroupHoverCaptionBrush"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FF000000</SolidColorBrush>
+    <LinearGradientBrush StartPoint="0.5,0"
+                         EndPoint="0.5,1"
+                         x:Key="NavigatorGroupItemBackgroundBrush"
+                         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
+        <LinearGradientBrush.GradientStops>
+            <GradientStop Color="#FF4F5154"
+                          Offset="0" />
+            <GradientStop Color="#FF232527"
+                          Offset="0.4" />
+            <GradientStop Color="#FF000000"
+                          Offset="0.467" />
+        </LinearGradientBrush.GradientStops>
+    </LinearGradientBrush>
+    <SolidColorBrush x:Key="NavigatorGroupItemHostPanelBrush"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FF020912</SolidColorBrush>
+    <SolidColorBrush x:Key="NavigatorSplitterBorderBrush"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#00B6B6AA</SolidColorBrush>
+    <LinearGradientBrush StartPoint="0.5,0"
+                         EndPoint="0.5,1"
+                         x:Key="NavigatorToggleButtonBackgroundBrush"
+                         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
+        <LinearGradientBrush.GradientStops>
+            <GradientStop Color="#FF55575A"
+                          Offset="0" />
+            <GradientStop Color="#FF232527"
+                          Offset="0.553" />
+            <GradientStop Color="#FF000000"
+                          Offset="0.627" />
+        </LinearGradientBrush.GradientStops>
+    </LinearGradientBrush>
+    <LinearGradientBrush StartPoint="0.5,0"
+                         EndPoint="0.5,1"
+                         x:Key="NavigatorToggleButtonHoverBackgroundBrush"
+                         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
+        <LinearGradientBrush.GradientStops>
+            <GradientStop Color="#FFE4FDD2"
+                          Offset="0" />
+            <GradientStop Color="#FFE4FDD2"
+                          Offset="1" />
+        </LinearGradientBrush.GradientStops>
+    </LinearGradientBrush>
+    <LinearGradientBrush StartPoint="0.5,0"
+                         EndPoint="0.5,1"
+                         x:Key="NavigatorToggleButtonOpenBackgroundBrush"
+                         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
+        <LinearGradientBrush.GradientStops>
+            <GradientStop Color="#FFC4EDA6"
+                          Offset="0" />
+            <GradientStop Color="#FFC4EDA6"
+                          Offset="1" />
+        </LinearGradientBrush.GradientStops>
+    </LinearGradientBrush>
+    <SolidColorBrush x:Key="NegativeNumberForgroundBrush"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FFFF0000</SolidColorBrush>
+    <SolidColorBrush x:Key="OddRowBrush"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FF787B7E</SolidColorBrush>
+    <SolidColorBrush x:Key="PlannerBreakevenLineColor01"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FFCC1D00</SolidColorBrush>
+    <SolidColorBrush x:Key="PlannerBreakevenLineColor02"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FF5E7CB9</SolidColorBrush>
+    <SolidColorBrush x:Key="PlannerChartAdhocSingle"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FF008080</SolidColorBrush>
+    <SolidColorBrush x:Key="PlannerChartBackground"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FFE9EDF1</SolidColorBrush>
+    <SolidColorBrush x:Key="PlannerChartColorChoose"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FFFFFFFF</SolidColorBrush>
+    <SolidColorBrush x:Key="PlannerChartFieldSingle"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FF008080</SolidColorBrush>
+    <SolidColorBrush x:Key="PlannerChartLevelOff"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FF008080</SolidColorBrush>
+    <SolidColorBrush x:Key="PlannerGridCellBackground"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FFABB0BB</SolidColorBrush>
+    <SolidColorBrush x:Key="PlannerGridCellBackgroundDark"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FFABB0BB</SolidColorBrush>
+    <SolidColorBrush x:Key="PlannerGridCellBackgroundLessDark"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FFEDEDED</SolidColorBrush>
+    <SolidColorBrush x:Key="PlannerGridCellBackgroundMedium"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FFC0C0C0</SolidColorBrush>
+    <SolidColorBrush x:Key="PlannerGridCellBackgroundMediumBright"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FF36383C</SolidColorBrush>
+    <SolidColorBrush x:Key="PlannerGridCellCommentMarker"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FFFF0000</SolidColorBrush>
+    <SolidColorBrush x:Key="PlannerGridCellCommentMarkerBorder"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FF800000</SolidColorBrush>
+    <SolidColorBrush x:Key="PlannerGridFixedHeaderText"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FF000080</SolidColorBrush>
+    <SolidColorBrush x:Key="PlannerGridGroupViewsColor"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FFCFD4DA</SolidColorBrush>
+    <SolidColorBrush x:Key="PlannerGridHeaderBackgroundDisabled"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FFDDDDDD</SolidColorBrush>
+    <SolidColorBrush x:Key="PlannerGridInput"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FF6D767E</SolidColorBrush>
+    <SolidColorBrush x:Key="PlannerGridLine"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FF000000</SolidColorBrush>
+    <SolidColorBrush x:Key="PlannerGridNonFixedLines"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FF8B9097</SolidColorBrush>
+    <SolidColorBrush x:Key="PlannerGridTextForeignActiveSimulation"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FF5174FF</SolidColorBrush>
+    <SolidColorBrush x:Key="PlannerGridTextForeignActiveSimulation2"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FF5174FF</SolidColorBrush>
+    <SolidColorBrush x:Key="PlannerGridTextForeignActiveSimulationDark"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FF5174FF</SolidColorBrush>
+    <SolidColorBrush x:Key="PlannerGridTextSimulation"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FF0000B0</SolidColorBrush>
+    <SolidColorBrush x:Key="PlannerGridTextSimulation2"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FF8000B0</SolidColorBrush>
+    <SolidColorBrush x:Key="PlannerGridTextUsedByOthers2"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FF5174FF</SolidColorBrush>
+    <LinearGradientBrush StartPoint="0.5,0"
+                         EndPoint="0.5,1"
+                         x:Key="PlannerInfobarBackground"
+                         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
+        <LinearGradientBrush.GradientStops>
+            <GradientStop Color="#FF75797C"
+                          Offset="0" />
+            <GradientStop Color="#FF43464A"
+                          Offset="0.479" />
+            <GradientStop Color="#FF303135"
+                          Offset="0.521" />
+            <GradientStop Color="#FF000000"
+                          Offset="0.563" />
+        </LinearGradientBrush.GradientStops>
+    </LinearGradientBrush>
+    <SolidColorBrush x:Key="PlannerInfobarColor"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FFCFD4DA</SolidColorBrush>
+    <LinearGradientBrush StartPoint="0.5,0"
+                         EndPoint="0.5,1"
+                         x:Key="PlannerInfobarLeft"
+                         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
+        <LinearGradientBrush.GradientStops>
+            <GradientStop Color="#FF75797C"
+                          Offset="0" />
+            <GradientStop Color="#FF43464A"
+                          Offset="0.479" />
+            <GradientStop Color="#FF303135"
+                          Offset="0.521" />
+            <GradientStop Color="#FF000000"
+                          Offset="0.563" />
+        </LinearGradientBrush.GradientStops>
+    </LinearGradientBrush>
+    <SolidColorBrush x:Key="PlannerInfobarRightSide"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FFCFD4DA</SolidColorBrush>
+    <SolidColorBrush x:Key="PlannerManagerGridHeaderFooter"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FF36383C</SolidColorBrush>
+    <SolidColorBrush x:Key="PlannerParetoBackgroundNoValues"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FF34363A</SolidColorBrush>
+    <SolidColorBrush x:Key="PlannerParetoBarFirst"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FF5E7CB9</SolidColorBrush>
+    <SolidColorBrush x:Key="PlannerParetoBarSecond"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FFCC1D00</SolidColorBrush>
+    <SolidColorBrush x:Key="PlannerParetoCategoryA"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FF34363A</SolidColorBrush>
+    <SolidColorBrush x:Key="PlannerParetoCategoryB"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FF787B7E</SolidColorBrush>
+    <SolidColorBrush x:Key="PlannerParetoCategoryC"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FF989DA9</SolidColorBrush>
+    <SolidColorBrush x:Key="PlannerRatioBackgroundBox"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FF989DA9</SolidColorBrush>
+    <SolidColorBrush x:Key="PlannerRatioBackgroundBoxDisabled"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FF4F4F4F</SolidColorBrush>
+    <SolidColorBrush x:Key="PlannerRatioBackgroundBoxInner"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FF989DA9</SolidColorBrush>
+    <SolidColorBrush x:Key="PlannerVarianceBackgroundGreen"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FF34363A</SolidColorBrush>
+    <SolidColorBrush x:Key="PlannerVarianceBackgroundNoValues"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FF34363A</SolidColorBrush>
+    <SolidColorBrush x:Key="PlannerVarianceBackgroundRed"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FF34363A</SolidColorBrush>
+    <SolidColorBrush x:Key="PlannerVarianceBarGray"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FFBCC9DE</SolidColorBrush>
+    <SolidColorBrush x:Key="PlannerVarianceTextMinus"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FFCC1D00</SolidColorBrush>
+    <SolidColorBrush x:Key="PlannerVarianceTextPlus"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FF66BC29</SolidColorBrush>
+    <SolidColorBrush x:Key="ProductBarBackgroundBrush"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FF232425</SolidColorBrush>
+    <LinearGradientBrush StartPoint="0,0"
+                         EndPoint="0,1"
+                         x:Key="ProductSelectedBackgroundBrush"
+                         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
+        <LinearGradientBrush.GradientStops>
+            <GradientStop Color="#FFFAFAFB"
+                          Offset="0" />
+            <GradientStop Color="#FFDEE2E5"
+                          Offset="0.545" />
+            <GradientStop Color="#FFCEDCED"
+                          Offset="0.591" />
+            <GradientStop Color="#FFEAF0F7"
+                          Offset="1" />
+        </LinearGradientBrush.GradientStops>
+    </LinearGradientBrush>
+    <SolidColorBrush x:Key="ProductSelectedBorderBrush"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FF66BC29</SolidColorBrush>
+    <SolidColorBrush x:Key="ProductsHostBackgroundBrush"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FF232425</SolidColorBrush>
+    <SolidColorBrush x:Key="ReportTableBLBBackground">#FF0D2F56</SolidColorBrush>
+    <SolidColorBrush x:Key="ReportTableIntermediateLevel1Background"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FF888C97</SolidColorBrush>
+    <SolidColorBrush x:Key="ReportTableIntermediateLevel2Background"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FF676B73</SolidColorBrush>
+    <SolidColorBrush x:Key="ReportTableIntermediateLevel3Background"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FF494C51</SolidColorBrush>
+    <SolidColorBrush x:Key="ReportTableRootLevelBackground"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FF989DA9</SolidColorBrush>
+    <SolidColorBrush x:Key="ReportTableGreen">#FF89D455</SolidColorBrush>
+    <SolidColorBrush x:Key="ReportTableYellow">#FFE8DD17</SolidColorBrush>
+    <SolidColorBrush x:Key="ReportTableYellowLeaf">#FFE8DD17</SolidColorBrush>
+    <SolidColorBrush x:Key="ReportTableRed">#FFFD1117</SolidColorBrush>
+
+    <SolidColorBrush x:Key="RibbonMenuItemBorderBrush"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FFCDD2CD</SolidColorBrush>
+    <LinearGradientBrush StartPoint="0.5,0"
+                         EndPoint="0.5,1"
+                         MappingMode="RelativeToBoundingBox"
+                         x:Key="RibbonMenuItemClickedBrush"
+                         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
+        <LinearGradientBrush.GradientStops>
+            <GradientStop Color="#FFA4DD7C"
+                          Offset="0" />
+            <GradientStop Color="#FF77D03B"
+                          Offset="0.492" />
+            <GradientStop Color="#FF66BC29"
+                          Offset="0.546" />
+            <GradientStop Color="#FF74CD38"
+                          Offset="1" />
+        </LinearGradientBrush.GradientStops>
+    </LinearGradientBrush>
+    <LinearGradientBrush StartPoint="0,0"
+                         EndPoint="0.25,1"
+                         x:Key="RibbonMenuItemForgroundColor"
+                         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
+        <LinearGradientBrush.GradientStops>
+            <GradientStop Color="#FF383A3E"
+                          Offset="0" />
+            <GradientStop Color="#FF383A3E"
+                          Offset="0.155" />
+            <GradientStop Color="#FF35373B"
+                          Offset="1" />
+        </LinearGradientBrush.GradientStops>
+    </LinearGradientBrush>
+    <LinearGradientBrush StartPoint="0,0"
+                         EndPoint="0,1"
+                         x:Key="RibbonMenuItemHoverBrush"
+                         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
+        <LinearGradientBrush.GradientStops>
+            <GradientStop Color="#FFD5F5BD"
+                          Offset="0" />
+            <GradientStop Color="#FFC4EDA6"
+                          Offset="0.4" />
+            <GradientStop Color="#FFB7E596"
+                          Offset="0.45" />
+            <GradientStop Color="#FFC0EAA1"
+                          Offset="0.95" />
+        </LinearGradientBrush.GradientStops>
+    </LinearGradientBrush>
+    <SolidColorBrush x:Key="RichEditBackground"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FF989DA9</SolidColorBrush>
+    <LinearGradientBrush StartPoint="0,0"
+                         EndPoint="0,1"
+                         x:Key="SecondaryToolBarBackgroundBrush"
+                         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
+        <LinearGradientBrush.GradientStops>
+            <GradientStop Color="#FF868789"
+                          Offset="0" />
+            <GradientStop Color="#FF383A40"
+                          Offset="1" />
+        </LinearGradientBrush.GradientStops>
+    </LinearGradientBrush>
+    <SolidColorBrush x:Key="ShadowBrush"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#00000000</SolidColorBrush>
+    <LinearGradientBrush StartPoint="0,0"
+                         EndPoint="0,1"
+                         x:Key="StartPageBackgroundBrush"
+                         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
+        <LinearGradientBrush.GradientStops>
+            <GradientStop Color="#FF9499A5"
+                          Offset="0.037" />
+            <GradientStop Color="#FF141313"
+                          Offset="0.996" />
+        </LinearGradientBrush.GradientStops>
+    </LinearGradientBrush>
+    <SolidColorBrush x:Key="StatusBarBackgroundBrush"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FF010A16</SolidColorBrush>
+    <SolidColorBrush x:Key="StatusBarBorderdBrush"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FF0F3663</SolidColorBrush>
+    <SolidColorBrush x:Key="SuiteBackgroundBrush"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FF232425</SolidColorBrush>
+    <SolidColorBrush x:Key="SystemButtonBackgroundBrush"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FFBEBEBE</SolidColorBrush>
+    <LinearGradientBrush StartPoint="0.5,0"
+                         EndPoint="0.5,1"
+                         x:Key="SystemButtonCloseBackgroundBrush"
+                         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
+        <LinearGradientBrush.GradientStops>
+            <GradientStop Color="#FFFE8382"
+                          Offset="0.322" />
+            <GradientStop Color="#FFE36162"
+                          Offset="0.941" />
+            <GradientStop Color="#FFEF7070"
+                          Offset="1" />
+        </LinearGradientBrush.GradientStops>
+    </LinearGradientBrush>
+    <LinearGradientBrush StartPoint="0.5,0"
+                         EndPoint="0.5,1"
+                         x:Key="SystemButtonClosePressedBackgroundBrush"
+                         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
+        <LinearGradientBrush.GradientStops>
+            <GradientStop Color="#FFDA6163"
+                          Offset="0" />
+            <GradientStop Color="#FFF27776"
+                          Offset="0.122" />
+            <GradientStop Color="#FFF27776"
+                          Offset="0.878" />
+            <GradientStop Color="#FFDA6163"
+                          Offset="1" />
+        </LinearGradientBrush.GradientStops>
+    </LinearGradientBrush>
+    <LinearGradientBrush StartPoint="0.5,0"
+                         EndPoint="0.5,1"
+                         x:Key="SystemButtonPressedBackgroundBrush"
+                         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
+        <LinearGradientBrush.GradientStops>
+            <GradientStop Color="#FFADC1DA"
+                          Offset="0" />
+            <GradientStop Color="#FFB9CDE5"
+                          Offset="0.178" />
+            <GradientStop Color="#FFBBCEE6"
+                          Offset="0.738" />
+            <GradientStop Color="#FFADC1DA"
+                          Offset="1" />
+        </LinearGradientBrush.GradientStops>
+    </LinearGradientBrush>
+    <LinearGradientBrush StartPoint="0.5,0"
+                         EndPoint="0.5,1"
+                         x:Key="TaskButtonHoverBackgroundBrush"
+                         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
+        <LinearGradientBrush.GradientStops>
+            <GradientStop Color="#FFFBFDFF"
+                          Offset="0" />
+            <GradientStop Color="#FFEFF6FF"
+                          Offset="0.86" />
+            <GradientStop Color="#FFEDF5FF"
+                          Offset="1" />
+        </LinearGradientBrush.GradientStops>
+    </LinearGradientBrush>
+    <SolidColorBrush x:Key="TaskButtonHoverBorderBrush"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FFB9D7FC</SolidColorBrush>
+    <SolidColorBrush x:Key="TaskButtonHoverForegroundBrush"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FF005ACE</SolidColorBrush>
+    <LinearGradientBrush StartPoint="0.5,0"
+                         EndPoint="0.5,1"
+                         x:Key="TaskButtonPressedBackgroundBrush"
+                         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
+        <LinearGradientBrush.GradientStops>
+            <GradientStop Color="#FFDCEBFD"
+                          Offset="0.027" />
+            <GradientStop Color="#FFA0BCDE"
+                          Offset="0.962" />
+        </LinearGradientBrush.GradientStops>
+    </LinearGradientBrush>
+    <SolidColorBrush x:Key="TaskButtonPressedBorderBrush"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FF7DA2CE</SolidColorBrush>
+    <SolidColorBrush x:Key="TimeSliderBackground"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FF000000</SolidColorBrush>
+    <LinearGradientBrush StartPoint="0,0"
+                         EndPoint="0,1"
+                         x:Key="TimeSliderChannelBackground"
+                         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
+        <LinearGradientBrush.GradientStops>
+            <GradientStop Color="#FF4E5053"
+                          Offset="0" />
+            <GradientStop Color="#FF1E1F21"
+                          Offset="0.437" />
+            <GradientStop Color="#FF000000"
+                          Offset="0.479" />
+        </LinearGradientBrush.GradientStops>
+    </LinearGradientBrush>
+    <LinearGradientBrush StartPoint="0,0"
+                         EndPoint="0,1"
+                         x:Key="TimeSliderChannelSelectedBackground"
+                         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
+        <LinearGradientBrush.GradientStops>
+            <GradientStop Color="#FFD9F7C3"
+                          Offset="0" />
+            <GradientStop Color="#FFB7E596"
+                          Offset="0.513" />
+            <GradientStop Color="#FFC1EBA2"
+                          Offset="1" />
+        </LinearGradientBrush.GradientStops>
+    </LinearGradientBrush>
+    <SolidColorBrush x:Key="TimeSliderForeground"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FFFFFFFF</SolidColorBrush>
+    <SolidColorBrush x:Key="TimeSliderMinorScaleColor"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FF4D5056</SolidColorBrush>
+    <SolidColorBrush x:Key="TimeSliderScaleColor"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FF8B9097</SolidColorBrush>
+    <SolidColorBrush x:Key="TimeSliderSelectedForeground"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FF000000</SolidColorBrush>
+    <SolidColorBrush x:Key="ToolBarBackgroundBrush"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FF232425</SolidColorBrush>
+
+    <LinearGradientBrush StartPoint="0,0"
+                         EndPoint="0,1"
+                         x:Key="ToolBarButtonHoverBrush"
+                         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
+        <LinearGradientBrush.GradientStops>
+            <GradientStop Color="#FFF3F5F6"
+                          Offset="0" />
+            <GradientStop Color="#FFCFDDED"
+                          Offset="0.786" />
+        </LinearGradientBrush.GradientStops>
+    </LinearGradientBrush>
+
+    <LinearGradientBrush StartPoint="0,0"
+                         EndPoint="0,1"
+                         x:Key="ToolBarButtonHoverBrushInactive"
+                         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
+        <LinearGradientBrush.GradientStops>
+            <GradientStop Color="#AAF3F5F6"
+                          Offset="0" />
+            <GradientStop Color="#AACFDDED"
+                          Offset="0.786" />
+        </LinearGradientBrush.GradientStops>
+    </LinearGradientBrush>
+
+    <SolidColorBrush x:Key="ToolBarOverflowButtonHover"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FFC2E0FF</SolidColorBrush>
+    <LinearGradientBrush StartPoint="0.5,0"
+                         EndPoint="0.5,1"
+                         x:Key="ToolBarOverflowPopupBackground"
+                         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
+        <LinearGradientBrush.GradientStops>
+            <GradientStop Color="#FF3A3D40"
+                          Offset="0" />
+            <GradientStop Color="#FF3A3D40"
+                          Offset="1" />
+        </LinearGradientBrush.GradientStops>
+    </LinearGradientBrush>
+    <SolidColorBrush x:Key="ToolBarOverflowPopupBorder"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FF55585C</SolidColorBrush>
+    <LinearGradientBrush StartPoint="0,0"
+                         EndPoint="0,1"
+                         x:Key="ToolBarSeparatorFillLeftBrush"
+                         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
+        <LinearGradientBrush.GradientStops>
+            <GradientStop Color="#FF76787D"
+                          Offset="0" />
+            <GradientStop Color="#FF76787D"
+                          Offset="1" />
+        </LinearGradientBrush.GradientStops>
+    </LinearGradientBrush>
+    <LinearGradientBrush StartPoint="0,0"
+                         EndPoint="0,1"
+                         x:Key="ToolBarSeparatorFillRightBrush"
+                         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
+        <LinearGradientBrush.GradientStops>
+            <GradientStop Color="#FF76787D"
+                          Offset="0" />
+            <GradientStop Color="#FF76787D"
+                          Offset="1" />
+        </LinearGradientBrush.GradientStops>
+    </LinearGradientBrush>
+    <LinearGradientBrush StartPoint="0,0"
+                         EndPoint="0.25,1"
+                         x:Key="ToolTipBackgroundBrush"
+                         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
+        <LinearGradientBrush.GradientStops>
+            <GradientStop Color="#FF383A3E"
+                          Offset="0" />
+            <GradientStop Color="#FF383A3E"
+                          Offset="0.155" />
+            <GradientStop Color="#FF35373B"
+                          Offset="1" />
+        </LinearGradientBrush.GradientStops>
+    </LinearGradientBrush>
+    <SolidColorBrush x:Key="ToolTipForegroundColor"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FFFFFFFF</SolidColorBrush>
+    <SolidColorBrush x:Key="TopLevelMenuItemForegroundColor"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FFFFFFFF</SolidColorBrush>
+    <LinearGradientBrush StartPoint="0,0"
+                         EndPoint="0,1"
+                         x:Key="TopLevelMenuItemIsOpenBackgroundBrush"
+                         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
+        <LinearGradientBrush.GradientStops>
+            <GradientStop Color="#FFD9F7C3"
+                          Offset="0" />
+            <GradientStop Color="#FFB7E596"
+                          Offset="0.513" />
+            <GradientStop Color="#FFC1EBA2"
+                          Offset="1" />
+        </LinearGradientBrush.GradientStops>
+    </LinearGradientBrush>
+    <LinearGradientBrush StartPoint="0,0"
+                         EndPoint="0,1"
+                         x:Key="TreeBackground"
+                         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
+        <LinearGradientBrush.GradientStops>
+            <GradientStop Color="#FF8D919C"
+                          Offset="0.005" />
+            <GradientStop Color="#FF54575E"
+                          Offset="0.979" />
+        </LinearGradientBrush.GradientStops>
+    </LinearGradientBrush>
+    <SolidColorBrush x:Key="TreeExtendedFieldFrameColor"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FF494C51</SolidColorBrush>
+    <LinearGradientBrush StartPoint="0,0"
+                         EndPoint="0,1"
+                         x:Key="TreeFieldBackground"
+                         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
+        <LinearGradientBrush.GradientStops>
+            <GradientStop Color="#FF3F4144"
+                          Offset="0.071" />
+            <GradientStop Color="#FF212325"
+                          Offset="0.357" />
+            <GradientStop Color="#FF010101"
+                          Offset="0.429" />
+        </LinearGradientBrush.GradientStops>
+    </LinearGradientBrush>
+    <SolidColorBrush x:Key="TreeFieldBorder"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FF808080</SolidColorBrush>
+    <SolidColorBrush x:Key="TreeFieldForeground"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FFFFFFFF</SolidColorBrush>
+    <LinearGradientBrush StartPoint="0,0"
+                         EndPoint="0,1"
+                         x:Key="TreeFieldSelectedBackground"
+                         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
+        <LinearGradientBrush.GradientStops>
+            <GradientStop Color="#FF8CD65A"
+                          Offset="0" />
+            <GradientStop Color="#FF77D03B"
+                          Offset="0.389" />
+            <GradientStop Color="#FF66BC29"
+                          Offset="0.454" />
+            <GradientStop Color="#FF70C833"
+                          Offset="1" />
+        </LinearGradientBrush.GradientStops>
+    </LinearGradientBrush>
+    <SolidColorBrush x:Key="TreeFieldSelectedBorder"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FF000000</SolidColorBrush>
+    <SolidColorBrush x:Key="TreeForeground"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FFFFFFFF</SolidColorBrush>
+    <SolidColorBrush x:Key="TreeForkInnerColor"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FFD3D3D3</SolidColorBrush>
+    <SolidColorBrush x:Key="TreeForkOuterColor"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FFFFFFFF</SolidColorBrush>
+    <SolidColorBrush x:Key="TreeForkOuterShadowColor"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FF808080</SolidColorBrush>
+    <SolidColorBrush x:Key="TreeSelectedBorderLeft"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FF77D03B</SolidColorBrush>
+    <SolidColorBrush x:Key="TreeSelectedBorderRight"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FF77D03B</SolidColorBrush>
+    <SolidColorBrush x:Key="TreeSelectedColumnBackground"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FF37393D</SolidColorBrush>
+    <SolidColorBrush x:Key="TreeSelectedColumnForeground"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FFFFFFFF</SolidColorBrush>
+    <SolidColorBrush x:Key="TreeSelectedFieldForeground"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#FF000000</SolidColorBrush>
+
+    <SolidColorBrush x:Key="TreeFieldNoteBackground"
+                     Color="Yellow" />
+    <SolidColorBrush x:Key="TreeFieldNoteBorder"
+                     Color="Black" />
+
+    <SolidColorBrush x:Key="TreeFieldActionNoseBorder"
+                     Color="Black" />
+
+    <LinearGradientBrush StartPoint="0,0"
+                         EndPoint="0,1"
+                         x:Key="TreeFieldActionNoseBackground"
+                         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
+        <LinearGradientBrush.GradientStops>
+            <GradientStop Color="#FF8D919C"
+                          Offset="0.005" />
+            <GradientStop Color="#FF54575E"
+                          Offset="0.979" />
+        </LinearGradientBrush.GradientStops>
+    </LinearGradientBrush>
+
+    <LinearGradientBrush StartPoint="0,0"
+                         EndPoint="0,1"
+                         x:Key="VerticalScrollbarBackground"
+                         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
+        <LinearGradientBrush.GradientStops>
+            <GradientStop Color="#FF4E5053"
+                          Offset="0" />
+            <GradientStop Color="#FF1E1F21"
+                          Offset="0.437" />
+            <GradientStop Color="#FF000000"
+                          Offset="0.479" />
+        </LinearGradientBrush.GradientStops>
+        <LinearGradientBrush.RelativeTransform>
+            <TransformGroup>
+                <TransformGroup.Children>
+                    <ScaleTransform CenterX="0.5"
+                                    CenterY="0.5" />
+                    <SkewTransform CenterX="0.5"
+                                   CenterY="0.5" />
+                    <RotateTransform Angle="90"
+                                     CenterX="0.5"
+                                     CenterY="0.5" />
+                    <TranslateTransform />
+                </TransformGroup.Children>
+            </TransformGroup>
+        </LinearGradientBrush.RelativeTransform>
+    </LinearGradientBrush>
+    <SolidColorBrush x:Key="VerticalScrollbarChannelBackground"
+                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#00FFFFFF</SolidColorBrush>
+    <LinearGradientBrush StartPoint="0.5,0"
+                         EndPoint="0.5,1"
+                         x:Key="VerticalScrollbarHoverBackground"
+                         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
+        <LinearGradientBrush.GradientStops>
+            <GradientStop Color="#FFDCF9C7"
+                          Offset="0" />
+            <GradientStop Color="#FFC4EDA6"
+                          Offset="0.455" />
+            <GradientStop Color="#FFB7E596"
+                          Offset="0.5" />
+            <GradientStop Color="#FFC1EBA2"
+                          Offset="0.955" />
+        </LinearGradientBrush.GradientStops>
+        <LinearGradientBrush.RelativeTransform>
+            <TransformGroup>
+                <TransformGroup.Children>
+                    <ScaleTransform CenterX="0.5"
+                                    CenterY="0.5" />
+                    <SkewTransform CenterX="0.5"
+                                   CenterY="0.5" />
+                    <RotateTransform Angle="90"
+                                     CenterX="0.5"
+                                     CenterY="0.5" />
+                    <TranslateTransform />
+                </TransformGroup.Children>
+            </TransformGroup>
+        </LinearGradientBrush.RelativeTransform>
+    </LinearGradientBrush>
+
+    <LinearGradientBrush x:Uid="LinearGradientBrush_62"
+                         StartPoint="0,0"
+                         EndPoint="0,1"
+                         x:Key="ZoomBoxHoverBackground"
+                         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
+        <LinearGradientBrush.GradientStops>
+            <GradientStop Color="#DD99999C"
+                          Offset="0" />
+            <GradientStop Color="#DD57585B"
+                          Offset="0.343" />
+            <GradientStop Color="#DD434649"
+                          Offset="0.392" />
+            <GradientStop Color="#DD1B2220"
+                          Offset="0.441" />
+            <GradientStop Color="#DD191B1E"
+                          Offset="0.559" />
+            <GradientStop Color="#DD33353E"
+                          Offset="1" />
+        </LinearGradientBrush.GradientStops>
+    </LinearGradientBrush>
+
+    
+    <LinearGradientBrush x:Uid="LinearGradientBrush_62"
+                         StartPoint="0,0"
+                         EndPoint="0,1"
+                         x:Key="ZoomBoxBackground"
+                         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
+        <GradientStop Color="#CC99999C"
+                      Offset="0" />
+        <GradientStop Color="#CC57585B"
+                      Offset="0.343" />
+        <GradientStop Color="#CC434649"
+                      Offset="0.392" />
+        <GradientStop Color="#CC1B2220"
+                      Offset="0.441" />
+        <GradientStop Color="#CC191B1E"
+                      Offset="0.559" />
+        <GradientStop Color="#CC33353E"
+                      Offset="1" />
+    </LinearGradientBrush>
+
+    <Color x:Key="WorkflowStepShadow">#77000000</Color>
+    
+	<SolidColorBrush x:Key="WorkflowArrowStrokeBrush"
+					 Color="#4E6C94" />
+	<SolidColorBrush x:Key="WorkflowArrowFillBrush"
+					 Color="#8DAED9" />
+	<SolidColorBrush x:Key="WorkflowGroupStrokeBrush"
+                     Color="#FF8B9097" />
+	<SolidColorBrush x:Key="WorkflowGroupBackgroundBrush"
+                     Color="#FF5F6873" />
+
+	<LinearGradientBrush x:Key="WorkflowTabArrowBackgroundBrush"
+						 EndPoint="0.5,1"
+						 StartPoint="0.5,0">
+		<GradientStop Color="#FF9AC6F9"
+					  Offset="0" />
+		<GradientStop Color="#FF6C96D7"
+					  Offset="0.494" />
+		<GradientStop Color="#FF5883C6"
+					  Offset="0.556" />
+		<GradientStop Color="#FF6390CD"
+					  Offset="0.837" />
+		<GradientStop Color="#FF79A8DC"
+					  Offset="1" />
+	</LinearGradientBrush>
+
+    <!-- NavigatorGroupItemBackgroundBrush -->
+    <LinearGradientBrush StartPoint="0.5,0"
+                         EndPoint="0.5,1"
+                         x:Key="WorkflowButtonBackground"
+                         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
+        <LinearGradientBrush.GradientStops>
+            <GradientStop Color="#FF4F5154"
+                          Offset="0" />
+            <GradientStop Color="#FF232527"
+                          Offset="0.4" />
+            <GradientStop Color="#FF000000"
+                          Offset="0.467" />
+        </LinearGradientBrush.GradientStops>
+    </LinearGradientBrush>
+
+    <LinearGradientBrush EndPoint="0.5,1"
+                         x:Key="WorkflowButtonImageBackground"
+                         StartPoint="0.5,0">
+        <GradientStop Color="#FF999A9C"
+                      Offset="0" />
+        <GradientStop Color="#FF707378"
+                      Offset="0.444" />
+        <GradientStop Color="#FF58585E"
+                      Offset="0.523" />
+        <GradientStop Color="#FF616469"
+                      Offset="0.967" />
+    </LinearGradientBrush>
+
+</ResourceDictionary>

@@ -1,0 +1,210 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- 
+    Microsoft ResX Schema 
+    
+    Version 2.0
+    
+    The primary goals of this format is to allow a simple XML format 
+    that is mostly human readable. The generation and parsing of the 
+    various data types are done through the TypeConverter classes 
+    associated with the data types.
+    
+    Example:
+    
+    ... ado.net/XML headers & schema ...
+    <resheader name="resmimetype">text/microsoft-resx</resheader>
+    <resheader name="version">2.0</resheader>
+    <resheader name="reader">System.Resources.ResXResourceReader, System.Windows.Forms, ...</resheader>
+    <resheader name="writer">System.Resources.ResXResourceWriter, System.Windows.Forms, ...</resheader>
+    <data name="Name1"><value>this is my long string</value><comment>this is a comment</comment></data>
+    <data name="Color1" type="System.Drawing.Color, System.Drawing">Blue</data>
+    <data name="Bitmap1" mimetype="application/x-microsoft.net.object.binary.base64">
+        <value>[base64 mime encoded serialized .NET Framework object]</value>
+    </data>
+    <data name="Icon1" type="System.Drawing.Icon, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
+        <value>[base64 mime encoded string representing a byte array form of the .NET Framework object]</value>
+        <comment>This is a comment</comment>
+    </data>
+                
+    There are any number of "resheader" rows that contain simple 
+    name/value pairs.
+    
+    Each data row contains a name, and value. The row also contains a 
+    type or mimetype. Type corresponds to a .NET class that support 
+    text/value conversion through the TypeConverter architecture. 
+    Classes that don't support this are serialized and stored with the 
+    mimetype set.
+    
+    The mimetype is used for serialized objects, and tells the 
+    ResXResourceReader how to depersist the object. This is currently not 
+    extensible. For a given mimetype the value must be set accordingly:
+    
+    Note - application/x-microsoft.net.object.binary.base64 is the format 
+    that the ResXResourceWriter will generate, however the reader can 
+    read any of the formats listed below.
+    
+    mimetype: application/x-microsoft.net.object.binary.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Binary.BinaryFormatter
+            : and then encoded with base64 encoding.
+    
+    mimetype: application/x-microsoft.net.object.soap.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Soap.SoapFormatter
+            : and then encoded with base64 encoding.
+
+    mimetype: application/x-microsoft.net.object.bytearray.base64
+    value   : The object must be serialized into a byte array 
+            : using a System.ComponentModel.TypeConverter
+            : and then encoded with base64 encoding.
+    -->
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="AllSupportedFiles" xml:space="preserve">
+    <value>Alle unterstützten Dateiarten</value>
+  </data>
+  <data name="Alt" xml:space="preserve">
+    <value>Alt</value>
+  </data>
+  <data name="BothPropertyTokenAndDataPropertyDefined" xml:space="preserve">
+    <value>It is invalid to specify both a propertyToken ('{0}') and a dataProperty element on a '{1}'</value>
+  </data>
+  <data name="Ctrl" xml:space="preserve">
+    <value>Strg</value>
+  </data>
+  <data name="CurrencyISOCode" xml:space="preserve">
+    <value>ISO-4217-Code</value>
+  </data>
+  <data name="CurrencyISOCodeDescription" xml:space="preserve">
+    <value>ISO-4217-Code der Währung</value>
+  </data>
+  <data name="CurrencyISOCodeExample" xml:space="preserve">
+    <value>z.B GBP</value>
+  </data>
+  <data name="CurrencyName" xml:space="preserve">
+    <value>Währungsname</value>
+  </data>
+  <data name="CurrencyNameDescription" xml:space="preserve">
+    <value>Name der Währung</value>
+  </data>
+  <data name="CurrencyNameExample" xml:space="preserve">
+    <value>z.B. Pfund Sterling</value>
+  </data>
+  <data name="CurrencyNativeName" xml:space="preserve">
+    <value>Nativer Name</value>
+  </data>
+  <data name="CurrencyNativeNameDescription" xml:space="preserve">
+    <value>Der native Name der Währung</value>
+  </data>
+  <data name="CurrencyNativeNameExample" xml:space="preserve">
+    <value>z.B Pounds of Sterling</value>
+  </data>
+  <data name="CurrencySymbol" xml:space="preserve">
+    <value>Symbol</value>
+  </data>
+  <data name="CurrencySymbolDescription" xml:space="preserve">
+    <value>Symbol der Währung</value>
+  </data>
+  <data name="CurrencySymbolExample" xml:space="preserve">
+    <value>z.B £</value>
+  </data>
+  <data name="DebugAssertBanner" xml:space="preserve">
+    <value>--------ASSERT--------</value>
+  </data>
+  <data name="DebugAssertLongMessage" xml:space="preserve">
+    <value>-----long Message-----</value>
+  </data>
+  <data name="DebugAssertShortMessage" xml:space="preserve">
+    <value>-----short Message-----</value>
+  </data>
+  <data name="EmptyFilter" xml:space="preserve">
+    <value>Kein Filter</value>
+  </data>
+  <data name="ISOCodeSizeError" xml:space="preserve">
+    <value>Der ISO-4217-Code muss genau 3 Stellen haben.</value>
+  </data>
+  <data name="LeftCtrl" xml:space="preserve">
+    <value>Linkes Strg</value>
+  </data>
+  <data name="NoConfigurationSectionFound" xml:space="preserve">
+    <value>No '{0}' configuration section was found (&lt;section name='{0}' type='{1}' /&gt;).</value>
+  </data>
+  <data name="RightCtrl" xml:space="preserve">
+    <value>Rechtes Strg</value>
+  </data>
+  <data name="SearchContent" xml:space="preserve">
+    <value>Inhalt durchsuchen</value>
+  </data>
+  <data name="Shift" xml:space="preserve">
+    <value>Umsch</value>
+  </data>
+  <data name="TokenAlreadyExists" xml:space="preserve">
+    <value>The token '{0}' already exists in the token dictionary and cannot be added.</value>
+  </data>
+  <data name="TokenCannotBeSubstring" xml:space="preserve">
+    <value>A token cannot be a substring of another token. '{0}' is a substring of '{1}'</value>
+  </data>
+  <data name="TokenElementIncorrect" xml:space="preserve">
+    <value>You can only specify one of format, type and dynamicProperty on a token element (token name='{0}')</value>
+  </data>
+  <data name="UnrecognizedToken" xml:space="preserve">
+    <value>The token '{0}' does not exist in the token dictionary.</value>
+  </data>
+</root>
