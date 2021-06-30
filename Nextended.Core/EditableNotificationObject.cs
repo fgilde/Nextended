@@ -26,8 +26,7 @@ namespace Nextended.Core
         /// </summary>
         public virtual void BeginEdit()
         {
-            if(cache == null)
-                cache = new Dictionary<string, object>();
+            cache ??= new Dictionary<string, object>();
             cache.Clear();
             foreach (PropertyInfo property in GetType().GetProperties())
                 cache.Add(property.Name, property.GetValue(this, null));

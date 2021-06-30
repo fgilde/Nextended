@@ -38,10 +38,10 @@ namespace Nextended.Core.Extensions
         public static string ExtractDescription(this Exception ex)
         {
             return ex == null ? null :
-                ("(" + ex.GetType() + ") " +
-                 ex.Message + Environment.NewLine +
-                 ex.StackTrace + Environment.NewLine + Environment.NewLine +
-                 ExtractDescription(ex.InnerException));
+                "(" + ex.GetType() + ") " +
+                ex.Message + Environment.NewLine +
+                ex.StackTrace + Environment.NewLine + Environment.NewLine +
+                ExtractDescription(ex.InnerException);
         }
 
         public static IEnumerable<Exception> Unwrap(this AggregateException aggregateException)

@@ -5,12 +5,12 @@ using System.Runtime.InteropServices;
 namespace Nextended.Core.Helper
 {
 	/// <summary>
-	/// Helfer um Dumfiles zu erzeugen
+	/// Helper for Dumpfiles
 	/// </summary>
 	public static class DumpHelper
 	{
 		/// <summary>
-		/// Erstellt ein Mini Dump
+		/// Create MiniDump
 		/// </summary>
 		[DllImport("dbghelp.dll")]
 		public static extern bool MiniDumpWriteDump(IntPtr hProcess,
@@ -22,7 +22,7 @@ namespace Nextended.Core.Helper
 													IntPtr callackParam);
 
 		/// <summary>
-		/// Erstellt ein Mini Dump
+		/// Create MiniDump
 		/// </summary>
 		public static void CreateDump(string fileName, MinidumpType type)
 		{

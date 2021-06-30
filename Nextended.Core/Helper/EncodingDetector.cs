@@ -17,20 +17,17 @@ namespace Nextended.Core.Helper
 		///     Detects Encoding for filename
 		/// </summary>
 		public static Encoding DetectTextFileEncoding(string inputFilename)
-		{
-			using (FileStream textfileStream = File.OpenRead(inputFilename))
-			{
-				return DetectTextFileEncoding(textfileStream, _defaultHeuristicSampleSize);
-			}
-		}
+        {
+            using FileStream textfileStream = File.OpenRead(inputFilename);
+            return DetectTextFileEncoding(textfileStream, _defaultHeuristicSampleSize);
+        }
 
 		/// <summary>
 		///     Detects Encoding for file stream
 		/// </summary>
 		public static Encoding DetectTextFileEncoding(FileStream inputFileStream, long heuristicSampleSize)
 		{
-			bool uselessBool;
-			return DetectTextFileEncoding(inputFileStream, _defaultHeuristicSampleSize, out uselessBool);
+            return DetectTextFileEncoding(inputFileStream, _defaultHeuristicSampleSize, out _);
 		}
 
 		/// <summary>

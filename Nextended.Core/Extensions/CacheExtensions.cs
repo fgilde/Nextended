@@ -5,6 +5,9 @@ using System.Runtime.Caching;
 
 namespace Nextended.Core.Extensions
 {
+    /// <summary>
+    /// Simple cache extensions
+    /// </summary>
     public static class CacheExtensions
     {
         //public class CacheExecutionInfo<T>

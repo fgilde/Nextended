@@ -8,22 +8,20 @@ using System.Linq;
 namespace Nextended.Core.Extensions
 {
 	/// <summary>
-	/// Extends IEnumerables
+	/// Extends IEnumerable
 	/// </summary>
 	public static class EnumerableExtensions
 	{
 		/// <summary>
-		/// Fungiert genauso wie "Where", ausser dass ein delegate für weitere children 
-		/// übergeben werden muss, und diese dann rekursiv mit einbezogen werden 
-		/// </summary>
+		/// Works as "Where", but with recursion
+        /// </summary>
 		public static IEnumerable<TSource> Recursive<TSource>(this IEnumerable<TSource> children, Func<TSource, IEnumerable<TSource>> childDelegate)
 		{
 			return Recursive(children, childDelegate, source => true);
 		}
 
 		/// <summary>
-		/// Fungiert genauso wie "Where", ausser dass ein delegate für weitere children 
-		/// übergeben werden muss, und diese dann rekursiv mit einbezogen werden 
+        /// Works as "Where", but with recursion
 		/// </summary>
 		public static IEnumerable<TSource> Recursive<TSource>(this IEnumerable<TSource> children, Func<TSource, IEnumerable<TSource>> childDelegate, Func<TSource, bool> predicate)
 		{
@@ -209,6 +207,17 @@ namespace Nextended.Core.Extensions
 		{
 			return (IList<T>)NullIfEmpty((ICollection<T>)collection);
 		}
+
+		public static IEnumerable<T> ThrowIfNullOrEmpty<T>(this IEnumerable<T> items, string paramName)
+		{
+			if (items.IsNullOrEmpty())
+			{
+				throw new ArgumentException("Argument '{0}' is null or empty and shouldn't be.".FormatWith(paramName),
+					paramName);
+			}
+
+            return items;
+        }
 
 		/// <summary>
 		/// Concatenates strings with delimiter <paramref name="separator"/>

@@ -10,7 +10,7 @@ using Nextended.Core.Helper;
 namespace Nextended.Core.Extensions
 {
 	/// <summary>
-	/// Erweiterungen für den Classmapper
+	/// Classmapping extensions
 	/// </summary>
 	public static class ClassMappingExtensions
 	{
@@ -28,35 +28,34 @@ namespace Nextended.Core.Extensions
         }
 
 		/// <summary>
-		/// Mapped eine Klasse auf eine andere
+		/// Map class to another
 		/// </summary>
-		/// <param name="input">Die Instanz der eingangsklasse</param>
-		/// <param name="tResult">Ergebnistyp</param>
-		/// <param name="settings">Die Einstellungen für das Mapping</param>
+		/// <param name="input">Entry object</param>
+		/// <param name="tResult">Type of result</param>
+		/// <param name="settings">Classmapping settings</param>
 		public static object MapTo<TInput>(this TInput input, Type tResult, ClassMappingSettings settings = null)
         {
             return Mapper(settings).Map(input, tResult);
 		}
 
-		/// <summary>
-		/// Mapped eine Klasse auf eine andere
-		/// </summary>
-		/// <param name="input">Die Instanz der eingangsklasse</param>
-		/// <param name="tResult">Ergebnistyp</param>
-		/// <param name="settings">Die Einstellungen für das Mapping</param>
+        /// <summary>
+        /// Map class to another
+        /// </summary>
+        /// <param name="input">Entry object</param>
+        /// <param name="tResult">Type of result</param>
+        /// <param name="settings">Classmapping settings</param>
 		public static Task<object> MapToAsync<TInput>(this TInput input, Type tResult, ClassMappingSettings settings = null)
         {
             return Mapper(settings).MapAsync(input, tResult);
 		}
 
-		/// <summary>
-		/// Mapped eine Klasse auf eine andere
-		/// </summary>
-		/// <typeparam name="TResult">Ergebnistyp</typeparam>
-		/// <typeparam name="TInput">Typ des Eingangsobjektes</typeparam>
-		/// <param name="input">Die Instanz der eingangsklasse</param>
-		/// <param name="settings">Die Einstellungen für das Mapping</param>
-		/// <param name="differentMappingAssignments">Extra mapping zuweisungen (z.B o1,o2=> o1.Name = 02.FirstName)</param>
+        /// <summary>
+        /// Map class to another
+        /// </summary>
+        /// <param name="input">Entry object</param>
+        /// <param name="tResult">Type of result</param>
+        /// <param name="settings">Classmapping settings</param>
+		/// <param name="differentMappingAssignments">Extra mapping assignments (example o1,o2=> o1.Name = 02.FirstName)</param>
 		public static TResult MapTo<TInput, TResult>(this TInput input, ClassMappingSettings settings,
 			params Action<TResult, TInput>[] differentMappingAssignments)
 		{
@@ -64,72 +63,72 @@ namespace Nextended.Core.Extensions
 		}
 
 		/// <summary>
-		/// Mapped eine Klasse auf eine andere
+		/// Map class to another
 		/// </summary>
-		/// <typeparam name="TResult">Ergebnistyp</typeparam>
-		/// <typeparam name="TInput">Typ des Eingangsobjektes</typeparam>
-		/// <param name="input">Die Instanz der eingangsklasse</param>
-		/// <param name="differentMappingAssignments">Extra mapping zuweisungen (z.B o1,o2=> o1.Name = 02.FirstName)</param>
+		/// <typeparam name="TResult">Result type</typeparam>
+		/// <typeparam name="TInput">Input object type</typeparam>
+		/// <param name="input">Input instance</param>
+		/// <param name="differentMappingAssignments">Extra mapping assignments (z.B o1,o2=> o1.Name = 02.FirstName)</param>
 		public static TResult MapTo<TInput, TResult>(this TInput input,
 			params Action<TResult, TInput>[] differentMappingAssignments)
 		{
 			return input.MapTo(null, differentMappingAssignments);
 		}
 
-		/// <summary>
-		/// Mapped eine Klasse auf eine andere
-		/// </summary>
-		/// <typeparam name="TResult">Ergebnistyp</typeparam>
-		/// <param name="input">Die Instanz der eingangsklasse</param>
-		/// <param name="specificConverters">Eigene TypeConverter die für das Mapping berücksichtigt werden sollen</param>
+        /// <summary>
+        /// Map class to another
+        /// </summary>
+        /// <typeparam name="TResult">Result type</typeparam>
+        /// <param name="input">Input instance</param>
+		/// <param name="specificConverters">Specific converters for this conversion</param>
 		public static TResult MapTo<TResult>(this object input, params TypeConverter[] specificConverters)
 		{
 			return MapTo<object, TResult>(input, ClassMappingSettings.Default.Set(s => s.AddConverters(specificConverters)));
 		}
 
 		/// <summary>
-		/// Mapped eine Klasse auf eine andere
+		/// Map class to another
 		/// </summary>
-		/// <typeparam name="TResult">Ergebnistyp</typeparam>
-		/// <param name="input">Die Instanz der eingangsklasse</param>
-		/// <param name="settings">Die Einstellungen für das Mapping</param>
+		/// <typeparam name="TResult">Result type</typeparam>
+        /// <param name="input">Entry object</param>
+		/// <param name="settings">Classmapping settings</param>
 		public static TResult MapTo<TResult>(this object input, ClassMappingSettings settings)
 		{
 			return MapTo<object, TResult>(input, settings);
 		}
 
 
-		/// <summary>
-		/// Mapped eine Klasse auf eine andere
-		/// </summary>
-		/// <typeparam name="TResult">Ergebnistyp</typeparam>
-		/// <typeparam name="TInput">Typ des Eingangsobjektes</typeparam>
-		/// <param name="input">Die Instanz der eingangsklasse</param>
-		/// <param name="settings">Die Einstellungen für das Mapping</param>
-		/// <param name="differentMappingAssignments">Extra mapping zuweisungen (z.B o1,o2=> o1.Name = 02.FirstName)</param>
-		public static Task<TResult> MapToAsync<TInput, TResult>(this TInput input, ClassMappingSettings settings,
+        /// <summary>
+        /// Map class to another
+        /// </summary>
+        /// <typeparam name="TResult">Result type</typeparam>
+        /// <typeparam name="TInput">Input object type</typeparam>
+        /// <param name="input">Input instance</param>
+        /// <param name="settings">Settings</param>
+        /// <param name="differentMappingAssignments">Extra mapping assignments (z.B o1,o2=> o1.Name = 02.FirstName)</param>
+        public static Task<TResult> MapToAsync<TInput, TResult>(this TInput input, ClassMappingSettings settings,
 			params Action<TResult, TInput>[] differentMappingAssignments)
 		{
 			return Mapper(settings).MapAsync(input, differentMappingAssignments);
 		}
 
-		/// <summary>
-		/// Mapped jedes Element einer liste zum target type 
-		/// </summary>
-		public static IEnumerable<T> MapElementsTo<T>(this IEnumerable enumerable, ClassMappingSettings settings = null)
+        /// <summary>
+        /// Map each element in enumerable
+        /// </summary>
+        public static IEnumerable<T> MapElementsTo<T>(this IEnumerable enumerable, ClassMappingSettings settings = null)
 		{
 			return enumerable.MapTo<IEnumerable<T>>(settings ?? ClassMappingSettings.Default);
 		}
 
 
 
-		/// <summary>
-		/// Mapped eine Klasse auf eine andere
-		/// </summary>
-		/// <typeparam name="TResult">Ergebnistyp</typeparam>
-		/// <typeparam name="TInput">Typ des Eingangsobjektes</typeparam>
-		/// <param name="input">Die Instanz der eingangsklasse</param>
-		/// <param name="differentMappingAssignments">Extra mapping zuweisungen (z.B o1,o2=> o1.Name = 02.FirstName)</param>
+        /// <summary>
+        /// Map class to another
+        /// </summary>
+        /// <typeparam name="TResult">Result type</typeparam>
+        /// <typeparam name="TInput">Input object type</typeparam>
+        /// <param name="input">Input instance</param>
+        /// <param name="differentMappingAssignments">Extra mapping assignments (z.B o1,o2=> o1.Name = 02.FirstName)</param>
 		public static Task<TResult> MapToAsync<TInput, TResult>(this TInput input,
 			params Action<TResult, TInput>[] differentMappingAssignments)
 		{
@@ -137,29 +136,29 @@ namespace Nextended.Core.Extensions
 		}
 
 		/// <summary>
-		/// Mapped eine Klasse auf eine andere
+		/// Map class to another
 		/// </summary>
-		/// <typeparam name="TResult">Ergebnistyp</typeparam>
-		/// <param name="input">Die Instanz der eingangsklasse</param>
-		/// <param name="specificConverters">Eigene TypeConverter die für das Mapping berücksichtigt werden sollen</param>
-		public static Task<TResult> MapToAsync<TResult>(this object input, params TypeConverter[] specificConverters)
+		/// <typeparam name="TResult">Result type</typeparam>
+        /// <param name="input">Input instance</param>
+		/// <param name="specificConverters">Specific converters for this conversion</param>
+        public static Task<TResult> MapToAsync<TResult>(this object input, params TypeConverter[] specificConverters)
 		{
 			return MapToAsync<object, TResult>(input, ClassMappingSettings.Default.Set(s => s.AddConverters(specificConverters)));
 		}
 
 		/// <summary>
-		/// Mapped eine Klasse auf eine andere
+		/// Map class to another
 		/// </summary>
-		/// <typeparam name="TResult">Ergebnistyp</typeparam>
-		/// <param name="input">Die Instanz der eingangsklasse</param>
-		/// <param name="settings">Die Einstellungen für das Mapping</param>
-		public static Task<TResult> MapToAsync<TResult>(this object input, ClassMappingSettings settings)
+		/// <typeparam name="TResult">Result type</typeparam>
+		/// <param name="input">Input instance</param>
+        /// <param name="settings">Settings</param>
+        public static Task<TResult> MapToAsync<TResult>(this object input, ClassMappingSettings settings)
 		{
 			return MapToAsync<object, TResult>(input, settings);
 		}
 
 		/// <summary>
-		///  Einzelne Einstellungen in den ClassMappingSettings setzen
+		///  Set settings on class mapping settings
 		/// </summary>
 		public static ClassMappingSettings Set<T>(this ClassMappingSettings settings,
 			Expression<Func<ClassMappingSettings, T>> memberExpression, T value)
@@ -171,7 +170,7 @@ namespace Nextended.Core.Extensions
 		}
 
 		/// <summary>
-		/// Einzelne Einstellungen in den ClassMappingSettings setzen
+		/// Set settings on class mapping settings
 		/// </summary>
 		public static ClassMappingSettings Set(this ClassMappingSettings settings, params Action<ClassMappingSettings>[] o)
 		{
@@ -198,7 +197,7 @@ namespace Nextended.Core.Extensions
 		}
 
 		/// <summary>
-		/// Property assignment hinzufügen z.B falls properties unterschiedliche Namen haben
+		/// Adds Property assignment if properties are different
 		/// </summary>
 		public static Tuple<ClassMappingSettings, MemberInfo> Assign<TInput>(this ClassMappingSettings settings,
 			Expression<Func<TInput, object>> inProp)

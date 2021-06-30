@@ -9,7 +9,7 @@ using Nextended.Core.Types;
 namespace Nextended.Core.Helper
 {
     /// <summary>
-    /// Überwacht ob sich eine Collection ändert und wirft event
+    /// Watch Collection for Changes
     /// </summary>
     public class CollectionWatcher<T> : IDisposable
 
@@ -17,22 +17,22 @@ namespace Nextended.Core.Helper
         private readonly ICollection collectionToWatch;
 
         /// <summary>
-        /// Gibt zurük, ob der CollectionWatcher am überwachen ist
+        /// Determines if active or not
         /// </summary>
         public bool IsWatching { get; private set; }
 
         /// <summary>
-        /// Wird ausgelöst, wenn sich der Count der Collection ändert
+        /// Event is raised when count changed
         /// </summary>
         public event EventHandler<EventArgs<ICollection>> CountChanged;
 
         /// <summary>
-        /// Wird ausgelöst, wenn ein Eintrag hinzugefügt wird
+        /// Event is raised after item has been added
         /// </summary>
         public event EventHandler<EventArgs<T>> ItemAdded;    
         
         /// <summary>
-        /// Wird ausgelöst, wenn ein Eintrag entfernt wird
+        /// WEvent is raised after item has been removed
         /// </summary>
         public event EventHandler<EventArgs<ICollection>> ItemRemoved;
 
@@ -54,7 +54,7 @@ namespace Nextended.Core.Helper
         {}
 
         /// <summary>
-        /// Startet das überwachen der Collection
+        /// Start watching
         /// </summary>
         public void StartWatching()
         {
@@ -63,7 +63,7 @@ namespace Nextended.Core.Helper
         }
 
         /// <summary>
-        /// Startet das überwachen der Collection
+        /// Stop watching
         /// </summary>
         public void StopWatching()
         {
@@ -84,7 +84,6 @@ namespace Nextended.Core.Helper
             int lastCount = collectionToWatch.Count;
             while (IsWatching)
             {
-
                 var count = collectionToWatch.Count;
 
                 if (count != lastCount)
@@ -116,28 +115,19 @@ namespace Nextended.Core.Helper
         private void InvokeCountChanged(EventArgs<ICollection> e)
         {
             EventHandler<EventArgs<ICollection>> handler = CountChanged;
-            if (handler != null)
-            {
-                handler(this, e);
-            }
+            handler?.Invoke(this, e);
         }       
         
         private void InvokeAdd(EventArgs<T> e)
         {
             EventHandler<EventArgs<T>> handler = ItemAdded;
-            if (handler != null)
-            {
-                handler(this, e);
-            }
+            handler?.Invoke(this, e);
         }
 
         private void InvokeRemove(EventArgs<ICollection> e)
         {
             EventHandler<EventArgs<ICollection>> handler = ItemRemoved;
-            if (handler != null)
-            {
-                handler(this, e);
-            }
+            handler?.Invoke(this, e);
         }
 
     }

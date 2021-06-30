@@ -15,7 +15,7 @@ using Nextended.Core.Extensions;
 namespace Nextended.Core.Helper
 {
 	/// <summary>
-	/// Mapping von Klassen
+	/// Classmapper
 	/// </summary>
 	public class ClassMapper : IDisposable
 	{
@@ -25,7 +25,7 @@ namespace Nextended.Core.Helper
         internal static ClassMapper defaultClassMapperInstance;
 
 		/// <summary>
-		/// Settings für das Mappingverhalten
+		/// Settings for mapping behavior
 		/// </summary>
 		private ClassMappingSettings classMappingSettings;
 
@@ -46,7 +46,7 @@ namespace Nextended.Core.Helper
 
 
 		/// <summary>
-		/// Einstellungen für das Mappingverhalten setzen
+		/// Set Settings for mapping behavior
 		/// </summary>
 		public ClassMapper SetSettings(ClassMappingSettings settings)
 		{
@@ -55,7 +55,7 @@ namespace Nextended.Core.Helper
 		}
 
 		/// <summary>
-		/// Einstellungen für das Mappingverhalten setzen
+		/// Set Settings for mapping behavior
 		/// </summary>
 		public ClassMapper SetSettings(params Action<ClassMappingSettings>[] o)
 		{
@@ -71,10 +71,10 @@ namespace Nextended.Core.Helper
         }
 
 		/// <summary>
-		/// Mapped eine Klasse auf eine andere
+		/// Maps input to result
 		/// </summary>
-		/// <param name="input">Die Instanz der eingangsklasse</param>
-		/// <param name="tResult">Ergebnistyp</param>
+		/// <param name="input">Input instance</param>
+		/// <param name="tResult">result type</param>
 		public object Map<TInput>(TInput input, Type tResult)
 		{
 			classMappingSettings ??= ClassMappingSettings.Default;
@@ -134,12 +134,12 @@ namespace Nextended.Core.Helper
 		}
 
 		/// <summary>
-		/// Mapped eine Klasse auf eine andere
+		/// Maps input to result
 		/// </summary>
-		/// <typeparam name="TInput">Typ der eingansgsklasse.</typeparam>
-		/// <typeparam name="TResult">Ergebnistyp</typeparam>
-		/// <param name="input">Die Instanz der eingangsklasse</param>
-		/// <param name="differentMappingAssignments">Mappings die nicht automatisch erkannt werden können, können als ausdruckszuweisung angegeben werden z.B (object2, object1) => object2.Gender = object1.IsMale</param>
+		/// <typeparam name="TInput">Input type.</typeparam>
+		/// <typeparam name="TResult">Result type</typeparam>
+		/// <param name="input">Input instance</param>
+		/// <param name="differentMappingAssignments">Different mapping assignments (object2, object1) => object2.Gender = object1.IsMale</param>
 		/// <example>
 		///  Object2 o2 = MapTo[Object1, Object2]((object2, object1) => object2.Gender = object1.IsMale);
 		/// </example>
@@ -153,7 +153,7 @@ namespace Nextended.Core.Helper
 		}
 
 		/// <summary>
-		/// Mapped eine Klasse auf eine andere
+		/// Maps input to result async
 		/// </summary>
 		public Task<object> MapAsync<TInput>(TInput input, Type tResult)
 		{
@@ -161,16 +161,16 @@ namespace Nextended.Core.Helper
 		}
 
 
-		/// <summary>
-		/// Mapped eine Klasse auf eine andere
-		/// </summary>
-		/// <typeparam name="TInput">Typ der eingansgsklasse.</typeparam>
-		/// <typeparam name="TResult">Ergebnistyp</typeparam>
-		/// <param name="input">Die Instanz der eingangsklasse</param>
-		/// <param name="differentMappingAssignments">Mappings die nicht automatisch erkannt werden können, können als ausdruckszuweisung angegeben werden z.B (object2, object1) => object2.Gender = object1.IsMale</param>
-		/// <example>
-		///  Object2 o2 = MapTo[Object1, Object2]((object2, object1) => object2.Gender = object1.IsMale);
-		/// </example>
+        /// <summary>
+        /// Maps input to result
+        /// </summary>
+        /// <typeparam name="TInput">Input type.</typeparam>
+        /// <typeparam name="TResult">Result type</typeparam>
+        /// <param name="input">Input instance</param>
+        /// <param name="differentMappingAssignments">Different mapping assignments (object2, object1) => object2.Gender = object1.IsMale</param>
+        /// <example>
+        ///  Object2 o2 = MapTo[Object1, Object2]((object2, object1) => object2.Gender = object1.IsMale);
+        /// </example>
 		public Task<TResult> MapAsync<TInput, TResult>(TInput input,
 			params Action<TResult, TInput>[] differentMappingAssignments)
 		{

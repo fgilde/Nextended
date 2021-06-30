@@ -6,8 +6,16 @@ using System.Runtime.CompilerServices;
 
 namespace Nextended.Core.Extensions
 {
+    /// <summary>
+    /// Extensions for Assembly
+    /// </summary>
     public static class AssemblyExtensions
     {
+        /// <summary>
+        /// Returns loaded types in Assembly 
+        /// </summary>
+        /// <param name="assembly"></param>
+        /// <returns></returns>
         public static IEnumerable<Type> GetLoadableTypes(this Assembly assembly)
         {
             assembly.ThrowIfNull(nameof(assembly));
@@ -21,6 +29,11 @@ namespace Nextended.Core.Extensions
             }
         }
 
+        /// <summary>
+        /// Returns Async and void Methods
+        /// </summary>
+        /// <param name="assembly"></param>
+        /// <returns></returns>
         public static IEnumerable<MethodInfo> AsyncVoidMethods(this Assembly assembly)
         {
             return assembly.GetLoadableTypes()

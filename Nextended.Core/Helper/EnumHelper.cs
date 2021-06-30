@@ -8,7 +8,7 @@ namespace Nextended.Core.Helper
 {
 
     /// <summary>
-    /// Erweiterung für Enumerationen
+    /// Enum extensions
     /// </summary>
     public static class Enum<T> where T : struct
     {
@@ -60,35 +60,25 @@ namespace Nextended.Core.Helper
         }
 
         /// <summary>
-        /// Konvertiert den <paramref name="name"/> in eine Enumerationskonstante. 
+        /// Converts den <paramref name="name"/> to enum
         /// </summary>
-        /// <param name="name">Zeichenkette die konvertiert werden soll</param>
-        /// <param name="ignoreCase">Groß- und Kleinschreibung berücksichtigen?</param>
-        /// <returns>Enumerationskonstante</returns>
         public static T Parse(string name, bool ignoreCase = false)
         {
             return (T)Enum.Parse(typeof(T), name, ignoreCase);
         }
 
         /// <summary>
-        /// Konvertiert den <paramref name="name"/> in eine Enumerationskonstante. 
+        /// Converts den <paramref name="name"/> to enum
         /// </summary>
-        /// <param name="name">Zeichenkette die konvertiert werden soll</param>
-        /// <param name="ignoreCase">Groß- und Kleinschreibung berücksichtigen?</param>
         /// <returns>Enumerationskonstante</returns>
         public static T? TryParse(string name, bool ignoreCase = false)
         {
-            T value;
-            return !string.IsNullOrEmpty(name) && TryParse(name, out value, ignoreCase) ? (T?)value : null;
+            return !string.IsNullOrEmpty(name) && TryParse(name, out var value, ignoreCase) ? (T?)value : null;
         }
 
         /// <summary>
-        /// Konvertiert den <paramref name="name"/> in eine Enumerationskonstante <paramref name="value"/>. 
+        /// Converts den <paramref name="name"/> to enum
         /// </summary>
-        /// <param name="name">Zeichenkette die konvertiert werden soll</param>
-        /// <param name="value">Enumerationskonstante</param>
-        /// <param name="ignoreCase">Groß- und Kleinschreibung berücksichtigen?</param>
-        /// <returns>Konvertierung erfolgreich?</returns>
         public static bool TryParse(string name, out T value, bool ignoreCase = false)
         {
             try
@@ -104,29 +94,24 @@ namespace Nextended.Core.Helper
         }
 
         /// <summary>
-        /// Liefert die Werte der Enumeration
+        /// Values for enum
         /// </summary>
-        /// <returns>Liste der Enumerationswerte</returns>
         public static IEnumerable<T> GetValues()
         {
             return Enum.GetValues(typeof(T)).Cast<T>();
         }
 
         /// <summary>
-        /// Liefert den Namen der Enumerationskonstante 
+        /// Name for enum value
         /// </summary>
-        /// <param name="value">Enumerationskonstante</param>
-        /// <returns>Name der Enumerationskonstanten</returns>
         public static string GetName(T value)
         {
             return Enum.GetName(typeof(T), value);
         }
 
         /// <summary>
-        ///  Konvertiert alle Werte der Enumeration in <typeparamref name="TOutput"/>. 
+        /// Converts all values in enum to <typeparamref name="TOutput"/>. 
         /// </summary>
-        /// <typeparam name="TOutput">Typ in den alle Werte der Enumeration konvertiert werden sollen</typeparam>
-        /// <returns>Liste von <typeparamref name="TOutput"/></returns>
         public static IEnumerable<TOutput> ConvertAll<TOutput>()
         {
             try
@@ -139,43 +124,23 @@ namespace Nextended.Core.Helper
             }
         }
 
-        /// <summary>
-        /// Wandelt <paramref name="value"/> in einen Enum-Wert um, oder NULL wenn nicht möglich
-        /// </summary>
         public static bool TryGetEnumValue(int value, out T? enumValue)
         {
             enumValue = Enum.GetValues(typeof(T)).Cast<T?>().SingleOrDefault(e => (int)Convert.ChangeType(e, typeof(int)) == value);
             return enumValue.HasValue;
         }
 
-        /// <summary>
-        /// Erstellt ein Dictionary mit den Werten der Enumeration und dessen Namen
-        /// </summary>
-        /// <returns>Dictionary mit den Werten der Enumeration und dessen Namen</returns>
         public static IDictionary<T, string> GetDictionary()
         {
             return GetValues().ToDictionary(e => e, GetName);
         }
 
-        /// <summary>
-        /// Erstellt ein Dictionary mit den Werten der Enumeration und dessen Attribute des Typs <typeparamref name="TAttribute"/>
-        /// </summary>
-        /// <param name="inherit">Vererbungskette berücksichtigen?</param>
-        /// <typeparam name="TAttribute">Typ des zu suchenden Attributs</typeparam>
-        /// <returns>Dictionary mit den Werten der Enumeration und dessen Attribute des Typs <typeparamref name="TAttribute"/></returns>
         public static Dictionary<T, IEnumerable<TAttribute>> GetDictionaryAttributes<TAttribute>(bool inherit = false) where TAttribute : Attribute
         {
             return Enum.GetValues(typeof(T)).OfType<T>()
                        .ToDictionary(e => e, e => GetAttributes<TAttribute>(e, inherit));
         }
 
-        /// <summary>
-        /// Liefert eine Liste der Attribute des Typs <typeparamref name="TAttribute"/> des Enumerationswertes <paramref name="value"/>
-        /// </summary>
-        /// <param name="value">Wert der Enumeration</param>
-        /// <param name="inherit">Vererbungskette berücksichtigen?</param>
-        /// <typeparam name="TAttribute">Typ des zu suchenden Attributs</typeparam>
-        /// <returns>Liste von Attributen des Typs <typeparamref name="TAttribute"/> für den Enumerationswert <paramref name="value"/></returns>
         public static IEnumerable<TAttribute> GetAttributes<TAttribute>(T value, bool inherit) where TAttribute : Attribute
         {
             return inherit
@@ -185,12 +150,6 @@ namespace Nextended.Core.Helper
                               .Where(a => a.GetType().IsAssignableFrom(typeof(TAttribute))).OfType<TAttribute>();
         }
 
-        /// <summary>
-        /// Liefert eine Liste der Attribute des Typs <typeparamref name="TAttribute"/> des Enumerationswertes <paramref name="value"/>
-        /// </summary>
-        /// <param name="value">Wert der Enumeration</param>
-        /// <typeparam name="TAttribute">Typ des zu suchenden Attributs</typeparam>
-        /// <returns>Liste von Attributen des Typs <typeparamref name="TAttribute"/> für den Enumerationswert <paramref name="value"/></returns>
         public static IEnumerable<TAttribute> GetAttributes<TAttribute>(T value) where TAttribute : Attribute
         {
             return GetAttributes<TAttribute>(value, false);
