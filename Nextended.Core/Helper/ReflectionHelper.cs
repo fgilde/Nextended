@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.ComponentModel.Design;
 using System.Data;
@@ -196,21 +197,53 @@ namespace Nextended.Core.Helper
 		/// </summary>
 		public static Type FindImplementingType(Type interfaceType)
 		{
-			Func<Type, IEnumerable<Type>> func = it => (from assembly in AppDomain.CurrentDomain.GetAssemblies()
+            IEnumerable<Type> additionalTypesToCheck = new List<Type>
+            {
+                typeof(List<>),
+                typeof(Collection<>),
+                typeof(HashSet<>),
+                typeof(Dictionary<,>),
+                typeof(Comparer<>),
+                typeof(Queue<>),
+                typeof(Stack<>),
+            };
+
+			var assemblies = AppDomain.CurrentDomain.GetAssemblies().ToList();
+            Func<Type, IEnumerable<Type>> func = it => (from assembly in assemblies
 														where assembly.GetName().Version > new Version(0, 0, 0, 0)
 														from referencedAssembly in assembly.GetReferencedAssemblies()
 														where assembly == it.Assembly || referencedAssembly.FullName == it.Assembly.GetName().FullName
-														select assembly).SelectMany(assembly => assembly.GetTypes())
+														select assembly).SelectMany(assembly => assembly.GetTypes()).Concat(additionalTypesToCheck)
 				.Where(type => type.ImplementsInterface(it))
 				.ToList();
 
 			IEnumerable<Type> implementingTypes = interfaceTypeCache.GetOrAdd(interfaceType, func).ToList();
-			return implementingTypes.FirstOrDefault(
+			var result = implementingTypes.FirstOrDefault(
 				type => type.Name.Equals(interfaceType.Name.Substring(1), StringComparison.InvariantCultureIgnoreCase))
 				   ?? implementingTypes.FirstOrDefault();
-		}
 
-		/// <summary>
+            result = TryMakeGenericIfNeeded(interfaceType, result);
+            return result;
+        }
+
+        private static Type TryMakeGenericIfNeeded(Type interfaceType, Type result)
+        {
+            try
+            {
+                if (interfaceType.IsGenericType && interfaceType.GenericTypeArguments.Any() && result != null &&
+                    result.IsGenericType)
+                {
+					// TODO: Check if Generic param constraints are matching interfaceType.GenericTypeArguments
+                    result = result.MakeGenericType(interfaceType.GenericTypeArguments);
+                }
+            } 
+            catch
+            {}
+
+            return result;
+        }
+
+        /// <summary>
 		/// Instanz für interface erzeugen
 		/// </summary>
 		/// <param name="interfaceType">Typ</param>
@@ -567,12 +600,10 @@ namespace Nextended.Core.Helper
 		/// Prüft ob ein bestimmter Typ ein bestimmtes interface implementiert
 		/// </summary>
 		public static bool ImplementsInterface(this Type type, Type interfaceType)
-		{
-			Type[] array = type.FindInterfaces(
-				(typeObj, criteriaObj) => typeObj.Equals((Type)criteriaObj),
-				interfaceType
-			);
-			return array.Length > 0;
+        {
+            type = TryMakeGenericIfNeeded(interfaceType, type);
+            Type[] array = type.FindInterfaces((typeObj, criteriaObj) => typeObj == (Type)criteriaObj, interfaceType);
+			return array.Length > 0; // || interfaceType.IsAssignableFrom(type);
 		}
 
 		/// <summary>

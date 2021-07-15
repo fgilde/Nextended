@@ -226,7 +226,23 @@ namespace Nextended.Core.Types
 		/// </summary>
 		public static Currency USD => Find("$");
 
-        private static IEnumerable<CultureInfo> GetCulturesForCurrencyISOCode(string isoCode)
+        public static string GetCurrencyNameForISOCode(string currencyIso)
+        {
+            var currencyName = string.Empty;
+            foreach (var info in CultureInfo.GetCultures(CultureTypes.AllCultures)
+                .Where(info => !info.IsNeutralCulture && info.LCID != CultureInfo.InvariantCulture.LCID))
+            {
+                var regionInfo = new RegionInfo(info.LCID);
+                if (string.Equals(regionInfo.ISOCurrencySymbol, currencyIso, StringComparison.InvariantCultureIgnoreCase))
+                {
+                    currencyName = regionInfo.CurrencyEnglishName;
+                    break;
+                }
+            }
+            return currencyName;
+        }
+
+        public static IEnumerable<CultureInfo> GetCulturesForCurrencyISOCode(string isoCode)
 		{
 			return from culture in allCultures.Value
 				   let ri = new RegionInfo(culture.LCID)

@@ -12,9 +12,16 @@ namespace Nextended.Core.Extensions
 	/// </summary>
 	public static class EnumerableExtensions
 	{
+        public static TU Get<T, TU>(this Dictionary<T, TU> dict, T key)
+            where TU : class
+        {
+            dict.TryGetValue(key, out var val);
+            return val;
+        }
+
 		/// <summary>
 		/// Works as "Where", but with recursion
-        /// </summary>
+		/// </summary>
 		public static IEnumerable<TSource> Recursive<TSource>(this IEnumerable<TSource> children, Func<TSource, IEnumerable<TSource>> childDelegate)
 		{
 			return Recursive(children, childDelegate, source => true);

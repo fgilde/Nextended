@@ -142,7 +142,6 @@ namespace Nextended.Core.Extensions
 
         public static string EncodeBase64(this string plainText) => Convert.ToBase64String(Encoding.UTF8.GetBytes(plainText)).Replace("/", "-");
 
-
         public static string DecodeBase64(this string base64EncodedData) => Encoding.UTF8.GetString(Convert.FromBase64String(base64EncodedData.Replace("-", "/")));
 
         public static void ThrowIfNullOrEmpty(this string input, string paramName)
