@@ -17,6 +17,14 @@ namespace Nextended.Core.Tests
     {
 
         [TestMethod]
+        public void TestSystemInterface()
+        {
+            IList<string> list = typeof(IList<string>).CreateInstance<IList<string>>();
+            list.Add("Hello");
+            Assert.IsTrue(list.Count == 1);
+        }
+
+        [TestMethod]
         public void TestInterface()
         {
             var r = typeof(IDateTestRange).CreateInstance<IDateTestRange>();
