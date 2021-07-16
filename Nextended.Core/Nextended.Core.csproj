@@ -13,7 +13,7 @@
     <PackageId>Nextended.Core</PackageId>
     <Authors>Florian Gilde</Authors>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
-	<VersionPrefix>5.0.0</VersionPrefix>
+	<VersionPrefix>5.0.2</VersionPrefix>
 	<VersionSuffix></VersionSuffix>
 
   </PropertyGroup>
