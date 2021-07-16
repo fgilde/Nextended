@@ -1,0 +1,273 @@
+﻿<#@ import namespace="System.Reflection" #>
+<#+
+private const string CLASSNAME = "ConversionExtensions";
+
+public void WriteMappingExtensions(Tuple<Type, AutoGenerateComAttribute[]>[] classesToCreate)
+{
+	if(createRegions) {
+		WriteLineFormat("#region {0}", CLASSNAME);
+		BreakLine();
+	}
+
+	WriteLine("/// <summary>");
+	WriteLine("/// Erweiterungen für das ComMapping");
+	WriteLine("/// </summary>");
+	WriteLine("public static partial class {0}", CLASSNAME);
+	WriteLine("{");
+
+	foreach(var ns in classesToCreate) {
+		foreach(AutoGenerateComAttribute autoGenerateComAttr in ns.Item2) {
+			WriteToNetMethodIfNecessary(ns.Item1, autoGenerateComAttr, GetClassName(ns.Item1, autoGenerateComAttr, false));
+		}
+	}
+
+	WriteEnumHelper();
+	WriteLine("};");
+	
+	BreakLine();
+	if(createRegions) {
+		WriteLineFormat("#endregion {0}", CLASSNAME);
+		BreakLine();
+	}
+}
+
+public void WriteToNetMethodIfNecessary(Type netType, AutoGenerateComAttribute autoGenerateAttr, string comClassName)
+{
+	if(autoGenerateAttr.GenerateToNetMapping  && !netType.IsEnum)
+	{
+		var fullTypeName = !netType.IsGenericType ? netType.FullName : GetGenericName(netType, autoGenerateAttr) ;
+		PushIndent("\t");
+		WriteLine("/// <summary>");
+		WriteLine("/// COM -> .NET Konvertierung");
+		WriteLine("/// From <see cref=\"I{0}\"/> to <see cref=\"{1}\"/>", comClassName, netType);
+		WriteLine("/// </summary>");
+		WriteLine("public static {0} ToNet(this I{1} comObj)", fullTypeName, comClassName);
+		WriteLine("{");
+		PushIndent("\t");
+
+		WriteLine("Check.NotNull(comObj, nameof(comObj));");
+		BreakLine();
+
+		foreach(var type in GetDerivedTypes(netType)) 
+		{			
+			foreach(var derivedAttr in GetAttribute<AutoGenerateComAttribute>(type, false).Where(attr => attr.GenerateToNetMapping))
+			{
+				var derivedComClassName = GetClassName(type, derivedAttr, true);
+				WriteLine("var com{0} = comObj as {0};", derivedComClassName);
+				WriteLine("if (com{0} != null)", derivedComClassName);
+				WriteLine("\treturn com{0}.ToNet();", derivedComClassName);
+				BreakLine();
+			}
+		}
+
+		if(netType.IsAbstract) 
+			WriteLine("throw new NotSupportedException($\"{{comObj}} can not convert to {0}\");", netType.FullName);
+		else 
+		{		
+			WriteLine("return new {0} {{", fullTypeName);			
+			PushIndent("\t");
+			foreach(PropertyInfo targetProperty in GetPropertiesForMapping(netType))
+				WritePropertyAssignment(targetProperty);
+			PopIndent();
+			WriteLine("};");
+		}
+
+		PopIndent();
+		WriteLine("}");
+		PopIndent();
+	}
+}
+
+ private string GetGenericName(Type type, AutoGenerateComAttribute autoGenerateAttr)
+ {
+	// ParameterSetting<int>
+
+    var friendlyName = type.Name;
+    if (!type.IsGenericType) return friendlyName;
+
+    var iBacktick = friendlyName.IndexOf('`');
+    if (iBacktick > 0) friendlyName = friendlyName.Remove(iBacktick);
+
+    var genericParameters = type.GetGenericArguments().Select(x => GetTypeAlias(GetMatchingGenericPropertyType(x, type, autoGenerateAttr)));
+    friendlyName += "<" + string.Join(", ", genericParameters) + ">";
+
+    return type.Namespace + "." +friendlyName;
+}
+
+private void WriteEnumHelper()
+{
+	PushIndent("\t");
+	WriteLine("private static readonly IDictionary<string, object> enumCache;");
+	BreakLine();
+	WriteLine("static {0}()", CLASSNAME);
+	WriteLine("{");
+	PushIndent("\t");
+	WriteLine("var enumTypes = new[] {");
+	PushIndent("\t");
+	foreach(var type in enumTypes)
+		WriteLine("typeof({0}),", type.FullName);
+	PopIndent();
+	WriteLine("};");
+	BreakLine();
+	WriteLine("enumCache = new Dictionary<string, object>();");
+	WriteLine("foreach (var enumType in enumTypes)");
+	WriteLine("{");
+	WriteLine("\tforeach (string enumName in enumType.GetEnumNames())");
+	WriteLine("\t{");
+	WriteLine("\t\tMemberInfo mi = enumType.GetMember(enumName).Single();");	
+	WriteLine("\t\tvar xmlEnumAttribute = GetAttribute<XmlEnumAttribute>(mi).SingleOrDefault();");
+	WriteLine("\t\tvar keyName = xmlEnumAttribute != null ? xmlEnumAttribute.Name : mi.Name.ToLower();");
+	WriteLine("\t\tenumCache.Add(EnumCacheKey(enumType.Name, keyName), Enum.Parse(enumType, mi.Name, true));");
+	WriteLine("\t}");
+	WriteLine("}");
+	PopIndent();
+	WriteLine("}");
+	BreakLine();
+
+	WriteLine("private static T ToEnum<T>(this string strEnumValue)");
+	WriteLine("\twhere T : struct");
+	WriteLine("{");
+	WriteLine("\tobject result;");
+	WriteLine("\tif (enumCache.TryGetValue(EnumCacheKey(typeof(T).Name, strEnumValue), out result))");
+	WriteLine("\t\treturn (T)result;");
+	WriteLine("\tthrow new NotSupportedException($\"{strEnumValue} can not convert to {typeof (T)}\");");
+	WriteLine("}");
+	BreakLine();
+
+	WriteLine("private static string EnumCacheKey(string enumTypeName, string delphiEnumValueName)");
+	WriteLine("{");
+	WriteLine("\treturn enumTypeName + delphiEnumValueName;");
+	WriteLine("}");
+	PopIndent();
+}
+
+private HashSet<Type> enumTypes = new HashSet<Type>();
+
+private void WritePropertyAssignment(PropertyInfo target) 
+{
+	var comType = GetComType(target);
+	var sourceName = GetComName(target);
+
+	if(target.PropertyType.IsEnum)
+		enumTypes.Add(target.PropertyType);
+				
+	var attr = GetAttribute<ComPropertySettingAttribute>(target).FirstOrDefault();
+	if(attr != null && attr.MapWithClassMapper){
+		//WriteLine("{0} = comObj.{1}?.MapTo<{2}>(),", target.Name, sourceName, target.PropertyType);
+		WriteLine("{0} = comObj.{1}.MapTo<{2}>(),", target.Name, sourceName, target.PropertyType);
+	}
+	else if(comType == typeof(IComList) && target.PropertyType.IsArray) 
+	{		
+		var typeClassAttribute = GetAttribute<AutoGenerateComAttribute>(comType).FirstOrDefault();
+
+		string sourceTypeName = "";
+		var targetPropType = target.PropertyType.GetElementType();		
+		var targetTypeAttr = GetAttribute<AutoGenerateComAttribute>(targetPropType).FirstOrDefault();
+		if(targetTypeAttr != null && !string.IsNullOrEmpty(targetTypeAttr.ComClassName)){
+			sourceTypeName = "I" + targetTypeAttr.ComClassName;
+		}
+
+		if(target.PropertyType.GetElementType().IsEnum){
+		    sourceTypeName = "string";
+		}
+		else if (targetTypeAttr != null && string.IsNullOrEmpty(sourceTypeName)) {
+			string prefix = targetTypeAttr != null ? targetTypeAttr.Prefix : "Com";
+			string suffix = targetTypeAttr != null ? targetTypeAttr.Suffix : "";
+			sourceTypeName = "I" +prefix + GetClassName(target.PropertyType, typeClassAttribute, false).Remove(target.PropertyType.Name.Length -2) + suffix;
+		} else {
+			sourceTypeName = GetTypeAlias(targetPropType);
+		}
+		
+		if(targetPropType.IsPrimitive)
+			WriteLine("{0} = comObj.{1}.OfType<{2}>().ToArray(),", target.Name, sourceName, sourceTypeName);
+		else
+		{
+			var conversion = GetConversion(target.PropertyType.GetElementType(), comType, "o");
+			WriteLine("{0} = comObj.{1}?.OfType<{2}>().Select(o => {3}).ToArray(),", target.Name, sourceName, sourceTypeName, conversion);
+		}
+	}
+	else
+		WriteLine("{0} = {1},", target.Name, GetConversion(target.PropertyType, comType, "comObj." + sourceName));
+}
+
+private string GetConversion(Type targetType, Type sourceType, string sourceName) 
+{	
+	if(GetAttribute<AutoGenerateComAttribute>(sourceType).Any())
+		return string.Format("{0}?.ToNet()", sourceName);
+	else if(targetType.IsAssignableFrom(sourceType))
+		return string.Format("{0}", sourceName);
+	else if(CanCast(sourceType, targetType))
+		return string.Format("({0}){1}", GetTypeAlias(targetType), sourceName);
+	else if(targetType.IsEnum)
+	{		
+		if(GetAttribute<AutoGenerateComAttribute>(targetType).Any())
+			return string.Format("({0}){1}", targetType, sourceName);
+		return string.Format("{0}.ToEnum<{1}>()", sourceName, targetType);
+	}
+	else if(sourceType == typeof(IComList))
+		return string.Format("{0}?.ToNet()", sourceName);	
+	else if(targetType.IsBaseId()){
+		return string.Format("new {1}({0})", sourceName, targetType);
+	}
+	return string.Format("{0}{2}.MapTo<{1}>()", sourceName, targetType, targetType.IsValueType ? string.Empty : "?");
+}
+
+private static bool CanCast(Type from, Type to)
+{
+    if (HasImplicitConversion(from, from, to) || HasImplicitConversion(to, from, to))
+        return true;
+    if (TypeDescriptor.GetConverter(from).CanConvertTo(to))
+		return true;
+    if (to.IsEnum)
+        return CanCast(from, Enum.GetUnderlyingType(to));
+    if (Nullable.GetUnderlyingType(to) != null)
+        return CanCast(from, Nullable.GetUnderlyingType(to));
+    return false;
+}
+
+private static bool HasImplicitConversion(Type definedOn, Type baseType, Type targetType)
+{
+    return definedOn.GetMethods(BindingFlags.Public | BindingFlags.Static)
+        .Where(mi => mi.Name == "op_Implicit" && mi.ReturnType == targetType)
+        .Any(mi =>
+        {
+            ParameterInfo pi = mi.GetParameters().FirstOrDefault();
+            return pi != null && pi.ParameterType == baseType;
+        });
+}
+
+private PropertyInfo[] GetPropertiesForMapping(Type type)
+{
+    List<PropertyInfo> propertyInfos = new List<PropertyInfo>();
+    var flags = System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.DeclaredOnly;
+
+    while (ShouldAutoGenerateMapping(type))
+    {
+        propertyInfos.AddRange(type.IsInterface
+            ? new[] {type}.Concat(type.GetInterfaces()).SelectMany(i => i.GetProperties(flags))
+            : type.GetProperties(flags));
+        type = type.BaseType;
+    }
+    
+    return propertyInfos.Where(pi => pi.CanWrite && GetAttribute<ComIgnoreAttribute>(pi).FirstOrDefault() == null)
+        .OrderBy(pi => pi.Name).ToArray();
+}
+
+private Type[] GetDerivedTypes(Type type)
+{
+	return Assembly.GetAssembly(type).GetTypes().Where(dt => type != dt && dt.BaseType == type && ShouldAutoGenerateMapping(dt))
+		.ToArray();
+}
+
+private bool ShouldAutoGenerateMapping(Type type) 
+{
+	return type != null 		
+		&& GetAttribute<AutoGenerateComAttribute>(type).Any(attr => attr.GenerateToNetMapping);
+}
+
+private bool HasBaseTypeForMapping(Type type) 
+{
+	return ShouldAutoGenerateMapping(type.BaseType);
+}
+
+#>

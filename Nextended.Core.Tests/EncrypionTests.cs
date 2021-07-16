@@ -1,7 +1,5 @@
-﻿using System;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Nextended.Core.Encryption;
-using Nextended.Core.Helper;
 
 namespace Nextended.Core.Tests
 {
@@ -24,6 +22,18 @@ namespace Nextended.Core.Tests
 
             var decrypted2 = operation.Decrypt(encrypted, passPhrase);
             Assert.AreEqual(sample, decrypted2);
+        }
+
+        [TestMethod]
+        public void CanEncryptAndDecryptAsExtension()
+        {
+            string sample = "Hello my name is Florian Gilde and this is the Nextended pack";
+            string passPhrase = "b14ca5898a4e4133bbce2ea2315a1916";
+            var encrypted = sample.Encrypt(passPhrase);
+
+            var decrypted = encrypted.Decrypt(passPhrase);
+            Assert.AreEqual(sample, decrypted);
+
         }
 
         [TestMethod]

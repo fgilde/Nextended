@@ -18,9 +18,9 @@ namespace Nextended.Core.Tests
             var r = b.Decode(encode);
             Assert.AreEqual(r, "Hallo flo");
 
-            var encoded2 = "Hallo flo".Encoding().Base64.Encode();
+            var encoded2 = "Hallo flo".EncodeDecode().Base64.Encode();
             Assert.AreEqual(encoded2, encode);
-            var halloFlo = encoded2.Encoding().Base64.Decode();
+            var halloFlo = encoded2.EncodeDecode().Base64.Decode();
             Assert.AreEqual(halloFlo, "Hallo flo");
         }
 

@@ -5,7 +5,7 @@ namespace Nextended.Core.Encode
 {
     public static class EncodingExtensions
     {
-        public static EncodingActions Encoding(this string str)
+        public static EncodingActions EncodeDecode(this string str)
         {
             return new EncodingActions(str);
         }
