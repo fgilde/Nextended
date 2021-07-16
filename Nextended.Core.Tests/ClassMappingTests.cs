@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
@@ -22,6 +23,12 @@ namespace Nextended.Core.Tests
             IList<string> list = typeof(IList<string>).CreateInstance<IList<string>>();
             list.Add("Hello");
             Assert.IsTrue(list.Count == 1);
+
+
+            var ol = typeof(IList<object>).CreateInstance<IList<object>>();
+            ol.Add(new object());
+            Assert.IsTrue(ol.Count == 1);
+
         }
 
         [TestMethod]
