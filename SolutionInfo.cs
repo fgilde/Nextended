@@ -5,5 +5,5 @@
 [assembly: AssemblyCopyright("Copyright (c) Florian Gilde")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
-[assembly: AssemblyVersion("5.0.0.2")]
-[assembly: AssemblyFileVersion("5.0.0.2")]
+[assembly: AssemblyVersion("5.0.2.0")]
+[assembly: AssemblyFileVersion("5.0.2.0")]

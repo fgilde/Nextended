@@ -1,0 +1,49 @@
+﻿<#@ template debug="false" hostspecific="false" language="C#" #>
+<#@ assembly name="System.Core" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Text" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#@ output extension=".cs" #>
+<#
+ int toExpressionGenCount = 16;
+#>
+
+using System;
+using System.Linq.Expressions;
+
+namespace Nextended.Core.Extensions
+{
+	public static partial class FuncExtensions
+	{
+	<#	
+		WriteLine(Gen(toExpressionGenCount, @"
+		public static Expression<Action<{TParam}>> ToExpression<{TParam}>(this Action<{TParam}> f)
+		{
+			return ({Param}) => f({Param});
+		}"));			
+		WriteLine(Gen(toExpressionGenCount, @"
+		public static Expression<Func<{TParam},TResult>> ToExpression<{TParam},TResult>(this Func<{TParam},TResult> f)
+		{
+			return ({Param}) => f({Param});
+		}"));			
+	#>
+	} 
+}
+<#+
+ // Functions
+
+ private string Gen(int length, string format) {
+    var builder = new StringBuilder();
+    for (int i = 1; i < length + 1; i++)
+    {
+		string s = format
+				.Replace("{TParam}", string.Join(",", Enumerable.Range(1, i).Select(i1 => $"TParam{i1}")))
+				.Replace("{Param}", string.Join(",", Enumerable.Range(1, i).Select(i1 => $"p{i1}")));
+
+        builder.AppendLine(s);        
+    }	
+	return builder.ToString();
+ }
+
+
+#>

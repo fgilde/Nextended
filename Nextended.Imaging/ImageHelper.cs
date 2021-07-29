@@ -7,7 +7,7 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Runtime.Caching;
-using Nextended.Core.Extensions;
+using Nextended.Cache.Extensions;
 
 namespace Nextended.Imaging
 {

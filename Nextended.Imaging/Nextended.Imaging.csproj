@@ -17,8 +17,8 @@
 
 This package is the new version of Nextended.Image nExt was renamed to Nextended</Description>
     <Copyright>Copyright (c) Florian Gilde</Copyright>
-    <AssemblyVersion>5.0.0.2</AssemblyVersion>
-    <FileVersion>5.0.0.2</FileVersion>
+    <AssemblyVersion>5.0.2.0</AssemblyVersion>
+    <FileVersion>5.0.2.0</FileVersion>
     <Version>5.0.2</Version>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
   </PropertyGroup>
@@ -38,6 +38,7 @@ This package is the new version of Nextended.Image nExt was renamed to Nextended
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Nextended.Cache\Nextended.Cache.csproj" />
     <ProjectReference Include="..\Nextended.Core\Nextended.Core.csproj" />
   </ItemGroup>
 

@@ -72,6 +72,24 @@ namespace Nextended.Core.Extensions
         {
             return Task.FromResult(input);
         }
+        public static T SetProperties<T>(this T instance, params Action<T>[] actions)
+        {
+            foreach (var action in actions)
+                action(instance);
+            return instance;
+        }
+
+        public static T ExposeField<T>(this object instance, string fieldName)
+        {
+            return Check.TryCatch<T, Exception>(() =>
+            {
+                BindingFlags flags = BindingFlags.GetField | BindingFlags.GetProperty | BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public;
+                PropertyInfo info = instance.GetType().GetProperty(fieldName, flags);
+                if (info != null)
+                    return (T)info.GetValue(instance);
+                return (T)instance.GetType().GetField(fieldName, flags)?.GetValue(instance);
+            });
+        }
 
         private static string GetKeyName(MemberInfo p)
         {

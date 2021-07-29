@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Data;
@@ -53,7 +54,8 @@ namespace Nextended.Core.Extensions
 		/// <summary>
 		/// Add range.
 		/// </summary>
-		public static IDictionary<TKey, TSource> AddRange<TKey, TSource>(this IDictionary<TKey, TSource> source, IDictionary<TKey, TSource> collection)
+		public static TDictionary AddRange<TDictionary, TKey, TSource>(this TDictionary source, IDictionary<TKey, TSource> collection)
+		  where TDictionary : IDictionary<TKey, TSource>
 		{
 			if (collection == null)
 				throw new ArgumentNullException(nameof(collection));
@@ -71,22 +73,48 @@ namespace Nextended.Core.Extensions
 		/// <summary>
 		/// Add Range 
 		/// </summary>
-		public static ICollection<TSource> AddRange<TSource>(this ICollection<TSource> source, IEnumerable<TSource> itemsToAdd)
-		{
-			foreach (var item in itemsToAdd)
+		public static TCollection AddRange<TCollection, TSource>(this TCollection source, IEnumerable<TSource> itemsToAdd)
+            where TCollection : ICollection<TSource>
+        {
+            foreach (var item in itemsToAdd)
 				source.Add(item);
 			return source;
 		}
 
 
+        /// <summary>
+        /// Add Range 
+        /// </summary>
+        public static ConcurrentBag<TSource> AddRange<TSource>(this ConcurrentBag<TSource> source, IEnumerable<TSource> itemsToAdd)
+        {
+            foreach (var item in itemsToAdd)
+                source.Add(item);
+            return source;
+        }
+
+        public static TCollection RemoveRange<TCollection, TSource>(this TCollection source, IEnumerable<TSource> itemsToRemove)
+            where TCollection : ICollection<TSource>
+        {
+            foreach (var item in itemsToRemove)
+                source.Remove(item);
+            return source;
+        }
+
 		/// <summary>
 		/// Add Range 
 		/// </summary>
-		public static ICollection<TSource> RemoveAll<TSource>(this ICollection<TSource> source, Func<TSource, bool> predicate)
-		{
-			foreach (var item in source.Where(predicate).ToList())
-				source.Remove(item);
-			return source;
+		public static TCollection RemoveAll<TCollection, TSource>(this TCollection source, Func<TSource, bool> predicate = null)
+            where TCollection : ICollection<TSource>
+        {
+			if (predicate == null)
+				source.Clear();
+            else
+            {
+                foreach (var item in source.Where(predicate).ToList())
+                    source.Remove(item);
+            }
+
+            return source;
 		}
 
 		/// <summary>
@@ -96,29 +124,20 @@ namespace Nextended.Core.Extensions
 		{
             var items = enumerable.ToSafeEnumeration();
 			if (items.IsNull())
-            {
                 return Enumerable.Empty<T>();
-            }
-			foreach (var item in items)
-			{
-				action(item);
-			}
-			return items;
+            foreach (var item in items)
+                action(item);
+            return items;
 		}
 		
         public static IEnumerable<T> Apply<T>(this IEnumerable<T> enumerable, Action<int, T> action)
         {
             var items = enumerable.ToSafeEnumeration();
             if (items.IsNull())
-            {
 				return Enumerable.Empty<T>(); ;
-            }
 
             for (var i = 0; i < items.Length; i++)
-            {
-                var item = items[i];
-                action(i, item);
-            }
+                action(i, items[i]);
 
             return items;
         }
@@ -187,8 +206,8 @@ namespace Nextended.Core.Extensions
 		{
 			return enumerable == null || !enumerable.Any(predicate);
 		}
-
-		public static IEnumerable<T> EmptyIfNull<T>(this IEnumerable<T> collection)
+		
+        public static IEnumerable<T> EmptyIfNull<T>(this IEnumerable<T> collection)
 		{
 			return collection ?? Enumerable.Empty<T>();
 		}
