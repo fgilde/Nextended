@@ -13,6 +13,5 @@ namespace Nextended.Core.Extensions
         {
             return BitConverter.ToInt64(value.ToByteArray(), 0);
         }
-
-	}
+    }
 }

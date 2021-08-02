@@ -6,6 +6,11 @@ namespace Nextended.Core.Extensions
 {
     public static class TaskExtensions
     {
+        public static Task<T> IgnoreCancellation<T>(this Task<T> task, CancellationToken cancellationToken = default)
+        {
+            return task.ContinueWith(ts => ts.IsCanceled ? default : ts.Result, cancellationToken);
+        }
+
         /// <summary>
         /// Tries to execute a <see cref="Task"/> until it has been successfully executed or the defined retry count
         /// has been reached.

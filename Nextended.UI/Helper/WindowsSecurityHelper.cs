@@ -135,12 +135,8 @@ namespace Nextended.UI.Helper
             get
             {
                 WindowsIdentity id = WindowsIdentity.GetCurrent();
-                if (id != null)
-                {
-                    var p = new WindowsPrincipal(id);
-                    return p.IsInRole(WindowsBuiltInRole.Administrator);
-                }
-                return true;
+                var p = new WindowsPrincipal(id);
+                return p.IsInRole(WindowsBuiltInRole.Administrator);
             }
         }
 

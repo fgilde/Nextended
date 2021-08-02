@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -28,6 +29,21 @@ namespace Nextended.Core.Extensions
             return input.IsNullOrEmpty() ? input : new string(input.Take(count).ToArray());
         }
 
+        public static string Replace(this string s, IDictionary<string, string> dictionary)
+        {
+            return dictionary.Aggregate(s, (current, pair) => current.Replace(pair.Key, pair.Value));
+        }
+
+        public static string Replace(this string s, IDictionary<char, char> dictionary)
+        {
+            return dictionary.Aggregate(s, (current, pair) => current.Replace(pair.Key, pair.Value));
+        }
+
+        public static string Replace(this string s, string[] valuesToReplace, string newValue)
+        {
+            return valuesToReplace.Aggregate(s, (current, s1) => current.Replace(s1, newValue));
+        }
+
         public static string ToEllipsis(this string input, int maxChars)
         {
             var numberOfCharactersToTake = maxChars - 3;
@@ -41,11 +57,54 @@ namespace Nextended.Core.Extensions
             return EnsureEndsWith(str, toEndWith.ToString());
         }
 
-		public static string EnsureEndsWith(this string str, string toEndWith)
+        public static string EnsureEndsWith2(this string str, string toEndWith)
         {
             if (!str.EndsWith(toEndWith))
                 str += toEndWith;
             return str;
+        }
+
+        /// <summary>
+        /// Returns <paramref name="str"/> with the minimal concatenation of <paramref name="ending"/> (starting from end) that
+        /// results in satisfying .EndsWith(ending).
+        /// </summary>
+        /// <example>"hel".WithEnding("llo") returns "hello", which is the result of "hel" + "lo".</example>
+        public static string EnsureEndsWith(this string str, string ending)
+        {
+            if (str == null)
+                return ending;
+
+            string result = str;
+
+            // Right() is 1-indexed, so include these cases
+            // * Append no characters
+            // * Append up to N characters, where N is ending length
+            for (int i = 0; i <= ending.Length; i++)
+            {
+                string tmp = result + ending.Right(i);
+                if (tmp.EndsWith(ending))
+                    return tmp;
+            }
+
+            return result;
+        }
+
+        /// <summary>Gets the rightmost <paramref name="length" /> characters from a string.</summary>
+        /// <param name="value">The string to retrieve the substring from.</param>
+        /// <param name="length">The number of characters to retrieve.</param>
+        /// <returns>The substring.</returns>
+        private static string Right(this string value, int length)
+        {
+            if (value == null)
+            {
+                throw new ArgumentNullException("value");
+            }
+            if (length < 0)
+            {
+                throw new ArgumentOutOfRangeException("length", length, "Length is less than zero");
+            }
+
+            return (length < value.Length) ? value.Substring(value.Length - length) : value;
         }
 
         public static string EnsureStartsWith(this string str, char toStartWith)
@@ -160,6 +219,17 @@ namespace Nextended.Core.Extensions
         public static string[] SplitByUpperCase(this string str)
         {
            return Regex.Split(str, @"(?<!^)(?=[A-Z])");
+        }
+
+        public static IEnumerable<string> GetLines(this string s)
+        {
+            using var reader = new StringReader(s);
+            string line = reader.ReadLine();
+            while (line != null)
+            {
+                yield return line;
+                line = reader.ReadLine();
+            }
         }
 
     }

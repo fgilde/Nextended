@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Data;
 using System.Linq;
 
@@ -13,7 +14,19 @@ namespace Nextended.Core.Extensions
 	/// </summary>
 	public static class EnumerableExtensions
 	{
-        public static TU Get<T, TU>(this Dictionary<T, TU> dict, T key)
+        static readonly object lockObj = new object();
+
+		public static int IndexOf<T>(this T[] array, T obj)
+        {
+            return Array.IndexOf(array, obj);
+        }
+
+		public static IOrderedEnumerable<TSource> Order<TSource, TKey>(this IEnumerable<TSource> source, Func<TSource, TKey> keySelector, ListSortDirection direction)
+        {
+            return direction == ListSortDirection.Ascending ? source.OrderBy(keySelector) : source.OrderByDescending(keySelector);
+        }
+
+		public static TU Get<T, TU>(this Dictionary<T, TU> dict, T key)
             where TU : class
         {
             dict.TryGetValue(key, out var val);
@@ -54,9 +67,8 @@ namespace Nextended.Core.Extensions
 		/// <summary>
 		/// Add range.
 		/// </summary>
-		public static TDictionary AddRange<TDictionary, TKey, TSource>(this TDictionary source, IDictionary<TKey, TSource> collection)
-		  where TDictionary : IDictionary<TKey, TSource>
-		{
+		public static IDictionary<TKey, TSource> AddRange<TKey, TSource>(this IDictionary<TKey, TSource> source, IDictionary<TKey, TSource> collection)
+        {
 			if (collection == null)
 				throw new ArgumentNullException(nameof(collection));
 
@@ -70,11 +82,28 @@ namespace Nextended.Core.Extensions
 			return source;
 		}
 
+        public static IDictionary<TKey, TValue> MergeWith<TKey, TValue>(this IDictionary<TKey, TValue> collection, params IDictionary<TKey, TValue>[] collections)
+        {
+            foreach (var value in collections.SelectMany(dictionary => dictionary))
+            {
+                collection.AddOrUpdate(value.Key, value.Value);
+            }
+            return collection;
+        }
+
+        public static IDictionary<TKey, TSource> AddOrUpdate<TKey, TSource>(this IDictionary<TKey, TSource> collection, TKey key, TSource value)
+        {
+            if (collection.ContainsKey(key))
+                collection[key] = value;
+            else
+                collection.Add(key, value);
+            return collection;
+        }
+
 		/// <summary>
 		/// Add Range 
 		/// </summary>
-		public static TCollection AddRange<TCollection, TSource>(this TCollection source, IEnumerable<TSource> itemsToAdd)
-            where TCollection : ICollection<TSource>
+		public static ICollection<TSource> AddRange<TSource>(this ICollection<TSource> source, IEnumerable<TSource> itemsToAdd)
         {
             foreach (var item in itemsToAdd)
 				source.Add(item);
@@ -92,8 +121,19 @@ namespace Nextended.Core.Extensions
             return source;
         }
 
-        public static TCollection RemoveRange<TCollection, TSource>(this TCollection source, IEnumerable<TSource> itemsToRemove)
-            where TCollection : ICollection<TSource>
+        public static ConcurrentBag<T> Remove<T>(this ConcurrentBag<T> bag, T value)
+        {
+            if (value != null && bag.Contains(value))
+            {
+                lock (lockObj)
+                {
+                    return new ConcurrentBag<T>(bag.Where(arg => !arg.Equals(value)).ToList());
+                }
+            }
+            return bag;
+        }
+
+		public static ICollection<TSource> RemoveRange<TSource>(this ICollection<TSource> source, IEnumerable<TSource> itemsToRemove)
         {
             foreach (var item in itemsToRemove)
                 source.Remove(item);
@@ -103,8 +143,7 @@ namespace Nextended.Core.Extensions
 		/// <summary>
 		/// Add Range 
 		/// </summary>
-		public static TCollection RemoveAll<TCollection, TSource>(this TCollection source, Func<TSource, bool> predicate = null)
-            where TCollection : ICollection<TSource>
+		public static ICollection<TSource> RemoveAll<TSource>(this ICollection<TSource> source, Func<TSource, bool> predicate = null)
         {
 			if (predicate == null)
 				source.Clear();

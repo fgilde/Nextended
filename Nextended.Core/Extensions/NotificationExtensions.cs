@@ -27,5 +27,35 @@ namespace Nextended.Core.Extensions
                 }
             };
         }
+
+        public static PropertyChangedEventHandler OnChange<T>(this INotifyPropertyChanged propertyChangedObject,
+            Expression<Func<T>> action, Action<T> callback,
+            bool ignoreExceptions = false)
+        {
+            var handler = GetPropertyChangedEventHandler(action, callback, ignoreExceptions);
+            propertyChangedObject.PropertyChanged += handler;
+            return handler;
+        }
+
+        public static PropertyChangedEventHandler GetPropertyChangedEventHandler<T>(Expression<Func<T>> action, Action<T> callback,
+            bool ignoreExceptions)
+        {
+            PropertyChangedEventHandler handler = (sender, args) =>
+            {
+                if (args != null && args.PropertyName != null && action != null && args.PropertyName == action.GetMemberName())
+                {
+                    var func = action.Compile();
+                    if (callback != null)
+                    {
+                        if (ignoreExceptions)
+                            Check.TryCatch<Exception>(() => callback(func()));
+                        else
+                            callback(func());
+                    }
+                }
+            };
+            return handler;
+        }
+
 	}
 }

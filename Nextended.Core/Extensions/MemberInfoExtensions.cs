@@ -13,6 +13,13 @@ namespace Nextended.Core.Extensions
             return Attribute.GetCustomAttributes(member, inherit).OfType<T>();
         }
 
+        public static TResult ReadFromAttribute<TResult, TAttribute>(this MemberInfo info, Func<TAttribute, TResult> readerFunc,
+            TResult fallbackValue = default(TResult)) where TAttribute : Attribute
+        {
+            var attribute = info.GetCustomAttribute<TAttribute>();
+            return attribute != null ? readerFunc(attribute) : fallbackValue;
+        }
+
         public static bool HasAttribute<TAttribute>(this MethodInfo method) where TAttribute : Attribute
         {
             return method.GetCustomAttributes(typeof(TAttribute), false).Any();
