@@ -16,7 +16,7 @@ namespace Nextended.UI.Helper
 	public class FileHelper : Core.Helper.FileHelper
 	{
         /// <summary>
-		/// Gibt das Icon für die übergebene Datei oder extension zurück
+		/// Returns Icon for given extenstion or file
 		/// </summary>
 		public static Icon GetFileIconForExtensionOrFilename(string name)
 		{
