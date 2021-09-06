@@ -44,24 +44,21 @@ namespace Nextended.Core.Extensions
             return valuesToReplace.Aggregate(s, (current, s1) => current.Replace(s1, newValue));
         }
 
-        public static string ToEllipsis(this string input, int maxChars)
+        public static string ToEllipsis(this string input, int maxChars, char ellipseChar = '.', bool keepLength = false)
         {
             var numberOfCharactersToTake = maxChars - 3;
             return input.IsNullOrEmpty() ? input :
                 input.Length <= maxChars ? input :
-                new string(input.Take(numberOfCharactersToTake).ToArray()) + "...";
+                string.Create(keepLength ? input.Length : maxChars, keepLength ? input : input.Substring(0,numberOfCharactersToTake), (span, s) =>
+                {
+                    s.AsSpan().CopyTo(span);
+                    span[(keepLength ? maxChars : numberOfCharactersToTake)..].Fill(ellipseChar);
+                });
         }
 
         public static string EnsureEndsWith(this string str, char toEndWith)
         {
             return EnsureEndsWith(str, toEndWith.ToString());
-        }
-
-        public static string EnsureEndsWith2(this string str, string toEndWith)
-        {
-            if (!str.EndsWith(toEndWith))
-                str += toEndWith;
-            return str;
         }
 
         /// <summary>
