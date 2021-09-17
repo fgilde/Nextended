@@ -14,7 +14,7 @@
     <Authors>Florian Gilde</Authors>
     <PackageId>Nextended.UI</PackageId>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
-	  <VersionPrefix>5.0.2</VersionPrefix>
+	  <VersionPrefix>5.0.3</VersionPrefix>
 	  <VersionSuffix></VersionSuffix>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">

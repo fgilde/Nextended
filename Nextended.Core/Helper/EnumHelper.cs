@@ -167,6 +167,31 @@ namespace Nextended.Core.Helper
         {
             return intValue.MapTo<T>();
         }
+
+
+        public static IDictionary<string, object> ToDictionary<TEnum>()
+        {
+            return Enum.GetValues(typeof(TEnum))
+                .Cast<TEnum>()
+                .ToDictionary(enumValue => enumValue.ToString(), enumValue => (object)Convert.ToInt32(enumValue));
+        }
+
+        public static IDictionary<string, object> ToDictionary(Type enumType, Func<Enum, object> valueConverterFunc = null,
+            Func<object, string> nameConverterFunc = null)
+        {
+            if (valueConverterFunc == null)
+                valueConverterFunc = o => Convert.ToInt32(o) as object;
+
+            if (nameConverterFunc == null)
+                nameConverterFunc = o => o.ToString();
+
+            var result = new Dictionary<string, object>();
+
+            foreach (var val in Enum.GetValues(enumType).Cast<object>().Where(val => !result.ContainsKey(nameConverterFunc(val))))
+                result.Add(nameConverterFunc(val), valueConverterFunc((Enum)val));
+
+            return result;
+        }
     }
 
 }

@@ -7,6 +7,7 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Runtime.Caching;
+using System.Threading.Tasks;
 using Nextended.Cache.Extensions;
 
 namespace Nextended.Imaging
@@ -16,6 +17,7 @@ namespace Nextended.Imaging
     /// </summary>
     public static class ImageHelper
     {
+
         /// <summary>
         ///     Calculates the resize.
         /// </summary>
@@ -351,6 +353,47 @@ namespace Nextended.Imaging
             }
         }
 
+        public static Task<Image> FromFileAsync(string imageFileFullPath, string size = null, string color = null,
+            string oldColor = null)
+        {
+            return Task.Run(() => FromFile(imageFileFullPath, size, color, oldColor));
+        }
+
+        public static Image FromFile(string path, string size = null, string color = null, string oldColor = null)
+        {
+            var image = LoadCloneFromFile(path);
+            if (Equals(image.RawFormat, ImageFormat.Gif))
+                return image;
+            using (image)
+            {
+                var bitmap = color != null
+                    ? ReplaceColor(image, Miscellaneous.GetColor(oldColor), Miscellaneous.GetColor(color), path)
+                    : new Bitmap(image);
+                return size != null ? bitmap.ResizeImage(ImageSize.ParseSize(size)) : bitmap;
+            }
+        }
+
+        public static Image LoadCloneFromFile(string imageFileFullPath)
+        {
+            using (var image = Image.FromFile(imageFileFullPath))
+            {
+                return CloneImage(image);
+            }
+        }
+
+        /// <summary>
+        /// Bild als ByteArray von einer Url
+        /// </summary>
+        public static Image FromUrl(string url)
+        {
+            var httpWebRequest = WebRequest.Create(url);
+            var httpWebReponse = (HttpWebResponse)httpWebRequest.GetResponse();
+            Stream stream = httpWebReponse.GetResponseStream();
+            if (stream != null)
+                return Image.FromStream(stream);
+            return null;
+        }
+
         /// <summary>
         ///     Gibt z.B folgenden string zurück data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAANwAAA ......
         /// </summary>
@@ -360,8 +403,7 @@ namespace Nextended.Imaging
         {
             var result = image.ToByteArray();
             var res = Convert.ToBase64String(result);
-            res = string.Format("data:{0};{1},{2}", image.RawFormat.GetMimeType(), "base64", res);
-            return res;
+            return $"data:{image.RawFormat.GetMimeType()};{"base64"},{res}";
         }
 
         /// <summary>
@@ -375,6 +417,52 @@ namespace Nextended.Imaging
             var encodedDataAsBytes = Convert.FromBase64String(base64[1]);
             var image = Image.FromStream(new MemoryStream(encodedDataAsBytes));
             return image;
+        }
+
+        /// <summary>
+        /// Farbe eines Bildes ermitteln
+        /// </summary>
+        public static Color ReadImageColor(string imagePath)
+        {
+            using (var orig = Image.FromFile(imagePath))
+            {
+                return ReadImageColor(orig);
+            }
+        }
+
+        /// <summary>
+        /// Farbe eines Bildes ermitteln
+        /// </summary>
+        public static Color ReadImageColor(Image image)
+        {
+            using (Bitmap bmp = new Bitmap(1, 1))
+            {
+                using (Graphics g = Graphics.FromImage(bmp))
+                {
+                    g.InterpolationMode = InterpolationMode.HighQualityBicubic;
+                    g.DrawImage(image, new Rectangle(0, 0, 1, 1));
+                }
+                return bmp.GetPixel(0, 0);
+            }
+        }
+
+
+        /// <summary>
+        /// Clones an image.
+        /// </summary>
+        public static Image CloneImage(this Image image, ImageFormat format = null)
+        {
+            format = EnsureImageFormat(format ?? image.RawFormat);
+            if (format?.Guid == ImageFormat.Gif.Guid)
+            {
+                using (var mstream = new MemoryStream())
+                {
+                    image.Save(mstream, format);
+                    mstream.Flush();
+                    return Image.FromStream(mstream);
+                }
+            }
+            return (Image)image.Clone();
         }
 
         /// <summary>
@@ -430,11 +518,11 @@ namespace Nextended.Imaging
         /// <summary>
         ///     Farbe des Bildes ändern
         /// </summary>
-        public static Bitmap ReplaceColor(string fullFilePath, Color colorToReplace, Color newColor)
+        public static Bitmap ReplaceColor(string fullFilePath, Color colorToReplace, Color newColor, string cacheName = "")
         {
             if (IsValidImage(fullFilePath))
             {
-                var cacheKey = $"ReplaceColor{fullFilePath}_{colorToReplace}_{newColor}";
+                string cacheKey = $"{nameof(ReplaceColor)}{cacheName}_{colorToReplace}_{newColor}";
                 return MemoryCache.Default.AddOrGetExisting(cacheKey,
                     () => ReplaceColor(new Bitmap(fullFilePath), colorToReplace, newColor));
             }
@@ -459,6 +547,26 @@ namespace Nextended.Imaging
         }
 
         /// <summary>
+        /// Farbe des Bildes ändern
+        /// </summary>
+        public static Bitmap ChangeColor(Image img, Color newColor, string cacheName)
+        {
+            string cacheKey = $"{nameof(ChangeColor)}{cacheName}_{newColor}";
+            return MemoryCache.Default.AddOrGetExisting(cacheKey, () => ChangeColor(img as Bitmap ?? new Bitmap(img), newColor));
+        }
+
+        /// <summary>
+        /// Farbe des Bildes ändern
+        /// </summary>
+        public static Bitmap ReplaceColor(Image img, Color colorToReplace, Color newColor, string cacheName)
+        {
+            if (colorToReplace.Equals(default(Color)))
+                return ChangeColor(img, newColor, cacheName);
+            string cacheKey = $"{nameof(ReplaceColor)}{cacheName}_{colorToReplace}_{newColor}";
+            return MemoryCache.Default.AddOrGetExisting(cacheKey, () => ReplaceColor(img as Bitmap ?? new Bitmap(img), colorToReplace, newColor));
+        }
+
+        /// <summary>
         ///     Farbe des Bildes ändern
         /// </summary>
         public static Bitmap ReplaceColor(Bitmap sourceBitmap, Color colorToReplace, Color newColor)
@@ -479,6 +587,14 @@ namespace Nextended.Imaging
 
             return resultBitmap;
         }
+
+        internal static ImageFormat EnsureImageFormat(ImageFormat format)
+        {
+            if (format.Guid == ImageFormat.MemoryBmp.Guid)
+                format = ImageFormat.Png;
+            return format;
+        }
+
 
         private static short ReadLittleEndianInt16(this BinaryReader binaryReader)
         {
