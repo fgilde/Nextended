@@ -3,7 +3,7 @@
   <PropertyGroup>
     <TargetFramework>net5.0</TargetFramework>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-    <Version>5.0.3</Version>
+    <Version>5.0.4</Version>
     <Authors>Florian Gilde</Authors>
     <Company>Florian Gilde</Company>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
