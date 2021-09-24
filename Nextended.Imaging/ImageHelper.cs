@@ -656,7 +656,7 @@ namespace Nextended.Imaging
         }
 
 
-        private static bool StartsWith(this byte[] thisBytes, byte[] thatBytes)
+        public static bool StartsWith(this byte[] thisBytes, byte[] thatBytes)
         {
             for (var i = 0; i < thatBytes.Length; i += 1)
                 if (thisBytes[i] != thatBytes[i])
