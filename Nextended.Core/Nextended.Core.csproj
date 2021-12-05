@@ -15,6 +15,7 @@
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
 	<VersionPrefix>5.0.4</VersionPrefix>
 	<VersionSuffix></VersionSuffix>
+	<LangVersion>latest</LangVersion>
 
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
@@ -67,5 +68,8 @@
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>ExtensionsGenerated.cs</LastGenOutput>
     </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Spoofer\" />
   </ItemGroup>
 </Project>

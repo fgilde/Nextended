@@ -700,28 +700,37 @@ namespace Nextended.Core.Helper
 		/// </summary>
 		private object GetPropertyOrFieldValue(string propertyName, object input)
 		{
-			string[] propertyNames = propertyName.Split(new[] { '.' });
-			if (propertyNames.Count() > 1)
-			{
-				object childItem = GetProperty(propertyNames[0], input).GetValue(input, null);
-				if (childItem != null)
-				{
-					return GetPropertyOrFieldValue(propertyName.Substring(propertyName.IndexOf(".", StringComparison.Ordinal) + 1), childItem);
-				}
-				object childItemField = GetField(propertyNames[0], input).GetValue(input);
-				if (childItemField != null)
-					return GetPropertyOrFieldValue(propertyName.Substring(propertyName.IndexOf(".", StringComparison.Ordinal) + 1), childItemField);
-			}
-			else
-			{
-				var p = GetProperty(propertyNames[0], input);
-				if (p != null)
-					return p.GetValue(input, null);
-				var f = GetField(propertyNames[0], input);
-				if (f != null)
-					return f.GetValue(input);
-			}
-			return null;
+            try
+            {
+                string[] propertyNames = propertyName.Split(new[] { '.' });
+                if (propertyNames.Count() > 1)
+                {
+                    object childItem = GetProperty(propertyNames[0], input).GetValue(input, null);
+                    if (childItem != null)
+                    {
+                        return GetPropertyOrFieldValue(propertyName.Substring(propertyName.IndexOf(".", StringComparison.Ordinal) + 1), childItem);
+                    }
+                    object childItemField = GetField(propertyNames[0], input).GetValue(input);
+                    if (childItemField != null)
+                        return GetPropertyOrFieldValue(propertyName.Substring(propertyName.IndexOf(".", StringComparison.Ordinal) + 1), childItemField);
+                }
+                else
+                {
+                    var p = GetProperty(propertyNames[0], input);
+                    if (p != null)
+                        return p.GetValue(input, null);
+                    var f = GetField(propertyNames[0], input);
+                    if (f != null)
+                        return f.GetValue(input);
+                }
+                return null;
+            }
+            catch (Exception)
+            {
+                if (classMappingSettings.IgnoreExceptions)
+                    return null;
+                throw;
+            }
 		}
 
 		/// <summary>

@@ -18,6 +18,13 @@ namespace Nextended.Core.Tests
     {
 
         [TestMethod]
+        public void TestParamCountMissMatch()
+        {
+            var dto = new ProductDto() {Barcode = "XYZ", Brand = "MyBnrand", BrandId = 2, Description = "Hello", Id = 3, Name = "A product"};
+            var res = dto.MapTo<Product>(ClassMappingSettings.Default.Set(s => s.IgnoreExceptions = true));
+        }
+
+        [TestMethod]
         public void TestSystemInterface()
         {
             IList<string> list = typeof(IList<string>).CreateInstance<IList<string>>();

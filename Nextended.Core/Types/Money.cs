@@ -1,4 +1,7 @@
 ﻿using System;
+using System.Linq;
+using Nextended.Core.Extensions;
+using Nextended.Core.Helper;
 
 namespace Nextended.Core.Types
 {
@@ -18,20 +21,22 @@ namespace Nextended.Core.Types
 		/// Rundungsgenauigkeit von Round()
 		/// </summary>
 		public const int DECIMALS = 4;
-
+		
 		#region Konstruktoren
 
 		/// <summary>
 		/// Konstruktor mit Betrag (nimmt Standart-Währung)
 		/// </summary>
 		/// <param name="d"></param>
-		public Money(decimal d)
+		public Money(decimal d, Currency currency = null)
 		{
 			amount = d;
-		}
+            Currency = currency;
+        }
+
 		#endregion
 
-		#region Implizite Konvertierungen
+        #region Implizite Konvertierungen
 		/// <summary>
 		/// Implizite Konvertierung, durch die folgendes möglich ist:
 		/// <code>
@@ -109,9 +114,10 @@ namespace Nextended.Core.Types
 		/// <param name="m2"></param>
 		/// <returns></returns>
 		public static Money Add(Money m1, Money m2)
-		{
-			return new Money(m1.amount + m2.amount);
-		}
+        {
+            var money = m2.EnsureSameCurrencyAs(m1);
+            return new Money(m1.amount + money.amount, m1.Currency);
+        }
 
 		/// <summary>
 		/// + Operator zum Addieren
@@ -121,7 +127,7 @@ namespace Nextended.Core.Types
 		/// <returns></returns>
 		public static Money operator +(Money m1, Money m2)
 		{
-			return Add(m1, m2);
+            return Add(m1, m2);
 		}
 
 		/// <summary>
@@ -131,7 +137,7 @@ namespace Nextended.Core.Types
 		/// <returns></returns>
 		public static Money Negate(Money m)
 		{
-			return new Money(-m.amount);
+			return new Money(-m.amount, m.Currency);
 		}
 
 		/// <summary>
@@ -152,7 +158,7 @@ namespace Nextended.Core.Types
 		/// <returns></returns>
 		public static Money Subtract(Money m1, Money m2)
 		{
-			return new Money(m1.amount - m2.amount);
+			return new Money(m1.amount - m2.EnsureSameCurrencyAs(m1).amount, m1.Currency);
 		}
 
 		/// <summary>
@@ -176,7 +182,7 @@ namespace Nextended.Core.Types
 		/// <returns></returns>
 		public static Money Multiply(Money m, decimal d)
 		{
-			return new Money(m.amount * d);
+			return new Money(m.amount * d).SetCurrency(m.Currency);
 		}
 
 		/// <summary>
@@ -198,7 +204,7 @@ namespace Nextended.Core.Types
 		/// <returns></returns>
 		public static Money Multiply(decimal d, Money m)
 		{
-			return m * d;
+			return (m * d).SetCurrency(m.Currency);
 		}
 
 		/// <summary>
@@ -220,7 +226,7 @@ namespace Nextended.Core.Types
 		/// <returns></returns>
 		public static Money Multiply(Money m, int i)
 		{
-			return m * (decimal)i;
+			return (m * (decimal)i).SetCurrency(m.Currency);
 		}
 
 		/// <summary>
@@ -231,7 +237,7 @@ namespace Nextended.Core.Types
 		/// <returns></returns>
 		public static Money operator *(Money m, int i)
 		{
-			return Multiply(m, i);
+			return Multiply(m, i).SetCurrency(m.Currency);
 		}
 
 		/// <summary>
@@ -242,7 +248,7 @@ namespace Nextended.Core.Types
 		/// <returns></returns>
 		public static Money Multiply(int i, Money m)
 		{
-			return m * (decimal)i;
+			return (m * (decimal)i).SetCurrency(m.Currency);
 		}
 
 		/// <summary>
@@ -264,7 +270,7 @@ namespace Nextended.Core.Types
 		/// <returns></returns>
 		public static Money operator *(Money m, double d)
 		{
-			return new Money(Convert.ToDecimal(Convert.ToDouble(m.amount) * d));
+			return new Money(Convert.ToDecimal(Convert.ToDouble(m.amount) * d)).SetCurrency(m.Currency);
 		}
 
 		/// <summary>
@@ -275,7 +281,7 @@ namespace Nextended.Core.Types
 		/// <returns></returns>
 		public static Money Multiply(double d, Money m)
 		{
-			return m * d;
+			return (m * d).SetCurrency(m.Currency);
 		}
 
 		/// <summary>
@@ -323,7 +329,7 @@ namespace Nextended.Core.Types
 		/// <returns></returns>
 		public static Money Divide(Money m, decimal d)
 		{
-			return new Money(m.amount / d);
+			return new Money(m.amount / d).SetCurrency(m.Currency);
 		}
 
 
@@ -335,7 +341,7 @@ namespace Nextended.Core.Types
 		/// <returns></returns>
 		public static Money operator /(Money m, decimal d)
 		{
-			return Divide(m, d);
+			return Divide(m, d).SetCurrency(m.Currency);
 		}
 
 		/// <summary>
@@ -357,7 +363,7 @@ namespace Nextended.Core.Types
 		/// <returns></returns>
 		public static Money operator /(Money m, double d)
 		{
-			return new Money(Convert.ToDecimal(Convert.ToDouble(m.amount) / d));
+			return new Money(Convert.ToDecimal(Convert.ToDouble(m.amount) / d)).SetCurrency(m.Currency);
 		}
 
 		/// <summary>
@@ -499,14 +505,36 @@ namespace Nextended.Core.Types
 		}
 		#endregion
 
+        /// <summary>
+        /// Currency for this
+        /// </summary>
+        public Currency Currency { get; set; }
 
-		/// <summary>
+        public Money SetCurrency(Currency currency) => this.SetProperties(m => m.Currency = currency);
+
+        public Money ConvertCurrency(Currency currency, DateTime currencyRateTargetDate = default)
+        {
+            if (currency == null || Currency == null)
+                return SetCurrency(null);
+            
+            currencyRateTargetDate = currencyRateTargetDate == default ? DateTime.Today : currencyRateTargetDate;
+			var infos = CurrencyExchangeRateImporter.GetCurrencyExchangeRateData(currencyRateTargetDate.AddDays(-1), currencyRateTargetDate, Currency);
+            var rateInfo = infos.FirstOrDefault(information => information.Currency == currency);
+            return new Money(amount * rateInfo.Rate).SetCurrency(currency);
+        }
+
+        public Money EnsureSameCurrencyAs(Money other)
+        {
+            return Currency != other.Currency ? ConvertCurrency(other.Currency) : this;
+        }
+
+/// <summary>
 		/// 
 		/// </summary>
 		/// <returns></returns>
 		public override int GetHashCode()
 		{
-			return amount.GetHashCode();
+            return amount.GetHashCode();
 		}
 
 		/// <summary>
@@ -523,31 +551,19 @@ namespace Nextended.Core.Types
 		/// <summary>
 		/// Ist 0 
 		/// </summary>
-		public bool IsZero
-		{
-			get { return amount == Zero.amount; }
-		}
+		public bool IsZero => amount == Zero.amount;
 
-		/// <summary>
+        /// <summary>
 		/// Positiver Betrag
 		/// </summary>
-		public bool IsPositive
-		{
-			get { return amount >= Zero.amount; }
-		}
+		public bool IsPositive => amount >= Zero.amount;
 
-		/// <summary>
+        /// <summary>
 		/// Negativer Betrag
 		/// </summary>
-		public bool IsNegative
-		{
-			get
-			{
-				return amount < Zero.amount;
-			}
-		}
+		public bool IsNegative => amount < Zero.amount;
 
-		/// <summary>
+        /// <summary>
 		/// Gibt an, ob die Anzahl der Nachkommastellen gültig ist
 		/// </summary>
 		/// <returns></returns>
