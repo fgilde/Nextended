@@ -1085,6 +1085,39 @@ namespace Nextended.Core.Helper
 
             return sExtension.Substring(1).ToUpper() + "-File";
         }
+
+        /// <summary>
+        /// Returns a readable filesize string
+        /// </summary>
+        public static string GetReadableFileSize(double fileSize, bool fullName = false, Func<string, string> nameConverterFn = null)
+        {
+            nameConverterFn ??= s => s;
+            var sizes = new Dictionary<string, string>
+            {
+                {"B", "Bytes"},
+                {"KB", "Kilobytes"},
+                {"MB", "Megabytes"},
+                {"GB", "Gigabytes"},
+                {"TB", "Terabytes"},
+                {"PB", "Petabytes"},
+                {"EB", "Exabytes"},
+                {"ZB", "Zettabytes"},
+                {"YB", "Yottabytes"},
+                {"BB", "Brontobytes"},
+            };
+
+            double len = fileSize;
+            int order = 0;
+            while (len >= 1024 && order + 1 < sizes.Count)
+            {
+                order++;
+                len = len / 1024;
+            }
+
+            var size = sizes.ElementAt(order);
+            return $"{len:0.##} {nameConverterFn(fullName ? size.Value : size.Key)}";
+        }
+
     }
     
 }

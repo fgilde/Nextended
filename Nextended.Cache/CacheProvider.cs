@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Concurrent;
 using System.Linq;
 using System.Linq.Expressions;
+
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Caching.Memory;
@@ -37,14 +38,14 @@ namespace Nextended.Cache
 
         public CacheProvider(IMemoryCache cache = null, MemoryCacheEntryOptions cacheEntryOptions = null)
         {
-            innerCache = cache ?? new MemoryCache(Options.Create(new MemoryCacheOptions()));
+            innerCache = cache ?? new Microsoft.Extensions.Caching.Memory.MemoryCache(Options.Create(new MemoryCacheOptions()));
             CacheEntryOptions = cacheEntryOptions ?? CacheEntryOptions;
         }
 
 
         public CacheProvider(IOptions<MemoryCacheOptions> options, MemoryCacheEntryOptions cacheEntryOptions = null)
         {
-            innerCache = new MemoryCache(options);
+            innerCache = new Microsoft.Extensions.Caching.Memory.MemoryCache(options);
             CacheEntryOptions = cacheEntryOptions ?? CacheEntryOptions;
         }
 
