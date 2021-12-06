@@ -28,6 +28,9 @@
     <OutputPath>..\bin\Nextended.Cache</OutputPath>
     <DocumentationFile>..\bin\Nextended.Cache\Nextended.Cache.xml</DocumentationFile>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <OutputPath>..\bin\Nextended.Cache</OutputPath>
+  </PropertyGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Nextended.Core\Nextended.Core.csproj" />
