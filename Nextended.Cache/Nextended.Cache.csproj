@@ -3,15 +3,26 @@
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-    <Version>6.0.0</Version>
-    <Authors>Florian Gilde</Authors>
-    <Company>Florian Gilde</Company>
-    <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <Description>Provides a simple ImageHelper class to deal with images
-
-This package is the new version of Nextended.Image nExt was renamed to Nextended</Description>
-    <Copyright>Copyright (c) Florian Gilde</Copyright>
   </PropertyGroup>
+
+  <PropertyGroup>
+    <Title>Nextended.Cache</Title>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageId>Nextended.Cache</PackageId>
+    <PackageVersion>0.0.0-dev</PackageVersion>
+    <Authors>fgilde</Authors>
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+    <RepositoryType>Git</RepositoryType>
+    <PackageProjectUrl>https://github.com/fgilde/Nextended</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/fgilde/Nextended</RepositoryUrl>
+    <Description>This Library provides great and usefull Extension Methods for caching</Description>
+    <Copyright>Copyright © $(Authors) 2020-$([System.DateTime]::Now.Year)</Copyright>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageTags>Cache</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageIcon>icon.png</PackageIcon>
+  </PropertyGroup>
+
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
     <OutputPath>..\bin\Nextended.Cache</OutputPath>
@@ -24,6 +35,21 @@ This package is the new version of Nextended.Image nExt was renamed to Nextended
     <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="6.0.0" />
     <PackageReference Include="Microsoft.Extensions.Options" Version="6.0.0" />
     <PackageReference Include="System.Runtime.Caching" Version="6.0.0" />
+    <PackageReference Include="Nerdbank.GitVersioning" Version="3.4.244">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\icon.png">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+    <None Include="..\README.md">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
   </ItemGroup>
 
 </Project>

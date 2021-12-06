@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 16
-VisualStudioVersion = 16.0.31229.75
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31912.275
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Nextended.Core", "Nextended.Core\Nextended.Core.csproj", "{46F7F151-695E-4870-BF38-34C29D6CCB87}"
 EndProject
@@ -9,8 +9,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{F2BB2CA6
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{582A2BB3-050A-4878-9EA2-E4AD1212967A}"
 	ProjectSection(SolutionItems) = preProject
+		icon.png = icon.png
 		README.md = README.md
 		SolutionInfo.cs = SolutionInfo.cs
+		version.json = version.json
 	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Nextended.Core.Tests", "Nextended.Core.Tests\Nextended.Core.Tests.csproj", "{93D5B123-1BEF-48EC-9083-B6180BB7042B}"
@@ -23,7 +25,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Nextended.UI", "Nextended.U
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Nextended.AutoDto", "Nextended.AutoDto\Nextended.AutoDto.csproj", "{DFFA9DEA-0F64-4CFC-95DB-9A0817C89D7F}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nextended.Cache", "Nextended.Cache\Nextended.Cache.csproj", "{3F8389AC-617F-47EC-8C41-D724070D5ED3}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Nextended.Cache", "Nextended.Cache\Nextended.Cache.csproj", "{3F8389AC-617F-47EC-8C41-D724070D5ED3}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

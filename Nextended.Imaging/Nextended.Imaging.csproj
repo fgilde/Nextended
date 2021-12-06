@@ -10,18 +10,30 @@
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-    <Authors>Florian Gilde</Authors>
-    <Company>Florian Gilde</Company>
-    <PackageId>Nextended.Imaging</PackageId>
-    <Description>Provides a simple ImageHelper class to deal with images
-
-This package is the new version of Nextended.Image nExt was renamed to Nextended</Description>
-    <Copyright>Copyright (c) Florian Gilde</Copyright>
-    <AssemblyVersion>6.0.0</AssemblyVersion>
-    <FileVersion>6.0.0</FileVersion>
-    <Version>6.0.0</Version>
-    <PackageLicenseExpression>MIT</PackageLicenseExpression>
   </PropertyGroup>
+
+  <PropertyGroup>
+    <Title>Nextended.Imaging</Title>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageId>Nextended.Imaging</PackageId>
+    <PackageVersion>0.0.0-dev</PackageVersion>
+    <Authors>fgilde</Authors>
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+    <RepositoryType>Git</RepositoryType>
+    <PackageProjectUrl>https://github.com/fgilde/Nextended</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/fgilde/Nextended</RepositoryUrl>
+    <Description>
+      Provides a simple ImageHelper class to deal with images
+      This package is the new version of Nextended.Image nExt was renamed to Nextended
+    </Description>
+    <Copyright>Copyright © $(Authors) 2020-$([System.DateTime]::Now.Year)</Copyright>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageTags>Imaging, ImageHelper</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageIcon>icon.png</PackageIcon>
+  </PropertyGroup>
+
+
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
     <OutputPath>..\bin\Nextended.Imaging</OutputPath>
@@ -36,11 +48,26 @@ This package is the new version of Nextended.Image nExt was renamed to Nextended
     <PackageReference Include="MediaTypeMap.Core" Version="2.3.3" />
     <PackageReference Include="System.Drawing.Common" Version="6.0.0" />
     <PackageReference Include="System.Runtime.Caching" Version="6.0.0" />
+    <PackageReference Include="Nerdbank.GitVersioning" Version="3.4.244">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Nextended.Cache\Nextended.Cache.csproj" />
     <ProjectReference Include="..\Nextended.Core\Nextended.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\icon.png">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+    <None Include="..\README.md">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
   </ItemGroup>
 
 </Project>
