@@ -314,7 +314,8 @@ namespace Nextended.Core.Extensions
 		/// <param name="source">Source items</param>
 		/// <param name="keySelector">Projection for determining "distinctness"</param>
 		/// <returns>A sequence consisting of distinct elements from the source</returns>
-		public static IEnumerable<TSource> DistinctBy<TSource, TKey>(this IEnumerable<TSource> source, Func<TSource, TKey> keySelector)
+		[Obsolete("Obsolete since .net 6 use native DistinctBy instead")]
+		public static IEnumerable<TSource> DistinctByObsolete<TSource, TKey>(this IEnumerable<TSource> source, Func<TSource, TKey> keySelector)
 		{
 			return source.GroupBy(keySelector).Select(x => x.First());
 		}
@@ -326,7 +327,8 @@ namespace Nextended.Core.Extensions
 		/// <param name="keySelector">Projection for determining "distinctness"</param>
 		/// <param name="comparer">An <see cref="T:System.Collections.Generic.IEqualityComparer`1" /> to compare keys.</param>
 		/// <returns>A sequence consisting of distinct elements from the source</returns>
-		public static IEnumerable<TSource> DistinctBy<TSource, TKey>(
+        [Obsolete("Obsolete since .net 6 use native DistinctBy instead")]
+		public static IEnumerable<TSource> DistinctByObsolete<TSource, TKey>(
 			this IEnumerable<TSource> source,
 			Func<TSource, TKey> keySelector,
 			IEqualityComparer<TKey> comparer)
