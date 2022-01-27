@@ -423,6 +423,75 @@ namespace Nextended.Core.Extensions
 			return source.Select((item, index) => (item, index));
 		}
 
+        /// <summary>
+        /// Only add the element to the sequence if value is not null.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="set"></param>
+        /// <param name="item"></param>
+        public static void AddNonNull<T>(this ICollection<T> set, T item)
+        {
+            if (item != null)
+            {
+                set.Add(item);
+            }
+        }
+
+        /// <summary>
+        /// Generates a sequence that contains one single <paramref name="item"/>.
+        /// </summary>
+        /// <param name="item"></param>
+        /// <typeparam name="T"></typeparam>
+        public static IEnumerable<T> AsEnumerable<T>(this T item)
+        {
+            return Enumerable.Repeat(item, 1);
+        }
+
+		/// <summary>
+		/// Generates a list that contains one single <paramref name="item"/>.
+		/// </summary>
+		/// <param name="item"></param>
+		/// <typeparam name="T"></typeparam>
+		public static IList<T> AsList<T>(this T item)
+        {
+            return AsEnumerable(item).ToList();
+        }
+
+        /// <summary>
+        /// Generates a set that contains one single <paramref name="item"/>.
+        /// Uses the default equality comparer.
+        /// </summary>
+        /// <param name="item"></param>
+        /// <typeparam name="T"></typeparam>
+        public static ISet<T> AsSet<T>(this T item)
+        {
+            return item.AsSet(comparer: null);
+        }
+
+        /// <summary>
+        /// Generates a set that contains one single <paramref name="item"/>.
+        /// Uses the specified equality <paramref name="comparer"/>.
+        /// </summary>
+        /// <param name="item"></param>
+        /// <param name="comparer"></param>
+        /// <typeparam name="T"></typeparam>
+        public static ISet<T> AsSet<T>(this T item, IEqualityComparer<T> comparer)
+        {
+            return AsEnumerable(item).ToHashSet(comparer);
+        }
+
+        /// <summary>
+        /// Casts the elements of an <see cref="IEnumerable"/> <paramref name="source"/> to the specified type <typeparamref name="TResult"/>
+        /// and creates a list.
+        /// </summary>
+        /// <param name="source"></param>
+        /// <typeparam name="TResult">The type to cast the elements of <paramref name="source" /> to.</typeparam>
+        /// <returns>An <see cref="IList{TResult}" /> that contains each element of the source sequence cast to the specified type.</returns>
+        public static IList<TResult> AsListOf<TResult>(this IEnumerable source)
+        {
+            return source.Cast<TResult>().ToList();
+        }
+
 		/// <summary>
 		/// Performs a Full Group Join between the <paramref name="first"/> and <paramref name="second"/> sequences.
 		/// </summary>

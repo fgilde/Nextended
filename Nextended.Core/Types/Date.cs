@@ -7,6 +7,7 @@ namespace Nextended.Core.Types
 	/// Ein Datum (ohne Zeit)
 	/// </summary>
 	[DataContract]
+	[Obsolete("Use DateOnly instead")]
 	public class Date : IComparable
 	{
 		/// <summary>
@@ -31,7 +32,7 @@ namespace Nextended.Core.Types
 		/// <param name="day">Der Tag</param>
 		public Date(int year, int month, int day)
 		{
-			DateTime = new DateTime(year, month, day);
+            DateTime = new DateTime(year, month, day);
 		}
 
 		/// <summary>

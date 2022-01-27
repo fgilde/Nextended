@@ -104,6 +104,29 @@ namespace Nextended.Core.Extensions
             return (length < value.Length) ? value.Substring(value.Length - length) : value;
         }
 
+        /// <summary>
+        /// Retrieves the first length characters from string. If string is shorter than length, returns string.
+        /// </summary>
+        /// <param name="text"></param>
+        /// <param name="length"></param>
+        /// <returns></returns>
+        public static string Left(this string text, int length)
+        {
+            if (text == null)
+            {
+                throw new ArgumentNullException(nameof(text));
+            }
+
+            if (length <= 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(length));
+            }
+
+            var pathSize = text.Length < length ? text.Length : length;
+            var result = text.Substring(0, pathSize);
+            return result;
+        }
+
         public static string EnsureStartsWith(this string str, char toStartWith)
         {
             return EnsureEndsWith(str, toStartWith.ToString());
