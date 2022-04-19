@@ -22,7 +22,12 @@ namespace Nextended.Core.Extensions
 
     public static class StringExtensions
     {
-        public static bool IsGuid(this string input) => Guid.TryParse(input, out Guid result);
+        public static bool IsGuid(this string input) => Guid.TryParse(input, out _);
+
+        public static string SkipChars(this string str, params char[] chars)
+        {
+            return string.Join(string.Empty, str.SkipWhile(chars.Contains));
+        }
 
         public static string TakeCharacters(this string input, int count)
         {
@@ -129,7 +134,7 @@ namespace Nextended.Core.Extensions
 
         public static string EnsureStartsWith(this string str, char toStartWith)
         {
-            return EnsureEndsWith(str, toStartWith.ToString());
+            return EnsureStartsWith(str, toStartWith.ToString());
         }
 
         public static string EnsureStartsWith(this string str, string toStartWith)
