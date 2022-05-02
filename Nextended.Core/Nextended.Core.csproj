@@ -82,6 +82,7 @@
     </None>
   </ItemGroup>
   <ItemGroup>
+    <Folder Include="Scopes\" />
     <Folder Include="Spoofer\" />
   </ItemGroup>
   <ItemGroup>
