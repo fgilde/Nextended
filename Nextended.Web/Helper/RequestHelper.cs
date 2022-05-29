@@ -8,6 +8,7 @@ using System.Text.RegularExpressions;
 using System.Web.Http;
 using System.Web.Http.Controllers;
 using System.Web.Http.Description;
+using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.AspNetCore.Routing;
 using Nextended.Core.Extensions;
 
@@ -40,7 +41,7 @@ namespace Nextended.Web
 		/// </summary>		
 		public RequestHelper(HttpConfiguration webConfiguration, Uri baseAddress)
 		{
-			webConfig = webConfiguration;
+            webConfig = webConfiguration;
 			//hostUri = webConfiguration.BaseAddress;
 			hostUri = baseAddress;
 		}

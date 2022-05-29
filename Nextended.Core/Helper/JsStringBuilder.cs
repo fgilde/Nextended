@@ -109,6 +109,12 @@ namespace Nextended.Core.Helper
             return this;
         }
 
+        public JsStringBuilder AppendDictionary(string functionName, IDictionary<string, object> dictionary)
+        {
+            toGenerate.Add(new KeyValuePair<string, IDictionary<string, object>>(functionName, dictionary));
+            return this;
+        }
+
         /// <summary>
         ///     Returns a string that represents the current object.
         /// </summary>
