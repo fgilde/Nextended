@@ -1,6 +1,7 @@
 ﻿using System.IO.Compression;
 using HeyRed.Mime;
 using Microsoft.AspNetCore.Components.Forms;
+using Nextended.Core.Extensions;
 
 namespace Nextended.Blazor.Models;
 
@@ -9,18 +10,18 @@ namespace Nextended.Blazor.Models;
  */
 public record ZipBrowserFile : IBrowserFile
 {
-    private readonly ZipArchiveEntry _entry;
-    private Stream _stream;
-    private byte[] fileBytes;
-    public ZipBrowserFile(ZipArchiveEntry entry)
-    {
-        using var fileStream = entry.Open();
-        fileBytes = GetBytes(fileStream);
+    public ZipArchiveEntry Entry { get; }
+    public byte[] FileBytes { get; private set; }
 
-        _entry = entry;
-        Name = _entry.Name;
-        Size = _entry.Length;
-        LastModified = _entry.LastWriteTime;
+    public ZipBrowserFile(ZipArchiveEntry entry, bool load = true)
+    {
+        if (load)
+            FileBytes = entry.Open().ToByteArray();
+
+        Entry = entry;
+        Name = Entry.Name;
+        Size = Entry.Length;
+        LastModified = Entry.LastWriteTime;
         FullName = entry.FullName;
         ContentType = MimeTypesMap.GetMimeType(entry.FullName);
 
@@ -32,16 +33,11 @@ public record ZipBrowserFile : IBrowserFile
 
     public Stream OpenReadStream(long maxAllowedSize = 512000, CancellationToken cancellationToken = default)
     {
-        return new MemoryStream(fileBytes);
+        if (!FileBytes?.Any() == true)
+            FileBytes ??= Entry.Open().ToByteArray();
+        return new MemoryStream(FileBytes);
     }
-
-    public static byte[] GetBytes(Stream input)
-    {
-        using var ms = new MemoryStream();
-        input.CopyToAsync(ms);
-        return ms.ToArray();
-    }
-
+    
     public string Name { get; init; }
     public DateTimeOffset LastModified { get; }
     public long Size { get; }

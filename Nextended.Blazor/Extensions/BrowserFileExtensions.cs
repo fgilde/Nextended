@@ -7,24 +7,29 @@ namespace Nextended.Blazor.Extensions;
 
 public static class BrowserFileExtensions
 {
+
     public static async Task<string> GetDataUrlAsync(this IBrowserFile file)
     {
-        var buffer = await file.GetBytesAsync();
-        return DataUrl.GetDataUrl(buffer, file.ContentType);
+        return await DataUrl.GetDataUrlAsync(await file.GetBytesAsync(), file.ContentType);
     }
 
     public static async Task<byte[]> GetBytesAsync(this IBrowserFile file, CancellationToken cancellationToken = default)
     {
+        if (file is ZipBrowserFile { FileBytes: { } } zipEntry)
+            return zipEntry.FileBytes;
         var buffer = new byte[file.Size];
-        await file.OpenReadStream().ReadAsync(buffer, cancellationToken);
+        await file.OpenReadStream(file.Size).ReadAsync(buffer, cancellationToken);
         return buffer;
     }
 
     public static byte[] GetBytes(this IBrowserFile file)
     {
-        var buffer = new byte[file.Size];
-        file.OpenReadStream().Read(buffer);
-        return buffer;
+        if (file is ZipBrowserFile { FileBytes: { } } zipEntry)
+            return zipEntry.FileBytes;
+        using var ms = new MemoryStream();
+        using var openReadStream = file.OpenReadStream(file.Size);
+        openReadStream.CopyToAsync(ms);
+        return ms.ToArray();
     }
 
     public static string GetReadableFileSize(this IBrowserFile file, IStringLocalizer localizer, bool fullName = false)
