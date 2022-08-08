@@ -245,6 +245,19 @@ namespace Nextended.Core.Helper
             CoverUpAbstractMembers = false;
             IncludePrivateFields = false;
             MatchCaseForEnumNameConversion = false;
+            AddDefaultConverters();
+        }
+
+        private void AddDefaultConverters()
+        {
+            AddConverter<DateOnly, DateTime>(only => only.ToDateTime(new TimeOnly(0, 0)));
+            AddConverter<DateTime, DateOnly>(DateOnly.FromDateTime);
+
+            AddConverter<TimeOnly, DateTime>(only => new DateTime(DateTime.MinValue.Year, DateTime.MinValue.Month, DateTime.MinValue.Day, only.Hour, only.Minute, only.Second));
+            AddConverter<DateTime, TimeOnly>(TimeOnly.FromDateTime);
+
+            AddConverter<TimeOnly, TimeSpan>(only => only.ToTimeSpan());
+            AddConverter<TimeSpan, TimeOnly>(TimeOnly.FromTimeSpan);
         }
 
         public ClassMappingSettings RemoveConverters(params TypeConverter[] converters)

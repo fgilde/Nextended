@@ -18,6 +18,55 @@ namespace Nextended.Core.Tests
     {
 
         [TestMethod]
+        public void TestMapDateOnly()
+        {
+            var dateTime = new DateTime(2022, 12, 24, 10, 10, 10);
+            var dateOnly = dateTime.MapTo<DateOnly>();
+            
+            Assert.IsNotNull(dateOnly);
+            Assert.IsTrue(dateOnly.Day == 24);
+            Assert.IsTrue(dateOnly.Month == 12);
+            Assert.IsTrue(dateOnly.Year == 2022);
+
+            var date = dateOnly.MapTo<DateTime>();
+            Assert.IsNotNull(date);
+            Assert.IsTrue(date.Day == 24);
+            Assert.IsTrue(date.Month == 12);
+            Assert.IsTrue(date.Year == 2022);
+        }
+
+        [TestMethod]
+        public void TestMapTimeOnly()
+        {
+            var dateTime = new DateTime(2022, 12, 24, 10, 33, 12);
+            var timeOnly = dateTime.MapTo<TimeOnly>();
+
+            Assert.IsNotNull(timeOnly);
+            Assert.IsTrue(timeOnly.Hour == 10);
+            Assert.IsTrue(timeOnly.Minute == 33);
+            Assert.IsTrue(timeOnly.Second == 12);
+
+            var date = timeOnly.MapTo<DateTime>();
+            Assert.IsNotNull(date);
+            Assert.IsTrue(date.Hour == 10);
+            Assert.IsTrue(date.Minute == 33);
+            Assert.IsTrue(date.Second == 12);
+
+
+            var span = timeOnly.MapTo<TimeSpan>();
+            Assert.IsNotNull(span);
+            Assert.IsTrue(span.Hours == 10);
+            Assert.IsTrue(span.Minutes == 33);
+            Assert.IsTrue(span.Seconds == 12);
+
+            timeOnly = span.MapTo<TimeOnly>();
+            Assert.IsNotNull(timeOnly);
+            Assert.IsTrue(timeOnly.Hour == 10);
+            Assert.IsTrue(timeOnly.Minute == 33);
+            Assert.IsTrue(timeOnly.Second == 12);
+        }
+
+        [TestMethod]
         public void TestParamCountMissMatch()
         {
             var dto = new ProductDto() {Barcode = "XYZ", Brand = "MyBnrand", BrandId = 2, Description = "Hello", Id = 3, Name = "A product"};
