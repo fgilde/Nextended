@@ -8,13 +8,21 @@ namespace Nextended.Core.Helper;
 
 public static class DictionaryHelper
 {
-    public static IDictionary<string, object> GetValuesDictionary<T>(Action<T> options, bool removeDefaults,
-  BindingFlags flags = BindingFlags.Public | BindingFlags.Instance)
+    public static IDictionary<string, object> GetValuesDictionary<T>(Action<T> options, bool removeDefaults, BindingFlags flags = BindingFlags.Public | BindingFlags.Instance)
       where T : new()
     {
         var instance = new T();
         options(instance);
         return GetValuesDictionary(instance, removeDefaults, flags);
+    }
+
+    public static IDictionary<string, object> GetValuesDictionary<T>(bool removeDefaults, params Action<T>[] options)
+        where T : new()
+    {
+        var instance = new T();
+        foreach (var option in options)
+            option(instance);
+        return GetValuesDictionary(instance, removeDefaults);
     }
 
     public static IDictionary<string, object> GetValuesDictionary<T>(T o, bool removeDefaults, BindingFlags flags = BindingFlags.Public | BindingFlags.Instance)
