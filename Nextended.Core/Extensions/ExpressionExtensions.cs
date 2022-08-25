@@ -4,6 +4,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
+using Nextended.Core.Helper;
 
 namespace Nextended.Core.Extensions
 {
@@ -18,10 +19,15 @@ namespace Nextended.Core.Extensions
                 (Expression.Not(Expression.Invoke(expr, expr.Parameters.Cast<Expression>())), expr.Parameters);
         }
 
-		/// <summary>
-		/// Gets the member info represented by an expression.
-		/// </summary>
-		public static MemberInfo GetMemberInfo(this Expression expression)
+        public static IReadOnlyList<MemberInfo> GetMemberInfosPaths<T, TResult>(this Expression<Func<T, TResult>> expr)
+        {
+			return PropertyPath<T>.Get(expr).ToArray();
+		}
+
+        /// <summary>
+			/// Gets the member info represented by an expression.
+			/// </summary>
+			public static MemberInfo GetMemberInfo(this Expression expression)
 		{
 			if (expression is LambdaExpression lambda)
 			{
