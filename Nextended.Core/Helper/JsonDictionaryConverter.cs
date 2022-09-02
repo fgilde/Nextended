@@ -13,6 +13,22 @@ namespace Nextended.Core.Helper
     /// </summary>
     public class JsonDictionaryConverter : JsonConverter
     {
+        public  static JObject DictionaryToJObject(IDictionary<string, object> dictionary)
+        {
+            var result = new JObject();
+            foreach (var (key, value) in dictionary)
+            {
+                if (value is IDictionary<string, object> dict)
+                    result.Add(key, DictionaryToJObject(dict));
+                else if (value is IEnumerable<object> list)
+                    result.Add(key, new JArray(list));
+                else
+                    result.Add(key, JToken.FromObject(value));
+            }
+
+            return result;
+        }
+
 
         /// <summary>
         /// Creates a flat dictionary for an object

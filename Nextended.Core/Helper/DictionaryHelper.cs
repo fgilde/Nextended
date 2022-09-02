@@ -3,11 +3,21 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
+using Newtonsoft.Json.Linq;
 
 namespace Nextended.Core.Helper;
 
 public static class DictionaryHelper
 {
+    public static JObject ToJObject(this IDictionary<string, object> dictionary)
+        => JsonDictionaryConverter.DictionaryToJObject(dictionary);
+
+    public static T ToObject<T>(this IDictionary<string, object> dictionary)
+        => dictionary != null ? dictionary.ToJObject().ToObject<T>() : default;
+    
+    public static object ToObject(this IDictionary<string, object> dictionary, Type objectType)
+        => dictionary?.ToJObject()?.ToObject(objectType);
+
     public static IDictionary<string, object> GetValuesDictionary<T>(Action<T> options, bool removeDefaults, BindingFlags flags = BindingFlags.Public | BindingFlags.Instance)
       where T : new()
     {
