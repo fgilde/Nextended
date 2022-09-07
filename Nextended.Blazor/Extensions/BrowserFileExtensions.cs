@@ -37,7 +37,7 @@ public static class BrowserFileExtensions
         return GetReadableFileSize(file.Size, localizer, fullName);
     }
 
-    public static string GetReadableFileSize(long size, IStringLocalizer localizer, bool fullName = false)
+    public static string GetReadableFileSize(long size, IStringLocalizer localizer = null, bool fullName = false)
     {
         var source = new Dictionary<string, string>
         {
@@ -57,7 +57,7 @@ public static class BrowserFileExtensions
         for (index = 0; length >= 1024.0 && index + 1 < source.Count; length /= 1024.0)
             ++index;
         KeyValuePair<string, string> keyValuePair = source.ElementAt(index);
-        return $"{length:0.##} {localizer[fullName ? keyValuePair.Value : keyValuePair.Key]}";
+        return localizer != null ? $"{length:0.##} {localizer[fullName ? keyValuePair.Value : keyValuePair.Key]}" : $"{length:0.##} {(fullName ? keyValuePair.Value : keyValuePair.Key)}";
     }
     
     public static bool IsZipFile(this IBrowserFile file)
