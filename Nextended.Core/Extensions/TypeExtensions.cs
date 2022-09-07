@@ -49,6 +49,9 @@ namespace Nextended.Core.Extensions
                 .FirstOrDefault(property => property != null);
         }
 
+        public static bool IsNullableEnum(this Type t)
+            => Nullable.GetUnderlyingType(t) is { IsEnum: true };
+
         public static bool IsNullableType(this Type type)
         {
             return type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Nullable<>);
