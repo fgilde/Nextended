@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Reflection;
 using Nextended.Core.Helper;
 using Nextended.Core.Types;
@@ -10,8 +11,7 @@ namespace Nextended.Core.Extensions
 {
     public static class TypeExtensions
     {
-      
-
+        
         /// <summary>
         /// Gibt an ob der Typ eine BaseId ist
         /// </summary>
@@ -54,6 +54,9 @@ namespace Nextended.Core.Extensions
 
         public static bool IsNullableEnum(this Type t)
             => Nullable.GetUnderlyingType(t) is { IsEnum: true };
+
+        
+        public static bool IsExpression(this Type type) => type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Expression<>);
 
         public static bool IsNullableType(this Type type)
         {

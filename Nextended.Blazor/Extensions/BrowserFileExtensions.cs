@@ -1,12 +1,35 @@
 ﻿using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.Extensions.Localization;
-using Nextended.Blazor.Helper;
+using Microsoft.JSInterop;
 using Nextended.Blazor.Models;
+using Nextended.Core;
 
 namespace Nextended.Blazor.Extensions;
 
 public static class BrowserFileExtensions
 {
+    public static async Task DownloadFileAsync(this IBrowserFile browserFile, IJSRuntime jsRuntime)
+    {
+        var url = await DataUrl.GetDataUrlAsync(await browserFile.GetBytesAsync(), browserFile.ContentType);
+        await jsRuntime.InvokeVoidAsync("eval", GetJsDownloadCode(url, browserFile.Name, browserFile.ContentType));
+    }
+
+    private static string GetJsDownloadCode(string url, string fileName, string mimeType) =>
+        @$"
+        var fileUrl = '{url}';
+        fetch(fileUrl)
+            .then(response => response.blob())
+            .then(blob => {{var link = window.document.createElement('a');    
+                link.href = window.URL.createObjectURL(blob);
+                link.download = '{fileName}';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }});
+        ";
+    
+    public static string GetContentType(this IBrowserFile file) 
+        => string.IsNullOrWhiteSpace(file.ContentType) ? MimeType.GetMimeType(file.Name) : file.ContentType;
 
     public static async Task<string> GetDataUrlAsync(this IBrowserFile file)
     {
@@ -60,10 +83,6 @@ public static class BrowserFileExtensions
         return localizer != null ? $"{length:0.##} {localizer[fullName ? keyValuePair.Value : keyValuePair.Key]}" : $"{length:0.##} {(fullName ? keyValuePair.Value : keyValuePair.Key)}";
     }
     
-    public static bool IsZipFile(this IBrowserFile file)
-    {
-        return MimeTypeHelper.IsZip(file.ContentType);
-    }
-
-
+    public static bool IsZipFile(this IBrowserFile file) 
+        => MimeType.IsZip(file.ContentType);
 }
