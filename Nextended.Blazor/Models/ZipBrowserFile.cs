@@ -1,6 +1,6 @@
 ﻿using System.IO.Compression;
-using HeyRed.Mime;
 using Microsoft.AspNetCore.Components.Forms;
+using Nextended.Core;
 using Nextended.Core.Extensions;
 
 namespace Nextended.Blazor.Models;
@@ -23,7 +23,7 @@ public record ZipBrowserFile : IBrowserFile
         Size = Entry.Length;
         LastModified = Entry.LastWriteTime;
         FullName = entry.FullName;
-        ContentType = MimeTypesMap.GetMimeType(entry.FullName);
+        ContentType = MimeType.GetMimeType(entry.FullName);
 
         if (string.IsNullOrWhiteSpace(FullName))
             FullName = Name;

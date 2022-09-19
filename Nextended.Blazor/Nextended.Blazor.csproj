@@ -46,7 +46,6 @@
     <ProjectReference Include="..\Nextended.Core\Nextended.Core.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="MimeTypesMap" Version="1.0.8" />
     <PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="6.0.4" />
     <PackageReference Include="Microsoft.Extensions.Localization.Abstractions" Version="6.0.5" />
     <PackageReference Include="Nerdbank.GitVersioning" Version="3.4.244">
