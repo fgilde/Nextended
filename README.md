@@ -1,5 +1,5 @@
 # Nextended
-This Libraray was updated to .net5 and renamed from old "nExt" to Nextended
+This Libraray was updated to .net7 and renamed from old "nExt" to Nextended
 
 Old Nuget Package: https://www.nuget.org/packages/nExt.Core/ (No more updated)
 

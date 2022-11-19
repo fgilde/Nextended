@@ -25,9 +25,20 @@ namespace Nextended.Core.Types
 		private static readonly Lazy<IEnumerable<CultureInfo>> allCultures = new Lazy<IEnumerable<CultureInfo>>(() => CultureInfo.GetCultures(CultureTypes.AllCultures)
 										  .Where(info => !info.IsNeutralCulture && !info.Equals(CultureInfo.InvariantCulture)));
 
-		private static readonly Lazy<IEnumerable<RegionInfo>> allRegions = new Lazy<IEnumerable<RegionInfo>>(() => allCultures.Value.Select(source => new RegionInfo(source.LCID)));
+		private static readonly Lazy<IEnumerable<RegionInfo>> allRegions = new(() => allCultures.Value.Where(s => s.LCID != 4096).Select(source =>
+        {
+            try
+            {
+				
+                return new RegionInfo(source.LCID);
+            }
+            catch (Exception )
+            {
+                return null;
+            }
+        }).Where(info => info != null));
 
-		private string isoCode;
+        private string isoCode;
 		private string name;
 
 		/// <summary>
@@ -190,10 +201,19 @@ namespace Nextended.Core.Types
 						{
 							cache = new List<Currency>();
 							foreach (var ri in CultureInfo.GetCultures(CultureTypes.AllCultures)
-							                              .Where(info => !info.IsNeutralCulture && !info.Equals(CultureInfo.InvariantCulture))
-							                              .
-							                               Select(source => new RegionInfo(source.LCID))
-							                              .Where(ri => cache.All(currency => currency.IsoCode != ri.ISOCurrencySymbol)))
+							                              .Where(info => info.LCID != 4096 && !info.IsNeutralCulture && !info.Equals(CultureInfo.InvariantCulture))
+                                                          .Select(source =>
+                                                          {
+                                                              try
+                                                              {
+                                                                  return new RegionInfo(source.LCID);
+                                                              }
+                                                              catch (Exception)
+                                                              {
+                                                                  return null;
+                                                              }
+                                                          })
+							                              .Where(ri => ri != null && cache.All(currency => currency.IsoCode != ri.ISOCurrencySymbol)))
 							{
 								cache.Add(new Currency(ri));
 							}
@@ -209,7 +229,7 @@ namespace Nextended.Core.Types
 		/// </summary>
 		public static Currency Find(string s)
 		{
-			return
+            return
 				All.FirstOrDefault(
 					c =>
 					c.Name.ToUpper() == s.ToUpper() || c.NativeName.ToUpper() == s.ToUpper() || c.IsoCode.ToUpper() == s.ToUpper() ||
@@ -244,7 +264,7 @@ namespace Nextended.Core.Types
 
         public static IEnumerable<CultureInfo> GetCulturesForCurrencyISOCode(string isoCode)
 		{
-			return from culture in allCultures.Value
+			return from culture in allCultures.Value.Where(s => s.LCID != 4096)
 				   let ri = new RegionInfo(culture.LCID)
 				   where ri.ISOCurrencySymbol == isoCode
 				   select culture;
