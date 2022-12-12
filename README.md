@@ -1,5 +1,5 @@
 # Nextended
-This Libraray was updated to .net7 and renamed from old "nExt" to Nextended
+This Libraray was updated to .net7 and renamed from old "nExt" to Nextended v 7.0.19 is cross compatible with net6 and net7
 
 Old Nuget Package: https://www.nuget.org/packages/nExt.Core/ (No more updated)
 
