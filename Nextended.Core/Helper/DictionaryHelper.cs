@@ -46,6 +46,30 @@ public static class DictionaryHelper
             : GetValuesFunc<T>(flags)(o);
     }
 
+    //public static Func<T, Dictionary<string, object>> GetValuesFunc<T>(BindingFlags flags = BindingFlags.Public | BindingFlags.Instance)
+    //{
+    //    var objType = typeof(T);
+
+    //    var dict = Expression.Variable(typeof(Dictionary<string, object>));
+    //    var par = Expression.Parameter(typeof(T), "obj");
+
+    //    var add = typeof(Dictionary<string, object>).GetMethod(nameof(Dictionary<string, object>.Add), flags, null, new[] { typeof(string), typeof(object) }, null);
+
+    //    var body = new List<Expression> { Expression.Assign(dict, Expression.New(typeof(Dictionary<string, object>))) };
+
+    //    var properties = objType.GetTypeInfo().GetProperties(flags);
+
+    //    body.AddRange(from p in properties where p.CanRead && p.GetIndexParameters().Length == 0 let key = Expression.Constant(p.Name) let value = Expression.Property(par, p) let valueAsObject = Expression.Convert(value, typeof(object)) select Expression.Call(dict, add, key, valueAsObject));
+
+    //    // Return value
+    //    body.Add(dict);
+
+    //    var block = Expression.Block(new[] { dict }, body);
+
+    //    var lambda = Expression.Lambda<Func<T, Dictionary<string, object>>>(block, par);
+    //    return lambda.Compile();
+    //}
+
     public static Func<T, Dictionary<string, object>> GetValuesFunc<T>(BindingFlags flags = BindingFlags.Public | BindingFlags.Instance)
     {
         var objType = typeof(T);
@@ -59,7 +83,14 @@ public static class DictionaryHelper
 
         var properties = objType.GetTypeInfo().GetProperties(flags);
 
-        body.AddRange(from p in properties where p.CanRead && p.GetIndexParameters().Length == 0 let key = Expression.Constant(p.Name) let value = Expression.Property(par, p) let valueAsObject = Expression.Convert(value, typeof(object)) select Expression.Call(dict, add, key, valueAsObject));
+        body.AddRange((from p in properties
+            where p.CanRead && p.GetIndexParameters().Length == 0
+            let key = Expression.Constant(p.Name)
+            let value = Expression.Property(par, p)
+            let valueAsObject = Expression.Convert(value, typeof(object))
+            select Expression.TryCatch(Expression.Call(dict, add, key, valueAsObject), Expression.Catch(typeof(Exception),
+                // Do nothing on exception, effectively ignoring the problematic property.
+                Expression.Empty()))).Cast<Expression>());
 
         // Return value
         body.Add(dict);
@@ -69,4 +100,5 @@ public static class DictionaryHelper
         var lambda = Expression.Lambda<Func<T, Dictionary<string, object>>>(block, par);
         return lambda.Compile();
     }
+
 }
