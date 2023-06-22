@@ -13,6 +13,25 @@ namespace Nextended.Core.Extensions
 {
     public static class ObjectExtensions
     {
+        public static T[] AllOf<T>(this object instance)
+        {
+            if (instance == null)
+                return Array.Empty<T>();
+
+            var type = instance.GetType();
+            var flags = BindingFlags.Public | BindingFlags.Instance;
+
+            var fields = type.GetFields(flags)
+                .Where(f => f.FieldType == typeof(T))
+                .Select(f => (T)f.GetValue(instance));
+
+            var properties = type.GetProperties(flags)
+                .Where(p => p.PropertyType == typeof(T) && p.GetMethod != null)
+                .Select(p => (T)p.GetValue(instance));
+
+            return fields.Concat(properties).ToArray();
+        }
+
         public static IDictionary<string, string> ToFlatDictionary(this object obj)
         {
             return JsonDictionaryConverter.Flatten(obj);
