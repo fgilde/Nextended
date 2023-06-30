@@ -169,49 +169,79 @@ namespace Nextended.Core.Extensions
 
         public static bool IsKeyValuePair(this Type t)
         {
-            if (t.IsGenericType)
-            {
-                var def = t.GetGenericTypeDefinition();
-                return def == typeof(KeyValuePair<,>);
-            }
-            return false;
+            if (!t.IsGenericType) return false;
+            var def = t.GetGenericTypeDefinition();
+            return def == typeof(KeyValuePair<,>);
         }
         
         public static bool IsTupleOrValueTuple(this Type t)
             => IsTuple(t) || IsValueTuple(t);
         
         public static bool IsTuple(this Type t)
+            => t.IsInstanceOfOpenGenericType(typeof(Tuple<>), typeof(Tuple<,>), typeof(Tuple<,,>), typeof(Tuple<,,,>), typeof(Tuple<,,,,>), typeof(Tuple<,,,,,>), typeof(Tuple<,,,,,,>), typeof(Tuple<,,,,,,,>));
+
+        public static bool IsValueTuple(this Type t)
+            => t.IsInstanceOfOpenGenericType(typeof(ValueTuple<>), typeof(ValueTuple<,>), typeof(ValueTuple<,,>), typeof(ValueTuple<,,,>), typeof(ValueTuple<,,,,>), typeof(ValueTuple<,,,,,>), typeof(ValueTuple<,,,,,,>), typeof(ValueTuple<,,,,,,,>));
+
+        public static bool IsInstanceOfOpenGenericType(this Type type, params Type[] openGenericTypes)
         {
-            if (t.IsGenericType)
+            if (!type.IsGenericType)
+                return false;
+
+            var typeDefinition = type.GetGenericTypeDefinition();
+            return openGenericTypes.Any(openGenericType => typeDefinition == openGenericType);
+        }
+
+        public static bool IsNullableGenericOf(this Type type, params Type[] openGenericTypes)
+        {
+            if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Nullable<>))
             {
-                var def = t.GetGenericTypeDefinition();
-                return def == typeof(Tuple<>) ||
-                       def == typeof(Tuple<,>) ||
-                       def == typeof(Tuple<,,>) ||
-                       def == typeof(Tuple<,,,>) ||
-                       def == typeof(Tuple<,,,,>) ||
-                       def == typeof(Tuple<,,,,,>) ||
-                       def == typeof(Tuple<,,,,,,>) ||
-                       def == typeof(Tuple<,,,,,,,>);
+                // Get the underlying type of the nullable type
+                var underlyingType = Nullable.GetUnderlyingType(type);
+
+                // Check if the underlying type is an instance of the specified open generic type(s)
+                return underlyingType.IsInstanceOfOpenGenericType(openGenericTypes);
             }
             return false;
         }
 
-        public static bool IsValueTuple(this Type t)
+        public static bool IsNullableGenericOfGenericTypeDefinition(this Type type, Type genericTypeDefinition)
         {
-            if (t.IsGenericType)
+            if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Nullable<>))
             {
-                var def = t.GetGenericTypeDefinition();
-                return def == typeof(ValueTuple<>) ||
-                       def == typeof(ValueTuple<,>) ||
-                       def == typeof(ValueTuple<,,>) ||
-                       def == typeof(ValueTuple<,,,>) ||
-                       def == typeof(ValueTuple<,,,,>) ||
-                       def == typeof(ValueTuple<,,,,,>) ||
-                       def == typeof(ValueTuple<,,,,,,>) ||
-                       def == typeof(ValueTuple<,,,,,,,>);
+                // Get the underlying type of the nullable type
+                var underlyingType = Nullable.GetUnderlyingType(type);
+
+                // Check if the underlying type is an instance of the specified generic type definition
+                return underlyingType.IsInstanceOfGenericTypeDefinition(genericTypeDefinition);
             }
             return false;
+        }
+
+        public static bool IsInstanceOfGenericTypeDefinition(this Type type, Type genericTypeDefinition, Type otherGenericTypeDefinition, params Type[] otherGenericTypeDefinitions)
+        {
+            var genericTypeDefinitions = new List<Type> { genericTypeDefinition, otherGenericTypeDefinition };
+            genericTypeDefinitions.AddRange(otherGenericTypeDefinitions);
+
+            return type.IsInstanceOfGenericTypeDefinition(genericTypeDefinitions.ToArray());
+        }
+
+        public static bool IsInstanceOfGenericTypeDefinition(this Type type, Type[] genericTypeDefinitions) 
+            => genericTypeDefinitions.Any(typeDefinition => IsInstanceOfGenericTypeDefinition(type, typeDefinition));
+
+        public static bool IsInstanceOfGenericTypeDefinition(this Type type, Type genericTypeDefinition)
+        {
+            if (!genericTypeDefinition.IsGenericTypeDefinition)
+                throw new ArgumentException("The second parameter must be a generic type definition");
+
+            if (type.IsGenericType && type.GetGenericTypeDefinition() == genericTypeDefinition)
+                return true;
+
+            if (genericTypeDefinition.IsInterface)
+                return type.GetInterfaces().Any(i => i.IsGenericType && i.GetGenericTypeDefinition() == genericTypeDefinition);
+            
+            return type.IsGenericType && type.GetGenericTypeDefinition() == genericTypeDefinition ||
+                   type.BaseType != null && IsInstanceOfGenericTypeDefinition(type.BaseType, genericTypeDefinition);
         }
 
         public static bool IsSubclassOfInterfaceOf(this Type toCheck, Type interfaceType)
