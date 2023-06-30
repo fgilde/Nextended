@@ -56,11 +56,55 @@ namespace Nextended.Core.Extensions
         public static bool IsNullableEnum(this Type t)
             => Nullable.GetUnderlyingType(t) is { IsEnum: true };
 
-        
-        public static bool IsExpression(this Type type) => type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Expression<>);
+        private static bool IsExpressionLegacy(Type type) => type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Expression<>);
 
         public static bool IsNullableType(this Type type) => type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Nullable<>);
 
+        public static bool IsExpression(this Type type) => IsExpressionLegacy(type) || type.IsInstanceOfGenericTypeDefinition(typeof(Expression<>));
+
+        public static bool IsFunc(this Type type)
+        {
+            for (int i = 1; i <= 16; i++)
+            {
+                var func = typeof(Func<>).Assembly.GetType("System.Func`" + i);
+                if (type.IsInstanceOfGenericTypeDefinition(func))
+                    return true;
+            }
+            return false;
+        }
+
+        public static bool IsAction(this Type type)
+        {
+            for (int i = 0; i <= 16; i++)
+            {
+                var action = i == 0 ? typeof(Action) : typeof(Action<>).Assembly.GetType("System.Action`" + i);
+                if (type.IsInstanceOfGenericTypeDefinition(action))
+                    return true;
+            }
+            return false;
+        }
+
+        public static bool IsNullableFunc(this Type type)
+        {
+            for (int i = 1; i <= 16; i++)
+            {
+                var func = typeof(Func<>).Assembly.GetType("System.Func`" + i);
+                if (type.IsNullableGenericOfGenericTypeDefinition(func))
+                    return true;
+            }
+            return false;
+        }
+
+        public static bool IsNullableAction(this Type type)
+        {
+            for (int i = 0; i <= 16; i++)
+            {
+                var action = i == 0 ? typeof(Action) : typeof(Action<>).Assembly.GetType("System.Action`" + i);
+                if (type.IsNullableGenericOfGenericTypeDefinition(action))
+                    return true;
+            }
+            return false;
+        }
         public static bool IsNullable(this Type type)
         {
             Check.NotNull(() => type);
