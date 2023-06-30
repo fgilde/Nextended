@@ -64,35 +64,58 @@ namespace Nextended.Core.Extensions
 
         public static bool IsFunc(this Type type)
         {
-            for (int i = 1; i <= 16; i++)
+            try
             {
-                var func = typeof(Func<>).Assembly.GetType("System.Func`" + i);
-                if (type.IsInstanceOfGenericTypeDefinition(func))
-                    return true;
+                for (int i = 1; i <= 16; i++)
+                {
+                    var func = typeof(Func<>).Assembly.GetType("System.Func`" + i);
+                    if (type.IsInstanceOfGenericTypeDefinition(func))
+                        return true;
+                }
+                return false;
             }
-            return false;
+            catch
+            {
+                return type.IsNullableGenericOfGenericTypeDefinition(typeof(Func<>));
+            }
         }
 
         public static bool IsAction(this Type type)
         {
-            for (int i = 0; i <= 16; i++)
+            try
             {
-                var action = i == 0 ? typeof(Action) : typeof(Action<>).Assembly.GetType("System.Action`" + i);
-                if (type.IsInstanceOfGenericTypeDefinition(action))
+                if (type == typeof(Action))
                     return true;
+                for (int i = 0; i <= 16; i++)
+                {
+                    var action = i == 0 ? typeof(Action) : typeof(Action<>).Assembly.GetType("System.Action`" + i);
+                    if (type.IsInstanceOfGenericTypeDefinition(action))
+                        return true;
+                }
+                return false;
             }
-            return false;
+            catch
+            {
+                return type.IsNullableGenericOfGenericTypeDefinition(typeof(Action<>));
+            }
         }
 
         public static bool IsNullableFunc(this Type type)
         {
-            for (int i = 1; i <= 16; i++)
+            try
             {
-                var func = typeof(Func<>).Assembly.GetType("System.Func`" + i);
-                if (type.IsNullableGenericOfGenericTypeDefinition(func))
-                    return true;
+                for (int i = 1; i <= 16; i++)
+                {
+                    var func = typeof(Func<>).Assembly.GetType("System.Func`" + i);
+                    if (type.IsNullableGenericOfGenericTypeDefinition(func))
+                        return true;
+                }
+                return false;
             }
-            return false;
+            catch
+            {
+                return type.IsNullable() && type.IsFunc();
+            }
         }
 
         public static bool IsNullableAction(this Type type)
@@ -276,7 +299,7 @@ namespace Nextended.Core.Extensions
         public static bool IsInstanceOfGenericTypeDefinition(this Type type, Type genericTypeDefinition)
         {
             if (!genericTypeDefinition.IsGenericTypeDefinition)
-                throw new ArgumentException("The second parameter must be a generic type definition");
+                return false;
 
             if (type.IsGenericType && type.GetGenericTypeDefinition() == genericTypeDefinition)
                 return true;
