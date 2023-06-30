@@ -199,6 +199,15 @@ namespace Nextended.Core.Extensions
             return !typeof(IList).IsAssignableFrom(input);
         }
 
+        public static bool IsStruct(this Type t)
+        {
+            return t.IsValueType && !t.IsPrimitive && !t.IsEnum && t != typeof(ValueType) && (!t.IsGenericType || t.GetGenericTypeDefinition() != typeof(Nullable<>));
+        }
+        public static bool IsReadOnlyStruct(this Type t)
+        {
+            return IsStruct(t) && t.GetProperties().All(prop => !prop.CanWrite);
+        }
+
         public static object CreateInstance(this Type input)
         {
             return ReflectionHelper.CreateInstance(input);
