@@ -1011,15 +1011,20 @@ public static class MimeType
     public static string[] VideoTypes => _mimeTypeMap.Value.Values.Where(x => x.StartsWith("video/")).ToArray();
     public static string[] AudioTypes => _mimeTypeMap.Value.Values.Where(x => x.StartsWith("audio/")).ToArray();
     public static string[] DocumentTypes => _mimeTypeMap.Value.Values.Where(x => Matches(x, "application/pdf", "application/msword", "application/vnd.ms-excel", "application/vnd.openxmlformats-officedocument.*")).ToArray();
-
+    public static string[] ArchiveTypes => new[] {"application/x-compressed"}.Concat(_mimeTypeMap.Value.Values.Where(x => Matches(x, "application/x-*-compressed") || x.Contains("compressed") || IsRar(x) || IsZip(x))).ToArray();
+    
     public static bool IsZip(string contentType) 
         => !string.IsNullOrWhiteSpace(contentType) && Matches(contentType, "application/zip*", "application/x-zip*");
+
+    public static bool IsRar(string contentType)
+        => !string.IsNullOrWhiteSpace(contentType) && Matches(contentType, "application/x-compressed") || contentType == _mimeTypeMap.Value["rar"];
 
     /**
      * Returns true if the given mimeType matches any of given mimeTypes
      */
     public static bool Matches(string mimeType, params string[] mimeTypes)
     {
+         
         if (mimeTypes == null || mimeTypes.Length == 0)
             return false;
         return mimeTypes.Any(type => mimeType != null && (type.Equals(mimeType, StringComparison.InvariantCultureIgnoreCase) || Regex.IsMatch(mimeType, type, RegexOptions.CultureInvariant | RegexOptions.IgnoreCase)));
