@@ -39,18 +39,67 @@ namespace Nextended.Core.Helper
 			interfaceTypeCache.Clear();
         }
 
-        public static object CreateTypeAndDeserialize(string content, InputType inputType, string typeName = "", bool cacheTypes = false)
+        public static bool TryDetectInputType(string content, out ModelInputType detectedType)
+        {
+            if (string.IsNullOrWhiteSpace(content))
+            {
+                detectedType = default;
+                return false;
+            }
+
+            var firstChar = content.TrimStart()[0];
+            switch (firstChar)
+            {
+                case '{':
+                case '[':
+                    detectedType = ModelInputType.Json;
+                    return true;
+
+                case '<':
+                    detectedType = ModelInputType.Xml;
+                    return true;
+
+                default:
+                    if (content.Contains(":"))
+                    {
+                        detectedType = ModelInputType.Yaml;
+                        return true;
+                    }
+
+                    detectedType = default;
+                    return false;
+            }
+        }
+
+        public static object CreateTypeAndDeserialize(string content, string typeName = "", bool cacheTypes = false)
+        {
+            if (!TryDetectInputType(content, out ModelInputType inputType))
+                throw new ArgumentException("Cannot determine the input format. Please specify it explicitly.");
+
+            return CreateTypeAndDeserialize(content, inputType, typeName, cacheTypes);
+        }
+
+        public static Type CreateTypeFor(string content, string typeName = "", bool cacheTypes = false)
+        {
+            if (!TryDetectInputType(content, out ModelInputType inputType))
+                throw new ArgumentException("Cannot determine the input format. Please specify it explicitly.");
+
+            return CreateTypeFor(content, inputType, typeName, cacheTypes);
+        }
+
+
+        public static object CreateTypeAndDeserialize(string content, ModelInputType modelInputType, string typeName = "", bool cacheTypes = false)
         {
             typeName = GenerateTypeName(typeName);
-            var parsedObject = ParseContent(content, inputType);
+            var parsedObject = ParseContent(content, modelInputType);
             var dynamicType = CreateTypeFromJObject(parsedObject, typeName, cacheTypes);
             return parsedObject.ToObject(dynamicType);
         }
 
-        public static Type CreateTypeFor(string content, InputType inputType, string typeName = "", bool cacheTypes = false)
+        public static Type CreateTypeFor(string content, ModelInputType modelInputType, string typeName = "", bool cacheTypes = false)
         {
             typeName = GenerateTypeName(typeName);
-            var parsedObject = ParseContent(content, inputType);
+            var parsedObject = ParseContent(content, modelInputType);
             return CreateTypeFromJObject(parsedObject, typeName, cacheTypes);
         }
 
@@ -75,21 +124,21 @@ namespace Nextended.Core.Helper
             return !string.IsNullOrEmpty(typeName) ? typeName : $"DynamicType_{Guid.NewGuid()}";
         }
 
-        private static IParser GetParser(InputType inputType)
+        private static IJObjectParser GetParser(ModelInputType modelInputType)
         {
-            return inputType switch
+            return modelInputType switch
             {
-                InputType.Json => new JsonParser(),
-                InputType.Xml => new XmlParser(),
-                InputType.Yaml => new YamlParser(),
+                ModelInputType.Json => new JsonJObjectParser(),
+                ModelInputType.Xml => new XmlJObjectParser(),
+                ModelInputType.Yaml => new YamlJObjectParser(),
                 _ => throw new ArgumentException("Unsupported input type")
             };
         }
 
-        private static JObject ParseContent(string content, InputType inputType)
+        private static JObject ParseContent(string content, ModelInputType modelInputType)
         {
-            IParser parser = GetParser(inputType);
-            return parser.Parse(content);
+            IJObjectParser ijObjectParser = GetParser(modelInputType);
+            return ijObjectParser.Parse(content);
         }
 
 

@@ -4,13 +4,13 @@ using System.Xml;
 
 namespace Nextended.Core.Helper;
 
-public interface IParser
+public interface IJObjectParser
 {
     JObject Parse(string content);
 }
 
 
-public class JsonParser : IParser
+public class JsonJObjectParser : IJObjectParser
 {
     public JObject Parse(string content)
     {
@@ -18,7 +18,7 @@ public class JsonParser : IParser
     }
 }
 
-public class XmlParser : IParser
+public class XmlJObjectParser : IJObjectParser
 {
     public JObject Parse(string content)
     {
@@ -30,7 +30,7 @@ public class XmlParser : IParser
     }
 }
 
-public class YamlParser : IParser
+public class YamlJObjectParser : IJObjectParser
 {
     public JObject Parse(string content)
     {        
@@ -41,7 +41,7 @@ public class YamlParser : IParser
     }
 }
 
-public enum InputType
+public enum ModelInputType
 {
     Json,
     Xml,
