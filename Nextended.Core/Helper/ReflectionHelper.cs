@@ -12,7 +12,9 @@ using System.Reflection;
 using System.Reflection.Emit;
 using System.Runtime.CompilerServices;
 using System.Text;
+using Newtonsoft.Json.Linq;
 using Nextended.Core.Extensions;
+using YamlDotNet.Core;
 using PropertyAttributes = System.Reflection.PropertyAttributes;
 
 namespace Nextended.Core.Helper
@@ -22,20 +24,153 @@ namespace Nextended.Core.Helper
 	/// </summary>
 	public static class ReflectionHelper
 	{
-		private static readonly ConcurrentDictionary<Type, IEnumerable<Type>> interfaceTypeCache = new ConcurrentDictionary<Type, IEnumerable<Type>>();
+		private static readonly ConcurrentDictionary<Type, IEnumerable<Type>> interfaceTypeCache = new();
+        private static readonly Dictionary<string, Type> _typeCache = new();
+        
 
-		/// <summary>
-		/// PublicBindingFlags
-		/// </summary>
-		public const BindingFlags PublicBindingFlags = BindingFlags.DeclaredOnly | BindingFlags.Instance | BindingFlags.Public | BindingFlags.GetField | BindingFlags.GetProperty;
+        /// <summary>
+        /// PublicBindingFlags
+        /// </summary>
+        public const BindingFlags PublicBindingFlags = BindingFlags.DeclaredOnly | BindingFlags.Instance | BindingFlags.Public | BindingFlags.GetField | BindingFlags.GetProperty;
 
-		/// <summary>
-		/// Instanz für interface erzeugen
-		/// </summary>
-		/// <typeparam name="TInterface">The type of the interface.</typeparam>
-		/// <param name="coverUpAbstractMembers">Wenn true werden Abstrakte basis properties überdeckt</param>
-		/// <returns></returns>
-		public static TInterface CreateInstanceFromInterfaceOrAbstractType<TInterface>(bool coverUpAbstractMembers)
+        public static void ClearTypeCache()
+        {
+            _typeCache.Clear();
+			interfaceTypeCache.Clear();
+        }
+
+        public static object CreateTypeAndDeserialize(string content, InputType inputType, string typeName = "", bool cacheTypes = false)
+        {
+            typeName = GenerateTypeName(typeName);
+            var parsedObject = ParseContent(content, inputType);
+            var dynamicType = CreateTypeFromJObject(parsedObject, typeName, cacheTypes);
+            return parsedObject.ToObject(dynamicType);
+        }
+
+        public static Type CreateTypeFor(string content, InputType inputType, string typeName = "", bool cacheTypes = false)
+        {
+            typeName = GenerateTypeName(typeName);
+            var parsedObject = ParseContent(content, inputType);
+            return CreateTypeFromJObject(parsedObject, typeName, cacheTypes);
+        }
+
+        public static object CreateTypeAndDeserialize(IDictionary<string, object> contentDict, string typeName = "", bool cacheTypes = false)
+        {
+            typeName = GenerateTypeName(typeName);
+            var jObject = JObject.FromObject(contentDict);
+            var dynamicType = CreateTypeFromJObject(jObject, typeName, cacheTypes);
+            return jObject.ToObject(dynamicType);
+        }
+
+        public static Type CreateTypeFor(IDictionary<string, object> contentDict, string typeName = "", bool cacheTypes = false)
+        {
+            typeName = GenerateTypeName(typeName);
+            var jObject = JObject.FromObject(contentDict);
+            return CreateTypeFromJObject(jObject, typeName, cacheTypes);
+        }
+
+
+        private static string GenerateTypeName(string typeName)
+        {
+            return !string.IsNullOrEmpty(typeName) ? typeName : $"DynamicType_{Guid.NewGuid()}";
+        }
+
+        private static IParser GetParser(InputType inputType)
+        {
+            return inputType switch
+            {
+                InputType.Json => new JsonParser(),
+                InputType.Xml => new XmlParser(),
+                InputType.Yaml => new YamlParser(),
+                _ => throw new ArgumentException("Unsupported input type")
+            };
+        }
+
+        private static JObject ParseContent(string content, InputType inputType)
+        {
+            IParser parser = GetParser(inputType);
+            return parser.Parse(content);
+        }
+
+
+        private static Type CreateTypeFromJObject(JObject jObject, string typeName, bool cacheTypes)
+        {
+            var assemblyName = new AssemblyName("DynamicAssembly");
+            var assemblyBuilder = AssemblyBuilder.DefineDynamicAssembly(assemblyName, AssemblyBuilderAccess.Run);
+            var moduleBuilder = assemblyBuilder.DefineDynamicModule("DynamicModule");
+            var typeBuilder = moduleBuilder.DefineType(typeName, TypeAttributes.Public);
+
+            foreach (var property in jObject)
+            {
+                var propertyType = GetTypeForToken(property.Value, typeBuilder, property.Key, cacheTypes);
+                var fieldBuilder = typeBuilder.DefineField("_" + property.Key, propertyType, FieldAttributes.Private);
+                var propertyBuilder = typeBuilder.DefineProperty(property.Key, PropertyAttributes.HasDefault, propertyType, null);
+
+                var getMethodBuilder = typeBuilder.DefineMethod("get_" + property.Key, MethodAttributes.Public, propertyType, Type.EmptyTypes);
+                var getIL = getMethodBuilder.GetILGenerator();
+                getIL.Emit(OpCodes.Ldarg_0);
+                getIL.Emit(OpCodes.Ldfld, fieldBuilder);
+                getIL.Emit(OpCodes.Ret);
+
+                var setMethodBuilder = typeBuilder.DefineMethod("set_" + property.Key, MethodAttributes.Public, null, new[] { propertyType });
+                var setIL = setMethodBuilder.GetILGenerator();
+                setIL.Emit(OpCodes.Ldarg_0);
+                setIL.Emit(OpCodes.Ldarg_1);
+                setIL.Emit(OpCodes.Stfld, fieldBuilder);
+                setIL.Emit(OpCodes.Ret);
+
+                propertyBuilder.SetGetMethod(getMethodBuilder);
+                propertyBuilder.SetSetMethod(setMethodBuilder);
+            }
+
+            return typeBuilder.CreateType();
+        }
+
+        private static Type GetTypeForToken(JToken token, TypeBuilder typeBuilder, string propertyName, bool cacheTypes)
+        {
+            switch (token.Type)
+            {
+                case JTokenType.Integer: return typeof(int);
+                case JTokenType.Float: return typeof(double);
+                case JTokenType.String: return typeof(string);
+                case JTokenType.Boolean: return typeof(bool);
+                case JTokenType.Date: return typeof(DateTime);
+                case JTokenType.Uri: return typeof(Uri);
+                case JTokenType.Guid: return typeof(Guid);
+                case JTokenType.TimeSpan: return typeof(TimeSpan);
+                case JTokenType.Bytes: return typeof(byte[]);
+                case JTokenType.Raw: return typeof(string);
+                case JTokenType.Object:
+                    var objectToken = token.Value<JObject>();
+                    var structureKey = objectToken.ToString(Newtonsoft.Json.Formatting.None);
+
+                    if (cacheTypes && _typeCache.TryGetValue(structureKey, out var forToken))
+                        return forToken;
+
+                    var newType = CreateTypeFromJObject(objectToken, $"{typeBuilder.Name}_{propertyName}", cacheTypes);
+                    if (cacheTypes)
+                        _typeCache[structureKey] = newType;
+
+                    return newType;
+
+                case JTokenType.Array:
+                    var array = token as JArray;
+                    if (array.Count == 0)
+                        return typeof(object[]);  // Empty array
+                    var firstItem = array.First;
+                    // Assuming all items have the same type
+                    return GetTypeForToken(firstItem, typeBuilder, propertyName, cacheTypes).MakeArrayType();
+                default: return typeof(object);
+            }
+        }
+
+        /// <summary>
+        /// Instanz für interface erzeugen
+        /// </summary>
+        /// <typeparam name="TInterface">The type of the interface.</typeparam>
+        /// <param name="coverUpAbstractMembers">Wenn true werden Abstrakte basis properties überdeckt</param>
+        /// <returns></returns>
+        public static TInterface CreateInstanceFromInterfaceOrAbstractType<TInterface>(bool coverUpAbstractMembers)
 			where TInterface : class
 		{
 			return CreateInstanceFromInterfaceOrAbstractType(typeof(TInterface), coverUpAbstractMembers) as TInterface;
@@ -210,7 +345,7 @@ namespace Nextended.Core.Helper
 
 			var assemblies = AppDomain.CurrentDomain.GetAssemblies().ToList();
             Func<Type, IEnumerable<Type>> func = it => (from assembly in assemblies
-														where assembly.GetName().Version > new Version(0, 0, 0, 0)
+														where assembly.GetName().Version > new System.Version(0, 0, 0, 0)
 														from referencedAssembly in assembly.GetReferencedAssemblies()
 														where assembly == it.Assembly || referencedAssembly.FullName == it.Assembly.GetName().FullName
 														select assembly).SelectMany(assembly => assembly.GetTypes()).Concat(additionalTypesToCheck)
