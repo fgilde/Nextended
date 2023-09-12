@@ -14,7 +14,6 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using Newtonsoft.Json.Linq;
 using Nextended.Core.Extensions;
-using YamlDotNet.Core;
 using PropertyAttributes = System.Reflection.PropertyAttributes;
 
 namespace Nextended.Core.Helper
@@ -39,7 +38,7 @@ namespace Nextended.Core.Helper
 			interfaceTypeCache.Clear();
         }
 
-        public static bool TryDetectInputType(string content, out ModelInputType detectedType)
+        public static bool TryDetectInputType(string content, out StructuredDataType detectedType)
         {
             if (string.IsNullOrWhiteSpace(content))
             {
@@ -52,17 +51,17 @@ namespace Nextended.Core.Helper
             {
                 case '{':
                 case '[':
-                    detectedType = ModelInputType.Json;
+                    detectedType = StructuredDataType.Json;
                     return true;
 
                 case '<':
-                    detectedType = ModelInputType.Xml;
+                    detectedType = StructuredDataType.Xml;
                     return true;
 
                 default:
                     if (content.Contains(":"))
                     {
-                        detectedType = ModelInputType.Yaml;
+                        detectedType = StructuredDataType.Yaml;
                         return true;
                     }
 
@@ -71,9 +70,9 @@ namespace Nextended.Core.Helper
             }
         }
 
-        public static object CreateTypeAndDeserialize(string content, string typeName = "", bool cacheTypes = false)
+        public static IStructuredDataObject CreateTypeAndDeserialize(string content, string typeName = "", bool cacheTypes = false)
         {
-            if (!TryDetectInputType(content, out ModelInputType inputType))
+            if (!TryDetectInputType(content, out StructuredDataType inputType))
                 throw new ArgumentException("Cannot determine the input format. Please specify it explicitly.");
 
             return CreateTypeAndDeserialize(content, inputType, typeName, cacheTypes);
@@ -81,77 +80,97 @@ namespace Nextended.Core.Helper
 
         public static Type CreateTypeFor(string content, string typeName = "", bool cacheTypes = false)
         {
-            if (!TryDetectInputType(content, out ModelInputType inputType))
+            if (!TryDetectInputType(content, out StructuredDataType inputType))
                 throw new ArgumentException("Cannot determine the input format. Please specify it explicitly.");
 
             return CreateTypeFor(content, inputType, typeName, cacheTypes);
         }
 
 
-        public static object CreateTypeAndDeserialize(string content, ModelInputType modelInputType, string typeName = "", bool cacheTypes = false)
+        public static IStructuredDataObject CreateTypeAndDeserialize(string content, StructuredDataType structuredDataType, string typeName = "", bool cacheTypes = false)
         {
             typeName = GenerateTypeName(typeName);
-            var parsedObject = ParseContent(content, modelInputType);
-            var dynamicType = CreateTypeFromJObject(parsedObject, typeName, cacheTypes);
-            return parsedObject.ToObject(dynamicType);
+            var parsedObject = ParseContent(content, structuredDataType);
+            var dynamicType = CreateTypeFromJObject(parsedObject, typeName, structuredDataType, cacheTypes);
+            return parsedObject.ToObject(dynamicType) as IStructuredDataObject;
         }
 
-        public static Type CreateTypeFor(string content, ModelInputType modelInputType, string typeName = "", bool cacheTypes = false)
+        public static Type CreateTypeFor(string content, StructuredDataType structuredDataType, string typeName = "", bool cacheTypes = false)
         {
             typeName = GenerateTypeName(typeName);
-            var parsedObject = ParseContent(content, modelInputType);
-            return CreateTypeFromJObject(parsedObject, typeName, cacheTypes);
+            var parsedObject = ParseContent(content, structuredDataType);
+            return CreateTypeFromJObject(parsedObject, typeName, structuredDataType, cacheTypes);
         }
 
-        public static object CreateTypeAndDeserialize(IDictionary<string, object> contentDict, string typeName = "", bool cacheTypes = false)
+        public static IStructuredDataObject CreateTypeAndDeserialize(IDictionary<string, object> contentDict, string typeName = "", bool cacheTypes = false)
         {
             typeName = GenerateTypeName(typeName);
             var jObject = JObject.FromObject(contentDict);
-            var dynamicType = CreateTypeFromJObject(jObject, typeName, cacheTypes);
-            return jObject.ToObject(dynamicType);
+            var dynamicType = CreateTypeFromJObject(jObject, typeName, StructuredDataType.Json, cacheTypes);
+            return jObject.ToObject(dynamicType) as IStructuredDataObject;
         }
 
         public static Type CreateTypeFor(IDictionary<string, object> contentDict, string typeName = "", bool cacheTypes = false)
         {
             typeName = GenerateTypeName(typeName);
             var jObject = JObject.FromObject(contentDict);
-            return CreateTypeFromJObject(jObject, typeName, cacheTypes);
+            return CreateTypeFromJObject(jObject, typeName, StructuredDataType.Json, cacheTypes);
         }
 
 
-        private static string GenerateTypeName(string typeName)
-        {
-            return !string.IsNullOrEmpty(typeName) ? typeName : $"DynamicType_{Guid.NewGuid()}";
-        }
+        private static string GenerateTypeName(string typeName) => !string.IsNullOrEmpty(typeName) ? typeName : $"DynamicType_{Guid.NewGuid().ToFormattedId().Replace("-","")}";
 
-        private static IJObjectParser GetParser(ModelInputType modelInputType)
+        private static IJObjectParser GetParser(StructuredDataType structuredDataType)
         {
-            return modelInputType switch
+            return structuredDataType switch
             {
-                ModelInputType.Json => new JsonJObjectParser(),
-                ModelInputType.Xml => new XmlJObjectParser(),
-                ModelInputType.Yaml => new YamlJObjectParser(),
+                StructuredDataType.Json => new JsonJObjectParser(),
+                StructuredDataType.Xml => new XmlJObjectParser(),
+                StructuredDataType.Yaml => new YamlJObjectParser(),
                 _ => throw new ArgumentException("Unsupported input type")
             };
         }
 
-        private static JObject ParseContent(string content, ModelInputType modelInputType)
+        private static JObject ParseContent(string content, StructuredDataType structuredDataType)
         {
-            IJObjectParser ijObjectParser = GetParser(modelInputType);
+            IJObjectParser ijObjectParser = GetParser(structuredDataType);
             return ijObjectParser.Parse(content);
         }
 
 
-        private static Type CreateTypeFromJObject(JObject jObject, string typeName, bool cacheTypes)
+        private static Type CreateTypeFromJObject(JObject jObject, string typeName, StructuredDataType originalInputType, bool cacheTypes)
         {
             var assemblyName = new AssemblyName("DynamicAssembly");
             var assemblyBuilder = AssemblyBuilder.DefineDynamicAssembly(assemblyName, AssemblyBuilderAccess.Run);
             var moduleBuilder = assemblyBuilder.DefineDynamicModule("DynamicModule");
             var typeBuilder = moduleBuilder.DefineType(typeName, TypeAttributes.Public);
+            typeBuilder.AddInterfaceImplementation(typeof(IStructuredDataObject));
+
+            MethodInfo convertMethod = typeof(StructuredDataFormatConverter).GetMethod(nameof(StructuredDataFormatConverter.ConvertToString), new[] { typeof(object), typeof(StructuredDataType) });
+
+
+            // For the method that takes an InputType
+            var toStringMethod = typeBuilder.DefineMethod("ToString", MethodAttributes.Public | MethodAttributes.Virtual, typeof(string), new[] { typeof(StructuredDataType) });
+            var interfaceImplIl = toStringMethod.GetILGenerator();
+
+            interfaceImplIl.Emit(OpCodes.Ldarg_0); // Load the current object onto the stack
+            interfaceImplIl.Emit(OpCodes.Ldarg_1); // Load the StructuredDataType argument onto the stack
+            interfaceImplIl.Emit(OpCodes.Call, convertMethod); // Call the method
+            interfaceImplIl.Emit(OpCodes.Ret); // Return the result
+
+            // For the default ToString() method
+            var defaultToString = typeBuilder.DefineMethod("ToString", MethodAttributes.Public | MethodAttributes.Virtual | MethodAttributes.HideBySig, typeof(string), Type.EmptyTypes);
+            var toStringIl = defaultToString.GetILGenerator();
+
+            toStringIl.Emit(OpCodes.Ldarg_0); // Load the current object
+            toStringIl.Emit(OpCodes.Ldc_I4, (int)originalInputType); // Load the original StructuredDataType as an integer
+            toStringIl.Emit(OpCodes.Call, toStringMethod); // Call the toStringMethod
+            toStringIl.Emit(OpCodes.Ret); // Return the result
+
 
             foreach (var property in jObject)
             {
-                var propertyType = GetTypeForToken(property.Value, typeBuilder, property.Key, cacheTypes);
+                var propertyType = GetTypeForToken(property.Value, typeBuilder, property.Key, originalInputType, cacheTypes);
                 var fieldBuilder = typeBuilder.DefineField("_" + property.Key, propertyType, FieldAttributes.Private);
                 var propertyBuilder = typeBuilder.DefineProperty(property.Key, PropertyAttributes.HasDefault, propertyType, null);
 
@@ -175,7 +194,7 @@ namespace Nextended.Core.Helper
             return typeBuilder.CreateType();
         }
 
-        private static Type GetTypeForToken(JToken token, TypeBuilder typeBuilder, string propertyName, bool cacheTypes)
+        private static Type GetTypeForToken(JToken token, TypeBuilder typeBuilder, string propertyName, StructuredDataType originalInputType, bool cacheTypes)
         {
             switch (token.Type)
             {
@@ -196,7 +215,8 @@ namespace Nextended.Core.Helper
                     if (cacheTypes && _typeCache.TryGetValue(structureKey, out var forToken))
                         return forToken;
 
-                    var newType = CreateTypeFromJObject(objectToken, $"{typeBuilder.Name}_{propertyName}", cacheTypes);
+                    var newType = CreateTypeFromJObject(objectToken, $"{typeBuilder.Name}_{propertyName}", originalInputType, cacheTypes);
+                    //var newType = CreateTypeFromJObject(objectToken, propertyName, originalInputType, cacheTypes);
                     if (cacheTypes)
                         _typeCache[structureKey] = newType;
 
@@ -208,7 +228,7 @@ namespace Nextended.Core.Helper
                         return typeof(object[]);  // Empty array
                     var firstItem = array.First;
                     // Assuming all items have the same type
-                    return GetTypeForToken(firstItem, typeBuilder, propertyName, cacheTypes).MakeArrayType();
+                    return GetTypeForToken(firstItem, typeBuilder, propertyName, originalInputType, cacheTypes).MakeArrayType();
                 default: return typeof(object);
             }
         }
