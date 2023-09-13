@@ -38,41 +38,10 @@ namespace Nextended.Core.Helper
 			interfaceTypeCache.Clear();
         }
 
-        public static bool TryDetectInputType(string content, out StructuredDataType detectedType)
-        {
-            if (string.IsNullOrWhiteSpace(content))
-            {
-                detectedType = default;
-                return false;
-            }
-
-            var firstChar = content.TrimStart()[0];
-            switch (firstChar)
-            {
-                case '{':
-                case '[':
-                    detectedType = StructuredDataType.Json;
-                    return true;
-
-                case '<':
-                    detectedType = StructuredDataType.Xml;
-                    return true;
-
-                default:
-                    if (content.Contains(":"))
-                    {
-                        detectedType = StructuredDataType.Yaml;
-                        return true;
-                    }
-
-                    detectedType = default;
-                    return false;
-            }
-        }
 
         public static IStructuredDataObject CreateTypeAndDeserialize(string content, string typeName = "", bool cacheTypes = false)
         {
-            if (!TryDetectInputType(content, out StructuredDataType inputType))
+            if (!StructuredDataTypeValidator.TryDetectInputType(content, out StructuredDataType inputType))
                 throw new ArgumentException("Cannot determine the input format. Please specify it explicitly.");
 
             return CreateTypeAndDeserialize(content, inputType, typeName, cacheTypes);
@@ -80,7 +49,7 @@ namespace Nextended.Core.Helper
 
         public static Type CreateTypeFor(string content, string typeName = "", bool cacheTypes = false)
         {
-            if (!TryDetectInputType(content, out StructuredDataType inputType))
+            if (!StructuredDataTypeValidator.TryDetectInputType(content, out StructuredDataType inputType))
                 throw new ArgumentException("Cannot determine the input format. Please specify it explicitly.");
 
             return CreateTypeFor(content, inputType, typeName, cacheTypes);
@@ -894,5 +863,5 @@ namespace Nextended.Core.Helper
 
 			return MethodBase.GetCurrentMethod();
 		}
-	}
+    }
 }
