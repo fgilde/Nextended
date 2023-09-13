@@ -2,10 +2,12 @@
 using Newtonsoft.Json;
 using System.Xml;
 using System;
-using System.IO;
 using System.Linq;
-using System.Xml.Serialization;
 using YamlDotNet.Serialization;
+using System.Xml.Linq;
+using System.Collections.Generic;
+using Nextended.Core.Extensions;
+using System.Dynamic;
 
 namespace Nextended.Core.Helper;
 
@@ -21,10 +23,7 @@ public interface IJObjectParser
 
 public class JsonJObjectParser : IJObjectParser
 {
-    public JObject Parse(string content)
-    {
-        return JObject.Parse(content);
-    }
+    public JObject Parse(string content) => JObject.Parse(content);
 }
 
 public class XmlJObjectParser : IJObjectParser
@@ -78,24 +77,25 @@ public enum StructuredDataType
 
 public static class StructuredDataFormatConverter
 {
+    private static readonly XDeclaration _defaultDeclaration = new("1.0", null, null);
     public static string ConvertToString(object obj, StructuredDataType dataType)
     {
         switch (dataType)
         {
             case StructuredDataType.Json:
                 return JsonConvert.SerializeObject(obj);
-
             case StructuredDataType.Xml:
-                using (var textWriter = new StringWriter())
-                {
-                    var xmlSerializer = new XmlSerializer(obj.GetType());
-                    xmlSerializer.Serialize(textWriter, obj);
-                    return textWriter.ToString();
-                }
-
+                var convertToString = $"{{ \"{obj.GetType().Name}\": {ConvertToString(obj, StructuredDataType.Json)} }}";
+                var doc = JsonConvert.DeserializeXNode(convertToString)!;
+                var declaration = doc.Declaration ?? _defaultDeclaration;
+                return $"{declaration}{Environment.NewLine}{doc}";
+ 
             case StructuredDataType.Yaml:
                 var serializer = new SerializerBuilder().Build();
-                return serializer.Serialize(obj);
+
+                return obj is JObject jObject
+                    ? serializer.Serialize(JsonConvert.DeserializeObject<ExpandoObject>(jObject.ToString()))
+                    : serializer.Serialize(obj);
 
             default:
                 throw new NotSupportedException($"The input type {dataType} is not supported.");
