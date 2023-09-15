@@ -999,6 +999,7 @@ public static class MimeType
         ["movie"] = "video/x-sgi-movie",
         ["smv"] = "video/x-smv",
         ["ice"] = "x-conference/x-cooltalk",
+        ["md"] = "text/markdown"
     });
 
     public const string Csv = "text/csv";
