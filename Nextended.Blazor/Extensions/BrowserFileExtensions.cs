@@ -85,4 +85,10 @@ public static class BrowserFileExtensions
     
     public static bool IsZipFile(this IBrowserFile file) 
         => MimeType.IsZip(file.ContentType);
+    public static bool IsRarFile(this IBrowserFile file)
+        => MimeType.IsRar(file.ContentType);
+    public static bool IsTarFile(this IBrowserFile file)
+        => MimeType.IsTar(file.ContentType);
+    public static bool IsArchive(this IBrowserFile file)
+        => MimeType.IsArchive(file.ContentType);
 }

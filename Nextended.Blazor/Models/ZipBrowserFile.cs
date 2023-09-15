@@ -8,7 +8,7 @@ namespace Nextended.Blazor.Models;
 /**
  * Represents a Zip file entry compatiable as BrowserFile
  */
-public record ZipBrowserFile : IBrowserFile
+public record ZipBrowserFile : IBrowserFileEntryInArchive
 {
     public ZipArchiveEntry Entry { get; }
     public byte[] FileBytes { get; private set; }
