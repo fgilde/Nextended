@@ -999,7 +999,9 @@ public static class MimeType
         ["movie"] = "video/x-sgi-movie",
         ["smv"] = "video/x-smv",
         ["ice"] = "x-conference/x-cooltalk",
-        ["md"] = "text/markdown"
+        ["md"] = "text/markdown",
+        ["tgz"] = "application/tar+gzip",
+        ["tar.gz"] = "application/tar+gzip"
     });
 
     public const string Csv = "text/csv";
@@ -1031,7 +1033,7 @@ public static class MimeType
         => !string.IsNullOrWhiteSpace(contentType) && Matches(contentType, "application/x-compressed") || contentType == _mimeTypeMap.Value["rar"];
 
     public static bool IsTar(string contentType)
-        => !string.IsNullOrWhiteSpace(contentType) && contentType == _mimeTypeMap.Value["tar"];
+        => !string.IsNullOrWhiteSpace(contentType) && (contentType == _mimeTypeMap.Value["tar"] || contentType == _mimeTypeMap.Value["tgz"] || contentType == _mimeTypeMap.Value["tar.gz"]);
 
     public static bool Is7Zip(string contentType)
         => !string.IsNullOrWhiteSpace(contentType) && contentType == _mimeTypeMap.Value["7z"];

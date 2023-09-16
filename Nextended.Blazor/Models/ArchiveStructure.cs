@@ -6,7 +6,7 @@ namespace Nextended.Blazor.Models;
 
 public class ArchiveStructure : Hierarchical<ArchiveStructure>
 {
-    public ArchiveStructure(IBrowserFileEntryInArchive browserFile)
+    public ArchiveStructure(IArchivedBrowserFile browserFile)
         : this(browserFile.Name)
     {
         BrowserFile = browserFile;
@@ -26,10 +26,10 @@ public class ArchiveStructure : Hierarchical<ArchiveStructure>
 
     public long Size => IsDirectory ? ContainingFiles.Sum(f => f.Size) : BrowserFile.Size;
 
-    public IEnumerable<IBrowserFileEntryInArchive> ContainingFiles
+    public IEnumerable<IArchivedBrowserFile> ContainingFiles
         => Children?.Recursive(s => s.Children ?? Enumerable.Empty<ArchiveStructure>()).Where(s => s is { IsDirectory: false }).Select(s => s.BrowserFile);
 
-    public IBrowserFileEntryInArchive BrowserFile { get; set; }
+    public IArchivedBrowserFile BrowserFile { get; set; }
 
     public async Task<byte[]> ToArchiveBytesAsync()
     {
@@ -59,7 +59,7 @@ public class ArchiveStructure : Hierarchical<ArchiveStructure>
         return (ms, archive);
     }
 
-    protected static void EnsurePartExists(ArchiveStructure archiveContent, List<string> parts, string p, IList<IBrowserFileEntryInArchive> archiveEntries)
+    protected static void EnsurePartExists(ArchiveStructure archiveContent, List<string> parts, string p, IList<IArchivedBrowserFile> archiveEntries)
     {
         if (parts.Any() && !string.IsNullOrEmpty(parts.FirstOrDefault()))
         {
@@ -82,12 +82,12 @@ public class ArchiveStructure : Hierarchical<ArchiveStructure>
         }
     }
 
-    protected static IEnumerable<ArchiveStructure> FindByPath(IList<IBrowserFileEntryInArchive> archiveEntries, string path = default)
+    protected static IEnumerable<ArchiveStructure> FindByPath(IList<IArchivedBrowserFile> archiveEntries, string path = default)
     {
         return archiveEntries.Where(f => !f.IsDirectory && f.Path == path).Select(file => new ArchiveStructure(file));
     }
 
-    public static ArchiveStructure CreateStructure(IList<IBrowserFileEntryInArchive> archiveEntries, string rootFolderName)
+    public static ArchiveStructure CreateStructure(IList<IArchivedBrowserFile> archiveEntries, string rootFolderName)
     {
         var paths = archiveEntries.Select(file => file.Path).Distinct().ToArray();
         var root = new ArchiveStructure(rootFolderName) { Children = FindByPath(archiveEntries, "").ToHashSet() };

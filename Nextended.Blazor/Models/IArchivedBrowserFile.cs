@@ -2,7 +2,7 @@
 
 namespace Nextended.Blazor.Models;
 
-public interface IBrowserFileEntryInArchive : IBrowserFile
+public interface IArchivedBrowserFile : IBrowserFile
 {
     byte[] FileBytes { get; }
     public string FullName { get; }

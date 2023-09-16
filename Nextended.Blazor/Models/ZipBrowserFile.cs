@@ -1,5 +1,4 @@
 ﻿using System.IO.Compression;
-using Microsoft.AspNetCore.Components.Forms;
 using Nextended.Core;
 using Nextended.Core.Extensions;
 
@@ -8,7 +7,7 @@ namespace Nextended.Blazor.Models;
 /**
  * Represents a Zip file entry compatiable as BrowserFile
  */
-public record ZipBrowserFile : IBrowserFileEntryInArchive
+public record ZipBrowserFile : IArchivedBrowserFile
 {
     public ZipArchiveEntry Entry { get; }
     public byte[] FileBytes { get; private set; }
