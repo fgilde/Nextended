@@ -13,7 +13,7 @@ public record ZipBrowserFile : IArchivedBrowserFile
     public byte[] FileBytes { get; private set; }
 
     public ZipBrowserFile(ZipArchiveEntry entry, bool load = true)
-    {
+    {        
         if (load)
             FileBytes = entry.Open().ToByteArray();
 
