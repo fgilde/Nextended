@@ -1021,10 +1021,10 @@ public static class MimeType
     || IsZip(x) 
     || Is7Zip(x) 
     || IsTar(x))).ToArray();
-    
+
     public static bool IsArchive(string contentType)
-         => !string.IsNullOrWhiteSpace(contentType) && ArchiveTypes.Contains(contentType);
-    
+         => !string.IsNullOrWhiteSpace(contentType) && (ArchiveTypes.Contains(contentType) || Is7Zip(contentType) || IsZip(contentType) || IsRar(contentType) || IsTar(contentType));
+
 
     public static bool IsZip(string contentType) 
         => !string.IsNullOrWhiteSpace(contentType) && Matches(contentType, "application/zip*", "application/x-zip*");
