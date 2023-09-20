@@ -73,9 +73,9 @@ public class ArchiveStructureBase<T> : Hierarchical<T> where T : ArchiveStructur
 
             if (child == null)
             {
-                child = new T()
+                child = new T
                 {
-                    Name=title,
+                    Name = title,
                     Parent = archiveContent,
                     Children = FindByPath(archiveEntries, p).ToHashSet()
                 };
@@ -89,7 +89,7 @@ public class ArchiveStructureBase<T> : Hierarchical<T> where T : ArchiveStructur
 
     protected static IEnumerable<T> FindByPath(IList<IArchivedBrowserFile> archiveEntries, string path = default)
     {
-        return archiveEntries.Where(f => !f.IsDirectory && f.Path == path).Select(file => new T() { BrowserFile = file});
+        return archiveEntries.Where(f => !f.IsDirectory && f.Path == path).Select(file => new T { BrowserFile = file, Name = file.Name });
     }
 
     public static T CreateStructure(IList<IArchivedBrowserFile> archiveEntries, string rootFolderName)
