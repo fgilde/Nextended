@@ -196,6 +196,8 @@ public static class MimeType
         ["c11amc"] = "application/vnd.cluetrust.cartomobile-config",
         ["c11amz"] = "application/vnd.cluetrust.cartomobile-config-pkg",
         ["csp"] = "application/vnd.commonspace",
+        ["cs"] = "text/plain",
+        ["razor"] = "text/plain",
         ["cdbcmsg"] = "application/vnd.contact.cmsg",
         ["cmc"] = "application/vnd.cosmocaller",
         ["clkx"] = "application/vnd.crick.clicker",
@@ -1020,7 +1022,7 @@ public static class MimeType
     || IsRar(x) 
     || IsZip(x) 
     || Is7Zip(x) 
-    || IsTar(x))).ToArray();
+    || IsTar(x))).Concat(new []{ "application/x-zip-compressed" }).ToArray();
 
     public static bool IsArchive(string contentType)
          => !string.IsNullOrWhiteSpace(contentType) && (ArchiveTypes.Contains(contentType) || Is7Zip(contentType) || IsZip(contentType) || IsRar(contentType) || IsTar(contentType));
@@ -1067,17 +1069,22 @@ public static class MimeType
 
     private static bool IsValidUrl(string s) => Uri.TryCreate(s, UriKind.Absolute, out var uriResult) && (uriResult.Scheme == Uri.UriSchemeHttp || uriResult.Scheme == Uri.UriSchemeHttps);
 
-    public static async Task<string> ReadMimeTypeFromUrlAsync(string url, CancellationToken cancellationToken = default)
+    public static async Task<string> ReadMimeTypeFromUrlAsync(string url, HttpClient client, CancellationToken cancellationToken = default)
     {
         try
         {
             return !IsValidUrl(url)
                 ? GetMimeType(url)
-                : (await new HttpClient().SendAsync(new HttpRequestMessage(HttpMethod.Head, url), cancellationToken)).Content.Headers.ContentType?.MediaType ?? _defaultMimeType;
+                : (await client.SendAsync(new HttpRequestMessage(HttpMethod.Head, url), cancellationToken)).Content.Headers.ContentType?.MediaType ?? _defaultMimeType;
         }
         catch
         {
             return _defaultMimeType;
         }
+    }
+
+    public static Task<string> ReadMimeTypeFromUrlAsync(string url, CancellationToken cancellationToken = default)
+    {
+        return ReadMimeTypeFromUrlAsync(url, new HttpClient(), cancellationToken);
     }
 }
