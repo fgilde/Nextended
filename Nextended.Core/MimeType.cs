@@ -1010,7 +1010,9 @@ public static class MimeType
     public const string OpenXml = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
     public const string Xls = "application/vnd.ms-excel";
     public const string Pdf = "application/pdf";
-    
+
+    public static Dictionary<string, string> All => _mimeTypeMap.Value;
+    public static string[] AllTypes => _mimeTypeMap.Value.Values.ToArray();
     public static string[] ImageTypes => _mimeTypeMap.Value.Values.Where(x => x.StartsWith("image/")).ToArray();
     public static string[] OfficeTypes => _mimeTypeMap.Value.Values.Where(x => Matches(x, "application/msword", "application/vnd.ms-excel","application/vnd.openxmlformats-officedocument.*")).ToArray();
     public static string[] VideoTypes => _mimeTypeMap.Value.Values.Where(x => x.StartsWith("video/")).ToArray();
