@@ -7,14 +7,25 @@ namespace Nextended.Core.Extensions;
 
 public static class ServiceCollectionExtensions
 {
+    public static IServiceCollection RegisterAllImplementationsOf<TInterface>(this IServiceCollection services, Assembly[] assembliesToSearchImplementationsIn = null,
+        ServiceLifetime lifeTime = ServiceLifetime.Transient) => services.RegisterAllImplementationsOf(new[] {typeof(TInterface)}, assembliesToSearchImplementationsIn, lifeTime);
+
+    public static IServiceCollection RegisterAllImplementationsOf<TInterface1, TInterface2>(this IServiceCollection services, Assembly[] assembliesToSearchImplementationsIn = null,
+        ServiceLifetime lifeTime = ServiceLifetime.Transient) => services.RegisterAllImplementationsOf(new[] { typeof(TInterface1), typeof(TInterface2) }, assembliesToSearchImplementationsIn, lifeTime);
+
+    public static IServiceCollection RegisterAllImplementationsOf<TInterface1, TInterface2, TInterface3>(this IServiceCollection services, Assembly[] assembliesToSearchImplementationsIn = null,
+        ServiceLifetime lifeTime = ServiceLifetime.Transient) => services.RegisterAllImplementationsOf(new[] { typeof(TInterface1), typeof(TInterface2), typeof(TInterface3) }, assembliesToSearchImplementationsIn, lifeTime);
+
+    public static IServiceCollection RegisterAllImplementationsOf<TInterface1, TInterface2, TInterface3, TInterface4>(this IServiceCollection services, Assembly[] assembliesToSearchImplementationsIn = null,
+        ServiceLifetime lifeTime = ServiceLifetime.Transient) => services.RegisterAllImplementationsOf(new[] { typeof(TInterface1), typeof(TInterface2), typeof(TInterface3), typeof(TInterface4) }, assembliesToSearchImplementationsIn, lifeTime);
 
     public static IServiceCollection RegisterAllImplementationsOf(this IServiceCollection services,
         Type[] interfacesToSearchImplementationsFor,
-        Assembly[] assembliesToSearchImplementationsIn,
+        Assembly[] assembliesToSearchImplementationsIn = null,
         ServiceLifetime lifeTime = ServiceLifetime.Transient)
     {
         assembliesToSearchImplementationsIn = (assembliesToSearchImplementationsIn.IsNullOrEmpty()
-            ? new[] { Assembly.GetCallingAssembly(), Assembly.GetExecutingAssembly(), Assembly.GetEntryAssembly() }
+            ? new[] { Assembly.GetCallingAssembly(), Assembly.GetExecutingAssembly(), Assembly.GetEntryAssembly() }.Concat(interfacesToSearchImplementationsFor.Select(t => t.Assembly))
             : assembliesToSearchImplementationsIn).Distinct().ToArray();
         var types = assembliesToSearchImplementationsIn.SelectMany(a => a.GetTypes()).Where(t => t.IsClass && !t.IsAbstract && !t.IsGenericType);
         foreach (var type in types)
