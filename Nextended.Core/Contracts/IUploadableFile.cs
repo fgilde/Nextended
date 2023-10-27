@@ -1,4 +1,7 @@
-﻿namespace Nextended.Core.Contracts;
+﻿using System.Net.Http;
+using System.Threading.Tasks;
+
+namespace Nextended.Core.Contracts;
 
 public interface IUploadableFile
 {
@@ -8,4 +11,9 @@ public interface IUploadableFile
     public byte[] Data { get; set; }
     public string Url { get; set; }
     public string Path { get; set; }
+
+    /// <summary>
+    /// If file is not loaded, loads it from Url
+    /// </summary>
+    public Task EnsureDataLoadedAsync(HttpClient client = null);
 }
