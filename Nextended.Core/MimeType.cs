@@ -737,6 +737,7 @@ public static class MimeType
         ["yang"] = "application/yang",
         ["yin"] = "application/yin+xml",
         ["zip"] = "application/zip",
+        ["nupkg"] = "application/zip",
         ["adp"] = "audio/adpcm",
         ["au"] = "audio/basic",
         ["snd"] = "audio/basic",
