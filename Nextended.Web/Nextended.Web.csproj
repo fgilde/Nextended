@@ -15,7 +15,7 @@
 
   <PropertyGroup>
     <Title>Nextended.Web</Title>
-    <PackageLicenseExpression>GPL</PackageLicenseExpression>
+      <PackageLicenseExpression>GPL-3.0-or-later</PackageLicenseExpression>
     <PackageId>Nextended.Web</PackageId>
     <PackageVersion>0.0.0-dev</PackageVersion>
     <Authors>fgilde</Authors>
@@ -27,7 +27,7 @@
       Provides helper and extensions for Blazor, AspNetCore and Asp MVC web applications
     </Description>
     <Copyright>Copyright © $(Authors) 2020-$([System.DateTime]::Now.Year)</Copyright>
-    <PackageLicenseExpression>GPL</PackageLicenseExpression>
+      <PackageLicenseExpression>GPL-3.0-or-later</PackageLicenseExpression>
     <PackageTags>WPF, Behaviours </PackageTags>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageIcon>icon.png</PackageIcon>
