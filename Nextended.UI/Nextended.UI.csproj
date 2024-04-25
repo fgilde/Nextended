@@ -15,7 +15,7 @@
 
   <PropertyGroup>
     <Title>Nextended.UI</Title>
-    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageLicenseExpression>GPL</PackageLicenseExpression>
     <PackageId>Nextended.UI</PackageId>
     <PackageVersion>0.0.0-dev</PackageVersion>
     <Authors>fgilde</Authors>
@@ -27,7 +27,7 @@
       Provides helper and extensions for Windows UI app. 
     </Description>
     <Copyright>Copyright © $(Authors) 2020-$([System.DateTime]::Now.Year)</Copyright>
-    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageLicenseExpression>GPL</PackageLicenseExpression>
     <PackageTags>WPF, Behaviours </PackageTags>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageIcon>icon.png</PackageIcon>

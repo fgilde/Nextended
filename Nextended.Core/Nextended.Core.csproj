@@ -14,7 +14,7 @@
 
   <PropertyGroup>
     <Title>Nextended.Core</Title>
-    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageLicenseExpression>GPL</PackageLicenseExpression>
     <PackageId>Nextended.Core</PackageId>
     <PackageVersion>0.0.0-dev</PackageVersion>
     <Authors>fgilde</Authors>
@@ -24,7 +24,7 @@
     <RepositoryUrl>https://github.com/fgilde/Nextended</RepositoryUrl>
     <Description>This Library provides great and usefull Extension Methods, Small Helpers and Great usefull Types</Description>
     <Copyright>Copyright © $(Authors) 2020-$([System.DateTime]::Now.Year)</Copyright>
-    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageLicenseExpression>GPL</PackageLicenseExpression>
     <PackageTags>ClassMapping, Mapper, Automap, Enumerable Extensions, EnumHelper, AutoNotificationObject, CollectionWatcher, SuperType, TypedIds</PackageTags>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageIcon>icon.png</PackageIcon>

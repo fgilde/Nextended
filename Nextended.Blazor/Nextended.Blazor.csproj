@@ -11,7 +11,7 @@
   
   <PropertyGroup>
     <Title>Nextended.Blazor</Title>
-    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageLicenseExpression>GPL</PackageLicenseExpression>
     <PackageId>Nextended.Blazor</PackageId>
     <PackageVersion>0.0.0-dev</PackageVersion>
     <Authors>fgilde</Authors>
@@ -23,7 +23,7 @@
       Provides helper and extensions for Blazor specific projects
     </Description>
     <Copyright>Copyright © $(Authors) 2020-$([System.DateTime]::Now.Year)</Copyright>
-    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageLicenseExpression>GPL</PackageLicenseExpression>
     <PackageTags>Blazor, Extensions </PackageTags>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageIcon>icon.png</PackageIcon>

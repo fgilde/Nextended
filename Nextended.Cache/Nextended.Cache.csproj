@@ -7,7 +7,7 @@
 
   <PropertyGroup>
     <Title>Nextended.Cache</Title>
-    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageLicenseExpression>GPL</PackageLicenseExpression>
     <PackageId>Nextended.Cache</PackageId>
     <PackageVersion>0.0.0-dev</PackageVersion>
     <Authors>fgilde</Authors>
@@ -17,7 +17,7 @@
     <RepositoryUrl>https://github.com/fgilde/Nextended</RepositoryUrl>
     <Description>This Library provides great and usefull Extension Methods for caching</Description>
     <Copyright>Copyright © $(Authors) 2020-$([System.DateTime]::Now.Year)</Copyright>
-    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageLicenseExpression>GPL</PackageLicenseExpression>
     <PackageTags>Cache</PackageTags>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageIcon>icon.png</PackageIcon>

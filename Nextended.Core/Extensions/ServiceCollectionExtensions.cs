@@ -2,11 +2,28 @@
 using System.Linq;
 using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
+using Nextended.Core.Attributes;
 
 namespace Nextended.Core.Extensions;
 
 public static class ServiceCollectionExtensions
 {
+    public static IServiceCollection RegisterAllWithRegisterAsAttribute(this IServiceCollection services, Assembly[] assemblies)
+    {
+        if(assemblies.IsNullOrEmpty())
+            assemblies = [Assembly.GetCallingAssembly(), Assembly.GetExecutingAssembly(), Assembly.GetEntryAssembly()];
+        foreach (var assembly in assemblies)
+        {
+            assembly.GetTypes()
+                .SelectMany(t => t.GetCustomAttributes<RegisterAsAttribute>().Select(a => a.SetImplementationType(t)))
+                .OrderBy(a => a.Order)
+                .SelectMany(a => a.GetServiceDescriptor())
+                .Apply(services.Add);
+        }
+        return services;
+    }
+
+
     public static IServiceCollection RegisterAllImplementationsOf<TInterface>(this IServiceCollection services, Assembly[] assembliesToSearchImplementationsIn = null,
         ServiceLifetime lifeTime = ServiceLifetime.Transient) => services.RegisterAllImplementationsOf(new[] {typeof(TInterface)}, assembliesToSearchImplementationsIn, lifeTime);
 
