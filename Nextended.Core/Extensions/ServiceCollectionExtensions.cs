@@ -8,7 +8,7 @@ namespace Nextended.Core.Extensions;
 
 public static class ServiceCollectionExtensions
 {
-    public static IServiceCollection RegisterAllWithRegisterAsAttribute(this IServiceCollection services, Assembly[] assemblies)
+    public static IServiceCollection RegisterAllWithRegisterAsAttribute(this IServiceCollection services, params Assembly[] assemblies)
     {
         if(assemblies.IsNullOrEmpty())
             assemblies = [Assembly.GetCallingAssembly(), Assembly.GetExecutingAssembly(), Assembly.GetEntryAssembly()];
