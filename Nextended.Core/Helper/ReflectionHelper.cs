@@ -25,7 +25,38 @@ namespace Nextended.Core.Helper
 	{
 		private static readonly ConcurrentDictionary<Type, IEnumerable<Type>> interfaceTypeCache = new();
         private static readonly Dictionary<string, Type> _typeCache = new();
-        
+
+        public static T[] FindAllValuesOf<T>(object instance, ReflectReadSettings settings = null)
+        {
+            if (instance == null)
+                return Array.Empty<T>();
+            settings ??= ReflectReadSettings.AllPublic;
+            var type = instance.GetType();
+            var bindingFlags = settings.BindingFlags;
+            Func<Type, bool> typeMatchFunc = settings.TypeMatch switch
+            {
+                ReflectTypeMatch.ExactType => (t) => t == type,
+                ReflectTypeMatch.IsAssignableFrom => (t) => t.IsAssignableFrom(type),
+                ReflectTypeMatch.IsAssignableTo => (t) => t.IsAssignableTo(type),
+                _ => (t) => true
+            };
+
+            var fields = type.GetFields(bindingFlags).Where(f => f.FieldType == typeof(T)).Cast<MemberInfo>();
+            var properties = type.GetProperties(bindingFlags).Where(p => p.PropertyType == typeof(T)).Cast<MemberInfo>();
+
+            var combined = fields.Concat(properties).Where(m => typeMatchFunc(m.DeclaringType)).Distinct().ToArray();
+            var values = combined.Select(member =>
+            {
+                return member switch
+                {
+                    FieldInfo field => (T)field.GetValue(instance),
+                    PropertyInfo property => (T)property.GetValue(instance),
+                    _ => default(T)
+                };
+            }).Where(value => value != null).ToArray();
+
+            return values;
+        }
 
         /// <summary>
         /// PublicBindingFlags
@@ -847,7 +878,7 @@ namespace Nextended.Core.Helper
 		/// Gibt die Methode zurück, von der der Aufruf der Methode, die "GetCallingMethod" aufgerufen hat kam
 		/// </summary>
 		public static MethodBase GetCallingMethod(int skip = 0)
-		{
+		{			
 			var st = new StackTrace(2 + skip, true);
 
 			try
@@ -864,4 +895,29 @@ namespace Nextended.Core.Helper
 			return MethodBase.GetCurrentMethod();
 		}
     }
+	
+	public class ReflectReadSettings
+	{
+		public BindingFlags BindingFlags { get; set; } = BindingFlags.Public | BindingFlags.Instance | BindingFlags.NonPublic;
+        public ReflectTypeMatch TypeMatch { get; set; }
+
+        public static ReflectReadSettings Default = new();
+        public static ReflectReadSettings AllPublic = new() { BindingFlags = BindingFlags.Public | BindingFlags.Instance };
+        public static ReflectReadSettings AllPublicExactType = AllPublic.SetProperties(v => v.TypeMatch = ReflectTypeMatch.ExactType);
+        public static ReflectReadSettings AllPublicIsAssignableTo = AllPublic.SetProperties(v => v.TypeMatch = ReflectTypeMatch.IsAssignableTo);
+        public static ReflectReadSettings AllPublicIsAssignableFrom = AllPublic.SetProperties(v => v.TypeMatch = ReflectTypeMatch.IsAssignableFrom);
+
+        public static ReflectReadSettings All = new() { BindingFlags = BindingFlags.Public | BindingFlags.Instance };
+        public static ReflectReadSettings AllExactType = All.SetProperties(v => v.TypeMatch = ReflectTypeMatch.ExactType);
+        public static ReflectReadSettings AllIsAssignableTo = All.SetProperties(v => v.TypeMatch = ReflectTypeMatch.IsAssignableTo);
+        public static ReflectReadSettings AllIsAssignableFrom = All.SetProperties(v => v.TypeMatch = ReflectTypeMatch.IsAssignableFrom);
+    }
+	
+	public enum ReflectTypeMatch
+	{
+		NoCheck,
+		ExactType,
+		IsAssignableTo,
+		IsAssignableFrom
+	}
 }
