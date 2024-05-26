@@ -30,9 +30,11 @@ namespace Nextended.Core.Helper
         {
             if (instance == null)
                 return Array.Empty<T>();
+
             settings ??= ReflectReadSettings.AllPublic;
-            var type = instance.GetType();
             var bindingFlags = settings.BindingFlags;
+            var type = instance.GetType();
+
             Func<Type, bool> typeMatchFunc = settings.TypeMatch switch
             {
                 ReflectTypeMatch.ExactType => (t) => t == type,
@@ -41,11 +43,30 @@ namespace Nextended.Core.Helper
                 _ => (t) => true
             };
 
-            var fields = type.GetFields(bindingFlags).Where(f => f.FieldType == typeof(T)).Cast<MemberInfo>();
-            var properties = type.GetProperties(bindingFlags).Where(p => p.PropertyType == typeof(T)).Cast<MemberInfo>();
+            var loadFields = settings.MemberMethod.HasFlag(MemberMethod.GetFields);
+            var lodProperties = settings.MemberMethod.HasFlag(MemberMethod.GetProperty);
 
-            var combined = fields.Concat(properties).Where(m => typeMatchFunc(m.DeclaringType)).Distinct().ToArray();
-            var values = combined.Select(member =>
+            List<MemberInfo> members = new List<MemberInfo>();
+            do
+            {			                                
+				if (loadFields)
+					members.AddRange(type.GetFields(bindingFlags).Where(f => f.FieldType == typeof(T) && typeMatchFunc(f.DeclaringType)));
+				if (lodProperties)
+					members.AddRange(type.GetProperties(bindingFlags).Where(p => p.PropertyType == typeof(T) && typeMatchFunc(p.DeclaringType)));
+
+                type = settings.TraverseHierarchy ? type.BaseType : null;
+
+            } while (type != null);
+
+            
+            List<MemberInfo> distinctMembers = settings.MemberDistinct switch
+            {
+                MemberDistinct.Default => members.Distinct().ToList(),
+                MemberDistinct.ByName => members.DistinctBy(n => n.Name).ToList(),
+                _ => members
+            };
+
+            var values = distinctMembers.Select(member =>
             {
                 return member switch
                 {
@@ -57,6 +78,7 @@ namespace Nextended.Core.Helper
 
             return values;
         }
+		
 
         /// <summary>
         /// PublicBindingFlags
@@ -900,20 +922,40 @@ namespace Nextended.Core.Helper
 	{
 		public BindingFlags BindingFlags { get; set; } = BindingFlags.Public | BindingFlags.Instance | BindingFlags.NonPublic;
         public ReflectTypeMatch TypeMatch { get; set; }
+        public bool TraverseHierarchy { get; set; }
+        public MemberDistinct MemberDistinct { get; set; } = MemberDistinct.Default;
+        public MemberMethod MemberMethod { get; set; } = MemberMethod.All;
 
-        public static ReflectReadSettings Default = new();
-        public static ReflectReadSettings AllPublic = new() { BindingFlags = BindingFlags.Public | BindingFlags.Instance };
-        public static ReflectReadSettings AllPublicExactType = AllPublic.SetProperties(v => v.TypeMatch = ReflectTypeMatch.ExactType);
-        public static ReflectReadSettings AllPublicIsAssignableTo = AllPublic.SetProperties(v => v.TypeMatch = ReflectTypeMatch.IsAssignableTo);
-        public static ReflectReadSettings AllPublicIsAssignableFrom = AllPublic.SetProperties(v => v.TypeMatch = ReflectTypeMatch.IsAssignableFrom);
+        public static ReflectReadSettings Default => new();
+        public static ReflectReadSettings AllPublic => new() { BindingFlags = BindingFlags.Public | BindingFlags.Instance };
+        public static ReflectReadSettings AllPublicExactType => AllPublic.SetProperties(v => v.TypeMatch = ReflectTypeMatch.ExactType);
+        public static ReflectReadSettings AllPublicIsAssignableTo => AllPublic.SetProperties(v => v.TypeMatch = ReflectTypeMatch.IsAssignableTo);
+        public static ReflectReadSettings AllPublicIsAssignableFrom => AllPublic.SetProperties(v => v.TypeMatch = ReflectTypeMatch.IsAssignableFrom);
 
-        public static ReflectReadSettings All = new() { BindingFlags = BindingFlags.Public | BindingFlags.Instance };
-        public static ReflectReadSettings AllExactType = All.SetProperties(v => v.TypeMatch = ReflectTypeMatch.ExactType);
-        public static ReflectReadSettings AllIsAssignableTo = All.SetProperties(v => v.TypeMatch = ReflectTypeMatch.IsAssignableTo);
-        public static ReflectReadSettings AllIsAssignableFrom = All.SetProperties(v => v.TypeMatch = ReflectTypeMatch.IsAssignableFrom);
+        public static ReflectReadSettings All => new() { BindingFlags = BindingFlags.Public | BindingFlags.Instance | BindingFlags.NonPublic };
+        public static ReflectReadSettings AllExactType => All.SetProperties(v => v.TypeMatch = ReflectTypeMatch.ExactType);
+        public static ReflectReadSettings AllIsAssignableTo => All.SetProperties(v => v.TypeMatch = ReflectTypeMatch.IsAssignableTo);
+        public static ReflectReadSettings AllIsAssignableFrom => All.SetProperties(v => v.TypeMatch = ReflectTypeMatch.IsAssignableFrom);
+        public static ReflectReadSettings AllWithHierarchyTraversal => All.SetProperties(s => s.TraverseHierarchy = true);
     }
-	
-	public enum ReflectTypeMatch
+
+	[Flags]
+    public enum MemberMethod
+    {
+		All = 3,
+        GetFields = 1,
+        GetProperty = 2,        
+    }
+
+    public enum MemberDistinct
+	{ 
+		Default,
+		None,
+		ByName
+	}
+
+
+    public enum ReflectTypeMatch
 	{
 		NoCheck,
 		ExactType,

@@ -7,6 +7,8 @@ namespace Nextended.Core.Tests.classes
 {
     public class ProductDto : DtoBase<int>
     {
+        private Guid _guid = Guid.NewGuid();
+        public Guid PubId = Guid.NewGuid();
         public string Name { get; set; }
         public string Barcode { get; set; }
         public string Description { get; set; }
@@ -39,7 +41,9 @@ namespace Nextended.Core.Tests.classes
 
     public abstract class DtoBase<TId> : IDtoBase<TId>
     {
+        private Guid _guid = Guid.NewGuid();
         public TId Id { get; set; }
+        public double SuperDouble { get; set; } = 2;
 
         [Newtonsoft.Json.JsonIgnore]
         public bool IsNew => Id == null || Id.Equals(default(TId));
