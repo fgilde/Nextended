@@ -12,7 +12,7 @@ public abstract class Hierarchical<T> : IHierarchical<T>
 
     public T Parent { get; set; }
 
-    public IEnumerable<T> Path => GetPath().Reverse().Where(t => t != null);
+    public IEnumerable<T> Path => (this as T).Path();
 
     public bool IsExpanded { get; set; }
 
@@ -26,10 +26,8 @@ public abstract class Hierarchical<T> : IHierarchical<T>
         }
     }
 
-    public string GetPathString(Func<T, string> toStringFn, string separator = "/")
-    {
-        return string.Join(separator, Path.Select(toStringFn));
-    }
+    public string GetPathString(Func<T, string> toStringFn, string separator = "/") 
+        => HierarchicalExtensions.GetPathString(this as T, toStringFn, separator);
 
     private void UpdateParents(IEnumerable<T> items)
     {
@@ -41,16 +39,7 @@ public abstract class Hierarchical<T> : IHierarchical<T>
 
     public virtual bool ContainsChild(T entry)
     {
-        return Children.EmptyIfNull().Recursive(n => n.Children.EmptyIfNull()).Contains(entry);
-    }
-    private IEnumerable<T> GetPath()
-    {
-        var node = this;
-        while (node != null)
-        {
-            yield return (T)node;
-            node = node.Parent;
-        }
+        return ((T) this).Contains<T>(entry);
     }
 }
 
@@ -63,8 +52,36 @@ public interface IHierarchical<T> where T : IHierarchical<T>
 public static class HierarchicalExtensions
 {
     public static IEnumerable<T> Find<T>(this IEnumerable<T> entries, Func<T, bool> predicate)
-        where T : Hierarchical<T>
+        where T : IHierarchical<T>
     {
         return entries.Recursive(h => h.Children.EmptyIfNull()).Where(predicate);
+    }
+
+    public static IEnumerable<T> Siblings<T>(this T node)
+        where T : IHierarchical<T>
+    {
+        return node?.Parent?.Children.EmptyIfNull().Where(n => !ReferenceEquals(n, node));
+    }
+
+    public static string GetPathString<T>(this T node, Func<T, string> toStringFn, string separator = "/")
+        where T : IHierarchical<T> =>
+        string.Join(separator, node.Path().Select(toStringFn));
+
+    public static IEnumerable<T> Path<T>(this T item) where T : IHierarchical<T>
+        => GetPath(item).Reverse().Where(t => t != null);
+
+    public static bool Contains<T>(this T node, T entry)
+        where T : IHierarchical<T> =>
+        node?.Children?.EmptyIfNull().Recursive(n => n?.Children?.EmptyIfNull()).Contains(entry) == true;
+
+    private static IEnumerable<T> GetPath<T>(T item)
+        where T : IHierarchical<T>
+    {
+        var node = item;
+        while (node != null)
+        {
+            yield return node;
+            node = node.Parent;
+        }
     }
 }
