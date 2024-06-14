@@ -5,7 +5,7 @@ using Nextended.Core.Extensions;
 
 namespace Nextended.Core.Types;
 
-public abstract class Hierarchical<T>
+public abstract class Hierarchical<T> : IHierarchical<T>
     where T : Hierarchical<T>
 {
     private HashSet<T> _children;
@@ -52,6 +52,12 @@ public abstract class Hierarchical<T>
             node = node.Parent;
         }
     }
+}
+
+public interface IHierarchical<T> where T : IHierarchical<T>
+{
+    public HashSet<T> Children { get; }
+    public T Parent { get; }
 }
 
 public static class HierarchicalExtensions
