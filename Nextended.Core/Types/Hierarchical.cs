@@ -26,7 +26,7 @@ public abstract class Hierarchical<T> : IHierarchical<T>
         }
     }
 
-    public string GetPathString(Func<T, string> toStringFn, string separator = "/") 
+    public string GetPathString(Func<T, string> toStringFn, string separator = "/")
         => HierarchicalExtensions.GetPathString(this as T, toStringFn, separator);
 
     private void UpdateParents(IEnumerable<T> items)
@@ -39,7 +39,7 @@ public abstract class Hierarchical<T> : IHierarchical<T>
 
     public virtual bool ContainsChild(T entry)
     {
-        return ((T) this).Contains<T>(entry);
+        return ((T)this).Contains<T>(entry);
     }
 }
 
@@ -56,6 +56,22 @@ public static class HierarchicalExtensions
     {
         return entries.Recursive(h => h.Children.EmptyIfNull()).Where(predicate);
     }
+
+    public static IEnumerable<T> Find<T>(this T entry, Func<T, bool> predicate)
+        where T : IHierarchical<T>
+    {
+        return entry.Children.EmptyIfNull().Recursive(h => h.Children.EmptyIfNull()).Where(predicate);
+    }
+
+    public static bool IsInPathOf<T>(this T node, T entry)
+        where T : IHierarchical<T>
+    {
+        return entry.Path().Contains(node);
+    }
+
+    public static bool HasChildren<T>(this T node)
+            where T : IHierarchical<T> =>
+            node?.Children?.Any() == true;
 
     public static IEnumerable<T> Siblings<T>(this T node)
         where T : IHierarchical<T>
