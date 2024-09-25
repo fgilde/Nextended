@@ -92,7 +92,7 @@ namespace Nextended.Core
 		/// <summary>
 		/// Raises the property changing.
 		/// </summary>
-		protected void RaisePropertyChanging(string propertyName)
+		protected virtual void RaisePropertyChanging(string propertyName)
 		{
 			PropertyChangingEventHandler handler = PropertyChanging;
 			if (handler != null && IsNotifying)
@@ -102,7 +102,7 @@ namespace Nextended.Core
 		/// <summary>
 		/// Raises the property changed.
 		/// </summary>
-		protected void RaisePropertyChanged(string propertyName)
+		protected virtual void RaisePropertyChanged(string propertyName)
 		{
 			PropertyChangedEventHandler handler = PropertyChanged;
 			if (handler != null && IsNotifying)
@@ -127,7 +127,7 @@ namespace Nextended.Core
 		/// value is optional and can be provided automatically</param>
 		/// <returns>True if the value was changed, false if the existing value matched the
 		/// desired value.</returns>
-		protected bool SetProperty<T>(ref T storage, T value, [CallerMemberName]string propertyName = null)
+		protected virtual bool SetProperty<T>(ref T storage, T value, [CallerMemberName]string propertyName = null)
         {
             if (Equals(storage, value))
                 return false;
@@ -149,7 +149,7 @@ namespace Nextended.Core
 		/// value is optional and can be provided automatically</param>
 		/// <returns>True if the value was changed, false if the existing value matched the
 		/// desired value.</returns>
-        protected bool SetProperty<T>(ref T storage, T value, Expression<Func<object>> propertyMember)
+        protected virtual bool SetProperty<T>(ref T storage, T value, Expression<Func<object>> propertyMember)
         {
             return SetProperty(ref storage, value, GetMemberName(propertyMember));
         }
