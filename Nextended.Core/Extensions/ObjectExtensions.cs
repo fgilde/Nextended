@@ -6,7 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using Nextended.Core.DeepClone;
+
 using Nextended.Core.Helper;
 
 namespace Nextended.Core.Extensions
@@ -48,16 +48,16 @@ namespace Nextended.Core.Extensions
             return input == null ? defaultIfNull : input.ToString();
         }
 
-        public static T Clone<T>(this T source, ClonerSettings settings) where T : class => source.CloneDeep(settings);
-        public static T Clone<T>(this T source, FieldType fieldType) where T : class => source.CloneDeep(fieldType);
-        public static T Clone<T>(this T source, bool useFastDeepClone = true) where T : class, new()
+        //public static T Clone<T>(this T source, ClonerSettings settings) where T : class => source.CloneDeep(settings);
+        //public static T Clone<T>(this T source, FieldType fieldType) where T : class => source.CloneDeep(fieldType);
+        public static T Clone<T>(this T source) where T : class, new()
         {
             return source switch
             {
                 null => null,
                 ValueType _ => source,
                 ICloneable cloneable => (T) cloneable.Clone(),
-                _ => useFastDeepClone ? source.CloneDeep() : source.MapTo<T>()
+                _ => source.MapTo<T>()
             };
         }
 

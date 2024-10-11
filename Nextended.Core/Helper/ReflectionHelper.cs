@@ -395,14 +395,21 @@ namespace Nextended.Core.Helper
 				}
 			}
 			catch (Exception)
-			{
-				result = null;
-			}
+            {
+                try
+                {
+                    result = allowInterfacesAndAbstractClasses ? CreateInstance(t, false, false) : null;
+                }
+                catch (Exception e)
+                {
+					result = null;
+                }
+            }
 
 			if (result == null)
 			{
 				List<object> parameters = new List<object>();
-				var constructorInfo = t.GetConstructors().OrderBy(info => info.GetParameters().Count()).FirstOrDefault();
+				var constructorInfo = t.GetConstructors().MinBy(info => info.GetParameters().Count());
 				if (constructorInfo != null)
 				{
                     try
