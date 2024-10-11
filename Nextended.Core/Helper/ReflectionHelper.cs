@@ -370,60 +370,69 @@ namespace Nextended.Core.Helper
 			return CreateInstance(t, true, false);
 		}
 
-		/// <summary>
-		/// Eine instance erzeugen
-		/// </summary>
-		/// <param name="t">The t.</param>
-		/// <param name="allowInterfacesAndAbstractClasses">Abstrakte klassen oder Interface instanzen erstellen</param>
-		/// <param name="coverUpAbstractMembers">Wenn true werden Abstrakte basis properties überdeckt</param>
-		/// <returns></returns>
-		public static object CreateInstance(Type t, bool allowInterfacesAndAbstractClasses,
-			bool coverUpAbstractMembers)
-		{
-			if (typeof(Guid) == t)
-				return Guid.NewGuid();
-			object result = null;
-			try
-			{
-				if (allowInterfacesAndAbstractClasses && (t.IsInterface || t.IsArray || t.IsAbstract))
-				{
-					result = CreateInstanceFromInterfaceOrAbstractType(t, coverUpAbstractMembers);
-				}
-				else if (t.GetConstructors().Any(info => !info.GetParameters().Any()))
-				{
-					result = Activator.CreateInstance(t);
-				}
-			}
-			catch (Exception)
+        /// <summary>
+        /// Eine instance erzeugen
+        /// </summary>
+        /// <param name="t">The t.</param>
+        /// <param name="allowInterfacesAndAbstractClasses">Abstrakte klassen oder Interface instanzen erstellen</param>
+        /// <param name="coverUpAbstractMembers">Wenn true werden Abstrakte basis properties überdeckt</param>
+        /// <returns></returns>
+        public static object CreateInstance(Type t, bool allowInterfacesAndAbstractClasses, bool coverUpAbstractMembers, HashSet<Type> processedTypes = null)
+        {
+            processedTypes ??= new HashSet<Type>();
+
+            // Detect recursion or cyclic dependency
+            if (processedTypes.Contains(t))
+            {
+                throw new InvalidOperationException($"Cyclic dependency detected while creating an instance of type {t.FullName}");
+            }
+
+            // Mark type as processed
+            processedTypes.Add(t);
+
+            object result = null;
+
+            try
+            {
+                if (allowInterfacesAndAbstractClasses && (t.IsInterface || t.IsArray || t.IsAbstract))
+                {
+                    result = CreateInstanceFromInterfaceOrAbstractType(t, coverUpAbstractMembers, processedTypes);
+                }
+                else if (t.GetConstructors().Any(info => !info.GetParameters().Any()))
+                {
+                    result = Activator.CreateInstance(t);
+                }
+            }
+            catch (Exception ex)
+            {
+                // Log the error and try to fall back to default instance
+                Debug.WriteLine($"Failed to create instance of type {t.FullName}: {ex.Message}");
+                result = allowInterfacesAndAbstractClasses ? CreateInstance(t, false, false, processedTypes) : null;
+            }
+
+            // Fallback to the constructor with the fewest parameters
+            if (result == null)
             {
                 try
                 {
-                    result = allowInterfacesAndAbstractClasses ? CreateInstance(t, false, false) : null;
+                    var constructorInfo = t.GetConstructors().OrderBy(info => info.GetParameters().Count()).FirstOrDefault();
+                    if (constructorInfo != null)
+                    {
+                        var parameters = constructorInfo.GetParameters()
+                                                        .Select(param => CreateInstance(param.ParameterType, true, false, processedTypes))
+                                                        .ToArray();
+                        result = constructorInfo.Invoke(parameters);
+                    }
                 }
-                catch (Exception e)
+                catch (Exception ex)
                 {
-					result = null;
+                    Debug.WriteLine($"Failed to invoke constructor for type {t.FullName}: {ex.Message}");
                 }
             }
 
-			if (result == null)
-			{
-				List<object> parameters = new List<object>();
-				var constructorInfo = t.GetConstructors().MinBy(info => info.GetParameters().Count());
-				if (constructorInfo != null)
-				{
-                    try
-                    {
-                        parameters.AddRange(constructorInfo.GetParameters().Select(parameterInfo => CreateInstance(parameterInfo.ParameterType)));
-                        result = constructorInfo.Invoke(parameters.ToArray());
-                    }
-                    catch
-                    {
-                    }
-				}
-			}
-			return result;
-		}
+            return result;
+        }
+
 
 		/// <summary>
 		/// Findet den typen, der das angegebene interface implementiert
@@ -481,67 +490,63 @@ namespace Nextended.Core.Helper
 		/// </summary>
 		/// <param name="interfaceType">Typ</param>
 		/// <param name="coverUpAbstractMembers">Wenn true werden Abstrakte basis properties überdeckt</param>
-		public static object CreateInstanceFromInterfaceOrAbstractType(Type interfaceType, bool coverUpAbstractMembers)
-		{
-			if (typeof(IEnumerable).IsAssignableFrom(interfaceType))
-			{
-				if (interfaceType == typeof(IEnumerable) || (interfaceType.IsGenericType && interfaceType.GetGenericTypeDefinition() == typeof(IEnumerable<>)) ||
-					(interfaceType.IsGenericType && interfaceType.GetGenericTypeDefinition() == typeof(IDictionary<,>)) ||
-					(interfaceType.IsGenericType && interfaceType.GetGenericTypeDefinition() == typeof(Dictionary<,>)) || interfaceType.IsArray)
-				{
-					return CreateList(interfaceType);
-				}
-			}
+		public static object CreateInstanceFromInterfaceOrAbstractType(Type interfaceType, bool coverUpAbstractMembers, HashSet<Type> processedTypes = null)
+        {
+            processedTypes ??= new HashSet<Type>();
 
-			if (!interfaceType.IsInterface && !interfaceType.IsAbstract)
-				throw new NotSupportedException("Only interfaces are supported");
+            // Prevent recursion by tracking processed types
+            if (processedTypes.Contains(interfaceType))
+            {
+                throw new InvalidOperationException($"Cyclic dependency detected while creating an instance for interface/abstract type {interfaceType.FullName}");
+            }
 
-			var existingType = FindImplementingType(interfaceType);
-			if (existingType != null)
-			{
-				return CreateInstance(existingType);
-			}
+            // Add type to the processed list to avoid recursion
+            processedTypes.Add(interfaceType);
 
+            // If the type is an IEnumerable, create an appropriate list or dictionary
+            if (typeof(IEnumerable).IsAssignableFrom(interfaceType))
+            {
+                return CreateList(interfaceType);
+            }
 
-			string name = Assembly.GetCallingAssembly().GetName().Name;
-			AssemblyName assemblyName = new AssemblyName { Name = name + ".Dynamic." + interfaceType.Name };
+            // Only interfaces or abstract classes are allowed
+            if (!interfaceType.IsInterface && !interfaceType.IsAbstract)
+            {
+                throw new NotSupportedException("Only interfaces or abstract types are supported.");
+            }
 
+            // Try to find an implementing type
+            var existingType = FindImplementingType(interfaceType);
+            if (existingType != null)
+            {
+                return CreateInstance(existingType, true, coverUpAbstractMembers, processedTypes);
+            }
 
+            // Dynamically create a type for the interface/abstract class
+            var assemblyName = new AssemblyName("DynamicAssembly");
+            var assemblyBuilder = AssemblyBuilder.DefineDynamicAssembly(assemblyName, AssemblyBuilderAccess.Run);
+            var moduleBuilder = assemblyBuilder.DefineDynamicModule("DynamicModule");
+            var typeBuilder = CreateTypeBuilder(moduleBuilder, $"DynamicType_{interfaceType.Name}", interfaceType);
 
-            AssemblyBuilder asmBuilder = AssemblyBuilder.DefineDynamicAssembly(assemblyName, AssemblyBuilderAccess.Run);
+            // Add interface or abstract members as needed
+            foreach (var property in interfaceType.GetProperties(PublicBindingFlags))
+            {
+                BuildProperty(typeBuilder, property.Name, property.PropertyType);
+            }
+            foreach (var method in interfaceType.GetMethods(PublicBindingFlags))
+            {
+                BuildEmptyMethod(typeBuilder, method.Name, method.ReturnType);
+            }
 
-			var modBuilder = asmBuilder.DefineDynamicModule(asmBuilder.GetName().Name);
+            // Create the type and instantiate it
+            var dynamicType = typeBuilder.CreateTypeInfo().AsType();
+            return Activator.CreateInstance(dynamicType);
+        }
 
-			TypeBuilder typeBuilder = CreateTypeBuilder(modBuilder, "DynamicType_" + interfaceType.Name, interfaceType);
-			if (interfaceType.IsInterface)
-				typeBuilder.AddInterfaceImplementation(interfaceType);
-
-			if (interfaceType.IsInterface || coverUpAbstractMembers)
-			{
-				foreach (var prop in interfaceType.GetProperties(PublicBindingFlags))
-				{
-					BuildProperty(typeBuilder, prop.Name, prop.PropertyType);
-				}
-
-				foreach (var field in interfaceType.GetFields(PublicBindingFlags))
-				{
-					BuildField(typeBuilder, field.Name, field.FieldType);
-				}
-
-				foreach (var method in interfaceType.GetMethods(PublicBindingFlags))
-				{
-					BuildEmptyMethod(typeBuilder, method.Name, method.ReturnType);
-				}
-			}
-
-			var type = typeBuilder.CreateTypeInfo();
-			return Activator.CreateInstance(type);
-		}
-
-		/// <summary>
-		/// Enthaltene typen zurückgeben
-		/// </summary>
-		public static Type[] GetDeclaringTypes(Type t)
+        /// <summary>
+        /// Enthaltene typen zurückgeben
+        /// </summary>
+        public static Type[] GetDeclaringTypes(Type t)
 		{
 			if (t.IsGenericType)
 				return t.GetGenericArguments();
