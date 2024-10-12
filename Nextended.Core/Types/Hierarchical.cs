@@ -101,6 +101,10 @@ public interface IChildInfo
 
 public static class HierarchicalExtensions
 {
+    public static IEnumerable<T> GetLoadedChildren<T>(this T node) where T : IHierarchical<T>
+    {
+        return node != null && node.HasChildren() && !node.NeedsLoadChildren() ? node.Children.EmptyIfNull() : [];
+    }
 
     public static bool NeedsLoadChildren<T>(this T node) where T : IHierarchical<T>
     {
@@ -111,11 +115,12 @@ public static class HierarchicalExtensions
         return false;
     }
 
-    public static bool ValidForRecursion<T>(this T node) where T : IHierarchical<T>
+    private static bool ValidForRecursion<T>(this T node) where T : IHierarchical<T>
     {
+        return true;
         if (node is IAsyncHierarchical<T> asyncNode)
         {
-            return !asyncNode.IsLoading && asyncNode.LoadChildrenFunc == null && node.HasChildren();
+            return !asyncNode.IsLoading && asyncNode.LoadChildrenFunc == null;
         }
         return true;
     }
@@ -123,13 +128,13 @@ public static class HierarchicalExtensions
     public static IEnumerable<T> Find<T>(this IEnumerable<T> entries, Func<T, bool> predicate)
         where T : IHierarchical<T>
     {
-        return entries.Recursive(h => h.Children.EmptyIfNull(), a => a.ValidForRecursion()).Where(predicate);
+        return entries.Recursive(h => h.GetLoadedChildren(), a => a.ValidForRecursion()).Where(predicate);
     }
 
     public static IEnumerable<T> Find<T>(this T entry, Func<T, bool> predicate)
         where T : IHierarchical<T>
     {
-        return entry.Children.EmptyIfNull().Recursive(h => h.Children.EmptyIfNull(), a => a.ValidForRecursion()).Where(predicate);
+        return entry.GetLoadedChildren().Recursive(h => h.GetLoadedChildren(), a => a.ValidForRecursion()).Where(predicate);
     }
 
     public static bool IsInPathOf<T>(this T node, T entry)
@@ -145,7 +150,7 @@ public static class HierarchicalExtensions
     public static IEnumerable<T> Siblings<T>(this T node)
         where T : IHierarchical<T>
     {
-        return node?.Parent?.Children.EmptyIfNull().Where(n => !ReferenceEquals(n, node));
+        return node?.Parent?.GetLoadedChildren().EmptyIfNull().Where(n => !ReferenceEquals(n, node));
     }
 
     public static string GetPathString<T>(this T node, Func<T, string> toStringFn, string separator = "/")
@@ -157,7 +162,7 @@ public static class HierarchicalExtensions
 
     public static bool Contains<T>(this T node, T entry)
         where T : IHierarchical<T> =>
-        node?.Children?.EmptyIfNull().Recursive(n => n?.Children?.EmptyIfNull(), a => a.ValidForRecursion()).Contains(entry) == true;
+        node?.GetLoadedChildren()?.EmptyIfNull().Recursive(n => n.GetLoadedChildren(), a => a.ValidForRecursion()).Contains(entry) == true;
 
     private static IEnumerable<T> GetPath<T>(T item)
         where T : IHierarchical<T>
