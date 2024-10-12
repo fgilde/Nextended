@@ -41,9 +41,9 @@ public static class ServiceCollectionExtensions
         Assembly[] assembliesToSearchImplementationsIn = null,
         ServiceLifetime lifeTime = ServiceLifetime.Transient)
     {
-        assembliesToSearchImplementationsIn = (assembliesToSearchImplementationsIn.IsNullOrEmpty()
+        assembliesToSearchImplementationsIn = ((assembliesToSearchImplementationsIn.IsNullOrEmpty()
             ? new[] { Assembly.GetCallingAssembly(), Assembly.GetExecutingAssembly(), Assembly.GetEntryAssembly() }.Concat(interfacesToSearchImplementationsFor.Select(t => t.Assembly))
-            : assembliesToSearchImplementationsIn).Distinct().ToArray();
+            : assembliesToSearchImplementationsIn) ?? Array.Empty<Assembly>()).Where(a => a != null).Distinct().ToArray();
         var types = assembliesToSearchImplementationsIn.SelectMany(a => a.GetTypes()).Where(t => t.IsClass && !t.IsAbstract && !t.IsGenericType);
         foreach (var type in types)
         {
