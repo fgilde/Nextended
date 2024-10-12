@@ -7,7 +7,7 @@ using Nextended.Core.Extensions;
 
 namespace Nextended.Core.Types;
 
-public abstract class Hierarchical<T> : IHierarchical<T>, IChildInfo
+public abstract class Hierarchical<T> : IAsyncHierarchical<T>, IChildInfo
     where T : Hierarchical<T>, new()
 {
     private HashSet<T> _children;
@@ -81,13 +81,17 @@ public abstract class Hierarchical<T> : IHierarchical<T>, IChildInfo
 
 public interface IHierarchical<T> where T : IHierarchical<T>
 {
+    public HashSet<T> Children { get; }
+    public T Parent { get; }
+}
+
+public interface IAsyncHierarchical<T>: IHierarchical<T> where T : IHierarchical<T>
+{
+    public bool IsLoading { get; set; }
     Task LoadChildren();
     HashSet<T> GetLoadingIndicatorItems();
     Func<T, CancellationToken, Task<HashSet<T>>> LoadChildrenFunc { get; }
     public Action<IHierarchical<T>, HashSet<T>> OnChildrenLoaded { get; set; }
-    public HashSet<T> Children { get; }
-    public bool IsLoading { get; set; }
-    public T Parent { get; }
 }
 
 public interface IChildInfo
@@ -100,12 +104,20 @@ public static class HierarchicalExtensions
 
     public static bool NeedsLoadChildren<T>(this T node) where T : IHierarchical<T>
     {
-        return node.HasChildren() && node?.LoadChildrenFunc != null;
+        if (node is IAsyncHierarchical<T> asyncNode)
+        {
+            return node.HasChildren() && asyncNode?.LoadChildrenFunc != null;
+        }
+        return false;
     }
 
     public static bool ValidForRecursion<T>(this T node) where T : IHierarchical<T>
     {
-        return !node.IsLoading && node.LoadChildrenFunc == null && node.HasChildren();
+        if (node is IAsyncHierarchical<T> asyncNode)
+        {
+            return !asyncNode.IsLoading && asyncNode.LoadChildrenFunc == null && node.HasChildren();
+        }
+        return true;
     }
 
     public static IEnumerable<T> Find<T>(this IEnumerable<T> entries, Func<T, bool> predicate)
