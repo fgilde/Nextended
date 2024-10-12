@@ -30,20 +30,8 @@ public abstract class Hierarchical<T> : IHierarchical<T>, IChildInfo
         {
             if (LoadChildrenFunc != null)
             {
-                if (_loadCancel == null)
-                {
-                    _loadCancel = new CancellationTokenSource();
-                    //IsLoading = true;
-                    LoadChildrenFunc(this as T, _loadCancel.Token).ContinueWith(t =>
-                    {
-                        LoadChildrenFunc = null;
-                        Children = t.Result;
-                        //IsLoading = false;
-                        OnChildrenLoaded?.Invoke(this, t.Result);
-                    });
-                }
-
-                return [new T {IsLoading = true}];
+                LoadChildren();
+                return GetLoadingIndicatorItems();
             }
             return _children;
         }
@@ -52,6 +40,25 @@ public abstract class Hierarchical<T> : IHierarchical<T>, IChildInfo
             _children = value;
             UpdateParents(Children);
         }
+    }
+
+    public virtual HashSet<T> GetLoadingIndicatorItems() => [new T { IsLoading = true }];
+
+    public Task LoadChildren()
+    {
+        if (LoadChildrenFunc != null && _loadCancel == null)
+        {
+            _loadCancel = new CancellationTokenSource();
+            //IsLoading = true;
+            return LoadChildrenFunc(this as T, _loadCancel.Token).ContinueWith(t =>
+            {
+                LoadChildrenFunc = null;
+                Children = t.Result;
+                //IsLoading = false;
+                OnChildrenLoaded?.Invoke(this, t.Result);
+            });
+        }
+        return Task.CompletedTask;
     }
 
     public string GetPathString(Func<T, string> toStringFn, string separator = "/")
@@ -74,10 +81,12 @@ public abstract class Hierarchical<T> : IHierarchical<T>, IChildInfo
 
 public interface IHierarchical<T> where T : IHierarchical<T>
 {
+    Task LoadChildren();
+    HashSet<T> GetLoadingIndicatorItems();
     Func<T, CancellationToken, Task<HashSet<T>>> LoadChildrenFunc { get; }
     public Action<IHierarchical<T>, HashSet<T>> OnChildrenLoaded { get; set; }
     public HashSet<T> Children { get; }
-    public bool IsLoading { get; }
+    public bool IsLoading { get; set; }
     public T Parent { get; }
 }
 
@@ -88,6 +97,12 @@ public interface IChildInfo
 
 public static class HierarchicalExtensions
 {
+
+    public static bool NeedsLoadChildren<T>(this T node) where T : IHierarchical<T>
+    {
+        return node.HasChildren() && node?.LoadChildrenFunc != null;
+    }
+
     public static bool ValidForRecursion<T>(this T node) where T : IHierarchical<T>
     {
         return !node.IsLoading && node.LoadChildrenFunc == null && node.HasChildren();
