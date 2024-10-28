@@ -41,8 +41,8 @@ public static class DictionaryHelper
         if (o == null)
             return null;
         var newInstance = removeDefaults ? new T() : default;
-        return removeDefaults
-            ? GetValuesFunc<T>(flags)(o).Where(pair => typeof(T).GetProperty(pair.Key, flags)?.GetValue(newInstance) != pair.Value).ToDictionary(pair => pair.Key, pair => pair.Value)
+        return removeDefaults 
+            ? GetValuesFunc<T>(flags)(o).Where(pair => !Equals(typeof(T).GetProperty(pair.Key, flags)?.GetValue(newInstance), pair.Value)).ToDictionary(pair => pair.Key, pair => pair.Value)
             : GetValuesFunc<T>(flags)(o);
     }
 
