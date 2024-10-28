@@ -59,8 +59,9 @@ public static class ServiceCollectionExtensions
         {
             foreach (var registerType in interfacesToSearchImplementationsFor)
             {
-                if (type.GetInterfaces().Any(i => i.IsGenericType && i.GetGenericTypeDefinition() == registerType)){
-                    var serviceType = type.GetInterfaces().First(i => i.GetGenericTypeDefinition() == registerType);
+                if (type.GetInterfaces().Any(i => i.IsGenericType && i.GetGenericTypeDefinition() == registerType))
+                {
+                    var serviceType = type.GetInterfaces().First(i => i.IsGenericType && i.GetGenericTypeDefinition() == registerType);
                     var serviceDescriptor = new ServiceDescriptor(serviceType, type, lifeTime);
                     services.Add(serviceDescriptor);
                     onRegistered?.Invoke(serviceDescriptor);
