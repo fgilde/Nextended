@@ -329,5 +329,32 @@ namespace Nextended.Core.Extensions
 
             return false;
         }
+
+        public static IEnumerable<Type> GetAllImplementations(this Type type, params Assembly[] serviceImplementationAssemblies)
+        {
+            // If no assemblies are provided, use default ones
+            if (serviceImplementationAssemblies == null || serviceImplementationAssemblies.Length == 0)
+            {
+                serviceImplementationAssemblies = new[]
+                {
+                    Assembly.GetCallingAssembly(),
+                    Assembly.GetExecutingAssembly(),
+                    Assembly.GetEntryAssembly()
+                }.Where(a => a != null).ToArray(); // Ensure non-null assemblies
+            }
+
+            // Ensure the provided type is a generic type definition if it has type parameters (e.g., IObjectEditorFor<>)
+            if (type.IsGenericTypeDefinition)
+            {
+                return serviceImplementationAssemblies
+                    .SelectMany(s => s.GetTypes())
+                    .Where(p => !p.IsInterface && !p.IsAbstract && p.GetInterfaces().Any(i =>
+                        i.IsGenericType && i.GetGenericTypeDefinition() == type)).Distinct();
+            }
+
+            return serviceImplementationAssemblies
+                .SelectMany(s => s.GetTypes())
+                .Where(p => type.IsAssignableFrom(p) && !p.IsInterface && !p.IsAbstract).Distinct();
+        }
     }
 }
