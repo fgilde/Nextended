@@ -1,5 +1,5 @@
 ﻿using System;
-using System.Buffers.Text;
+
 using System.Runtime.InteropServices;
 
 namespace Nextended.Core.Extensions
@@ -15,11 +15,12 @@ namespace Nextended.Core.Extensions
         private const byte PlusByte = (byte)Plus;
 
         public static string ToFormattedId(this Guid id)
-        {
+        {            
+#if !NETSTANDARD2_0
             Span<byte> idBytes = stackalloc byte[16];
             Span<byte> base64Bytes = stackalloc byte[24];
             MemoryMarshal.TryWrite(idBytes, ref id);
-            Base64.EncodeToUtf8(idBytes, base64Bytes, out _, out _);
+            System.Buffers.Text.Base64.EncodeToUtf8(idBytes, base64Bytes, out _, out _);
 
             Span<char> finalChars = stackalloc char[22];
             for (int i = 0; i < 22; i++)
@@ -33,8 +34,12 @@ namespace Nextended.Core.Extensions
             }
 
             return new string(finalChars);
+#else
+           return Convert.ToBase64String(id.ToByteArray()).TrimEnd(EqualsChar).Replace(Slash, Hyphen).Replace(Plus, Underscore);
+#endif
         }
 
+#if !NETSTANDARD2_0
         public static Guid FromFormattedId(ReadOnlySpan<char> id)
         {
             Span<char> base64Chars = stackalloc char[24];
@@ -55,6 +60,7 @@ namespace Nextended.Core.Extensions
             Convert.TryFromBase64Chars(base64Chars, idBytes, out _);
             return new Guid(idBytes);
         }
+#endif
 
         public static int ToInt(this Guid value)
         {

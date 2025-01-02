@@ -250,6 +250,8 @@ namespace Nextended.Core.Helper
 
         private void AddDefaultConverters()
         {
+#if !NETSTANDARD
+
             AddConverter<DateOnly, DateTime>(only => only.ToDateTime(new TimeOnly(0, 0)));
             AddConverter<DateTime, DateOnly>(DateOnly.FromDateTime);
 
@@ -258,6 +260,7 @@ namespace Nextended.Core.Helper
 
             AddConverter<TimeOnly, TimeSpan>(only => only.ToTimeSpan());
             AddConverter<TimeSpan, TimeOnly>(TimeOnly.FromTimeSpan);
+#endif
         }
 
         public ClassMappingSettings RemoveConverters(params TypeConverter[] converters)

@@ -22,6 +22,8 @@ namespace Nextended.UI.Classes
         /// <summary>
         /// MaxLength
         /// </summary>
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
+        [DefaultValue(0)]
         public int MaxLength
         {
             get => maxLength;

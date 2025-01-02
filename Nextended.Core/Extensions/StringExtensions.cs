@@ -49,6 +49,7 @@ namespace Nextended.Core.Extensions
             return valuesToReplace.Aggregate(s, (current, s1) => current.Replace(s1, newValue));
         }
 
+#if !NETSTANDARD2_0
         public static string ToEllipsis(this string input, int maxChars, char ellipseChar = '.', bool keepLength = false)
         {
             var numberOfCharactersToTake = maxChars - 3;
@@ -60,6 +61,58 @@ namespace Nextended.Core.Extensions
                     span[(keepLength ? maxChars : numberOfCharactersToTake)..].Fill(ellipseChar);
                 });
         }
+#else
+        public static string ToEllipsis(this string input, int maxChars, char ellipseChar = '.', bool keepLength = false)
+        {
+            // 1) Sonderfälle: leer oder kürzer/gleich maxChars
+            if (string.IsNullOrEmpty(input))
+                return input;
+
+            if (input.Length <= maxChars)
+                return input;
+        
+            // 2) Eigentliche Logik
+            int numberOfCharactersToTake = maxChars - 3;
+            if (numberOfCharactersToTake < 0)
+                numberOfCharactersToTake = 0; // Edge-Case: maxChars < 3
+
+            if (!keepLength)
+            {
+                // Variante A: Finaler String hat Länge maxChars
+                // - Kopiere erste 'numberOfCharactersToTake' Zeichen
+                // - Fülle die letzten 3 Zeichen mit ellipseChar
+                var result = new char[maxChars];
+            
+                // Kopieren (aber nur so viele Zeichen, wie input hat)
+                for (int i = 0; i < numberOfCharactersToTake && i < input.Length; i++)
+                {
+                    result[i] = input[i];
+                }
+
+                // Letzten 3 Zeichen mit ellipseChar füllen
+                for (int i = numberOfCharactersToTake; i < maxChars; i++)
+                {
+                    result[i] = ellipseChar;
+                }
+
+                return new string(result);
+            }
+            else
+            {
+                // Variante B: Finaler String hat Originallänge (input.Length)
+                // - Kopiere das gesamte input
+                // - Überschreibe ab Index 'maxChars' alle Zeichen mit ellipseChar
+                var result = input.ToCharArray();
+
+                for (int i = maxChars; i < result.Length; i++)
+                {
+                    result[i] = ellipseChar;
+                }
+
+                return new string(result);
+            }
+        }
+#endif
 
         public static string EnsureEndsWith(this string str, char toEndWith)
         {

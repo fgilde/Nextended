@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿#if !NETSTANDARD2_0
+using System.Collections;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 
@@ -69,3 +70,4 @@ namespace Nextended.Core.COM
         #endregion
     }
 }
+#endif

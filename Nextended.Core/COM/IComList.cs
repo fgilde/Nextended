@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿#if !NETSTANDARD2_0
+using System.Collections;
 using System.Runtime.InteropServices;
 
 namespace Nextended.Core.COM
@@ -32,3 +33,4 @@ namespace Nextended.Core.COM
         int Count();
     }
 }
+#endif

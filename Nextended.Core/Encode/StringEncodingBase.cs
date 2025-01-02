@@ -94,19 +94,23 @@ namespace Nextended.Core.Encode
         }
         private string AfterEncode(string str)
         {
-            foreach (var (key, value) in (Replacements ?? new Dictionary<string, string>()).Where(pair => !string.IsNullOrEmpty(pair.Key)))
-                str = str.Replace(key, value);
-            (executers.Get(nameof(AfterEncode)) ?? Enumerable.Empty<Func<string, string>>()).Apply(func => str = func(str));
+            str = (Replacements ?? new Dictionary<string, string>()).Where(p => !string.IsNullOrEmpty(p.Key)).Aggregate(str, (current, pair) => current.Replace(pair.Key, pair.Value));
+
+            (executers.Get(nameof(AfterEncode)) ?? Enumerable.Empty<Func<string, string>>())
+                .Apply(func => str = func(str));
+
             return str;
         }
 
         private string BeforeDecode(string str)
-        {
-            (executers.Get(nameof(BeforeDecode)) ?? Enumerable.Empty<Func<string, string>>()).Apply(func => str = func(str));
-            foreach (var (key, value) in (Replacements ?? new Dictionary<string, string>()).Where(pair => !string.IsNullOrEmpty(pair.Value)))
-                str = str.Replace(value, key);
-            return str;
+        {            
+            (executers.Get(nameof(BeforeDecode)) ?? Enumerable.Empty<Func<string, string>>())
+                .Apply(func => str = func(str));
+           
+
+            return (Replacements ?? new Dictionary<string, string>()).Where(p => !string.IsNullOrEmpty(p.Value)).Aggregate(str, (current, pair) => current.Replace(pair.Value, pair.Key));
         }
+
 
         private string AfterDecode(string str)
         {
