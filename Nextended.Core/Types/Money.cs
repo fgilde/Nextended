@@ -11,10 +11,16 @@ namespace Nextended.Core.Types
 	[Serializable]
 	public sealed class Money : IComparable
 	{
-		/// <summary>
-		/// Nullobject für 0.0
-		/// </summary>
-		public static readonly Money Zero = new Money(decimal.Zero);
+
+        /// <summary>
+        /// Betrag
+        /// </summary>
+        public decimal Amount => amount;
+
+        /// <summary>
+        /// Nullobject für 0.0
+        /// </summary>
+        public static readonly Money Zero = new Money(decimal.Zero);
 
 		private readonly decimal amount;
 		/// <summary>
@@ -512,15 +518,23 @@ namespace Nextended.Core.Types
 
         public Money SetCurrency(Currency currency) => this.SetProperties(m => m.Currency = currency);
 
-        public Money ConvertCurrency(Currency currency, DateTime currencyRateTargetDate = default)
+        public Money ConvertCurrency(Currency targetCurrency, DateTime currencyRateTargetDate = default)
         {
-            if (currency == null || Currency == null)
+			if (targetCurrency == null || Currency == null)
+			{
+                //throw new ArgumentNullException(Currency == null ? nameof(Currency) : nameof(targetCurrency));
+                // TODO: Currently we cant throw an exception because of calculation (5 Euro +2) is 7 euro but 2 didnt have a currency
                 return SetCurrency(null);
-            
+            }
+			if(targetCurrency == Currency)
+                return this;
+
             currencyRateTargetDate = currencyRateTargetDate == default ? DateTime.Today : currencyRateTargetDate;
-			var infos = CurrencyExchangeRateImporter.GetCurrencyExchangeRateData(currencyRateTargetDate.AddDays(-1), currencyRateTargetDate, Currency);
-            var rateInfo = infos.FirstOrDefault(information => information.Currency == currency);
-            return new Money(amount * rateInfo.Rate).SetCurrency(currency);
+            var fromDate = currencyRateTargetDate.AddDays(-2);
+            var infos = CurrencyExchangeRateImporter.GetCurrencyExchangeRateData(fromDate, currencyRateTargetDate, Currency);
+            var rateInfo = infos.FirstOrDefault(information => information.Currency == targetCurrency);
+			
+            return new Money(amount * rateInfo.Rate).SetCurrency(targetCurrency);
         }
 
         public Money EnsureSameCurrencyAs(Money other)
