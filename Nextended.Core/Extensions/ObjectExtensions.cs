@@ -91,11 +91,20 @@ namespace Nextended.Core.Extensions
         {
             return Check.TryCatch<T, Exception>(() =>
             {
-                BindingFlags flags = BindingFlags.GetField | BindingFlags.GetProperty | BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public;
+                BindingFlags flags = BindingFlags.GetField | BindingFlags.GetProperty | BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.FlattenHierarchy;
                 PropertyInfo info = instance.GetType().GetProperty(fieldName, flags);
+                T res;
                 if (info != null)
-                    return (T)info.GetValue(instance);
-                return (T)instance.GetType().GetField(fieldName, flags)?.GetValue(instance);
+                    res = (T)info.GetValue(instance);
+                else
+                    res = (T)instance.GetType().GetField(fieldName, flags)?.GetValue(instance);
+                if (res == null)
+                {
+                    var fieldInfo = instance.GetType()
+                        .GetField(fieldName, BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.FlattenHierarchy);
+                    res = fieldInfo?.GetValue(instance) is T ? (T) fieldInfo?.GetValue(instance) : default;
+                }
+                return res;
             });
         }
 
