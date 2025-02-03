@@ -39,7 +39,11 @@ namespace Nextended.Core.Helper
             {
                 ReflectTypeMatch.ExactType => (t) => t == type,
                 ReflectTypeMatch.IsAssignableFrom => (t) => t.IsAssignableFrom(type),
+#if !NETSTANDARD
                 ReflectTypeMatch.IsAssignableTo => (t) => t.IsAssignableTo(type),
+#else
+                ReflectTypeMatch.IsAssignableTo => (t) => type.IsAssignableFrom(t),
+#endif                
                 _ => (t) => true
             };
 
@@ -62,7 +66,11 @@ namespace Nextended.Core.Helper
             List<MemberInfo> distinctMembers = settings.MemberDistinct switch
             {
                 MemberDistinct.Default => members.Distinct().ToList(),
+#if !NETSTANDARD
                 MemberDistinct.ByName => members.DistinctBy(n => n.Name).ToList(),
+#else
+                MemberDistinct.ByName => members.GroupBy(m => m.Name).Select(g => g.First()).ToList(),
+#endif
                 _ => members
             };
 
@@ -165,7 +173,7 @@ namespace Nextended.Core.Helper
             var assemblyName = new AssemblyName("DynamicAssembly");
             var assemblyBuilder = AssemblyBuilder.DefineDynamicAssembly(assemblyName, AssemblyBuilderAccess.Run);
             var moduleBuilder = assemblyBuilder.DefineDynamicModule("DynamicModule");
-            var typeBuilder = moduleBuilder.DefineType(typeName, TypeAttributes.Public);
+            TypeBuilder typeBuilder = moduleBuilder.DefineType(typeName, TypeAttributes.Public);
             typeBuilder.AddInterfaceImplementation(typeof(IStructuredDataObject));
 
             MethodInfo convertMethod = typeof(StructuredDataFormatConverter).GetMethod(nameof(StructuredDataFormatConverter.ConvertToString), new[] { typeof(object), typeof(StructuredDataType) });
@@ -212,8 +220,11 @@ namespace Nextended.Core.Helper
                 propertyBuilder.SetGetMethod(getMethodBuilder);
                 propertyBuilder.SetSetMethod(setMethodBuilder);
             }
-
+#if !NETSTANDARD2_0			
             return typeBuilder.CreateType();
+#else
+			return typeBuilder.CreateTypeInfo().AsType();
+#endif
         }
 
         private static Type GetTypeForToken(JToken token, TypeBuilder typeBuilder, string propertyName, StructuredDataType originalInputType, bool cacheTypes)
@@ -570,7 +581,7 @@ namespace Nextended.Core.Helper
 			return Activator.CreateInstance(typeToCreate);
 		}
 
-		#region Private Helper for typebuilder
+        #region Private Helper for typebuilder
 
 		private static void BuildEmptyMethod(TypeBuilder typeBuilder, string name, Type type)
 		{
@@ -636,7 +647,7 @@ namespace Nextended.Core.Helper
 		}
 
 
-		#endregion
+        #endregion
 
 
 		/// <summary>

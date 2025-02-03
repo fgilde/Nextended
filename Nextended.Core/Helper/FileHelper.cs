@@ -891,6 +891,7 @@ namespace Nextended.Core.Helper
             }
         }
 
+#if !NETSTANDARD
         /// <summary>
         /// Gets registered file types and their associated icon in the system.
         /// </summary>
@@ -944,7 +945,7 @@ namespace Nextended.Core.Helper
             rkRoot.Close();
             return iconsInfo;
         }
-
+#endif
         /// <summary>
         /// Extract the icon from file.
         /// </summary>
@@ -1015,6 +1016,7 @@ namespace Nextended.Core.Helper
         /// <returns></returns>
         public static string GetMimeType(string sExtension)
         {
+#if !NETSTANDARD
             string extension = sExtension.ToLower();
             RegistryKey key = Registry.ClassesRoot.OpenSubKey("MIME\\Database\\Content Type");
             if (key != null)
@@ -1026,6 +1028,9 @@ namespace Nextended.Core.Helper
                             return keyName;
                 }
             return string.Empty;
+#else
+            return MimeType.GetMimeType(sExtension);            
+#endif
         }
 
         public static void TaskCopyDirectory(string src, string dst, bool overwriteExisting = true, bool multiTask = true, bool useWindowsCopy = false, CancellationToken cancellationToken = default)
@@ -1094,6 +1099,7 @@ namespace Nextended.Core.Helper
         /// <returns></returns>
         public static string GetFileDescriptionByExtension(string sExtension, out string extensionFileName)
         {
+#if !NETSTANDARD
             if (String.IsNullOrEmpty(sExtension))
             {
                 extensionFileName = String.Empty;
@@ -1121,6 +1127,10 @@ namespace Nextended.Core.Helper
             }
 
             return sExtension.Substring(1).ToUpper() + "-File";
+#else
+            extensionFileName = sExtension;
+            return sExtension.Substring(1).ToUpper() + "-File";
+#endif
         }
 
         /// <summary>

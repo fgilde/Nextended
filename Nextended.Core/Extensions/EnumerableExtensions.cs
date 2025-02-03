@@ -64,23 +64,33 @@ namespace Nextended.Core.Extensions
 			return new ObservableCollection<TSource>(source);
 		}
 
-		/// <summary>
-		/// Add range.
-		/// </summary>
-		public static IDictionary<TKey, TSource> AddRange<TKey, TSource>(this IDictionary<TKey, TSource> source, IDictionary<TKey, TSource> collection)
+        /// <summary>
+        /// Add range.
+        /// </summary>
+        public static IDictionary<TKey, TSource> AddRange<TKey, TSource>(
+            this IDictionary<TKey, TSource> source,
+            IDictionary<TKey, TSource> collection)
         {
-			if (collection == null)
-				throw new ArgumentNullException(nameof(collection));
+            if (source == null)
+                throw new ArgumentNullException(nameof(source));
+            if (collection == null)
+                throw new ArgumentNullException(nameof(collection));
 
-			foreach (var (key, value) in collection)
-			{
-				if (!source.ContainsKey(key))
-					source.Add(key, value);
-				else
-					source[key] = value;
-			}
-			return source;
-		}
+            foreach (var pair in collection)
+            {
+                if (!source.ContainsKey(pair.Key))
+                {
+                    source.Add(pair.Key, pair.Value);
+                }
+                else
+                {
+                    source[pair.Key] = pair.Value;
+                }
+            }
+
+            return source;
+        }
+
 
         public static IDictionary<TKey, TValue> MergeWith<TKey, TValue>(this IDictionary<TKey, TValue> collection, params IDictionary<TKey, TValue>[] collections)
         {
@@ -477,7 +487,8 @@ namespace Nextended.Core.Extensions
         /// <typeparam name="T"></typeparam>
         public static ISet<T> AsSet<T>(this T item, IEqualityComparer<T> comparer)
         {
-            return AsEnumerable(item).ToHashSet(comparer);
+            //return AsEnumerable(item).ToHashSet(comparer);
+            return new HashSet<T>(comparer) {item};            
         }
 
         /// <summary>

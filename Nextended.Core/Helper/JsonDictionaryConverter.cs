@@ -13,7 +13,8 @@ namespace Nextended.Core.Helper
     /// </summary>
     public class JsonDictionaryConverter : JsonConverter
     {
-        public  static JObject DictionaryToJObject(IDictionary<string, object> dictionary)
+#if !NETSTANDARD2_0
+        public static JObject DictionaryToJObject(IDictionary<string, object> dictionary)
         {
             var result = new JObject();
             foreach (var (key, value) in dictionary)
@@ -28,6 +29,36 @@ namespace Nextended.Core.Helper
 
             return result;
         }
+#else
+        public static JObject DictionaryToJObject(IDictionary<string, object> dictionary)
+        {
+            var result = new JObject();
+
+            foreach (var kvp in dictionary)
+            {
+                var key = kvp.Key;
+                var value = kvp.Value;
+
+                if (value is IDictionary<string, object> dict)
+                {
+                    // Rekursiver Aufruf, falls verschachtelte Dictionary-Strukturen vorliegen
+                    result.Add(key, DictionaryToJObject(dict));
+                }
+                else if (value is IEnumerable<object> list)
+                {
+                    // Falls eine Liste (z. B. List<object>) übergeben wird
+                    result.Add(key, new JArray(list));
+                }
+                else
+                {
+                    // Alle anderen Werte
+                    result.Add(key, JToken.FromObject(value));
+                }
+            }
+
+            return result;
+        }
+#endif
 
 
         /// <summary>
