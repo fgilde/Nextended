@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Linq;
+using System.Numerics;
 using System.Text.RegularExpressions;
 using Nextended.Core.Extensions;
 using Nextended.Core.Helper;
@@ -14,7 +15,7 @@ namespace Nextended.Core.Types
     /// </summary>
     [Serializable]
 #if NET8_0 || NET9_0
-    public sealed class Money : IComparable, System.IParsable<Money>
+    public sealed class Money : IComparable, IParsable<Money>
 #else
     public sealed class Money : IComparable
 #endif
