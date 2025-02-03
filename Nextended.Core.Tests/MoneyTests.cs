@@ -7,6 +7,17 @@ namespace Nextended.Core.Tests
     [TestClass]
     public class MoneyTests
     {
+
+        [TestMethod]
+        public void CanParseMoneyStrings()
+        {
+            var eurGermanStr = "1026,62 €";
+            var eurGerman2Str = "1.026,62 €";
+            var usDollarStr = "$ 1,026.62";
+
+            
+        }
+
         [TestMethod]
         public void TestMoneyExchange()
         {

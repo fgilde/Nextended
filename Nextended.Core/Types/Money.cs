@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Globalization;
 using System.Linq;
 using Nextended.Core.Extensions;
 using Nextended.Core.Helper;
@@ -586,5 +587,92 @@ namespace Nextended.Core.Types
 			return roundedValue.ToString("N");
 		}
 
-	}
+
+        /// <summary>
+        /// Parst einen String, der einen Geldbetrag mit eventuell angehängtem oder vorangestelltem Währungssymbol enthält.
+        /// Die CultureInfo beeinflusst dabei ausschließlich das Parsing des Zahlenwertes (Trennzeichen, etc.).
+        /// </summary>
+        /// <param name="s">Der Eingabestring, z. B. "€1,026.62" oder "1,026.62 €".</param>
+        /// <param name="culture">Die CultureInfo, die für das Parsen der Zahl genutzt werden soll.
+        /// Ist null, wird CultureInfo.CurrentCulture verwendet.</param>
+        /// <returns>Ein Money-Objekt mit Value und CurrencySymbol.</returns>
+        public static Money Parse(string s, CultureInfo? culture = null)
+        {
+            if (s == null)
+                throw new ArgumentNullException(nameof(s));
+
+            culture ??= CultureInfo.CurrentCulture;
+            s = s.Trim();
+            string currencySymbol = "";
+
+            // Prüfen, ob das Währungssymbol am Anfang steht.
+            if (s.Length > 0 && !IsNumericCharacter(s[0], culture))
+            {
+                int i = 0;
+                while (i < s.Length && !IsNumericCharacter(s[i], culture))
+                {
+                    currencySymbol += s[i];
+                    i++;
+                }
+                s = s.Substring(i).Trim();
+            }
+
+            // Falls noch kein Währungssymbol gefunden wurde, prüfen wir, ob eines am Ende steht.
+            if (s.Length > 0 && !IsNumericCharacter(s[s.Length - 1], culture))
+            {
+                int j = s.Length - 1;
+                string endSymbol = "";
+                while (j >= 0 && !IsNumericCharacter(s[j], culture))
+                {
+                    // Da wir rückwärts iterieren, fügen wir vorne an, um die ursprüngliche Reihenfolge zu erhalten.
+                    endSymbol = s[j] + endSymbol;
+                    j--;
+                }
+                // Falls oben schon ein Symbol gefunden wurde, könntest du optional prüfen, ob es stimmt.
+                if (string.IsNullOrEmpty(currencySymbol))
+                {
+                    currencySymbol = endSymbol;
+                }
+                s = s.Substring(0, j + 1).Trim();
+            }
+
+            // Jetzt bleibt s nur noch der Zahlen-Teil übrig.
+            // Wir erlauben hier Tausendertrennzeichen, Dezimalpunkt, Vorzeichen und auch negative Zahlen in Klammern.
+            decimal value;
+            if (!decimal.TryParse(s, NumberStyles.Number | NumberStyles.AllowParentheses, culture, out value))
+            {
+                throw new FormatException($"Ungültiges Zahlenformat: {s}");
+            }
+
+            return new Money(value, Currency.Find(currencySymbol));
+        }
+
+        /// <summary>
+        /// Prüft, ob ein Zeichen als Teil einer Zahl im Kontext der gegebenen Culture interpretiert werden könnte.
+        /// Hierzu zählen Ziffern, Plus-/Minuszeichen, Klammern sowie das Dezimal- und Tausendertrennzeichen.
+        /// </summary>
+        private static bool IsNumericCharacter(char c, CultureInfo culture)
+        {
+            // Ziffern (0-9)
+            if (char.IsDigit(c))
+                return true;
+            // Plus- und Minuszeichen
+            if (c == '+' || c == '-')
+                return true;
+            // Klammern für negative Zahlen in Klammern
+            if (c == '(' || c == ')')
+                return true;
+            // Dezimaltrennzeichen (in den meisten Kulturen ein einzelnes Zeichen)
+            if (culture.NumberFormat.NumberDecimalSeparator.Length > 0 && c == culture.NumberFormat.NumberDecimalSeparator[0])
+                return true;
+            // Tausendertrennzeichen (auch hier wird in der Regel ein einzelnes Zeichen verwendet)
+            if (!string.IsNullOrEmpty(culture.NumberFormat.NumberGroupSeparator) &&
+                culture.NumberFormat.NumberGroupSeparator.Length > 0 &&
+                c == culture.NumberFormat.NumberGroupSeparator[0])
+                return true;
+
+            return false;
+        }
+
+    }
 }
