@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -12,7 +13,11 @@ namespace Nextended.Core.Types
     /// Oberklasse für Geldbeträge
     /// </summary>
     [Serializable]
+#if NET8_0 || NET9_0
+    public sealed class Money : IComparable, System.IParsable<Money>
+#else
     public sealed class Money : IComparable
+#endif
     {
 
         /// <summary>
@@ -635,7 +640,7 @@ namespace Nextended.Core.Types
         /// <exception cref="FormatException">
         /// Wird geworfen, wenn der String entweder mehrdeutige Währungshinweise enthält oder der numerische Teil nicht geparst werden kann.
         /// </exception>
-        public static Money Parse(string s, CultureInfo? culture = null)
+        public static Money Parse(string s, IFormatProvider? culture = null)
         {
             var initialCultureWasProvided = culture != null;
             if (string.IsNullOrWhiteSpace(s))
@@ -712,7 +717,7 @@ namespace Nextended.Core.Types
                 }
 
                 throw new FormatException(
-                    $"Der numerische Anteil '{s}' konnte nicht mit Culture '{culture.Name}' geparst werden.");
+                    $"Der numerische Anteil '{s}' konnte nicht mit Culture '{culture}' geparst werden.");
             }
 
             return new Money(value, currencyFound);
@@ -724,12 +729,12 @@ namespace Nextended.Core.Types
         /// <param name="s"></param>
         /// <param name="culture"></param>
         /// <returns></returns>
-        public static Money? ParseOrNull(string s, CultureInfo? culture = null) => TryParse(s, culture, out var money) ? money : null;
+        public static Money? ParseOrNull(string s, IFormatProvider? culture = null) => TryParse(s, culture, out var money) ? money : null;
 
 
         public static bool TryParse(string s, out Money money) => TryParse(s, null, out money);
 
-        public static bool TryParse(string s, CultureInfo culture,  out Money money)
+        public static bool TryParse(string s, IFormatProvider? culture,  out Money money)
         {
             try
             {
@@ -742,5 +747,6 @@ namespace Nextended.Core.Types
                 return false;
             }
         }
+
     }
 }
