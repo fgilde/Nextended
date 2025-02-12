@@ -225,8 +225,8 @@ namespace Nextended.Core.Extensions
         public static object CreateInstance(this Type input) 
             => ReflectionHelper.CreateInstance(input);
 
-        public static T CreateInstance<T>(this Type input) 
-            => ReflectionHelper.CreateInstance<T>();
+        public static T CreateInstance<T>(this Type input, bool checkCyclingDependencies = true) 
+            => ReflectionHelper.CreateInstance<T>(checkCyclingDependencies);
 
         public static T CreateInstance<T>(this Type input, params object[] args) 
             => (T)Activator.CreateInstance(input, args);

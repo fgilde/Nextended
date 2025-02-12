@@ -281,9 +281,9 @@ namespace Nextended.Core.Helper
 		/// <summary>
 		/// Instanz erzeugen
 		/// </summary>
-		public static T CreateInstance<T>() 
+		public static T CreateInstance<T>(bool checkCyclicDependencies = true) 
 		{
-			return CreateInstance<T>(true, false);
+			return CreateInstance<T>(true, false, checkCyclicDependencies);
 		}
 
 		/// <summary>
@@ -294,9 +294,9 @@ namespace Nextended.Core.Helper
 		/// <param name="coverUpAbstractMembers">Wenn true werden Abstrakte basis properties überdeckt</param>
 		/// <returns></returns>
 		public static T CreateInstance<T>(bool allowInterfacesAndAbstractClasses,
-			bool coverUpAbstractMembers) 
+			bool coverUpAbstractMembers, bool checkCyclicDependencies = true) 
 		{
-			return (T)CreateInstance(typeof(T), allowInterfacesAndAbstractClasses, coverUpAbstractMembers);
+			return (T)CreateInstance(typeof(T), allowInterfacesAndAbstractClasses, coverUpAbstractMembers, checkCyclicDependencies);
 		}
 
 		/// <summary>
@@ -356,7 +356,7 @@ namespace Nextended.Core.Helper
 		/// <param name="serviceProvider">Container</param>
 		/// <returns></returns>
 		public static object CreateInstance(Type t, bool allowInterfacesAndAbstractClasses,
-			bool coverUpAbstractMembers, bool tryResolve, IServiceProvider serviceProvider = null)
+			bool coverUpAbstractMembers, bool tryResolve, bool checkCyclicDependencies, IServiceProvider serviceProvider = null)
 		{
 			object result = null;
 			if (tryResolve)
@@ -370,15 +370,15 @@ namespace Nextended.Core.Helper
 					result = null;
 				}
 			}
-			return result ?? (CreateInstance(t, allowInterfacesAndAbstractClasses, coverUpAbstractMembers));
+			return result ?? (CreateInstance(t, allowInterfacesAndAbstractClasses, coverUpAbstractMembers, checkCyclicDependencies));
 		}
 
 		/// <summary>
 		/// Eine instance erzeugen
 		/// </summary>
-		public static object CreateInstance(Type t)
+		public static object CreateInstance(Type t, bool checkCyclicDependencies = true)
 		{
-			return CreateInstance(t, true, false);
+			return CreateInstance(t, true, false, checkCyclicDependencies);
 		}
 
         /// <summary>
@@ -388,12 +388,12 @@ namespace Nextended.Core.Helper
         /// <param name="allowInterfacesAndAbstractClasses">Abstrakte klassen oder Interface instanzen erstellen</param>
         /// <param name="coverUpAbstractMembers">Wenn true werden Abstrakte basis properties überdeckt</param>
         /// <returns></returns>
-        public static object CreateInstance(Type t, bool allowInterfacesAndAbstractClasses, bool coverUpAbstractMembers, HashSet<Type> processedTypes = null)
+        public static object CreateInstance(Type t, bool allowInterfacesAndAbstractClasses, bool coverUpAbstractMembers, bool checkCyclicDependencies = true, HashSet<Type> processedTypes = null)
         {
             processedTypes ??= new HashSet<Type>();
 
             // Detect recursion or cyclic dependency
-            if (processedTypes.Contains(t))
+            if (checkCyclicDependencies && processedTypes.Contains(t))
             {
                 throw new InvalidOperationException($"Cyclic dependency detected while creating an instance of type {t.FullName}");
             }
@@ -407,7 +407,7 @@ namespace Nextended.Core.Helper
             {
                 if (allowInterfacesAndAbstractClasses && (t.IsInterface || t.IsArray || t.IsAbstract))
                 {
-                    result = CreateInstanceFromInterfaceOrAbstractType(t, coverUpAbstractMembers, processedTypes);
+                    result = CreateInstanceFromInterfaceOrAbstractType(t, coverUpAbstractMembers, checkCyclicDependencies, processedTypes);
                 }
                 else if (t.GetConstructors().Any(info => !info.GetParameters().Any()))
                 {
@@ -418,7 +418,7 @@ namespace Nextended.Core.Helper
             {
                 // Log the error and try to fall back to default instance
                 Debug.WriteLine($"Failed to create instance of type {t.FullName}: {ex.Message}");
-                result = allowInterfacesAndAbstractClasses ? CreateInstance(t, false, false, processedTypes) : null;
+                result = allowInterfacesAndAbstractClasses ? CreateInstance(t, false, false, checkCyclicDependencies, processedTypes) : null;
             }
 
             // Fallback to the constructor with the fewest parameters
@@ -430,7 +430,7 @@ namespace Nextended.Core.Helper
                     if (constructorInfo != null)
                     {
                         var parameters = constructorInfo.GetParameters()
-                                                        .Select(param => CreateInstance(param.ParameterType, true, false, processedTypes))
+                                                        .Select(param => CreateInstance(param.ParameterType, true, false, checkCyclicDependencies, processedTypes))
                                                         .ToArray();
                         result = constructorInfo.Invoke(parameters);
                     }
@@ -501,12 +501,12 @@ namespace Nextended.Core.Helper
 		/// </summary>
 		/// <param name="interfaceType">Typ</param>
 		/// <param name="coverUpAbstractMembers">Wenn true werden Abstrakte basis properties überdeckt</param>
-		public static object CreateInstanceFromInterfaceOrAbstractType(Type interfaceType, bool coverUpAbstractMembers, HashSet<Type> processedTypes = null)
+		public static object CreateInstanceFromInterfaceOrAbstractType(Type interfaceType, bool coverUpAbstractMembers, bool checkCyclicDependencies = true, HashSet<Type> processedTypes = null)
         {
             processedTypes ??= new HashSet<Type>();
 
             // Prevent recursion by tracking processed types
-            if (processedTypes.Contains(interfaceType))
+            if (checkCyclicDependencies && processedTypes.Contains(interfaceType))
             {
                 throw new InvalidOperationException($"Cyclic dependency detected while creating an instance for interface/abstract type {interfaceType.FullName}");
             }
@@ -530,7 +530,7 @@ namespace Nextended.Core.Helper
             var existingType = FindImplementingType(interfaceType);
             if (existingType != null)
             {
-                return CreateInstance(existingType, true, coverUpAbstractMembers, processedTypes);
+                return CreateInstance(existingType, true, coverUpAbstractMembers, checkCyclicDependencies, processedTypes);
             }
 
             // Dynamically create a type for the interface/abstract class

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Globalization;
 using System.Linq;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Nextended.Core.Types;
@@ -8,6 +9,54 @@ namespace Nextended.Core.Tests
     [TestClass]
     public class MoneyTests
     {
+
+        [TestMethod]
+        public void CanParseMoneyStrings()
+        {
+            bool exceptionRaised1 = false;
+            bool exceptionRaised2 = false;
+            var refAmount = new Money(new decimal(1026.62));
+            var eurGermanStr = "1026,62 €";
+            var eurGerman2Str = "1.026,62 €";
+            var usDollarStr = "$ 1,026.62";
+            var usDollarStr2 = "1,026.62 USD";
+            var noCurrencyStr = "1,026.62";
+
+            var m1 = Money.Parse(eurGermanStr);
+            var m2 = Money.Parse(eurGerman2Str);
+            var m2explicit = Money.Parse(eurGerman2Str, new CultureInfo("de-DE"));
+            var noCurrencyInUs = Money.Parse(noCurrencyStr, new CultureInfo("en-US"));
+
+            try
+            {
+                var noCurrencyInDE2 = Money.Parse(usDollarStr, new CultureInfo("de-DE"));
+            }
+            catch (Exception e) { exceptionRaised1 = true; }
+
+            try
+            {
+                var noCurrencyInDE = Money.Parse(noCurrencyStr, new CultureInfo("de-DE"));
+            }
+            catch (Exception e) { exceptionRaised2 = true; }
+
+            var m3 = Money.Parse(usDollarStr);
+            var m4 = Money.Parse(usDollarStr2);
+
+            Assert.IsTrue(exceptionRaised1);
+            Assert.IsTrue(exceptionRaised2);
+            Assert.AreEqual(null, noCurrencyInUs.Currency);
+            Assert.AreEqual(refAmount.Amount, m1.Amount);
+            Assert.AreEqual(refAmount.Amount, noCurrencyInUs.Amount);
+            Assert.AreEqual(refAmount.Amount, m2.Amount);
+            Assert.AreEqual(refAmount.Amount, m3.Amount);
+            Assert.AreEqual(refAmount.Amount, m2explicit.Amount);
+            Assert.AreEqual(refAmount.Amount, m4.Amount);
+            Assert.AreEqual(Currency.Euro, m1.Currency);
+            Assert.AreEqual(Currency.USD, m4.Currency);
+            Assert.AreEqual(Currency.USD, m3.Currency);
+
+        }
+
         [TestMethod]
         public void TestMoneyExchange()
         {

@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -11,6 +12,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Xml.Serialization;
 using Nextended.Core.Extensions;
+using YamlDotNet.Core.Tokens;
 
 namespace Nextended.Core.Helper
 {
@@ -198,7 +200,8 @@ namespace Nextended.Core.Helper
 			return ReflectionHelper.CreateInstance(t, true,
 				classMappingSettings.CoverUpAbstractMembers,
 				classMappingSettings.TryContainerResolve,
-				classMappingSettings.ServiceProvider);
+                classMappingSettings.CheckCyclicDependencies,
+                classMappingSettings.ServiceProvider);
 		}
 
 		private object DoMapAsync(object input, object result)
@@ -474,7 +477,22 @@ namespace Nextended.Core.Helper
 					if (typeConverter.CanConvertTo(targetType))
 						return typeConverter.ConvertTo(currentValue, targetType);
 
-					if (!targetType.IsValueType)
+                    var parseMethod = targetType.GetMethod("Parse", [typeof(string), typeof(IFormatProvider)]);
+                    if (parseMethod != null)
+                    {
+                        try
+                        {
+                            result = parseMethod.Invoke(null, new object[] { currentValue, classMappingSettings.FormatProvider });
+                        }
+                        catch (Exception e)
+                        {
+                            result = null;
+                        }
+                        if (result != null)
+                            return result;
+                    }
+
+                    if (!targetType.IsValueType)
 					{
 						result = DoMap(currentValue, CreateInstance(targetType));
 						if (result != null)

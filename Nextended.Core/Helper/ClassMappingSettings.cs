@@ -2,6 +2,7 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Globalization;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -143,6 +144,11 @@ namespace Nextended.Core.Helper
         public int MinListCountToEnumerateAsync { get; set; }
 
         /// <summary>
+        /// Check cyclic dependencies
+        /// </summary>
+        public bool CheckCyclicDependencies { get; set; }
+
+        /// <summary>
         /// Gibt an ob zum erzeugen eines Typs versucht werden soll diesen mit Unity zu resolven (schneller wenn nicht)
         /// </summary>
         public bool TryContainerResolve { get; set; }
@@ -225,6 +231,8 @@ namespace Nextended.Core.Helper
         /// ServiceProvider wird benutzt wenn <see cref="TryContainerResolve"/> auf true steht um das erste resolve des target typen / interface zu machen
         /// </summary>
         public IServiceProvider ServiceProvider { get; set; }
+
+        public IFormatProvider FormatProvider { get; set; } = CultureInfo.CurrentCulture;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="T:System.Object"/> class.
@@ -391,7 +399,7 @@ namespace Nextended.Core.Helper
 
                             try
                             {
-                                TypeConverter typeConverter = ReflectionHelper.CreateInstance(converterType, false, false) as TypeConverter;
+                                TypeConverter typeConverter = ReflectionHelper.CreateInstance(converterType, false, false, checkCyclicDependencies: CheckCyclicDependencies) as TypeConverter;
                                 if (typeConverter != null)
                                 {
                                     currentAssemblyConverterList.Add(typeConverter);
