@@ -7,6 +7,7 @@ namespace Nextended.Core.Attributes;
 [AttributeUsage(AttributeTargets.Class, AllowMultiple = true)]
 public class RegisterAsAttribute: System.Attribute
 {
+    public object? ServiceKey { get; set; }
     public Type RegisterAsType { get; }
     public bool Enabled { get; set; } = true;
 
@@ -29,6 +30,11 @@ public class RegisterAsAttribute: System.Attribute
         return Enabled;
     }
 
+    public RegisterAsAttribute(Type registerAsType, object serviceKey, int order = 99): this(registerAsType, order)
+    {
+        ServiceKey = serviceKey;
+    }
+
     public RegisterAsAttribute(Type registerAsType, int order = 99)
     {
         RegisterAsType = registerAsType;
@@ -44,8 +50,8 @@ public class RegisterAsAttribute: System.Attribute
             yield break;
         }
 
-        yield return new ServiceDescriptor(RegisterAsType, implementationType, ServiceLifetime);
+        yield return new ServiceDescriptor(RegisterAsType, ServiceKey, implementationType, ServiceLifetime);
         if (RegisterAsImplementation && RegisterAsType != implementationType)
-            yield return new ServiceDescriptor(implementationType, implementationType, ServiceLifetime);
+            yield return new ServiceDescriptor(implementationType, ServiceKey, implementationType, ServiceLifetime);
     }
 }
