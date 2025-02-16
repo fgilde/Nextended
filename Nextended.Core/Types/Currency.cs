@@ -69,8 +69,13 @@ namespace Nextended.Core.Types
             set => SetProperty(ref isoCode, value);
         }
 
-		
-		/// <summary>
+		[Obsolete("Only for serializer")]
+        public Currency()
+        {
+			// For serialize only
+        }
+
+        /// <summary>
 		/// Initializes a new instance of the <see cref="Currency" /> class.
 		/// </summary>
 		public Currency(string name, string isoCode)
