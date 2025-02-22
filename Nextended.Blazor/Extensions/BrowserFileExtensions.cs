@@ -3,6 +3,7 @@ using Microsoft.Extensions.Localization;
 using Microsoft.JSInterop;
 using Nextended.Blazor.Models;
 using Nextended.Core;
+using DataUrl = Nextended.Core.Types.DataUrl;
 
 namespace Nextended.Blazor.Extensions;
 
