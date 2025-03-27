@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Globalization;
 using System.Linq;
+using System.Text.Json;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Nextended.Core.Types;
 
@@ -9,6 +10,17 @@ namespace Nextended.Core.Tests
     [TestClass]
     public class MoneyTests
     {
+
+        [TestMethod]
+        public void CanSerialize()
+        {
+            var refAmount = new Money(new decimal(1026.62)).SetCurrency(Currency.Euro);
+
+            var serialized = JsonSerializer.Serialize(refAmount);
+
+            var deserialized = JsonSerializer.Deserialize<Money>(serialized);
+            Assert.IsNotNull(deserialized);
+        }
 
         [TestMethod]
         public void CanParseMoneyStrings()
