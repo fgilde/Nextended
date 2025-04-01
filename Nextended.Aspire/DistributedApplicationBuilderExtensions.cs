@@ -315,4 +315,15 @@ public static partial class DistributedApplicationBuilderExtensions
         return builder;
     }
 
+    public static IResourceBuilder<T> WithReferencesIf<T>(this IResourceBuilder<T> builder, params IResourceBuilder<IResourceWithServiceDiscovery>[]? dependencies)
+        where T : IResourceWithEnvironment
+    {
+        if (dependencies != null)
+        {
+            foreach (var dep in dependencies)
+                builder.WithReferenceIf(dep);
+        }
+        return builder;
+    }
+
 }
