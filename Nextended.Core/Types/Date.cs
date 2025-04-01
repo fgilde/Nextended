@@ -8,8 +8,8 @@ namespace Nextended.Core.Types
 	/// </summary>
 	[DataContract]
 	[Obsolete("Use DateOnly instead")]
-	public class Date : IComparable
-	{
+	public class Date : IComparable, IComparable<Date>
+    {
 		/// <summary>
 		/// DateTime
 		/// </summary>
@@ -247,5 +247,12 @@ namespace Nextended.Core.Types
 		{
 			return new Date(dateTime.AddDays(value));
 		}
-	}
+
+        public int CompareTo(Date other)
+        {
+            if (ReferenceEquals(this, other)) return 0;
+            if (other is null) return 1;
+            return dateTime.CompareTo(other.dateTime);
+        }
+    }
 }

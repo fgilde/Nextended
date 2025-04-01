@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
 using Nextended.Core.Types;
+using Nextended.Core.Types.Ranges;
 
 namespace Nextended.Core.Helper
 {
@@ -13,7 +14,11 @@ namespace Nextended.Core.Helper
 		/// <summary>
 		/// Datum, zu dem dieser Kurs galt
 		/// </summary>
-		public Date Date { get; }
+#if NETSTANDARD
+        public Date Date { get; }
+#else
+		public DateOnly Date { get; }
+#endif
 
 		/// <summary>
 		/// Datum, zu dem dieser Kurs galt
@@ -45,8 +50,13 @@ namespace Nextended.Core.Helper
 		/// </summary>
 		public CurrencyImportInformation(DateTime dateTime, decimal rate, Currency currency, Currency sourceCurrency)
 		{
-			Date = new Date(dateTime);
-			Rate = rate;
+#if NETSTANDARD
+            Date = new Date(dateTime);
+#else
+            Date = DateOnly.FromDateTime(dateTime);
+#endif
+
+            Rate = rate;
 			Currency = currency;
 			SourceCurrency = sourceCurrency;
 		}
