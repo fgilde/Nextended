@@ -171,7 +171,12 @@ namespace Nextended.Core.Types
 			return $"{Name} {Symbol} ({IsoCode})";
 		}
 
-		private void SetInfos(RegionInfo info, bool overrideExisting = false)
+        public Money CreateMoney(decimal amount) => new (amount, this);
+
+        public Money ConvertAmount(decimal amount, Currency targetCurrency, DateTime? currencyRateTargetDate = null)
+            => CreateMoney(amount).ConvertCurrency(targetCurrency, currencyRateTargetDate ?? DateTime.UtcNow.AddDays(-1));
+
+        private void SetInfos(RegionInfo info, bool overrideExisting = false)
 		{
 			if (info != null)
 			{
