@@ -180,10 +180,29 @@ public class ComSourceGenerator : ISourceSubGenerator<object>
         foreach (var type in typesWithAttr)
         {
             var isEnum = type.TypeKind == TypeKind.Enum;
-            if (isEnum) continue;
-
-            var netTypeName = type.ToDisplayString(); // z.B. CodeGenSample.User
+            var netTypeName = type.ToDisplayString();
             var comTypeName = GetComClassName(type, autoGenAttr, false);
+            if (isEnum)
+            {
+                sbMap.AppendLine($"\t\tpublic static {comTypeName}? ToCom(this {netTypeName}? src)");
+                sbMap.AppendLine("\t\t{");
+                sbMap.AppendLine("\t\t\tif(src == null) return null;");
+                sbMap.AppendLine($"\t\t\treturn ({comTypeName})(int)src.Value;");
+                sbMap.AppendLine("\t\t}");
+
+                sbMap.AppendLine($"\t\tpublic static {netTypeName}? ToNet(this {comTypeName}? src)");
+                sbMap.AppendLine("\t\t{");
+                sbMap.AppendLine("\t\t\tif(src == null) return null;");
+                sbMap.AppendLine($"\t\t\treturn ({netTypeName})(int)src.Value;");
+                sbMap.AppendLine("\t\t}");
+
+                // Optional: Non-nullable Variant
+                sbMap.AppendLine($"\t\tpublic static {comTypeName} ToCom(this {netTypeName} src) => ({comTypeName})(int)src;");
+                sbMap.AppendLine($"\t\tpublic static {netTypeName} ToNet(this {comTypeName} src) => ({netTypeName})(int)src;");
+                continue;
+            }
+
+
             var comProps = GetComProperties(type, comIgnoreAttr).ToList();
 
             // ToCom
@@ -196,9 +215,16 @@ public class ComSourceGenerator : ISourceSubGenerator<object>
                 var netPropName = prop.Name;
                 var comPropName = GetComPropertyName(prop, comPropertySettingAttr);
                 var netPropType = prop.Type;
-                var comPropType = GetComPropertyType(prop, comTypeDict, autoGenAttr, false);
 
-                if (IsComType(netPropType, comTypeDict))
+                // Prüfe, ob das Property ein Enum ist
+                if (IsComEnumType(netPropType, comTypeDict))
+                {
+                    if (IsNullable(prop))
+                        sbMap.AppendLine($"\t\t\tresult.{comPropName} = src.{netPropName}?.ToCom();");
+                    else
+                        sbMap.AppendLine($"\t\t\tresult.{comPropName} = src.{netPropName}.ToCom();");
+                }
+                else if (IsComType(netPropType, comTypeDict))
                 {
                     sbMap.AppendLine($"\t\t\tresult.{comPropName} = src.{netPropName}?.ToCom();");
                 }
@@ -207,6 +233,7 @@ public class ComSourceGenerator : ISourceSubGenerator<object>
                     sbMap.AppendLine($"\t\t\tresult.{comPropName} = src.{netPropName};");
                 }
             }
+
             sbMap.AppendLine("\t\t\treturn result;");
             sbMap.AppendLine("\t\t}");
 
@@ -220,7 +247,15 @@ public class ComSourceGenerator : ISourceSubGenerator<object>
                 var netPropName = prop.Name;
                 var comPropName = GetComPropertyName(prop, comPropertySettingAttr);
                 var netPropType = prop.Type;
-                if (IsComType(netPropType, comTypeDict))
+
+                if (IsComEnumType(netPropType, comTypeDict))
+                {
+                    if (IsNullable(prop))
+                        sbMap.AppendLine($"\t\t\tresult.{netPropName} = src.{comPropName}?.ToNet();");
+                    else
+                        sbMap.AppendLine($"\t\t\tresult.{netPropName} = src.{comPropName}.ToNet();");
+                }
+                else if (IsComType(netPropType, comTypeDict))
                 {
                     sbMap.AppendLine($"\t\t\tresult.{netPropName} = src.{comPropName}?.ToNet();");
                 }
@@ -285,8 +320,16 @@ public class ComSourceGenerator : ISourceSubGenerator<object>
     }
     private static bool IsComEnumType(ITypeSymbol type, Dictionary<string, INamedTypeSymbol> comTypes)
     {
+        if (type is INamedTypeSymbol nts &&
+            nts.IsGenericType &&
+            nts.ConstructedFrom.SpecialType == SpecialType.System_Nullable_T)
+        {
+            type = nts.TypeArguments[0];
+        }
+
         return comTypes.TryGetValue(type.ToDisplayString(), out var t) && t.TypeKind == TypeKind.Enum;
     }
+
 
     private static string CreateGuid(string input)
     {
@@ -344,25 +387,58 @@ public class ComSourceGenerator : ISourceSubGenerator<object>
             );
     }
 
+
     // Gibt z.B. "IComAddress" zurück für eine Com-Referenz, sonst normalen TypeName
-    private static string GetComPropertyType(IPropertySymbol prop, Dictionary<string, INamedTypeSymbol> comTypes, INamedTypeSymbol autoGenAttr, bool asInterface)
+    private static string GetComPropertyType(
+        IPropertySymbol prop,
+        Dictionary<string, INamedTypeSymbol> comTypes,
+        INamedTypeSymbol autoGenAttr,
+        bool asInterface)
     {
         var propType = prop.Type;
+        string typeString;
 
-        if (IsComEnumType(propType, comTypes))
+        // NEU: Nullable-Handling
+        bool isNullable = false;
+        ITypeSymbol underlyingType = propType;
+
+        if (propType is INamedTypeSymbol nts &&
+            nts.IsGenericType &&
+            nts.ConstructedFrom.SpecialType == SpecialType.System_Nullable_T)
         {
-            // Enums sind niemals Interfaces, sondern immer der Enum-Type
-            var comType = comTypes[propType.ToDisplayString()];
-            return GetComClassName(comType, autoGenAttr, false); // always class name
+            isNullable = true;
+            underlyingType = nts.TypeArguments[0];
         }
-        else if (IsComType(propType, comTypes))
+
+        if (IsComEnumType(underlyingType, comTypes))
         {
-            // Bei Klassen/Structs:
-            var comType = comTypes[propType.ToDisplayString()];
-            return GetComClassName(comType, autoGenAttr, asInterface);
+            // Enum: immer der COM-Enum-Name!
+            var comType = comTypes[underlyingType.ToDisplayString()];
+            typeString = GetComClassName(comType, autoGenAttr, false);
         }
-        return propType.ToDisplayString();
+        else if (IsComType(underlyingType, comTypes))
+        {
+            var comType = comTypes[underlyingType.ToDisplayString()];
+            typeString = GetComClassName(comType, autoGenAttr, asInterface);
+        }
+        else
+        {
+            typeString = underlyingType.ToDisplayString();
+        }
+
+        if (isNullable && !typeString.EndsWith("?"))
+            typeString += "?";
+        return typeString;
     }
+
+
+    private static bool IsNullable(IPropertySymbol prop)
+    {
+        return prop.NullableAnnotation == NullableAnnotation.Annotated
+               || (prop.Type is INamedTypeSymbol nts && nts.IsGenericType && nts.ConstructedFrom.SpecialType == SpecialType.System_Nullable_T);
+    }
+
+
 
 
     private static bool IsComType(ITypeSymbol type, Dictionary<string, INamedTypeSymbol> comTypes)

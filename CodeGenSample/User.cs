@@ -6,13 +6,14 @@ namespace CodeGenSample;
 [AutoGenerateCom(Prefix = "My", Suffix = "Dto")]
 public class User
 {
-    public string Id { get; set; }
+    public string? Id { get; set; }
     public string Name { get; set; }
     
     [ComIgnore] 
     public string SecretDb { get; set; }
     
-    [ComPropertySetting(PropertyName = "ThatUserAddress")]
+    [ComPropertySetting(PropertyName = "ThatUserAddress" //, Type = typeof(string)
+    )]
     public Address Address { get; set; }
     
     [ComPropertySetting(PropertyName = "UserLevel")]
