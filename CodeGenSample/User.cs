@@ -14,6 +14,9 @@ public class User
     
     [ComPropertySetting(PropertyName = "ThatUserAddress")]
     public Address Address { get; set; }
+    
+    [ComPropertySetting(PropertyName = "UserLevel")]
+    public UserLevel Level { get; set; }
 }
 
 
@@ -23,4 +26,20 @@ public class Address
     public string Street { get; set; }
     public string City { get; set; }
     public string Country { get; set; }
+}
+
+[AutoGenerateCom]
+public enum UserLevel
+{
+    Guest,
+    User,
+    Admin,
+    [ComIgnore]
+    ServerAdmin,
+}
+
+
+public interface IInterface
+{
+    
 }

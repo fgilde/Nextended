@@ -89,7 +89,7 @@ public class ComSourceGenerator : ISourceSubGenerator<object>
             if (createComments)
                 sb.AppendLine($"\t/// <summary>{comInterfaceName} - GENERATED FROM <see cref=\"T:{type.ToDisplayString()}\"/></summary>");
             sb.AppendLine($"\t[ComVisible(true)]");
-            sb.AppendLine($"\t[Guid(\"{GetGuid(comName)}\")]");
+            sb.AppendLine($"\t[Guid({GetGuid(comName).ClassName})]");
             sb.AppendLine("\t[TypeLibType(TypeLibTypeFlags.FDual | TypeLibTypeFlags.FDispatchable)]");
             sb.AppendLine($"\t{interfaceModifier} {(generatePartial ? "partial " : "")}interface {comInterfaceName}");
             sb.AppendLine("\t{");
@@ -108,7 +108,7 @@ public class ComSourceGenerator : ISourceSubGenerator<object>
             if (createComments)
                 sb.AppendLine($"\t/// <summary>{comName} - GENERATED FROM <see cref=\"T:{type.ToDisplayString()}\"/></summary>");
             sb.AppendLine($"\t[ComVisible(true)]");
-            sb.AppendLine($"\t[Guid(\"{GetGuid(comName)}\")]");
+            sb.AppendLine($"\t[Guid({GetGuid(comName).ClassName})]");
             sb.AppendLine($"\t{classModifier} {(generatePartial ? "partial " : "")}class {comName} : {comInterfaceName}");
             sb.AppendLine("\t{");
             foreach (var prop in GetComProperties(type, comIgnoreAttr))
@@ -117,6 +117,23 @@ public class ComSourceGenerator : ISourceSubGenerator<object>
                 var propName = GetComPropertyName(prop, comPropertySettingAttr);
                 sb.AppendLine($"\t\tpublic {propTypeString} {propName} {{ get; set; }}");
             }
+            foreach (var prop in GetComProperties(type, comIgnoreAttr))
+            {
+                var propType = prop.Type;
+                if (IsComType(propType, comTypeDict))
+                {
+                    var propTypeString = GetComPropertyType(prop, comTypeDict, autoGenAttr, false);
+                    var comInterfaceTypeName = GetComClassName(comTypeDict[propType.ToDisplayString()], autoGenAttr, true);
+                    var thisInterface = GetComClassName(type, autoGenAttr, true);
+                    var propName = GetComPropertyName(prop, comPropertySettingAttr);
+
+                    sb.AppendLine($"\t\t{comInterfaceTypeName} {thisInterface}.{propName} " + "{");
+                    sb.AppendLine($"\t\t\tget => {propName};");
+                    sb.AppendLine($"\t\t\tset => {propName} = ({propTypeString})value;");
+                    sb.AppendLine("\t\t}");
+                }
+            }
+
             sb.AppendLine("\t}\n");
             classCount++;
 
@@ -209,14 +226,14 @@ public class ComSourceGenerator : ISourceSubGenerator<object>
     }
 
     // ------------- Hilfsmethoden -------------
-    private string GetGuid(string className)
+    private (string Id, string ClassName) GetGuid(string className)
     {
         if (!comIds.TryGetValue(className, out var guid))
         {
             guid = CreateGuid(className);
             comIds[className] = guid;
         }
-        return guid;
+        return (guid, $"{comIdClassName}.{string.Format(comIdFormat, className)}");
     }
 
     private static string CreateGuid(string input)

@@ -24,8 +24,6 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Nextended.Imaging", "Nexten
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Nextended.UI", "Nextended.UI\Nextended.UI.csproj", "{83F2D604-8395-4FCD-85D5-9EEEC7908612}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Nextended.AutoDto", "Nextended.AutoDto\Nextended.AutoDto.csproj", "{DFFA9DEA-0F64-4CFC-95DB-9A0817C89D7F}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Nextended.Cache", "Nextended.Cache\Nextended.Cache.csproj", "{3F8389AC-617F-47EC-8C41-D724070D5ED3}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nextended.Blazor", "Nextended.Blazor\Nextended.Blazor.csproj", "{EE3C9425-AFE2-4B3A-B83F-1B77A4857A0B}"
@@ -64,9 +62,6 @@ Global
 		{83F2D604-8395-4FCD-85D5-9EEEC7908612}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{83F2D604-8395-4FCD-85D5-9EEEC7908612}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{83F2D604-8395-4FCD-85D5-9EEEC7908612}.Release|Any CPU.Build.0 = Release|Any CPU
-		{DFFA9DEA-0F64-4CFC-95DB-9A0817C89D7F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{DFFA9DEA-0F64-4CFC-95DB-9A0817C89D7F}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{DFFA9DEA-0F64-4CFC-95DB-9A0817C89D7F}.Release|Any CPU.Build.0 = Release|Any CPU
 		{3F8389AC-617F-47EC-8C41-D724070D5ED3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{3F8389AC-617F-47EC-8C41-D724070D5ED3}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{3F8389AC-617F-47EC-8C41-D724070D5ED3}.Release|Any CPU.ActiveCfg = Release|Any CPU
