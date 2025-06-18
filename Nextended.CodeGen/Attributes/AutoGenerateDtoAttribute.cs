@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace Nextended.Core.Attributes
+﻿namespace Nextended.CodeGen.Attributes
 {
 
     /// <summary>

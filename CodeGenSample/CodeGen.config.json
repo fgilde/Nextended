@@ -1,0 +1,9 @@
+﻿{
+  "ExcelFiles": [
+    {
+      "File": "scac_codes.xlsx",
+      "Sheet": "Data",
+      "Namespace": "Generated"
+    }
+  ]
+}

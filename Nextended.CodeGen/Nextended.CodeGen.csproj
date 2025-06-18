@@ -1,0 +1,83 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsRoslynComponent>true</IsRoslynComponent>
+    <PreserveCompilationContext>true</PreserveCompilationContext>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+    <CompilerGeneratedFilesOutputPath>Generated</CompilerGeneratedFilesOutputPath>
+    <!--<IncludeAnalyzerReferencesInVSIX>true</IncludeAnalyzerReferencesInVSIX>-->
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <Title>Nextended.CodeGen</Title>
+    <PackageId>Nextended.CodeGen</PackageId>
+    <PackageVersion>0.0.0-dev</PackageVersion>
+    <Authors>fgilde</Authors>
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+    <RepositoryType>Git</RepositoryType>
+    <RepositoryUrl>https://github.com/fgilde/Nextended</RepositoryUrl>
+    <Description>TODO: </Description>
+    <Copyright>Copyright © $(Authors) 2020-$([System.DateTime]::Now.Year)</Copyright>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageTags>Source Generation, TODO</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="README.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="3.11.0">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.12.0" />
+  </ItemGroup>
+
+
+  <ItemGroup>
+    <!-- Referenziere die Pakete, die dein Generator selbst benötigt. -->
+    <ProjectReference Include="..\Nextended.Core\Nextended.Core.csproj" />
+    <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" Version="8.0.0" GeneratePathProperty="true" PrivateAssets="all" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" GeneratePathProperty="true" PrivateAssets="all" />
+    <PackageReference Include="CsvHelper" Version="33.0.1" GeneratePathProperty="true" PrivateAssets="all" />
+    <PackageReference Include="UTF.Unknown" Version="2.5.1" GeneratePathProperty="true" PrivateAssets="all" />
+  </ItemGroup>
+
+
+  <ItemGroup>
+    <Compile Remove="bin\**" />
+    <EmbeddedResource Remove="bin\**" />
+    <None Remove="bin\**" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <GetTargetPathDependsOn>$(GetTargetPathDependsOn);GetDependencyTargetPaths</GetTargetPathDependsOn>
+    <BaseOutputPath>..\bin\</BaseOutputPath>
+  </PropertyGroup>
+
+  <Target Name="GetDependencyTargetPaths">
+    <ItemGroup>
+      <TargetPathWithTargetPlatformMoniker Include="$(PkgNewtonsoft_Json)\lib\netstandard2.0\*.dll" IncludeRuntimeDependency="false" />
+    </ItemGroup>
+  </Target>
+
+  <Target Name="AddAnalyzerAssemblies" AfterTargets="Build">
+    <ItemGroup>
+      <AnalyzerAssembly Include="$(PkgNextended_Core)\lib\netstandard2.0\Nextended.Core.dll" />
+      <AnalyzerAssembly Include="$(PkgCsvHelper)\lib\netstandard2.0\CsvHelper.dll" />
+      <AnalyzerAssembly Include="$(PkgUTF_Unknown)\lib\netstandard2.0\UTF.Unknown.dll" />
+      <AnalyzerAssembly Include="$(PkgMicrosoft_Bcl_AsyncInterfaces)\lib\netstandard2.0\Microsoft.Bcl.AsyncInterfaces.dll" />
+    </ItemGroup>
+  </Target>
+
+
+</Project>
