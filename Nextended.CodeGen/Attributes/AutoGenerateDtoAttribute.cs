@@ -28,10 +28,12 @@
         /// </summary>        
         public bool GenerateToNetMapping { get; set; }
 
+        public string? ToMethodName { get; set; }
+
         /// <summary>
         /// Gets or sets the name of the generic parameter type.
         /// </summary>       
-        public Type[] GenericParameterTypes { get; set; }
+        public string[] GenericParameterTypes { get; set; }
 
         /// <summary>
         /// Initialisiert eine neue Instanz der <see cref="T:System.Attribute"/>-Klasse.
@@ -39,7 +41,7 @@
         public AutoGenerateComAttribute(Type genericTypeDescription)
             : this()
         {
-            GenericParameterTypes = genericTypeDescription.GetGenericArguments();
+            GenericParameterTypes = genericTypeDescription.GetGenericArguments().Select(t => t.Name).ToArray();
         }
 
         /// <summary>

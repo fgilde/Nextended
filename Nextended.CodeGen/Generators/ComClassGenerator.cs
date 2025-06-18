@@ -89,19 +89,28 @@ public class ComSourceGenerator : ISourceSubGenerator<object>
                 .ToList();
         }
 
-        public static string GetComClassName(INamedTypeSymbol type, INamedTypeSymbol autoGenAttr, bool asInterface)
+        public static string GetToComMethodName(INamedTypeSymbol type, INamedTypeSymbol autoGenAttr)
         {
             var info = type.GetAttributeInstance<AutoGenerateComAttribute>(autoGenAttr);
-            string main = !string.IsNullOrEmpty(info.ComClassName) ? info.ComClassName : type.Name;
+            if (!string.IsNullOrWhiteSpace(info.ToMethodName))
+                return info.ToMethodName;
+            return $"To{info.Prefix}{info.Suffix}";
+        }
 
+        public static string GetComClassName(
+            INamedTypeSymbol type,
+            INamedTypeSymbol autoGenAttr,
+            bool asInterface)
+        {
+            var info = type.GetAttributeInstance<AutoGenerateComAttribute>(autoGenAttr);
+
+            string main = !string.IsNullOrEmpty(info.ComClassName) ? info.ComClassName : type.Name;
             int idx = main.IndexOf('`');
-            if (idx >= 0)
-                main = main.Substring(0, idx);
-            
-            if (type.IsGenericType && type.TypeArguments.Length > 0)
-                main += string.Join("", type.TypeArguments.Select(t => t.Name));
+            if (idx >= 0) main = main.Substring(0, idx);
+
             return $"{(asInterface ? "I" : "")}{info.Prefix}{main}{info.Suffix}";
         }
+
         public static string GetComPropertyName(IPropertySymbol prop, INamedTypeSymbol? settingAttr)
         {
             var info = prop.GetAttributeInstance<ComPropertySettingAttribute>(settingAttr);
@@ -116,6 +125,7 @@ public class ComSourceGenerator : ISourceSubGenerator<object>
         public static bool IsNullable(IPropertySymbol prop)
             => prop.NullableAnnotation == NullableAnnotation.Annotated ||
                prop.Type is INamedTypeSymbol { IsGenericType: true, ConstructedFrom.SpecialType: SpecialType.System_Nullable_T };
+
 
         public static bool IsComType(ITypeSymbol type, Dictionary<string, INamedTypeSymbol> comTypes)
             => comTypes.ContainsKey(type.ToDisplayString());
@@ -275,15 +285,16 @@ public class ComSourceGenerator : ISourceSubGenerator<object>
 
             foreach (var type in types)
             {
+                var toComMethodName = Helpers.GetToComMethodName(type, symbols.AutoGenerateCom!);
                 var isEnum = type.TypeKind == TypeKind.Enum;
                 var netTypeName = type.ToDisplayString();
                 var comTypeName = Helpers.GetComClassName(type, symbols.AutoGenerateCom!, false);
                 if (isEnum)
                 {
                     // Nullable
-                    sb.AppendLine($"\t\tpublic static {comTypeName}? ToCom(this {netTypeName}? src) => src.HasValue ? ({comTypeName})(int)src.Value : null;");
+                    sb.AppendLine($"\t\tpublic static {comTypeName}? {toComMethodName}(this {netTypeName}? src) => src.HasValue ? ({comTypeName})(int)src.Value : null;");
                     sb.AppendLine($"\t\tpublic static {netTypeName}? ToNet(this {comTypeName}? src) => src.HasValue ? ({netTypeName})(int)src.Value : null;");
-                    sb.AppendLine($"\t\tpublic static {comTypeName} ToCom(this {netTypeName} src) => ({comTypeName})(int)src;");
+                    sb.AppendLine($"\t\tpublic static {comTypeName} {toComMethodName}(this {netTypeName} src) => ({comTypeName})(int)src;");
                     sb.AppendLine($"\t\tpublic static {netTypeName} ToNet(this {comTypeName} src) => ({netTypeName})(int)src;");
                     continue;
                 }
@@ -291,7 +302,7 @@ public class ComSourceGenerator : ISourceSubGenerator<object>
                 var comProps = Helpers.GetComProperties(type, symbols.ComIgnore).ToList();
 
                 // ToCom
-                sb.AppendLine($"\t\tpublic static {comTypeName} ToCom(this {netTypeName} src)");
+                sb.AppendLine($"\t\tpublic static {comTypeName} {toComMethodName}(this {netTypeName} src)");
                 sb.AppendLine("\t\t{");
                 sb.AppendLine("\t\t\tif(src == null) return null;");
                 sb.AppendLine($"\t\t\tvar result = new {comTypeName}();");
@@ -302,14 +313,27 @@ public class ComSourceGenerator : ISourceSubGenerator<object>
                     var netPropType = prop.Type;
 
                     if (Helpers.IsComEnumType(netPropType, comTypeDict))
+                    {
+                        var enumType = netPropType.UnwrapNullableTypeSymbol();
+                        var enumToComMethod = Helpers.GetToComMethodName(comTypeDict[enumType.ToDisplayString()], symbols.AutoGenerateCom!);
+
                         sb.AppendLine(Helpers.IsNullable(prop)
-                            ? $"\t\t\tresult.{comPropName} = src.{netPropName}?.ToCom();"
-                            : $"\t\t\tresult.{comPropName} = src.{netPropName}.ToCom();");
+                            ? $"\t\t\tresult.{comPropName} = src.{netPropName}?.{enumToComMethod}();"
+                            : $"\t\t\tresult.{comPropName} = src.{netPropName}.{enumToComMethod}();");
+                    }
                     else if (Helpers.IsComType(netPropType, comTypeDict))
-                        sb.AppendLine($"\t\t\tresult.{comPropName} = src.{netPropName}?.ToCom();");
+                    {
+                        var classType = netPropType.UnwrapNullableTypeSymbol();
+                        var propToComMethod = Helpers.GetToComMethodName(comTypeDict[classType.ToDisplayString()], symbols.AutoGenerateCom!);
+
+                        sb.AppendLine($"\t\t\tresult.{comPropName} = src.{netPropName}?.{propToComMethod}();");
+                    }
                     else
+                    {
                         sb.AppendLine($"\t\t\tresult.{comPropName} = src.{netPropName};");
+                    }
                 }
+
                 sb.AppendLine("\t\t\treturn result;");
                 sb.AppendLine("\t\t}");
 

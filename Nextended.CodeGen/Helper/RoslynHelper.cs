@@ -19,7 +19,21 @@ internal static class RoslynHelper
             {
                 var prop = type.GetProperty(ctorParams[i].Name, BindingFlags.IgnoreCase | BindingFlags.Public | BindingFlags.Instance);
                 if (prop != null && prop.CanWrite)
-                    prop.SetValue(result, attrData.ConstructorArguments[i].Value);
+                {
+                    var arg = attrData.ConstructorArguments[i];
+                    if (arg.Kind == TypedConstantKind.Array && prop.PropertyType.IsArray)
+                    {
+                        var elemType = prop.PropertyType.GetElementType()!;
+                        var arr = Array.CreateInstance(elemType, arg.Values.Length);
+                        for (int j = 0; j < arg.Values.Length; j++)
+                            arr.SetValue(ConvertRoslynValue(arg.Values[j].Value, elemType), j);
+                        prop.SetValue(result, arr);
+                    }
+                    else
+                    {
+                        prop.SetValue(result, ConvertRoslynValue(arg.Value, prop.PropertyType));
+                    }
+                }
             }
         }
 
@@ -27,13 +41,51 @@ internal static class RoslynHelper
         {
             var prop = type.GetProperty(namedArg.Key, BindingFlags.IgnoreCase | BindingFlags.Public | BindingFlags.Instance);
             if (prop != null && prop.CanWrite)
-                prop.SetValue(result, namedArg.Value.Value);
+            {
+                var value = namedArg.Value;
+                if (value.Kind == TypedConstantKind.Array && prop.PropertyType.IsArray)
+                {
+                    var elemType = prop.PropertyType.GetElementType()!;
+                    var arr = Array.CreateInstance(elemType, value.Values.Length);
+                    for (int j = 0; j < value.Values.Length; j++)
+                        arr.SetValue(ConvertRoslynValue(value.Values[j].Value, elemType), j);
+                    prop.SetValue(result, arr);
+                }
+                else
+                {
+                    prop.SetValue(result, ConvertRoslynValue(value.Value, prop.PropertyType));
+                }
+            }
         }
 
         return result;
     }
 
+    // Wandelt Roslyn-Werte in echte CLR-Types um (besonders für Type, Enum etc.)
+    private static object? ConvertRoslynValue(object? value, Type targetType)
+    {
+        if (value is null) return null;
 
+        // Für Type-Properties (z.B. typeof(...))  
+        if (value is INamedTypeSymbol ts && targetType == typeof(Type))
+            return Type.GetType(ts.ToDisplayString()); // oder: ts.ToDisplayString(), je nach Anwendung
+
+        // Enums
+        if (targetType.IsEnum && value is int intVal)
+            return Enum.ToObject(targetType, intVal);
+
+        // Primitive/Direct
+        return Convert.ChangeType(value, targetType);
+    }
+
+
+    public static ITypeSymbol UnwrapNullableTypeSymbol(this ITypeSymbol type)
+    {
+        return type is INamedTypeSymbol { IsGenericType: true, ConstructedFrom.SpecialType: SpecialType.System_Nullable_T } nts
+            ? nts.TypeArguments[0]
+            : type;
+    }
+    
     public static T GetAttributeInstance<T>(
         this ISymbol symbol, INamedTypeSymbol roslynAttributeSymbol
     ) where T : new()

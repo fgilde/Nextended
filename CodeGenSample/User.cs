@@ -3,10 +3,10 @@ using Nextended.Core.Attributes;
 
 namespace CodeGenSample;
 
-[AutoGenerateCom(Prefix = "My", Suffix = "Dto")]
-public class User
+[AutoGenerateCom(Prefix = "My", Suffix = "Dto", GenericParameterTypes = new []{"string", "int"})]
+public class User //<T>
 {
-    public string? Id { get; set; }
+    //public T Id { get; set; }
     public string Name { get; set; }
     
     [ComIgnore] 
@@ -21,7 +21,7 @@ public class User
 }
 
 
-[AutoGenerateCom]
+[AutoGenerateCom(ToMethodName = "ToDto")]
 public class Address
 {
     public string Street { get; set; }
