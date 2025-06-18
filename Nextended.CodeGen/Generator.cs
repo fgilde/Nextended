@@ -8,8 +8,8 @@ using Nextended.CodeGen.Generators;
 [Generator]
 public class MainGenerator : ISourceGenerator
 {
-    private int i = 3;
-    private bool attachDebugger = false;
+    private int i = 1;
+    private bool attachDebugger = true;
     private bool generationEnabled = true;
     private DateTime LastGenerated = DateTime.MinValue;
 

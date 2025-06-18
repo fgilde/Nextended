@@ -17,7 +17,7 @@ public class User
     public Address Address { get; set; }
     
     [ComPropertySetting(PropertyName = "UserLevel")]
-    public UserLevel Level { get; set; }
+    public UserLevel? Level { get; set; }
 }
 
 
