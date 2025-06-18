@@ -36,11 +36,14 @@ public class ComSourceGenerator : ISourceSubGenerator<object>
         if (autoGenAttr == null)
             return;
 
-        // Finde alle COM-Typen (nur aus diesem Projekt)
+        // Finde alle mit [AutoGenerateCom] markierten Klassen/Structs/Enums im Projekt
         var typesWithAttr = new List<INamedTypeSymbol>();
+
         foreach (var tree in context.Compilation.SyntaxTrees)
         {
             var semanticModel = context.Compilation.GetSemanticModel(tree);
+
+            // Klassen/Structs/Interfaces (TypeDeclarationSyntax)
             foreach (var typeDecl in tree.GetRoot().DescendantNodes().OfType<TypeDeclarationSyntax>())
             {
                 var symbol = semanticModel.GetDeclaredSymbol(typeDecl) as INamedTypeSymbol;
@@ -48,7 +51,17 @@ public class ComSourceGenerator : ISourceSubGenerator<object>
                 if (symbol.GetAttributes().Any(attr => SymbolEqualityComparer.Default.Equals(attr.AttributeClass, autoGenAttr)))
                     typesWithAttr.Add(symbol);
             }
+
+            // Enums (EnumDeclarationSyntax)
+            foreach (var enumDecl in tree.GetRoot().DescendantNodes().OfType<EnumDeclarationSyntax>())
+            {
+                var symbol = semanticModel.GetDeclaredSymbol(enumDecl) as INamedTypeSymbol;
+                if (symbol == null) continue;
+                if (symbol.GetAttributes().Any(attr => SymbolEqualityComparer.Default.Equals(attr.AttributeClass, autoGenAttr)))
+                    typesWithAttr.Add(symbol);
+            }
         }
+
 
         // "COM-Typ-Cache" für Typ-Name <-> Symbol
         var comTypeDict = typesWithAttr.ToDictionary(t => t.ToDisplayString(), t => t);
@@ -76,7 +89,8 @@ public class ComSourceGenerator : ISourceSubGenerator<object>
             var isEnum = type.TypeKind == TypeKind.Enum;
             if (isEnum)
             {
-                // (Enums noch nicht behandelt - nach Bedarf nachrüsten)
+                WriteComEnum(sb, type, comIgnoreAttr, autoGenAttr);
+                enumCount++;
                 continue;
             }
 
@@ -120,7 +134,7 @@ public class ComSourceGenerator : ISourceSubGenerator<object>
             foreach (var prop in GetComProperties(type, comIgnoreAttr))
             {
                 var propType = prop.Type;
-                if (IsComType(propType, comTypeDict))
+                if (IsComType(propType, comTypeDict) && !IsComEnumType(propType, comTypeDict))
                 {
                     var propTypeString = GetComPropertyType(prop, comTypeDict, autoGenAttr, false);
                     var comInterfaceTypeName = GetComClassName(comTypeDict[propType.ToDisplayString()], autoGenAttr, true);
@@ -225,6 +239,40 @@ public class ComSourceGenerator : ISourceSubGenerator<object>
         context.AddSource("ComMappingExtensions.g.cs", sbMap.ToString());
     }
 
+    private void WriteComEnum(
+        StringBuilder sb,
+        INamedTypeSymbol enumType,
+        INamedTypeSymbol comIgnoreAttr,
+        INamedTypeSymbol autoGenAttr)
+    {
+        var comName = GetComClassName(enumType, autoGenAttr, false);
+
+        if (createComments)
+            sb.AppendLine($"\t/// <summary>{comName} - GENERATED FROM <see cref=\"T:{enumType.ToDisplayString()}\"/></summary>");
+        sb.AppendLine("\t[ComVisible(true)]");
+        sb.AppendLine($"\t[Guid({GetGuid(comName).ClassName})]");
+        sb.AppendLine($"\t{classModifier} enum {comName}");
+        sb.AppendLine("\t{");
+
+        int dispId = 0;
+        foreach (var member in enumType.GetMembers().OfType<IFieldSymbol>().Where(f => f.IsConst))
+        {
+            // Enum-Member mit [ComIgnore] überspringen
+            if (member.GetAttributes().Any(a => SymbolEqualityComparer.Default.Equals(a.AttributeClass, comIgnoreAttr)))
+                continue;
+
+            // (Optional: Kommentar zum Enum-Member einfügen)
+            if (createComments)
+                sb.AppendLine($"\t\t/// <summary>{member.Name}</summary>");
+            sb.AppendLine($"\t\t[DispId({++dispId})]");
+            sb.AppendLine($"\t\t{member.Name} = {member.ConstantValue},");
+        }
+
+        sb.AppendLine("\t}");
+        sb.AppendLine();
+    }
+
+
     // ------------- Hilfsmethoden -------------
     private (string Id, string ClassName) GetGuid(string className)
     {
@@ -234,6 +282,10 @@ public class ComSourceGenerator : ISourceSubGenerator<object>
             comIds[className] = guid;
         }
         return (guid, $"{comIdClassName}.{string.Format(comIdFormat, className)}");
+    }
+    private static bool IsComEnumType(ITypeSymbol type, Dictionary<string, INamedTypeSymbol> comTypes)
+    {
+        return comTypes.TryGetValue(type.ToDisplayString(), out var t) && t.TypeKind == TypeKind.Enum;
     }
 
     private static string CreateGuid(string input)
@@ -296,14 +348,22 @@ public class ComSourceGenerator : ISourceSubGenerator<object>
     private static string GetComPropertyType(IPropertySymbol prop, Dictionary<string, INamedTypeSymbol> comTypes, INamedTypeSymbol autoGenAttr, bool asInterface)
     {
         var propType = prop.Type;
-        // Check: Ist das ein COM-Type? (d.h. hat das Attribut)
-        if (IsComType(propType, comTypes))
+
+        if (IsComEnumType(propType, comTypes))
         {
+            // Enums sind niemals Interfaces, sondern immer der Enum-Type
+            var comType = comTypes[propType.ToDisplayString()];
+            return GetComClassName(comType, autoGenAttr, false); // always class name
+        }
+        else if (IsComType(propType, comTypes))
+        {
+            // Bei Klassen/Structs:
             var comType = comTypes[propType.ToDisplayString()];
             return GetComClassName(comType, autoGenAttr, asInterface);
         }
         return propType.ToDisplayString();
     }
+
 
     private static bool IsComType(ITypeSymbol type, Dictionary<string, INamedTypeSymbol> comTypes)
     {
