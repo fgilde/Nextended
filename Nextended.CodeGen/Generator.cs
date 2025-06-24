@@ -3,6 +3,7 @@ using Newtonsoft.Json;
 using Nextended.CodeGen.Config;
 using Nextended.CodeGen.Contracts;
 using Nextended.CodeGen.Generators;
+using Nextended.CodeGen.Helper;
 
 
 [Generator]
@@ -47,9 +48,11 @@ public class MainGenerator : ISourceGenerator
 
     private void ExecuteGeneration(GeneratorExecutionContext context)
     {
+        //NamespaceResolver ns = new NamespaceResolver()
+        //var generationContext = new GenerationContext()
         // 1. AdditionalFiles auflisten:
         var additionalFiles = context.AdditionalFiles;
-        new ComSourceGenerator().Execute(context, null, null);
+        new DtoSourceGenerator().Execute(context, null, null);
         
         
         foreach (var configFile in additionalFiles)

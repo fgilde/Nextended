@@ -86,13 +86,15 @@ internal static class RoslynHelper
             : type;
     }
     
-    public static T GetAttributeInstance<T>(
-        this ISymbol symbol, INamedTypeSymbol roslynAttributeSymbol
-    ) where T : new()
+    public static T GetAttributeInstance<T>(this ISymbol symbol, INamedTypeSymbol roslynAttributeSymbol) where T : new()
     {
         var attrData = symbol
             .GetAttributes()
             .FirstOrDefault(a => SymbolEqualityComparer.Default.Equals(a.AttributeClass, roslynAttributeSymbol));
         return attrData.MapTo<T>();
     }
+
+    public static bool IsNullable(this IPropertySymbol prop)
+        => prop.NullableAnnotation == NullableAnnotation.Annotated ||
+           prop.Type is INamedTypeSymbol { IsGenericType: true, ConstructedFrom.SpecialType: SpecialType.System_Nullable_T };
 }

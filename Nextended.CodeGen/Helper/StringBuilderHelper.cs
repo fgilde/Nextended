@@ -4,6 +4,19 @@ namespace Nextended.CodeGen.Helper;
 
 internal static class StringBuilderHelper
 {
+    public static StringBuilder AppendIf(this StringBuilder sb, string value, bool condition = true)
+    {
+        if (condition)
+            sb.Append(value);
+        return sb;
+    }
+    
+    public static StringBuilder AppendLineIf(this StringBuilder sb, string line, bool condition = true)
+    {
+        if (condition)
+            sb.AppendLine(line);
+        return sb;
+    }
     public static StringBuilder AppendUsings(this StringBuilder sb, params string[] namespaces)
     {
         foreach (var ns in namespaces)

@@ -114,88 +114,42 @@ namespace Nextended.Core.Extensions
         }
 #endif
 
-        public static string EnsureEndsWith(this string str, char toEndWith)
+        private static int FindOverlap(string str, string affix, Func<string, string, bool> match, Func<string, int, string> extract)
         {
-            return EnsureEndsWith(str, toEndWith.ToString());
+            int maxOverlap = Math.Min(str.Length, affix.Length);
+            for (int i = maxOverlap; i > 0; i--)
+            {
+                if (match(str, extract(affix, i)))
+                    return i;
+            }
+            return 0;
         }
 
-        /// <summary>
-        /// Returns <paramref name="str"/> with the minimal concatenation of <paramref name="ending"/> (starting from end) that
-        /// results in satisfying .EndsWith(ending).
-        /// </summary>
-        /// <example>"hel".WithEnding("llo") returns "hello", which is the result of "hel" + "lo".</example>
         public static string EnsureEndsWith(this string str, string ending)
         {
-            if (str == null)
-                return ending;
-
-            string result = str;
-
-            // Right() is 1-indexed, so include these cases
-            // * Append no characters
-            // * Append up to N characters, where N is ending length
-            for (int i = 0; i <= ending.Length; i++)
-            {
-                string tmp = result + ending.Right(i);
-                if (tmp.EndsWith(ending))
-                    return tmp;
-            }
-
-            return result;
+            if (str == null) return ending ?? "";
+            var overlap = FindOverlap(str, ending,
+                (s, sub) => s.EndsWith(sub),
+                (affix, i) => affix.Substring(0, i));
+            return $"{str}{ending.Substring(overlap)}";
         }
 
-        /// <summary>Gets the rightmost <paramref name="length" /> characters from a string.</summary>
-        /// <param name="value">The string to retrieve the substring from.</param>
-        /// <param name="length">The number of characters to retrieve.</param>
-        /// <returns>The substring.</returns>
-        private static string Right(this string value, int length)
+        public static string EnsureStartsWith(this string str, string prefix)
         {
-            if (value == null)
-            {
-                throw new ArgumentNullException("value");
-            }
-            if (length < 0)
-            {
-                throw new ArgumentOutOfRangeException("length", length, "Length is less than zero");
-            }
-
-            return (length < value.Length) ? value.Substring(value.Length - length) : value;
+            if (str == null) return prefix ?? "";
+            int overlap = FindOverlap(str, prefix,
+                (s, sub) => s.StartsWith(sub),
+                (affix, i) => affix.Substring(prefix.Length - i));
+            return prefix.Substring(0, prefix.Length - overlap) + str;
         }
 
-        /// <summary>
-        /// Retrieves the first length characters from string. If string is shorter than length, returns string.
-        /// </summary>
-        /// <param name="text"></param>
-        /// <param name="length"></param>
-        /// <returns></returns>
-        public static string Left(this string text, int length)
-        {
-            if (text == null)
-            {
-                throw new ArgumentNullException(nameof(text));
-            }
-
-            if (length <= 0)
-            {
-                throw new ArgumentOutOfRangeException(nameof(length));
-            }
-
-            var pathSize = text.Length < length ? text.Length : length;
-            var result = text.Substring(0, pathSize);
-            return result;
-        }
+        public static string EnsureEndsWith(this string str, char toEndWith)
+            => str.EnsureEndsWith(toEndWith.ToString());
 
         public static string EnsureStartsWith(this string str, char toStartWith)
-        {
-            return EnsureStartsWith(str, toStartWith.ToString());
-        }
+            => str.EnsureStartsWith(toStartWith.ToString());
 
-        public static string EnsureStartsWith(this string str, string toStartWith)
-        {
-            if (!str.StartsWith(toStartWith))
-                str = toStartWith + str;
-            return str;
-        }
+
 
         public static bool IsNullOrEmpty(this string value)
         {
