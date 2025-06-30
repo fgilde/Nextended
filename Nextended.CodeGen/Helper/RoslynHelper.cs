@@ -6,6 +6,12 @@ namespace Nextended.CodeGen.Helper;
 
 internal static class RoslynHelper
 {
+    public static string ConstraintClause(this ITypeParameterSymbol tp)
+    {
+        if (tp.HasReferenceTypeConstraint) return $"where {tp.Name} : class";
+        if (tp.HasValueTypeConstraint) return $"where {tp.Name} : struct";        
+        return "";
+    }
 
     public static T MapTo<T>(this AttributeData? attrData, Type? type) where T : new()
     {

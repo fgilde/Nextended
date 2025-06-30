@@ -106,6 +106,9 @@ public class DtoCodeGenerator
                 var netTypeName = type.ToDisplayString();
                 var comTypeName = DtoGenerationSymbols.GetComClassName(type, autoGenAttr, false);
 
+                var genericParams = DtoGenerationSymbols.GetGenericTypeParameters(type);
+                var genericConstraints = string.Join(" ", type.TypeParameters.Select(tp => tp.ConstraintClause())); // Optional: Constraints
+
                 if (isEnum)
                 {
                     sb.AppendLine($"\t\tpublic static {comTypeName}? {toComMethodName}(this {netTypeName}? src) => src.HasValue ? ({comTypeName})(int)src.Value : null;");
@@ -117,10 +120,10 @@ public class DtoCodeGenerator
 
                 var comProps = DtoGenerationSymbols.GetComProperties(type, _symbols.Ignore).ToList();
 
-                sb.AppendLine($"\t\tpublic static {comTypeName} {toComMethodName}(this {netTypeName} src)");
+                sb.AppendLine($"\t\tpublic static {comTypeName}{genericParams} {toComMethodName}{genericParams}(this {netTypeName} src)");
                 sb.AppendLine("\t\t{");
                 sb.AppendLine("\t\t\tif(src == null) return null;");
-                sb.AppendLine($"\t\t\tvar result = new {comTypeName}();");
+                sb.AppendLine($"\t\t\tvar result = new {comTypeName}{genericParams}();");
                 foreach (var prop in comProps)
                 {
                     var propAttr = prop.GetAttributeInstance<GenerationPropertySettingAttribute>(_symbols.PropertySetting);
@@ -155,7 +158,7 @@ public class DtoCodeGenerator
                 sb.AppendLine("\t\t\treturn result;");
                 sb.AppendLine("\t\t}");
 
-                sb.AppendLine($"\t\tpublic static {netTypeName} ToNet(this {comTypeName} src)");
+                sb.AppendLine($"\t\tpublic static {netTypeName} ToNet{genericParams}(this {comTypeName}{genericParams} src)");
                 sb.AppendLine("\t\t{");
                 sb.AppendLine("\t\t\tif(src == null) return null;");
                 sb.AppendLine($"\t\t\tvar result = new {netTypeName}();");
