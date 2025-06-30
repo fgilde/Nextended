@@ -11,7 +11,7 @@ using Nextended.CodeGen.Helper;
 public class MainGenerator : ISourceGenerator
 {
     private int i = 1;
-    private bool attachDebugger = true; 
+    private bool attachDebugger = false; 
     private bool generationEnabled = true;
     private DateTime LastGenerated = DateTime.MinValue;
 

@@ -53,7 +53,7 @@ public class DtoGenerationConfig
     public string InterfaceModifier { get; set; } = "public";
 
     public bool OneFilePerClass { get; set; } = false;
-    public string[] Usings { get; set; }
+    public string[]? Usings { get; set; }
     public bool CreateRegions = true;
     public bool CreateComments = true;
     public bool GeneratePartial = true;

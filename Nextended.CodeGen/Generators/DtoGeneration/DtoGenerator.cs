@@ -32,11 +32,6 @@ public class DtoGenerator
                 context.AddSource(file.FileName, file.Content);
             }
 
-            if (generator.HasGuids)
-            {
-                var comIdFile = generator.GenerateComIdFile(types);
-                context.AddSource(comIdFile.FileName, comIdFile.Content);
-            }
         }
         else
         {
@@ -49,6 +44,12 @@ public class DtoGenerator
                 var file = generator.GenerateNamespaceFile(ns, group, comTypeDict);
                 context.AddSource(file.FileName, file.Content);
             }
+        }
+
+        if (generator.HasGuids)
+        {
+            var comIdFile = generator.GenerateComIdFile(types);
+            context.AddSource(comIdFile.FileName, comIdFile.Content);
         }
 
         // Mapping-Extensions ggf. als eigene Datei
