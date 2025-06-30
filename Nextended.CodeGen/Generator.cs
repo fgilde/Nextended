@@ -3,6 +3,7 @@ using Newtonsoft.Json;
 using Nextended.CodeGen.Config;
 using Nextended.CodeGen.Contracts;
 using Nextended.CodeGen.Generators;
+using Nextended.CodeGen.Generators.DtoGeneration;
 using Nextended.CodeGen.Helper;
 
 
@@ -10,7 +11,7 @@ using Nextended.CodeGen.Helper;
 public class MainGenerator : ISourceGenerator
 {
     private int i = 1;
-    private bool attachDebugger = false; 
+    private bool attachDebugger = true; 
     private bool generationEnabled = true;
     private DateTime LastGenerated = DateTime.MinValue;
 
@@ -52,7 +53,7 @@ public class MainGenerator : ISourceGenerator
         //var generationContext = new GenerationContext()
         // 1. AdditionalFiles auflisten:
         var additionalFiles = context.AdditionalFiles;
-        new DtoSourceGenerator().Execute(context, null, null);
+        new DtoGenerator(new DtoGenerationConfig()).Execute(context);
         
         
         foreach (var configFile in additionalFiles)

@@ -1,16 +1,17 @@
 ﻿using Microsoft.CodeAnalysis;
 using System.Reflection;
 
+
 namespace Nextended.CodeGen.Helper;
 
 internal static class RoslynHelper
 {
 
-    public static T MapTo<T>(this AttributeData? attrData) where T : new()
+    public static T MapTo<T>(this AttributeData? attrData, Type? type) where T : new()
     {
         if (attrData == null) return default!;
-        var result = new T();
-        var type = typeof(T);
+        type ??= typeof(T);
+        var result = (T)Activator.CreateInstance(type);
 
         var ctorParams = type.GetConstructors().FirstOrDefault()?.GetParameters();
         if (ctorParams != null && attrData.ConstructorArguments.Length == ctorParams.Length)
@@ -85,13 +86,26 @@ internal static class RoslynHelper
             ? nts.TypeArguments[0]
             : type;
     }
-    
+
+    private static bool IsAttributeOrDerived(INamedTypeSymbol? actual, INamedTypeSymbol expectedBase)
+    {
+        while (actual != null)
+        {
+            if (SymbolEqualityComparer.Default.Equals(actual, expectedBase))
+                return true;
+            actual = actual.BaseType;
+        }
+        return false;
+    }
+
     public static T GetAttributeInstance<T>(this ISymbol symbol, INamedTypeSymbol roslynAttributeSymbol) where T : new()
     {
         var attrData = symbol
             .GetAttributes()
-            .FirstOrDefault(a => SymbolEqualityComparer.Default.Equals(a.AttributeClass, roslynAttributeSymbol));
-        return attrData.MapTo<T>();
+            .FirstOrDefault(a => IsAttributeOrDerived(a.AttributeClass, roslynAttributeSymbol));
+        var clrType = attrData?.AttributeClass != null ? Type.GetType(attrData.AttributeClass.ToDisplayString()) : null;
+
+        return attrData.MapTo<T>(clrType);
     }
 
     public static bool IsNullable(this IPropertySymbol prop)

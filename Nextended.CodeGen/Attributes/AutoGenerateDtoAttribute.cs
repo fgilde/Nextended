@@ -12,6 +12,7 @@
         // post class gen, pre interface gen, post interface gen, pre and post for properties also attributes for properties.
         // Interface as get only, also on property.. 
 
+        public string Namespace { get; set; }
 
         /// <summary>
         /// Wird bei der erstellten Klasse und Interface als Prefix im Namen benutzt (z-B IComMyType)

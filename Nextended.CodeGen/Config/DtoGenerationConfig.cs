@@ -7,7 +7,7 @@ public class DtoGenerationConfig
     /// If null same as source will be used.
     /// (can be overwritten per class in Attribute layer)
     /// </summary>
-    public string? Namespace { get; set; }
+    public string? Namespace { get; set; } = "N.CG.AutoGen";
 
     /// <summary>
     /// Default suffix for generated DTOs will only work when not set on Attribute layer.
@@ -51,9 +51,10 @@ public class DtoGenerationConfig
     /// Default Modifier for generated DTO interfaces. (can be overwritten per class in Attribute layer)
     /// </summary>
     public string InterfaceModifier { get; set; } = "public";
-    
 
-    private bool CreateRegions = true;
-    private bool CreateComments = true;
-    private bool GeneratePartial = true;
+    public bool OneFilePerClass { get; set; } = false;
+    public string[] Usings { get; set; }
+    public bool CreateRegions = true;
+    public bool CreateComments = true;
+    public bool GeneratePartial = true;
 }
