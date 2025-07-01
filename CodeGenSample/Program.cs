@@ -1,7 +1,7 @@
 ﻿// See https://aka.ms/new-console-template for more information
 
 using CodeGenSample;
-
+using MyGeneration;
 using N.CG.AutoGen;
 using Nextended.Core.Attributes;
 

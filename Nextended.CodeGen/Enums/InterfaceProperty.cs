@@ -2,6 +2,7 @@
 
 public enum InterfaceProperty
 {
+    Unset,
     GetAndSet,
     Get, 
     Set,
@@ -13,6 +14,7 @@ internal static class InterfacePropertyExtensions
     {
         return property switch
         {
+            InterfaceProperty.Unset => "get; set;",
             InterfaceProperty.GetAndSet => "get; set;",
             InterfaceProperty.Get => "get;",
             InterfaceProperty.Set => "set;",

@@ -87,7 +87,7 @@ public class DtoGenerationConfig
     /// </summary>
     public DefaultMappingSettings? DefaultMappingSettings { get; set; }
 
-    public bool OneFilePerClass { get; set; } = true;
+    public bool OneFilePerClass { get; set; } = false;
     public string[]? Usings { get; set; }
     public bool CreateRegions { get; set; } = true;
     public bool CreateComments { get; set; } = true;

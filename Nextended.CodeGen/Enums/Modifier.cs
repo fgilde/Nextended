@@ -2,6 +2,7 @@
 
 public enum Modifier
 {
+    Unset,
     Public,
     Private,
     Protected,
@@ -18,6 +19,7 @@ internal static class ModifierExtensions
     {
         return modifier switch
         {
+            Modifier.Unset => "public",
             Modifier.Public => "public",
             Modifier.Private => "private",
             Modifier.Protected => "protected",
