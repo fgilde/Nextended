@@ -1,7 +1,7 @@
 ﻿namespace Nextended.CodeGen.Attributes;
 
 /// <summary>
-/// Kann bei einer Klasse die das AutoGenerateComAttribute enthält auf eine Property gesetzt werden diese für die COM Generierung zu ignorieren    
+/// Set this attribute on a property or field to ignore it during the generation of DTOs or COM interfaces.
 /// </summary>
 [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field)]
 public class IgnoreOnGenerationAttribute : Attribute
