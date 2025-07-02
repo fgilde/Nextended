@@ -116,12 +116,14 @@ public class DtoGenerationSymbols
         {
             var targetClass = comTypes[underlyingType.ToDisplayString()];
             var targetAttr = targetClass.ClassCfg(symbols);
-            typeString = GetDtoClassName(targetClass, targetAttr, false);
+            var ns = !string.IsNullOrWhiteSpace(targetAttr.Namespace) ? $"{targetAttr.Namespace}." : "";
+            typeString = ns+GetDtoClassName(targetClass, targetAttr, false);
         }
         else if (IsDtoType(underlyingType, comTypes))
         {
             var targetClass = comTypes[underlyingType.ToDisplayString()];
             var targetAttr = targetClass.ClassCfg(symbols);
+            //var ns = !string.IsNullOrWhiteSpace(targetAttr.Namespace) ? $"{targetAttr.Namespace}." : "";
             typeString = GetDtoClassName(targetClass, targetAttr, asInterface);
         }
         else
