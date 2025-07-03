@@ -30,6 +30,7 @@ internal static class StringBuilderHelper
         return sb;
     }
 
+
     public static StringBuilder CloseNamespace(this StringBuilder sb)
     {
         sb.AppendLine("}");

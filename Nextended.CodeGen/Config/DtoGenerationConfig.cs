@@ -2,26 +2,8 @@
 
 namespace Nextended.CodeGen.Config;
 
-public class DtoGenerationConfig
+public class DtoGenerationConfig: CodeGenerationConfigBase
 {
-    /// <summary>
-    /// Default namespace for generated DTOs will only work when not set on Attribute layer.
-    /// If null same as source will be used.
-    /// (can be overwritten per class in Attribute layer)
-    /// </summary>
-    public string? Namespace { get; set; } = "N.CG.AutoGen";
-
-    /// <summary>
-    /// Default suffix for generated DTOs will only work when not set on Attribute layer.
-    /// </summary>
-    public string? Suffix { get; set; }
-
-    /// <summary>
-    /// Default prefix for generated DTOs will only work when not set on Attribute layer.
-    /// (can be overwritten per class in Attribute layer)
-    /// </summary>
-    public string? Prefix { get; set; }
-
     
     /// <summary>
     /// If Compatible is set to true then the generated classes are COM visible and fully com compatible.
@@ -87,18 +69,9 @@ public class DtoGenerationConfig
     /// </summary>
     public DefaultMappingSettings? DefaultMappingSettings { get; set; }
 
-    public bool OneFilePerClass { get; set; } = false;
+    public bool OneFilePerClass { get; set; } = true;
     public string[]? Usings { get; set; }
     public bool CreateRegions { get; set; } = true;
     public bool CreateComments { get; set; } = true;
     public bool GeneratePartial { get; set; } = true;
-}
-
-
-public class DefaultMappingSettings
-{
-    public bool? MapWithClassMapper { get; set; }
-
-    public string? ToSourceMethodName { get; set; }
-    public string? ToDtoMethodName { get; set; }
 }

@@ -1,6 +1,6 @@
 ﻿namespace Nextended.CodeGen.Config;
 
-public class CodeGenConfig
+public class MainConfig
 {
     public List<ExcelFileConfig> ExcelFiles { get; set; } = new();
     public List<JsonFileConfig> JsonFiles { get; set; } = new();

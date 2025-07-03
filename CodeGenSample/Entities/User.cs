@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
+using CodeGenSample.Entities.Base;
 using CodeGenSample.Entities.Enums;
 using Nextended.CodeGen.Attributes;
 using Nextended.CodeGen.Enums;
@@ -15,7 +16,7 @@ namespace CodeGenSample.Entities;
     DefaultPropertyInterfaceAccess = InterfaceProperty.Get,
     KeepPropertyAttributesOnGeneratedClass = true, 
     KeepPropertyAttributesOnGeneratedInterface = true)]
-public class User
+public class User: EntityBase
 {
     [MaxLength(3)]
 

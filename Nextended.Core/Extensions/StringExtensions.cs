@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -22,6 +23,14 @@ namespace Nextended.Core.Extensions
 
     public static class StringExtensions
     {
+        public static string ToPascalCase(this string s)
+        {
+            return CultureInfo.InvariantCulture.TextInfo.ToTitleCase(s)
+                .Replace("_", "")
+                .Replace("-", "")
+                .Replace(" ", "");
+        }
+
         public static bool IsGuid(this string input) => Guid.TryParse(input, out _);
 
         public static string SkipChars(this string str, params char[] chars)
