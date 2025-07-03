@@ -57,7 +57,7 @@ namespace Nextended.CodeGen.Attributes
         //public string[] ExplicitGenericImplementationTypes { get; set; }
 
         /// <summary>
-        /// Sets the base type for the generated DTO class.
+        /// Sets the base type for the generated DTO class. 
         /// </summary>
         public string? BaseType { get; set; }
 
