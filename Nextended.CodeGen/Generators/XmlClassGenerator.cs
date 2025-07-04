@@ -8,10 +8,10 @@ namespace Nextended.CodeGen.Generators;
 
 public static class XmlClassGenerator
 {
-    public static string GenerateClasses(string xml, string rootClassName, ClassStructureCodeGenerationConfig config)
+    public static string GenerateClasses(string xml, ClassStructureCodeGenerationConfig config)
     {
         XElement root = XElement.Parse(xml);
-        var mainClassName = config.Prefix + rootClassName + config.Suffix;
+        var mainClassName = config.RootClassName;
 
         var classDefs = new Dictionary<string, string>();
         BuildClass(root, mainClassName, config, classDefs);
@@ -55,7 +55,7 @@ public static class XmlClassGenerator
         if (!elem.HasElements && !string.IsNullOrWhiteSpace(elem.Value))
             fields.Add("    public string Value { get; set; }");
 
-        var classDef = $"public class {className}\n{{\n" + string.Join("\n", fields) + "\n}\n";
+        var classDef = $"public partial class {className}\n{{\n" + string.Join("\n", fields) + "\n}\n";
         classDefs[className] = classDef;
     }
 }

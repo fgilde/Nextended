@@ -38,8 +38,8 @@ public class DtoGenerator
             foreach (var group in typesByNs)
             {
                 var ns = group.Key;
-                var comTypeDict = types.ToDictionary(t => t.ToDisplayString(), t => t);
-                var file = generator.GenerateNamespaceFile(ns, group, comTypeDict);
+                var dtoTypeDict = types.ToDictionary(t => t.ToDisplayString(), t => t);
+                var file = generator.GenerateNamespaceFile(ns, group, dtoTypeDict);
                 context.AddSource(file.FileName, file.Content.InsertUsings(allNs));
             }
         }

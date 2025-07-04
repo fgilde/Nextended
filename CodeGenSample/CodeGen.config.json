@@ -1,4 +1,12 @@
 ﻿{
+  "StructureGenerations": [
+    {
+      "SourceFile": "/Sources/appsettings.json",
+      "RootClassName": "ServerConfiguration",
+      "Namespace": "AppSettings",
+      "Prefix": "Cfg" 
+    }
+  ],
   "ExcelFiles": [
     {
       "File": "scac_codes.xlsx",

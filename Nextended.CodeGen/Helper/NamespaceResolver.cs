@@ -12,7 +12,7 @@ namespace Nextended.CodeGen.Helper
 
         public NamespaceResolver(AdditionalText file, GeneratorExecutionContext context)
             : this(file.Path, context)
-        {}
+        { }
 
         public NamespaceResolver(string originFilePath, GeneratorExecutionContext context)
             : this(originFilePath, context.Compilation.AssemblyName, context.AnalyzerConfigOptions.GlobalOptions.TryGetValue)
@@ -32,7 +32,7 @@ namespace Nextended.CodeGen.Helper
                 result = result.Substring(0, result.Length - 1);
             return result;
         }
-        
+
         private string ExecuteResolve()
         {
             if (!this.optionsTryGetFunc("build_property.rootnamespace", out var rootNamespace))
@@ -57,7 +57,36 @@ namespace Nextended.CodeGen.Helper
                 .Replace(Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar);
         }
 
-        public static string EnsurePathEndsWithDirectorySeparator(string path) 
+        public static string GetAbsolutePath(string path, string? basePath = null)
+        {
+            if (string.IsNullOrWhiteSpace(path))
+                throw new ArgumentException("Path must not be null or empty.", nameof(path));
+
+            bool isAbsolute =
+                Path.IsPathRooted(path)
+                && (Path.GetFullPath(path) == path
+                    || (Path.DirectorySeparatorChar == '/' && path.StartsWith("/"))
+                    || (Path.DirectorySeparatorChar == '\\' && path.Contains(":")));
+
+            if (isAbsolute)
+                return Path.GetFullPath(path);
+
+            basePath ??= Directory.GetCurrentDirectory();
+
+            if (File.Exists(basePath))
+                basePath = Path.GetDirectoryName(basePath);
+
+            if (basePath == null)
+                throw new ArgumentException("Base path must not be null or empty.", nameof(basePath));
+
+            string normalizedPath = path.TrimStart(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+            string combinedPath = Path.Combine(basePath, normalizedPath);
+            string result = Path.GetFullPath(combinedPath);
+            // Ergebnis immer Unix-kompatibel machen (mit forward slashes)
+            return result.Replace(Path.DirectorySeparatorChar, '/');
+        }
+
+        public static string EnsurePathEndsWithDirectorySeparator(string path)
             => path.TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
     }
 }

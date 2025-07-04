@@ -5,10 +5,10 @@ using Nextended.CodeGen.Helper;
 
 public static class JsonClassGenerator
 {
-    public static string GenerateClasses(string json, string rootClassName, ClassStructureCodeGenerationConfig config)
+    public static string GenerateClasses(string json, ClassStructureCodeGenerationConfig config)
     {
         JObject root = JObject.Parse(json);
-        var mainClassName = config.Prefix + rootClassName + config.Suffix;
+        var mainClassName = config.RootClassName;
 
         var classDefs = new Dictionary<string, string>();
         BuildClass(root, mainClassName, config, classDefs);
@@ -49,12 +49,14 @@ public static class JsonClassGenerator
                 var subClassName = config.Prefix + propName + config.Suffix;
                 BuildClass((JObject)token, subClassName, config, classDefs);
                 return subClassName;
+
             case JTokenType.Array:
                 var array = token as JArray;
                 if (array.Count > 0)
                     return $"List<{GetCSharpType(array[0], propName, config, classDefs)}>";
                 else
                     return "List<object>";
+
             case JTokenType.Integer:
                 return "int";
             case JTokenType.Float:
@@ -65,6 +67,24 @@ public static class JsonClassGenerator
                 return "string";
             case JTokenType.Date:
                 return "DateTime";
+            case JTokenType.Bytes:
+                return "byte[]";
+            case JTokenType.Guid:
+                return "Guid";
+            case JTokenType.Uri:
+                return "Uri";
+            case JTokenType.TimeSpan:
+                return "TimeSpan";
+
+            case JTokenType.Null:
+            case JTokenType.Undefined:
+                return "object";
+
+            case JTokenType.None:
+            case JTokenType.Constructor:
+            case JTokenType.Property:
+            case JTokenType.Comment:
+            case JTokenType.Raw:
             default:
                 return "object";
         }

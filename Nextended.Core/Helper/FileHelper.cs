@@ -533,14 +533,24 @@ namespace Nextended.Core.Helper
         /// <param name="relativePath">Der relative Pfad</param>
         /// <param name="referencePath">Der Pfad, auf den sich der relative Pfad bezieht</param>
         /// <returns>Gibt den ermittelten absoluten Pfad zurück</returns>
-        public static string GetAbsolutePath(string relativePath,
-                                             string referencePath)
+        public static string GetAbsolutePath(string path, string? basePath = null)
         {
-            if (referencePath.EndsWith("\\") == false)
-            {
-                referencePath += "\\";
-            }
-            return Path.GetFullPath(referencePath + relativePath);
+            if (string.IsNullOrWhiteSpace(path))
+                throw new ArgumentException("Path must not be null or empty.", nameof(path));
+
+            bool isAbsolute =
+                Path.IsPathRooted(path)
+                && (Path.GetFullPath(path) == path
+                    || (Path.DirectorySeparatorChar == '/' && path.StartsWith("/"))
+                    || (Path.DirectorySeparatorChar == '\\' && path.Contains(":")));
+
+            if (isAbsolute)
+                return Path.GetFullPath(path);
+
+            basePath ??= Directory.GetCurrentDirectory();
+            if (File.Exists(basePath))
+                basePath = Path.GetDirectoryName(basePath);
+            return Path.GetFullPath(Path.Combine(basePath, path));
         }
 
         /// <summary>

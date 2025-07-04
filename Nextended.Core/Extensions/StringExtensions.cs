@@ -23,12 +23,22 @@ namespace Nextended.Core.Extensions
 
     public static class StringExtensions
     {
-        public static string ToPascalCase(this string s)
+        public static string ToPascalCase(this string input)
         {
-            return CultureInfo.InvariantCulture.TextInfo.ToTitleCase(s)
-                .Replace("_", "")
-                .Replace("-", "")
-                .Replace(" ", "");
+            if (string.IsNullOrEmpty(input)) return input;
+
+            var parts = Regex.Matches(input, @"[A-Z]?[a-z]+|[0-9]+|[A-Z]+(?![a-z])")
+                .Cast<Match>()
+                .Select(m => m.Value)
+                .ToList();
+
+            if (parts.Count == 0)
+                parts = Regex.Split(input, @"[_\-\s]+").Where(x => !string.IsNullOrWhiteSpace(x)).ToList();
+
+            for (int i = 0; i < parts.Count; i++)
+                parts[i] = CultureInfo.InvariantCulture.TextInfo.ToTitleCase(parts[i].ToLower());
+
+            return string.Join("", parts);
         }
 
         public static bool IsGuid(this string input) => Guid.TryParse(input, out _);

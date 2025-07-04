@@ -4,8 +4,5 @@ namespace Nextended.CodeGen.Contracts;
 
 public interface ISourceSubGenerator<TSettings>
 {
-    void Execute(
-        GeneratorExecutionContext context,
-        IEnumerable<TSettings> settings,
-        AdditionalText additionalFile);
+    IEnumerable<GeneratedFile> Execute(GenerationContext context);
 }
