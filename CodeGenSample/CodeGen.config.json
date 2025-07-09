@@ -1,10 +1,38 @@
 ﻿{
+  "DtoGeneration": {
+    // Notice:: The whole DtoGeneration section is optional and can also be overridden if set on the Attributes.
+    "ComIdClassName": "ComGuids",
+    "ComIdClassPropertyFormat": "Id{0}",
+    "ComIdClassModifier": "Public",
+    "BaseType": null,
+    "AddReferencedNamespacesUsings": null,
+    "AddContainingNamespaceUsings": null,
+    "PreInterfaceString": null,
+    "PreClassString": null,
+    "KeepAttributesOnGeneratedClass": false,
+    "KeepAttributesOnGeneratedInterface": false,
+    "Interfaces": null,
+    "DefaultMappingSettings": null,
+    "OneFilePerClass": true,
+    "Usings": null,
+    "CreateRegions": true,
+    "CreateComments": true,
+    "GeneratePartial": true,
+    "Namespace": "MyGenerated.Code.Test",
+    "Suffix": "Wanda",
+    "Prefix": null
+    //"OutputPath": "./Generated/Dtos/" // Output path for the generated files, if its null or unset the files will added to generation source
+  }, 
   "StructureGenerations": [
     {
-      "SourceFile": "/Sources/appsettings.json",
-      "RootClassName": "ServerConfiguration",
-      "Namespace": "AppSettings",
-      "Prefix": "Cfg" 
+      "SourceFile": "/Sources/appsettings.json", // Path to the source file to generate from
+      "RootClassName": "ServerConfiguration", // Name of the root class to generate
+      "Namespace": "AppSettings", // Namespace for the generated class
+      "Prefix": "Cfg", // Prefix for the generated class name
+      "Ignore": [ // Ignore for example to create a partial class with the same name or for whatever reason
+        "PublicSettings.Endpoints"
+      ],
+      "OutputPath": "./Generated/AppSettings/" // Output path for the generated file, if its null or unset the files will added to generation source
     }
   ],
   "ExcelFiles": [

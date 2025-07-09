@@ -4,12 +4,28 @@ using Nextended.CodeGen.Helper;
 
 namespace Nextended.CodeGen;
 
-public class GenerationContext(
-    NamespaceResolver namespaceResolver,
-    GeneratorExecutionContext executionContext,
-    MainConfig config)
+public class GenerationContext
 {
-    public NamespaceResolver NamespaceResolver { get; } = namespaceResolver;
-    public GeneratorExecutionContext ExecutionContext { get; } = executionContext;
-    public MainConfig Config { get; } = config;
+    public GenerationContext(AdditionalText additionalFile,
+        GeneratorExecutionContext executionContext,
+        MainConfig? config)
+    {
+        NamespaceResolver = new NamespaceResolver(additionalFile, executionContext);
+        AdditionalFile = additionalFile;
+        ExecutionContext = executionContext;
+        Config = config;
+    }
+    public GenerationContext(NamespaceResolver namespaceResolver,
+        GeneratorExecutionContext executionContext,
+        MainConfig? config)
+    {
+        NamespaceResolver = namespaceResolver;
+        ExecutionContext = executionContext;
+        Config = config;
+    }
+
+    public NamespaceResolver NamespaceResolver { get; }
+    public AdditionalText AdditionalFile { get; }
+    public GeneratorExecutionContext ExecutionContext { get; }
+    public MainConfig? Config { get; }
 }

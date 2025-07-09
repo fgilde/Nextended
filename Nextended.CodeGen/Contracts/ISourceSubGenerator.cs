@@ -2,7 +2,8 @@
 
 namespace Nextended.CodeGen.Contracts;
 
-public interface ISourceSubGenerator<TSettings>
+public interface ISourceSubGenerator
 {
+    bool RequireConfig { get;  }
     IEnumerable<GeneratedFile> Execute(GenerationContext context);
 }

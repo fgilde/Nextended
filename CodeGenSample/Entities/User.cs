@@ -31,4 +31,20 @@ public class User: EntityBase
     
     [GenerationPropertySetting(PropertyName = "UserLevel", InterfaceAccess = InterfaceProperty.GetAndSet)]
     public UserLevel? Level { get; set; }
+
+    public OtherInfos OtherInfos { get; set; }
+}
+
+
+public class OtherInfos
+{
+    public string Info1 { get; set; }
+    public string Info2 { get; set; }
+    public string Info3 { get; set; }
+    public string Info4 { get; set; }
+    public string Info5 { get; set; }
+    public string Info6 { get; set; }
+    public string Info7 { get; set; }
+    public string Info8 { get; set; }
+    public string Info9 { get; set; }
 }

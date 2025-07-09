@@ -3,12 +3,14 @@ using Newtonsoft.Json.Linq;
 using Nextended.CodeGen.Config;
 using Nextended.CodeGen.Helper;
 
-public static class JsonClassGenerator
+namespace Nextended.CodeGen.Generators.StructureGeneration;
+
+public static class JsonClassGenerator 
 {
     public static string GenerateClasses(string json, ClassStructureCodeGenerationConfig config)
     {
         JObject root = JObject.Parse(json);
-        var mainClassName = config.RootClassName;
+        var mainClassName = config.RootClassName ?? "RootObject";
 
         var classDefs = new Dictionary<string, string>();
         BuildClass(root, mainClassName, config, classDefs);
@@ -24,7 +26,7 @@ public static class JsonClassGenerator
         return sb.ToString();
     }
 
-    private static void BuildClass(JObject obj, string className, ClassStructureCodeGenerationConfig config, Dictionary<string, string> classDefs)
+    private static void BuildClass(JObject obj, string className, ClassStructureCodeGenerationConfig config, Dictionary<string, string> classDefs, string currentPath = "")
     {
         if (classDefs.ContainsKey(className))
             return;
@@ -33,7 +35,13 @@ public static class JsonClassGenerator
         foreach (var prop in obj.Properties())
         {
             var propName = prop.Name.ToPascalCase();
-            string propType = GetCSharpType(prop.Value, propName, config, classDefs);
+            var fullPath = string.IsNullOrEmpty(currentPath) ? prop.Name : currentPath + "." + prop.Name;
+
+            // Property ignorieren?
+            if (config.Ignore != null && config.Ignore.Any(i => i.Equals(fullPath, StringComparison.OrdinalIgnoreCase)))
+                continue;
+
+            string propType = GetCSharpType(prop.Value, propName, config, classDefs, fullPath);
             fields.Add($"\t\tpublic {propType} {propName} {{ get; set; }}");
         }
 
@@ -41,19 +49,22 @@ public static class JsonClassGenerator
         classDefs[className] = classDef;
     }
 
-    private static string GetCSharpType(JToken token, string propName, ClassStructureCodeGenerationConfig config, Dictionary<string, string> classDefs)
+    private static string GetCSharpType(JToken token, string propName, ClassStructureCodeGenerationConfig config, Dictionary<string, string> classDefs, string currentPath)
     {
+        if (config.Ignore != null && config.Ignore.Any(i => i.Equals(currentPath, StringComparison.OrdinalIgnoreCase)))
+            return null;
+        
         switch (token.Type)
         {
             case JTokenType.Object:
                 var subClassName = config.Prefix + propName + config.Suffix;
-                BuildClass((JObject)token, subClassName, config, classDefs);
+                BuildClass((JObject)token, subClassName, config, classDefs, currentPath);
                 return subClassName;
 
             case JTokenType.Array:
                 var array = token as JArray;
                 if (array.Count > 0)
-                    return $"List<{GetCSharpType(array[0], propName, config, classDefs)}>";
+                    return $"List<{GetCSharpType(array[0], propName, config, classDefs, currentPath)}>";
                 else
                     return "List<object>";
 
@@ -88,6 +99,11 @@ public static class JsonClassGenerator
             default:
                 return "object";
         }
+    }
+
+    private static bool ShouldIgnore(string path, string[] ignoreList)
+    {
+        return ignoreList != null && ignoreList.Any(i => i.Equals(path, StringComparison.OrdinalIgnoreCase));
     }
 
 }

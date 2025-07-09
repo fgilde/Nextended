@@ -21,11 +21,9 @@ public class CodeGenerationConfigBase
     public string? Prefix { get; set; }
 
     /// <summary>
-    /// Gets or sets the configuration for the file location where the generated code will be placed.
+    /// The path where the generated file will be saved.
+    /// By default it's null and will be added to the generated code context.
+    /// If a path is set, the file will be saved to that path and NOT added to the generated code context.
     /// </summary>
-    /// <value>
-    /// An instance of <see cref="FileLocationConfig"/> that specifies the path and relative target
-    /// for the generated files.
-    /// </value>
-    public FileLocationConfig LocationConfig { get; set; }
+    public string? OutputPath { get; set; }
 }

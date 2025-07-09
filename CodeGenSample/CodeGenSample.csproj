@@ -17,4 +17,10 @@
     <AdditionalFiles Include="CodeGen.config.json" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="Sources\appsettings.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>
