@@ -411,7 +411,8 @@ public class DtoCodeGenerator
             sb.AppendLine($"\t[Guid({GetGuid(comName).ClassName})]");
         sb.AppendAttributesIf(type, classAttr?.KeepAttributesOnGeneratedClass ?? false);
         sb.AppendLineIf(classAttr.PreClassString, !string.IsNullOrEmpty(classAttr.PreClassString));
-        sb.AppendLine($"\t{classAttr.ClassModifier.ToCSharpKeyword()} {(_config.GeneratePartial ? "partial " : "")}class {comName}{genericParams} : {baseTypeStr}{comInterfaceName}{genericParams} {genericConstraints}");
+        var modelType = _config.ModelType; // TODO: class attr cfg
+        sb.AppendLine($"\t{classAttr.ClassModifier.ToCSharpKeyword()} {(_config.GeneratePartial ? "partial " : "")}{modelType.ToCSharpKeyword()} {comName}{genericParams} : {baseTypeStr}{comInterfaceName}{genericParams} {genericConstraints}");
         sb.AppendLine("\t{");
         foreach (var prop in DtoGenerationSymbols.GetDtoProperties(type, _symbols.Ignore))
         {

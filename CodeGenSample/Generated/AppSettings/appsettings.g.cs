@@ -1,6 +1,6 @@
 namespace AppSettings
 {
-	public partial class ServerConfiguration
+	public partial record ServerConfiguration
 	{
 		public string ClientUrl { get; set; }
 		public CfgConnectionStrings ConnectionStrings { get; set; }
@@ -13,12 +13,12 @@ namespace AppSettings
 		public CfgBackupOptions BackupOptions { get; set; }
 	}
 
-	public partial class CfgBackupOptions
+	public partial record CfgBackupOptions
 	{
 		public string BucketName { get; set; }
 	}
 
-	public partial class CfgMailConfiguration
+	public partial record CfgMailConfiguration
 	{
 		public string SendGridApiKey { get; set; }
 		public string From { get; set; }
@@ -29,7 +29,7 @@ namespace AppSettings
 		public string DisplayName { get; set; }
 	}
 
-	public partial class CfgApiDocumentation
+	public partial record CfgApiDocumentation
 	{
 		public bool RequireLogin { get; set; }
 		public bool RequirePermission { get; set; }
@@ -39,27 +39,27 @@ namespace AppSettings
 		public CfgLicense License { get; set; }
 	}
 
-	public partial class CfgLicense
+	public partial record CfgLicense
 	{
 		public string Name { get; set; }
 		public string SpdxId { get; set; }
 		public string Url { get; set; }
 	}
 
-	public partial class CfgContact
+	public partial record CfgContact
 	{
 		public string Name { get; set; }
 		public string Email { get; set; }
 		public string Url { get; set; }
 	}
 
-	public partial class CfgCognitiveServices
+	public partial record CfgCognitiveServices
 	{
 		public CfgOpenAi OpenAi { get; set; }
 		public CfgTranslation Translation { get; set; }
 	}
 
-	public partial class CfgTranslation
+	public partial record CfgTranslation
 	{
 		public string Key { get; set; }
 		public string TextTranslationEndpoint { get; set; }
@@ -67,19 +67,19 @@ namespace AppSettings
 		public string Region { get; set; }
 	}
 
-	public partial class CfgOpenAi
+	public partial record CfgOpenAi
 	{
 		public string ApiKey { get; set; }
 		public string Model { get; set; }
 	}
 
-	public partial class CfgAppConfiguration
+	public partial record CfgAppConfiguration
 	{
 		public CfgIdHashing IdHashing { get; set; }
 		public string Secret { get; set; }
 	}
 
-	public partial class CfgIdHashing
+	public partial record CfgIdHashing
 	{
 		public bool Enabled { get; set; }
 		public int MinLength { get; set; }
@@ -87,7 +87,7 @@ namespace AppSettings
 		public string Salt { get; set; }
 	}
 
-	public partial class CfgPublicSettings
+	public partial record CfgPublicSettings
 	{
 		public bool AssistantAvailable { get; set; }
 		public string ContactAddress { get; set; }
@@ -96,14 +96,14 @@ namespace AppSettings
 		public CfgLoginSettings LoginSettings { get; set; }
 	}
 
-	public partial class CfgLoginSettings
+	public partial record CfgLoginSettings
 	{
 		public string LoginMode { get; set; }
 		public bool AllowLoginWithUsername { get; set; }
 		public List<string> AllowedEmails { get; set; }
 	}
 
-	public partial class CfgUserRegistration
+	public partial record CfgUserRegistration
 	{
 		public bool Enabled { get; set; }
 		public bool RequireAddress { get; set; }
@@ -117,7 +117,7 @@ namespace AppSettings
 		public List<string> AllowedEmails { get; set; }
 	}
 
-	public partial class CfgPasswordRules
+	public partial record CfgPasswordRules
 	{
 		public int MinLength { get; set; }
 		public bool CapitalLetterRequired { get; set; }
@@ -125,14 +125,14 @@ namespace AppSettings
 		public bool NumberRequired { get; set; }
 	}
 
-	public partial class CfgUsernameRules
+	public partial record CfgUsernameRules
 	{
 		public int MinLength { get; set; }
 		public bool UsernameCanChangedAfterRegistration { get; set; }
 		public bool EmailCanChangedAfterRegistration { get; set; }
 	}
 
-	public partial class CfgConnectionStrings
+	public partial record CfgConnectionStrings
 	{
 		public string DefaultConnection { get; set; }
 		public string Ollama { get; set; }

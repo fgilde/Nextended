@@ -1,6 +1,7 @@
 ﻿using System.Text;
 using Newtonsoft.Json.Linq;
 using Nextended.CodeGen.Config;
+using Nextended.CodeGen.Enums;
 using Nextended.CodeGen.Helper;
 
 namespace Nextended.CodeGen.Generators.StructureGeneration;
@@ -45,7 +46,7 @@ public static class JsonClassGenerator
             fields.Add($"\t\tpublic {propType} {propName} {{ get; set; }}");
         }
 
-        var classDef = $"\tpublic partial class {className}\n\t{{\n" + string.Join("\n", fields) + "\n\t}\n";
+        var classDef = $"\tpublic partial {config.ModelType.ToCSharpKeyword()} {className}\n\t{{\n" + string.Join("\n", fields) + "\n\t}\n";
         classDefs[className] = classDef;
     }
 

@@ -1,6 +1,6 @@
 ﻿namespace AppSettings;
 
-public partial class CfgPublicSettings
+public partial record CfgPublicSettings
 {
     public Dictionary<string, string> Endpoints { get; set; }
 

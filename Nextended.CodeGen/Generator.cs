@@ -10,6 +10,7 @@ using Nextended.CodeGen.Helper;
 [Generator]
 public class MainGenerator : ISourceGenerator
 {
+    private int i = 9;
     private bool attachDebugger = false;
     private bool generationEnabled = true;
     private DateTime LastGenerated = DateTime.MinValue;
@@ -72,7 +73,7 @@ public class MainGenerator : ISourceGenerator
         if (!executed)
         {
             var ctx = new GenerationContext(new NamespaceResolver("", context), context, null);
-            Execute(_generators.Where(e => !e.RequireConfig), ctx);
+            Execute(generators.Where(e => !e.RequireConfig), ctx);
         }
     }
 

@@ -7,10 +7,10 @@ using CodeGenSample;
 using CodeGenSample.Entities;
 
 using ENUMS;
-using MyGenerated.Code.Test;
-using MyGeneration;
 
- 
+using MyGeneration;
+using Nextended.CodeGen.Generated;
+
 
 //ComUserLevel ds;
 IMyUserDto c = MappingExtensions.ToMyDto(new User() {Name = "Herbert", Address = new Address() {City = "Bremen"}});

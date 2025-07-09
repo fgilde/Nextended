@@ -69,6 +69,7 @@
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" GeneratePathProperty="true" PrivateAssets="all" />
     <PackageReference Include="CsvHelper" Version="33.0.1" GeneratePathProperty="true" PrivateAssets="all" />
     <PackageReference Include="UTF.Unknown" Version="2.5.1" GeneratePathProperty="true" PrivateAssets="all" />
+    <PackageReference Include="ClosedXML" Version="0.105.0" />
   </ItemGroup>
 
 
@@ -86,6 +87,7 @@
   <Target Name="GetDependencyTargetPaths">
     <ItemGroup>
       <TargetPathWithTargetPlatformMoniker Include="$(PkgNewtonsoft_Json)\lib\netstandard2.0\*.dll" IncludeRuntimeDependency="false" />
+      <TargetPathWithTargetPlatformMoniker Include="$(PkgClosedXML)\lib\netstandard2.0\*.dll" IncludeRuntimeDependency="false" />
     </ItemGroup>
   </Target>
 
@@ -93,6 +95,7 @@
     <ItemGroup>
       <AnalyzerAssembly Include="$(PkgNextended_Core)\lib\netstandard2.0\Nextended.Core.dll" />
       <AnalyzerAssembly Include="$(PkgCsvHelper)\lib\netstandard2.0\CsvHelper.dll" />
+      <AnalyzerAssembly Include="$(PkgClosedXML)\lib\netstandard2.0\ClosedXML.dll" />
       <AnalyzerAssembly Include="$(PkgUTF_Unknown)\lib\netstandard2.0\UTF.Unknown.dll" />
       <AnalyzerAssembly Include="$(PkgMicrosoft_Bcl_AsyncInterfaces)\lib\netstandard2.0\Microsoft.Bcl.AsyncInterfaces.dll" />
     </ItemGroup>

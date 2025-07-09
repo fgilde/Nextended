@@ -29,4 +29,10 @@ internal static class StringExtensions
 
         return string.Join("", parts);
     }
+
+    public static string EscapeForCSharp(this string str) =>
+        str.Replace("\\", "\\\\")
+            .Replace("\"", "\\\"")
+            .Replace("\r", "\\r")
+            .Replace("\n", "\\n");
 }
