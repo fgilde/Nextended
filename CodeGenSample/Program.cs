@@ -1,15 +1,9 @@
 ﻿// See https://aka.ms/new-console-template for more information
 
-using System.Text.Json;
-using System.Text.Json.Serialization;
 using AppSettings;
-using CodeGenSample;
 using CodeGenSample.Entities;
-
-using ENUMS;
-
+using MyGenerated.Code.Test;
 using MyGeneration;
-using Nextended.CodeGen.Generated;
 
 
 //ComUserLevel ds;

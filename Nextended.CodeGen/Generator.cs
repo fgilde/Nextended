@@ -58,8 +58,8 @@ public class MainGenerator : ISourceGenerator
                 var json = configFile.GetText()?.ToString();
                 var config = JsonConvert.DeserializeObject<MainConfig>(json);
                 var ctx = new GenerationContext(configFile, context, config);
-                Execute(generators, ctx);
-                executed = true;
+                if(Execute(generators, ctx))
+                    executed = true;
                 foreach (var sourceSubGenerator in _generators.Where(g => !g.RequireConfig))
                     generators.Remove(sourceSubGenerator); // remove generators that do not require a config, so they are not executed again
 
@@ -77,10 +77,21 @@ public class MainGenerator : ISourceGenerator
         }
     }
 
-    private void Execute(IEnumerable<ISourceSubGenerator> generators, GenerationContext context)
+    private bool Execute(IEnumerable<ISourceSubGenerator> generators, GenerationContext context)
     {
-        var generatedFiles = Task.WhenAll(generators.Select(g => Task.Run(() => g.Execute(context)))).Result.SelectMany(f => f);
+        var generatedFiles = new List<GeneratedFile>();
+        foreach (var sourceSubGenerator in generators)
+        {
+            try
+            {
+                generatedFiles.AddRange(sourceSubGenerator.Execute(context));
+            }
+            catch (Exception e)
+            { }
+        }
+       // var generatedFiles = Task.WhenAll(generators.Select(g => Task.Run(() => g.Execute(context)))).Result.SelectMany(f => f).ToList();
         WriteOrAddFiles(context, generatedFiles);
+        return generatedFiles.Any();
     }
 
     private void WriteOrAddFiles(GenerationContext context, IEnumerable<GeneratedFile> generatedFiles)

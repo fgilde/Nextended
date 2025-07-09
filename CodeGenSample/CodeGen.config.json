@@ -2,7 +2,7 @@
   "DtoGeneration": {
     // Notice:: The whole DtoGeneration section is optional and can also be overridden if set on the Attributes.
     "ComIdClassName": "ComGuids",
-    "ModelType": "Record",
+    "ModelType": "Class",
     "ComIdClassPropertyFormat": "Id{0}",
     "ComIdClassModifier": "Public",
     "BaseType": null,
@@ -21,8 +21,8 @@
     "GeneratePartial": true,
     "Namespace": "MyGenerated.Code.Test",
     "Suffix": "Wanda",
-    "Prefix": null
-    //"OutputPath": "./Generated/Dtos/" // Output path for the generated files, if its null or unset the files will added to generation source
+    "Prefix": null,
+    "OutputPath": "./Generated/Dtos/" // Output path for the generated files, if its null or unset the files will added to generation source
   },
   "StructureGenerations": [
     {
