@@ -152,4 +152,13 @@ Sample of a configuration file:
 }
 ```
 
+To use this package, you need to add the `Nextended.CodeGen` package to your project and additionally for using the attributes you need to add `Nextended.Core` as well.
+
+```xml
+  <ItemGroup>
+    <PackageReference Include="Nextended.Core" Version="9.0.15" PrivateAssets="all" GeneratePathProperty="true" />    
+    <PackageReference Include="Nextended.CodeGen" Version="9.0.15"  />    
+  </ItemGroup>
+```
+
 Please have a look at this sample project to see how to use the code generation features: [Nextended.CodeGen.Sample](https://github.com/fgilde/Nextended/tree/main/CodeGenSample)
