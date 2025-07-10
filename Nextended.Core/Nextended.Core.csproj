@@ -16,7 +16,7 @@
     <Title>Nextended.Core</Title>
       <PackageLicenseExpression>GPL-3.0-or-later</PackageLicenseExpression>
     <PackageId>Nextended.Core</PackageId>
-    <PackageVersion>9.0.15</PackageVersion>
+    <PackageVersion>9.0.17</PackageVersion>
     <Authors>fgilde</Authors>
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
     <RepositoryType>Git</RepositoryType>
@@ -113,7 +113,6 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <Folder Include="Enums\" />
     <Folder Include="Scopes\" />
   </ItemGroup>
   <ItemGroup>

@@ -6,6 +6,7 @@ using Nextended.CodeGen.Helper;
 using Nextended.CodeGen.Config;
 using System.Text;
 using System.Xml.Linq;
+using Nextended.Core.Enums;
 
 namespace Nextended.CodeGen.Generators.StructureGeneration;
 
@@ -59,9 +60,13 @@ public static class XmlClassGenerator
             bool isList = group.Count() > 1;
             string typeName = config.Prefix + propName + config.Suffix;
 
+            string arrayType = config.ArrayGeneration == JsonArrayGeneration.Array 
+                ? $"{typeName}[]"
+                : $"System.Collections.Generic.List<{typeName}>";
+            
             BuildClass(group.First(), typeName, config, classDefs, fullPath);
             fields.Add(isList
-                ? $"    public List<{typeName}> {propName} {{ get; set; }}"
+                ? $"    public {arrayType} {propName} {{ get; set; }}"
                 : $"    public {typeName} {propName} {{ get; set; }}");
         }
 

@@ -69,10 +69,7 @@ public static class JsonClassGenerator
 
             case JTokenType.Array:
                 var array = token as JArray;
-                if (array.Count > 0)
-                    return $"List<{GetCSharpType(array[0], propName, config, classDefs, currentPath)}>";
-                else
-                    return "List<object>";
+                return ArrayType(propName, config, classDefs, currentPath, array);
 
             case JTokenType.Integer:
                 return "int";
@@ -105,6 +102,21 @@ public static class JsonClassGenerator
             default:
                 return "object";
         }
+    }
+
+    private static string ArrayType(string propName, ClassStructureCodeGenerationConfig config, Dictionary<string, string> classDefs,
+        string currentPath, JArray array)
+    {
+        if (config.ArrayGeneration == JsonArrayGeneration.Array)
+        {
+            return array.Count > 0
+                ? $"{GetCSharpType(array[0], propName, config, classDefs, currentPath)}[]"
+                : "object[]";
+        }
+
+        return array.Count > 0 
+            ? $"System.Collections.Generic.List<{GetCSharpType(array[0], propName, config, classDefs, currentPath)}>" 
+            : "System.Collections.Generic.List<object>";
     }
 
     private static bool ShouldIgnore(string path, string[] ignoreList)
