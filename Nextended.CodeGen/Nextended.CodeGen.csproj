@@ -22,11 +22,11 @@
     <Authors>fgilde</Authors>
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
     <RepositoryType>Git</RepositoryType>
-    <RepositoryUrl>https://github.com/fgilde/Nextended</RepositoryUrl>
-    <Description>TODO: </Description>
+    <RepositoryUrl>https://github.com/fgilde/Nextended/tree/main/Nextended.CodeGen</RepositoryUrl>
+    <Description>With this package you can generate DTOs, Interfaces and other code from different sources like json, xml, excel or other classes </Description>
     <Copyright>Copyright © $(Authors) 2020-$([System.DateTime]::Now.Year)</Copyright>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <PackageTags>Source Generation, TODO</PackageTags>
+    <PackageTags>Source Generation, Excel to code, Paste Json as classes code gen, Auto Dto Generation</PackageTags>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageIcon>icon.png</PackageIcon>
   </PropertyGroup>
