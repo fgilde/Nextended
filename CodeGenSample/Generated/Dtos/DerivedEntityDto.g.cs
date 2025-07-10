@@ -1,5 +1,5 @@
 /// <summary>
-/// --- AUTO GENERATED CODE (10.07.2025 10:15:04) ---
+/// --- AUTO GENERATED CODE (10.07.2025 10:24:08) ---
 /// --- DerivedEntityDto.g.cs ---
 /// </summary>
 
