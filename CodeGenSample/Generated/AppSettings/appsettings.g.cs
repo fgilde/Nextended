@@ -1,3 +1,8 @@
+/// <summary>
+/// --- AUTO GENERATED CODE (10.07.2025 09:27:00) ---
+/// --- ServerConfiguration ---
+/// </summary>
+
 namespace AppSettings
 {
 	public partial record ServerConfiguration
