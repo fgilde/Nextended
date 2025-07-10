@@ -168,7 +168,8 @@ public class DtoCodeGenerator
         var ns = Namespace(null);
         var sb = new StringBuilder();
         var generatedBaseTypes = new HashSet<string>();
-        
+        if (types == null || !types.Any())
+            return null;
         using (new ClassScope(sb, "MappingExtensions", ns))
         {
             var dtoTypeDict = types.ToDictionary(t => t.ToDisplayString(), t => t);

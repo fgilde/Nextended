@@ -56,7 +56,7 @@ public class MainGenerator : ISourceGenerator
         var additionalFiles = context.AdditionalFiles;
         new DtoGenerator(new DtoGenerationConfig()).Execute(context);
 
-        foreach (var configFile in additionalFiles)
+        foreach (var configFile in additionalFiles.Where(text => text?.Path?.ToLower()?.EndsWith(".json") == true))
         {
             Console.WriteLine("Nextended.CodeGen generate for " + configFile.Path);
 
@@ -73,7 +73,7 @@ public class MainGenerator : ISourceGenerator
             }
             catch (Exception e)
             {
-                context.ReportDiagnostic(Diagnostic.Create(new DiagnosticDescriptor("NCG002", "Warning", $"Could not proceed configuration {configFile.Path}", "Nextended.CodeGen", DiagnosticSeverity.Warning, true), Location.None));
+                //context.ReportDiagnostic(Diagnostic.Create(new DiagnosticDescriptor("NCG002", "Warning", $"Could not proceed configuration {configFile.Path}", "Nextended.CodeGen", DiagnosticSeverity.Warning, true), Location.None));
             }
         }
 
@@ -105,7 +105,7 @@ public class MainGenerator : ISourceGenerator
 
     private void WriteOrAddFiles(GenerationContext context, IEnumerable<GeneratedFile> generatedFiles)
     {
-        foreach (var generatedFile in generatedFiles)
+        foreach (var generatedFile in generatedFiles.Where(f => f != null))
         {
             Console.WriteLine("Nextended.CodeGen save generated file: "+ generatedFile.FileName);
 
