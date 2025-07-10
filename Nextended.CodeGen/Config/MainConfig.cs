@@ -1,4 +1,6 @@
-﻿namespace Nextended.CodeGen.Config;
+﻿using System.Collections.Generic;
+
+namespace Nextended.CodeGen.Config;
 
 public class MainConfig
 {

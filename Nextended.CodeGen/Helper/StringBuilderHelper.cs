@@ -1,6 +1,10 @@
-﻿using System.Text;
+﻿using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Text;
 using Microsoft.CodeAnalysis;
-using Nextended.CodeGen.Attributes;
+using Nextended.Core.Attributes;
 using Nextended.CodeGen.Generators.DtoGeneration;
 
 namespace Nextended.CodeGen.Helper;

@@ -1,4 +1,6 @@
-﻿namespace Nextended.CodeGen.Enums;
+﻿using System;
+
+namespace Nextended.Core.Enums;
 
 public enum Modifier
 {
@@ -9,7 +11,7 @@ public enum Modifier
     Internal,
 }
 
-internal static class ModifierExtensions
+public static class ModifierExtensions
 {
     public static string ToCSharpKeyword(this Modifier? modifier)
     {

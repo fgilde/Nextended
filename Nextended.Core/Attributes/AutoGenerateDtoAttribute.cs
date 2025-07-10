@@ -1,6 +1,7 @@
-﻿using Nextended.CodeGen.Enums;
+﻿using System;
+using Nextended.Core.Enums;
 
-namespace Nextended.CodeGen.Attributes
+namespace Nextended.Core.Attributes
 {
     /// <summary>
     /// Attribute to automatically generate a COM interface and a COM class for the class or enum it is applied to.

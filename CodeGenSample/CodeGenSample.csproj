@@ -10,7 +10,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Nextended.CodeGen\Nextended.CodeGen.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="true" />
+    <PackageReference Include="Nextended.Core" Version="9.0.15" PrivateAssets="all" GeneratePathProperty="true" />
+    <!--<ProjectReference Include="..\Nextended.CodeGen\Nextended.CodeGen.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="true" />-->
+    <PackageReference Include="Nextended.CodeGen" Version="0.0.18"  />    
   </ItemGroup>
 
   <ItemGroup>
@@ -24,8 +26,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Generated\Dtos\" />
-    <Folder Include="Generated\Excel\" />
+    <Folder Include="Generated\AppSettings\" />
   </ItemGroup>
 
 </Project>

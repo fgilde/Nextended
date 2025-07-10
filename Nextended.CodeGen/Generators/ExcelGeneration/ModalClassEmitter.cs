@@ -1,8 +1,12 @@
-﻿using Nextended.CodeGen.Config;
+﻿using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using Nextended.CodeGen.Config;
 using System.Text;
 using ClosedXML.Excel;
-using Nextended.CodeGen.Enums;
 using Nextended.CodeGen.Helper;
+using Nextended.Core.Enums;
 
 namespace Nextended.CodeGen.Generators.ExcelGeneration;
 

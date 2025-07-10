@@ -1,5 +1,5 @@
-﻿using Nextended.CodeGen.Attributes;
-using Nextended.CodeGen.Enums;
+﻿using Nextended.Core.Attributes;
+using Nextended.Core.Enums;
 
 namespace CodeGenSample.Entities;
 

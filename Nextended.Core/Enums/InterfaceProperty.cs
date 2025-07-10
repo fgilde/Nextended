@@ -1,4 +1,4 @@
-﻿namespace Nextended.CodeGen.Enums;
+﻿namespace Nextended.Core.Enums;
 
 public enum InterfaceProperty
 {
@@ -8,7 +8,7 @@ public enum InterfaceProperty
     Set,
 }
 
-internal static class InterfacePropertyExtensions
+public static class InterfacePropertyExtensions
 {
     public static string ToCSharpKeyword(this InterfaceProperty property)
     {

@@ -1,4 +1,8 @@
-﻿using Microsoft.CodeAnalysis;
+﻿using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using Microsoft.CodeAnalysis;
 using Newtonsoft.Json;
 using Nextended.CodeGen;
 using Nextended.CodeGen.Config;
@@ -19,6 +23,7 @@ public class MainGenerator : ISourceGenerator
 
     public void Initialize(GeneratorInitializationContext context)
     {
+        Console.WriteLine("Nextended.CodeGen Initialize");
         _generators = GetType().Assembly.GetTypes().Where(t => typeof(ISourceSubGenerator).IsAssignableFrom(t) && !t.IsAbstract)
             .Select(t => (ISourceSubGenerator)Activator.CreateInstance(t))
             .ToList();
@@ -35,8 +40,8 @@ public class MainGenerator : ISourceGenerator
 
         if (!context.AdditionalFiles.Any())
         {
+            Console.WriteLine("Nextended.CodeGen didnt find an config file");
             context.ReportDiagnostic(Diagnostic.Create(new DiagnosticDescriptor("NCG001", "Info", "Did not find additional files", "Nextended.CodeGen", DiagnosticSeverity.Info, true), Location.None));
-            return;
         }
 
         ExecuteGeneration(context);
@@ -53,6 +58,8 @@ public class MainGenerator : ISourceGenerator
 
         foreach (var configFile in additionalFiles)
         {
+            Console.WriteLine("Nextended.CodeGen generate for " + configFile.Path);
+
             try
             {
                 var json = configFile.GetText()?.ToString();
@@ -87,7 +94,9 @@ public class MainGenerator : ISourceGenerator
                 generatedFiles.AddRange(sourceSubGenerator.Execute(context));
             }
             catch (Exception e)
-            { }
+            {
+                Console.WriteLine("Nextended.CodeGen ERROR: "+ e.Message);
+            }
         }
        // var generatedFiles = Task.WhenAll(generators.Select(g => Task.Run(() => g.Execute(context)))).Result.SelectMany(f => f).ToList();
         WriteOrAddFiles(context, generatedFiles);
@@ -98,7 +107,9 @@ public class MainGenerator : ISourceGenerator
     {
         foreach (var generatedFile in generatedFiles)
         {
-            if(string.IsNullOrWhiteSpace(generatedFile.OutputPath))
+            Console.WriteLine("Nextended.CodeGen save generated file: "+ generatedFile.FileName);
+
+            if (string.IsNullOrWhiteSpace(generatedFile.OutputPath))
                 context.ExecutionContext.AddSource(generatedFile.FileName, generatedFile.Content);
             else
             {

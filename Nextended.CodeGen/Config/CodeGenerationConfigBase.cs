@@ -1,4 +1,4 @@
-﻿using Nextended.CodeGen.Enums;
+﻿using Nextended.Core.Enums;
 
 namespace Nextended.CodeGen.Config;
 

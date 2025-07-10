@@ -38,7 +38,7 @@
     }
   ],
   "ExcelGenerations": [
-    {
+    { 
       "ModelType": "RecordStruct",
       "SourceFile": "/Sources/scac_codes.xlsx",
       "SheetName": null,

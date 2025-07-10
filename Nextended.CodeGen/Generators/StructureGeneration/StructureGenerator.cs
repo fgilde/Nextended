@@ -1,4 +1,8 @@
-﻿using Nextended.CodeGen.Config;
+﻿using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using Nextended.CodeGen.Config;
 using Nextended.CodeGen.Contracts;
 using Nextended.CodeGen.Helper;
 

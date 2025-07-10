@@ -17,7 +17,6 @@ ServerConfiguration sc = new();
 //ServerConfiguration configFromJson = JsonSerializer.Deserialize<ServerConfiguration>(readAllText);
 
 
-
 c.ThatUserAddress = new AddressDto() {City = "HH"};
 
 //var x = c.ThatUserAddress.YG;

@@ -13,11 +13,19 @@ namespace Nextended.Core.Tests;
 [TestClass]
 public class OtherTests
 {
-
+    [TestMethod]
+    public void StringEnsureTest()
+    {
+        var s1 = "Hallo World!".EnsureEndsWith("!").EnsureStartsWith("H");
+        var s2 = "allo World".EnsureEndsWith("!").EnsureStartsWith("H");
+        Assert.AreEqual(s1, s2);
+    }
 
     [TestMethod]
     public void AllOfTest()
     {
+        
+
         var p = new ProductDto()
         {
             Barcode = "123",

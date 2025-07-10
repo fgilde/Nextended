@@ -1,8 +1,12 @@
-﻿using System.Text;
+﻿using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Text;
 using Newtonsoft.Json.Linq;
 using Nextended.CodeGen.Config;
-using Nextended.CodeGen.Enums;
 using Nextended.CodeGen.Helper;
+using Nextended.Core.Enums;
 
 namespace Nextended.CodeGen.Generators.StructureGeneration;
 

@@ -1,6 +1,7 @@
-﻿using Nextended.CodeGen.Enums;
+﻿using System;
+using Nextended.Core.Enums;
 
-namespace Nextended.CodeGen.Attributes;
+namespace Nextended.Core.Attributes;
 
 /// <summary>
 /// Can be applied to a property or field of a class that uses the AutoGenerateComAttribute

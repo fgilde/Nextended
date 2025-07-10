@@ -1,4 +1,6 @@
-﻿namespace Nextended.CodeGen.Enums;
+﻿using System;
+
+namespace Nextended.Core.Enums;
 
 public enum GeneratedModelType
 {
@@ -9,7 +11,7 @@ public enum GeneratedModelType
     RecordStruct
 }
 
-internal static class GeneratedModelTypeExtensions
+public static class GeneratedModelTypeExtensions
 {
     public static string ToCSharpKeyword(this GeneratedModelType? modifier)
     {

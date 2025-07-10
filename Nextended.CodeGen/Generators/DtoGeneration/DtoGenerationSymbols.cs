@@ -1,5 +1,9 @@
-﻿using Microsoft.CodeAnalysis;
-using Nextended.CodeGen.Attributes;
+﻿using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using Microsoft.CodeAnalysis;
+using Nextended.Core.Attributes;
 using Nextended.CodeGen.Config;
 using Nextended.CodeGen.Helper;
 

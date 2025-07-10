@@ -1,5 +1,5 @@
 ﻿using CodeGenSample.Entities.Base;
-using Nextended.CodeGen.Attributes;
+using Nextended.Core.Attributes;
 
 namespace CodeGenSample.Entities;
 

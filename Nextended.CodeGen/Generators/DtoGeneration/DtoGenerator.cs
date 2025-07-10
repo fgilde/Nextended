@@ -1,4 +1,8 @@
-﻿using Microsoft.CodeAnalysis;
+﻿using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using Microsoft.CodeAnalysis;
 using Newtonsoft.Json;
 using Nextended.CodeGen.Config;
 using Nextended.CodeGen.Contracts;
