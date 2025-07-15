@@ -10,6 +10,7 @@ using Microsoft.Net.Http.Headers;
 
 namespace Nextended.Web.Extensions
 {
+
     public static class ControllerExtensions
     {
         /// <summary>
