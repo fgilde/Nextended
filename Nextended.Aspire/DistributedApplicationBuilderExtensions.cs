@@ -9,6 +9,20 @@ namespace Nextended.Aspire;
 /// </summary>
 public static partial class DistributedApplicationBuilderExtensions
 {
+    public static IResourceBuilder<ProjectResource> AddProjectWithAutoNaming<TProject>(this IDistributedApplicationBuilder builder,
+        [ResourceName] string? name = null, string? launchProfileName = null) where TProject : IProjectMetadata, new()
+    {
+        if (string.IsNullOrEmpty(name) || string.IsNullOrEmpty(launchProfileName))
+        {
+            var projectName = ProjectName<TProject>();
+            name ??= projectName.Replace(".", "-").ToLower();
+            launchProfileName ??= projectName;
+        }
+        return builder.AddProject<TProject>(name, launchProfileName);
+    }
+
+    private static string ProjectName<TProject>() where TProject : IProjectMetadata, new() => new TProject().ProjectName();
+    private static string ProjectName(this IProjectMetadata project) => Path.GetFileNameWithoutExtension(project.ProjectPath);
 
     public static IResourceBuilder<T> WaitForIf<T>(this IResourceBuilder<T> builder, IResourceBuilder<IResource>? dependency) where T : IResourceWithWaitSupport
     {
