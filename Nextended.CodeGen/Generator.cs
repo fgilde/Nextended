@@ -18,7 +18,7 @@ public class MainGenerator : ISourceGenerator
     private bool attachDebugger = false;
     private bool generationEnabled = true;
     private DateTime LastGenerated = DateTime.MinValue;
-
+    private bool allowWithoutConfig = false;
     private List<ISourceSubGenerator> _generators;
 
     public void Initialize(GeneratorInitializationContext context)
@@ -42,6 +42,8 @@ public class MainGenerator : ISourceGenerator
         {
             Console.WriteLine("Nextended.CodeGen didnt find an config file");
             context.ReportDiagnostic(Diagnostic.Create(new DiagnosticDescriptor("NCG001", "Info", "Did not find additional files", "Nextended.CodeGen", DiagnosticSeverity.Info, true), Location.None));
+            if(!allowWithoutConfig)
+                return;
         }
 
         ExecuteGeneration(context);
