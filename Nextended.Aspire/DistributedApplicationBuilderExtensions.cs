@@ -1,5 +1,6 @@
 ﻿using Aspire.Hosting;
 using System.Runtime.CompilerServices;
+using System.Text.RegularExpressions;
 
 namespace Nextended.Aspire;
 
@@ -9,16 +10,46 @@ namespace Nextended.Aspire;
 /// </summary>
 public static partial class DistributedApplicationBuilderExtensions
 {
-    public static IResourceBuilder<ProjectResource> AddProjectWithAutoNaming<TProject>(this IDistributedApplicationBuilder builder,
-        [ResourceName] string? name = null, string? launchProfileName = null) where TProject : IProjectMetadata, new()
+    [GeneratedRegex("(?=[A-Z]+)")]
+    private static partial Regex PascalCaseRegex();
+
+    [GeneratedRegex("[^a-zA-Z0-9-]")]
+    private static partial Regex SpecialCharsRegex();
+
+    [GeneratedRegex("(?<=-)-+")]
+    private static partial Regex MultipleDashRegex();
+
+    public static IResourceBuilder<ProjectResource> AddProjectWithAutoNaming<TProject>(
+        this IDistributedApplicationBuilder builder,
+        [ResourceName] string? name = null,
+        string? launchProfileName = null
+    ) where TProject : IProjectMetadata, new()
     {
         if (string.IsNullOrEmpty(name) || string.IsNullOrEmpty(launchProfileName))
         {
-            var projectName = ProjectName<TProject>();
-            name ??= projectName.Replace(".", "-").ToLower();
+            string projectName = ProjectName<TProject>();
+            name ??= EscapeProjectname(projectName);
             launchProfileName ??= projectName;
         }
+
         return builder.AddProject<TProject>(name, launchProfileName);
+    }
+
+    private static string EscapeProjectname(string projectName)
+    {
+        var name = PascalCaseRegex()
+            .Replace(projectName, "-");
+
+        name = SpecialCharsRegex()
+            .Replace(name, "-");
+
+        name = MultipleDashRegex()
+            .Replace(name, "");
+
+        name = name.ToLowerInvariant()
+            .Trim('-');
+
+        return name;
     }
 
     private static string ProjectName<TProject>() where TProject : IProjectMetadata, new() => new TProject().ProjectName();

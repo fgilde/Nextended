@@ -12,7 +12,7 @@
     <Title>Nextended.Aspire</Title>
     <PackageLicenseExpression>GPL-3.0-or-later</PackageLicenseExpression>
     <PackageId>Nextended.Aspire</PackageId>
-    <PackageVersion>9.0.15</PackageVersion>
+    <PackageVersion>9.0.16</PackageVersion>
     <Authors>fgilde</Authors>
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
     <RepositoryType>Git</RepositoryType>
@@ -27,7 +27,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Aspire.Hosting.AppHost" Version="9.3.1" />
+    <PackageReference Include="Aspire.Hosting.AppHost" Version="9.4.0" />
   </ItemGroup>
 
   <ItemGroup>

@@ -1,5 +1,5 @@
 /// <summary>
-/// --- AUTO GENERATED CODE (17.07.2025 09:59:55) ---
+/// --- AUTO GENERATED CODE (11.08.2025 09:52:31) ---
 /// --- AddressDto.g.cs ---
 /// </summary>
 
