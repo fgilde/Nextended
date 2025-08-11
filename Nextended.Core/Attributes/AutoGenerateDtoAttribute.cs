@@ -80,8 +80,8 @@ namespace Nextended.Core.Attributes
         public InterfaceProperty DefaultPropertyInterfaceAccess { get; set; }
 
 
-        public bool? AddReferencedNamespacesUsings { get; set; }
-        public bool? AddContainingNamespaceUsings { get; set; }
+        public bool AddReferencedNamespacesUsings { get; set; }
+        public bool AddContainingNamespaceUsings { get; set; }
 
 
         /// <summary>

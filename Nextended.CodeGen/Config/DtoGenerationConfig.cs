@@ -74,4 +74,5 @@ public class DtoGenerationConfig: CodeGenerationConfigBase
     public bool CreateRegions { get; set; } = true;
     public bool CreateComments { get; set; } = true;
     public bool GeneratePartial { get; set; } = true;
+    public string? MappingOutputPath { get; set; }
 }

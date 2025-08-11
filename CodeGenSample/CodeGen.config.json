@@ -22,7 +22,8 @@
     "Namespace": "MyGenerated.Code.Test",
     "Suffix": "Wanda",
     "Prefix": null,
-    "OutputPath": "./Generated/Dtos/" // Output path for the generated files, if its null or unset the files will added to generation source
+    "OutputPath": "./Generated/Dtos/", // Output path for the generated files, if its null or unset the files will added to generation source
+    "MappingOutputPath": "./Generated/Extensions/" // Output path for the generated mapping files, if its null or unset the files will added to generation source
   },
   "StructureGenerations": [
     {

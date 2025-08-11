@@ -259,7 +259,8 @@ internal static class RoslynHelper
         var res = symbol.GetAttributeInstance<GenerationPropertySettingAttribute>(symbols.PropertySetting);
         if (res != null)
         {
-            res.MapWithClassMapper ??= symbols.Config.DefaultMappingSettings?.MapWithClassMapper;
+            // TODO: Unset and then use config defaults
+            //res.MapWithClassMapper ??= symbols.Config.DefaultMappingSettings?.MapWithClassMapper;
         }
 
         return res;
@@ -277,8 +278,8 @@ internal static class RoslynHelper
         res.Namespace ??= cfg.Namespace;
         res.Suffix ??= cfg.Suffix;
         res.Prefix ??= cfg.Prefix;
-        res.AddReferencedNamespacesUsings ??= cfg.AddReferencedNamespacesUsings;
-        res.AddContainingNamespaceUsings ??= cfg.AddContainingNamespaceUsings;
+        //res.AddReferencedNamespacesUsings ??= cfg.AddReferencedNamespacesUsings;
+        //res.AddContainingNamespaceUsings ??= cfg.AddContainingNamespaceUsings;
         //res.KeepAttributesOnGeneratedClass ??= cfg.KeepAttributesOnGeneratedClass;
         //res.KeepAttributesOnGeneratedInterface ??= cfg.KeepAttributesOnGeneratedInterface;
         res.Interfaces ??= cfg.Interfaces;

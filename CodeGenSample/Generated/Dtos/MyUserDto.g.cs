@@ -1,9 +1,10 @@
 /// <summary>
-/// --- AUTO GENERATED CODE (11.08.2025 09:52:31) ---
+/// --- AUTO GENERATED CODE (11.08.2025 16:27:12) ---
 /// --- MyUserDto.g.cs ---
 /// </summary>
 
 using System;
+using CodeGenSample.Entities;
 namespace MyGenerated.Code.Test {
 	#region Dto class for User
 

@@ -1,5 +1,5 @@
 /// <summary>
-/// --- AUTO GENERATED CODE (11.08.2025 09:52:31) ---
+/// --- AUTO GENERATED CODE (11.08.2025 16:27:12) ---
 /// --- ServerConfiguration ---
 /// </summary>
 
@@ -105,7 +105,7 @@ namespace AppSettings
 	{
 		public string LoginMode { get; set; }
 		public bool AllowLoginWithUsername { get; set; }
-		public List<string> AllowedEmails { get; set; }
+		public System.Collections.Generic.List<string> AllowedEmails { get; set; }
 	}
 
 	public partial record CfgUserRegistration
@@ -118,8 +118,8 @@ namespace AppSettings
 		public CfgPasswordRules PasswordRules { get; set; }
 		public bool RequireDocuments { get; set; }
 		public int RegistrationDocumentsMaxFileSize { get; set; }
-		public List<string> RegistrationDocumentTypes { get; set; }
-		public List<string> AllowedEmails { get; set; }
+		public System.Collections.Generic.List<string> RegistrationDocumentTypes { get; set; }
+		public System.Collections.Generic.List<string> AllowedEmails { get; set; }
 	}
 
 	public partial record CfgPasswordRules

@@ -20,7 +20,7 @@ public class GenerationPropertySettingAttribute : Attribute
     /// If this property is set to true, the property will use the class mapper
     /// when automatic .NET mapping is generated for the class.
     /// </summary>
-    public bool? MapWithClassMapper { get; set; }
+    public bool MapWithClassMapper { get; set; }
 
     public InterfaceProperty InterfaceAccess { get; set; }
 

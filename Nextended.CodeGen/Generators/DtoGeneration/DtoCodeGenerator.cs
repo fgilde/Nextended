@@ -91,7 +91,7 @@ public class DtoCodeGenerator
         sb.CloseRegion(regionName, _config.CreateRegions);
     }
 
-    private string GeneratePropertyMappingAssignment(IPropertySymbol prop, Dictionary<string, INamedTypeSymbol> dtoTypeDict, bool reverse)
+    private (string Result, bool ClassMapperUsed) GeneratePropertyMappingAssignment(IPropertySymbol prop, Dictionary<string, INamedTypeSymbol> dtoTypeDict, bool reverse)
     {
         var propAttr = prop.PropertyCfg(_symbols);
 
@@ -107,12 +107,24 @@ public class DtoCodeGenerator
         {
             if (typeSymbol is INamedTypeSymbol nts)
             {
+                // Für DTO-Ziel (forward mapping) -> Namespace aus dem AutoGen-Attribut verwenden
                 var autoGenAttr = nts.ClassCfg(_symbols);
-                return !reverseDir
-                    ? $"{DtoGenerationSymbols.GetDtoClassName(nts, autoGenAttr, false)}{DtoGenerationSymbols.GetGenericTypeParameters(nts)}"
-                    : nts.ToDisplayString(); // enthält generics schon
+
+                if (!reverseDir)
+                {
+                    // Ziel ist DTO
+                    var dtoName = DtoGenerationSymbols.GetDtoClassName(nts, autoGenAttr, /*withSuffix?*/ false);
+                    var dtoNs = string.IsNullOrWhiteSpace(autoGenAttr?.Namespace) ? string.Empty : autoGenAttr.Namespace + ".";
+                    var generics = DtoGenerationSymbols.GetGenericTypeParameters(nts);
+                    return $"{dtoNs}{dtoName}{generics}";
+                }
+
+                // Reverse: Ziel ist das "Netto"-Modell -> vollqualifiziert (inkl. global::)
+                return nts.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
             }
-            return typeSymbol.ToDisplayString();
+
+            // Fallback immer vollqualifiziert
+            return typeSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
         }
 
         if (DtoGenerationSymbols.IsDtoEnumType(netPropType, dtoTypeDict))
@@ -124,18 +136,18 @@ public class DtoCodeGenerator
             if (!targetAttr.GenerateMapping || (propAttr?.MapWithClassMapper ?? false))
             {
                 var targetTypeString = GetTargetType(targetClass, reverse);
-                return prop.IsNullable()
+                return (prop.IsNullable()
                     ? $"\t\t\tresult.{targetName} = src.{sourceName}?.MapTo<{targetTypeString}>();"
-                    : $"\t\t\tresult.{targetName} = src.{sourceName}.MapTo<{targetTypeString}>();";
+                    : $"\t\t\tresult.{targetName} = src.{sourceName}.MapTo<{targetTypeString}>();", true);
             }
 
             var enumToComMethod = !reverse
                 ? DtoGenerationSymbols.GetToDtoMethodName(targetClass, targetAttr)
                 : DtoGenerationSymbols.GetToSourceMethodName(targetClass, targetAttr);
 
-            return prop.IsNullable()
+            return (prop.IsNullable()
                 ? $"\t\t\tresult.{targetName} = src.{sourceName}?.{enumToComMethod}();"
-                : $"\t\t\tresult.{targetName} = src.{sourceName}.{enumToComMethod}();";
+                : $"\t\t\tresult.{targetName} = src.{sourceName}.{enumToComMethod}();", false);
         }
 
         if (DtoGenerationSymbols.IsDtoType(netPropType, dtoTypeDict))
@@ -147,24 +159,26 @@ public class DtoCodeGenerator
             if (!targetAttr.GenerateMapping || (propAttr?.MapWithClassMapper ?? false))
             {
                 var targetTypeString = GetTargetType(targetClass, reverse);
-                return prop.IsNullable()
+                return (prop.IsNullable()
                     ? $"\t\t\tresult.{targetName} = src.{sourceName}?.MapTo<{targetTypeString}>();"
-                    : $"\t\t\tresult.{targetName} = src.{sourceName}.MapTo<{targetTypeString}>();";
+                    : $"\t\t\tresult.{targetName} = src.{sourceName}.MapTo<{targetTypeString}>();", true);
             }
 
             var propToComMethod = !reverse
                 ? DtoGenerationSymbols.GetToDtoMethodName(targetClass, targetAttr)
                 : DtoGenerationSymbols.GetToSourceMethodName(targetClass, targetAttr);
 
-            return $"\t\t\tresult.{targetName} = src.{sourceName}?.{propToComMethod}();";
+            return ($"\t\t\tresult.{targetName} = src.{sourceName}?.{propToComMethod}();", false);
         }
-        return $"\t\t\tresult.{targetName} = src.{sourceName};";
+        return ($"\t\t\tresult.{targetName} = src.{sourceName};", false);
     }
 
   
 
     public GeneratedFile? GenerateMappingExtensions(List<INamedTypeSymbol> types)
     {
+        bool atLeastOneGenerated = false;
+        bool classMapperUsed = false;
         var ns = Namespace(null);
         var sb = new StringBuilder();
         var generatedBaseTypes = new HashSet<string>();
@@ -226,6 +240,7 @@ public class DtoCodeGenerator
                 if (!autoGenAttr.GenerateMapping)
                     continue;
 
+                atLeastOneGenerated = true;
                 var toDtoMethod = DtoGenerationSymbols.GetToDtoMethodName(type, autoGenAttr);
                 var toNetMethod = DtoGenerationSymbols.GetToSourceMethodName(type, autoGenAttr);
                 var isEnum = type.TypeKind == TypeKind.Enum;
@@ -266,7 +281,9 @@ public class DtoCodeGenerator
                 
                 foreach (var prop in comProps.Where(prop => !_symbols.PropertyInBaseType(prop, type.BaseType, dtoTypeDict)))
                 {
-                    sb.AppendLine(GeneratePropertyMappingAssignment(prop, dtoTypeDict, false));
+                    var mappAssignment = GeneratePropertyMappingAssignment(prop, dtoTypeDict, false);
+                    classMapperUsed = classMapperUsed || mappAssignment.ClassMapperUsed;
+                    sb.AppendLine(mappAssignment.Result);
                 }
 
                 sb.AppendLine("\t\t\treturn result;");
@@ -291,7 +308,9 @@ public class DtoCodeGenerator
                 // --- Eigene Properties zurück
                 foreach (var prop in comProps.Where(prop => !_symbols.PropertyInBaseType(prop, type.BaseType, dtoTypeDict)))
                 {
-                    sb.AppendLine(GeneratePropertyMappingAssignment(prop, dtoTypeDict, true));
+                    var assignment = GeneratePropertyMappingAssignment(prop, dtoTypeDict, true);
+                    classMapperUsed = classMapperUsed || assignment.ClassMapperUsed;
+                    sb.AppendLine(assignment.Result);
                 }
                 sb.AppendLine("\t\t\treturn result;");
                 sb.AppendLine("\t\t}");
@@ -299,7 +318,11 @@ public class DtoCodeGenerator
             sb.AppendLine("\t}");
         }
 
-        return new GeneratedFile("MappingExtensions.g.cs", ns, sb.ToString(), _config);
+        if(!atLeastOneGenerated)
+            return null;
+        if (classMapperUsed)
+            sb.Insert(0, "using Nextended.Core.Extensions;");
+        return new GeneratedFile("MappingExtensions.g.cs", ns, sb.ToString(), _config?.MappingOutputPath ?? _config?.OutputPath);
 
     }
 

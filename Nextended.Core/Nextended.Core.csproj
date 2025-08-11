@@ -16,7 +16,7 @@
     <Title>Nextended.Core</Title>
       <PackageLicenseExpression>GPL-3.0-or-later</PackageLicenseExpression>
     <PackageId>Nextended.Core</PackageId>
-    <PackageVersion>9.0.17</PackageVersion>
+    <PackageVersion>9.0.19</PackageVersion>
     <Authors>fgilde</Authors>
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
     <RepositoryType>Git</RepositoryType>
