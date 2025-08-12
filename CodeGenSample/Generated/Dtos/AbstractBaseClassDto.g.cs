@@ -1,5 +1,5 @@
 /// <summary>
-/// --- AUTO GENERATED CODE (12.08.2025 13:43:52) ---
+/// --- AUTO GENERATED CODE (12.08.2025 14:30:03) ---
 /// --- AbstractBaseClassDto.g.cs ---
 /// </summary>
 
@@ -15,7 +15,7 @@ namespace MyGenerated.Code.Test {
 
 
 	/// <summary>AbstractBaseClassDto - GENERATED FROM <see cref="T:CodeGenSample.Entities.AbstractBaseClass"/></summary>
-	public partial class AbstractBaseClassDto : IAbstractBaseClassDto 
+	public abstract partial class AbstractBaseClassDto : IAbstractBaseClassDto 
 	{
 		public int Id { get; set; }
 	}

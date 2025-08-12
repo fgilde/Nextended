@@ -4,7 +4,13 @@ namespace Nextended.CodeGen.Config;
 
 public class DtoGenerationConfig: CodeGenerationConfigBase
 {
-    
+
+    public bool MakeDtoAbstractWhenSourceIsAbstract { get; set; } = true;
+    public bool GenerateToMethodsForAbstract { get; set; } = false; // normale To-Methoden (mit new) bei abstrakten Typen
+    public bool GenerateFactoryOverloadsForAbstract { get; set; } = true; // z.B. ToDto(factory)
+    public bool AlwaysGenerateFactoryOverloads { get; set; } = false; // optional, für alle Typen
+
+
     /// <summary>
     /// If Compatible is set to true then the generated classes are COM visible and fully com compatible.
     /// This setting represents the CLassName for the generated com id class that contains all required ids
