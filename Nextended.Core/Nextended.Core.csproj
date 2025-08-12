@@ -1,4 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="..\Shared.props" />
+
   <PropertyGroup>
     <TargetFrameworks>netstandard2.0;netstandard2.1;net8.0;net9.0</TargetFrameworks>    
     <OutputType>Library</OutputType>
@@ -7,33 +9,10 @@
     <SccAuxPath>SAK</SccAuxPath>
     <SccProvider>SAK</SccProvider>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
-    <OutputPath>..\bin\Nextended.Core</OutputPath>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <LangVersion>latest</LangVersion>
   </PropertyGroup>
 
-  <PropertyGroup>
-    <Title>Nextended.Core</Title>
-      <PackageLicenseExpression>GPL-3.0-or-later</PackageLicenseExpression>
-    <PackageId>Nextended.Core</PackageId>
-    <PackageVersion>9.0.19</PackageVersion>
-    <Authors>fgilde</Authors>
-    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
-    <RepositoryType>Git</RepositoryType>
-    <PackageProjectUrl>https://github.com/fgilde/Nextended</PackageProjectUrl>
-    <RepositoryUrl>https://github.com/fgilde/Nextended</RepositoryUrl>
-    <Description>This Library provides great and usefull Extension Methods, Small Helpers and Great usefull Types</Description>
-    <Copyright>Copyright © $(Authors) 2020-$([System.DateTime]::Now.Year)</Copyright>
-      <PackageLicenseExpression>GPL-3.0-or-later</PackageLicenseExpression>
-    <PackageTags>ClassMapping, Mapper, Automap, Enumerable Extensions, EnumHelper, AutoNotificationObject, CollectionWatcher, SuperType, TypedIds</PackageTags>
-    <PackageReadmeFile>README.md</PackageReadmeFile>
-    <PackageIcon>icon.png</PackageIcon>
-  </PropertyGroup>
-
-
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-    <DocumentationFile>..\bin\Nextended.Core\Nextended.Core.xml</DocumentationFile>
-  </PropertyGroup>
   <ItemGroup>
     <Compile Include="..\SolutionInfo.cs">
       <Link>Properties\SolutionInfo.cs</Link>
@@ -115,14 +94,5 @@
   <ItemGroup>
     <Folder Include="Scopes\" />
   </ItemGroup>
-  <ItemGroup>
-    <None Include="..\icon.png">
-      <Pack>True</Pack>
-      <PackagePath>\</PackagePath>
-    </None>
-    <None Include="..\README.md">
-      <Pack>True</Pack>
-      <PackagePath>\</PackagePath>
-    </None>
-  </ItemGroup>
+
 </Project>

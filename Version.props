@@ -1,0 +1,6 @@
+<Project>
+  <PropertyGroup>
+    <UsedCorePackageVersion>9.0.19</UsedCorePackageVersion>
+    <PackageVersion>9.0.20-prev-2</PackageVersion>
+  </PropertyGroup>
+</Project>

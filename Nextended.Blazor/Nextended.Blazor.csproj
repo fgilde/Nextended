@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk.Razor">
+  <Import Project="..\Shared.props" />
 
   <PropertyGroup>    
-    <TargetFrameworks>net8.0;net9.0</TargetFrameworks>    
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <IsPackable>true</IsPackable>
@@ -10,35 +10,16 @@
   </PropertyGroup>
   
   <PropertyGroup>
-    <Title>Nextended.Blazor</Title>
-      <PackageLicenseExpression>GPL-3.0-or-later</PackageLicenseExpression>
-    <PackageId>Nextended.Blazor</PackageId>
-    <PackageVersion>9.0.15</PackageVersion>
-    <Authors>fgilde</Authors>
-    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
-    <RepositoryType>Git</RepositoryType>
-    <PackageProjectUrl>https://github.com/fgilde/Nextended</PackageProjectUrl>
-    <RepositoryUrl>https://github.com/fgilde/Nextended</RepositoryUrl>
     <Description>
       Provides helper and extensions for Blazor specific projects
     </Description>
-    <Copyright>Copyright © $(Authors) 2020-$([System.DateTime]::Now.Year)</Copyright>
-      <PackageLicenseExpression>GPL-3.0-or-later</PackageLicenseExpression>
     <PackageTags>Blazor, Extensions </PackageTags>
-    <PackageReadmeFile>README.md</PackageReadmeFile>
-    <PackageIcon>icon.png</PackageIcon>
   </PropertyGroup>
   
   <ItemGroup>
     <SupportedPlatform Include="browser" />
   </ItemGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-    <OutputPath>..\bin\Nextended.Blazor</OutputPath>
-    <DocumentationFile>..\bin\Nextended.Blazor\Nextended.Blazor.xml</DocumentationFile>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-    <OutputPath>..\bin\Nextended.Blazor</OutputPath>
-  </PropertyGroup>
+
   <ItemGroup>
     <Compile Include="..\SolutionInfo.cs" Link="Properties\SolutionInfo.cs" />
   </ItemGroup>
@@ -56,16 +37,6 @@
   </ItemGroup>
 
 
-  <ItemGroup>
-    <None Include="..\icon.png">
-      <Pack>True</Pack>
-      <PackagePath>\</PackagePath>
-    </None>
-    <None Include="..\README.md">
-      <Pack>True</Pack>
-      <PackagePath>\</PackagePath>
-    </None>
-  </ItemGroup>
   <ItemGroup>
     <Folder Include="Extensions\" />
     <Folder Include="Helper\" />

@@ -1,9 +1,13 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="..\Version.props" />
+  <Import Project="..\Output.props" />
+  <Import Project="..\Package.props" />
 
   <!-- ─────────────  Allgemeine Eigenschaften  ───────────── -->
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
     <LangVersion>latest</LangVersion>
+    <PackReadMe>false</PackReadMe>
 
     <!-- Source‑Generator‑Flags -->
     <IsRoslynComponent>true</IsRoslynComponent>
@@ -14,9 +18,6 @@
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
 
     <!-- NuGet‑Metadaten -->
-    <PackageId>Nextended.CodeGen</PackageId>
-    <Version>9.0.20-prev-1</Version>
-    <Authors>fgilde</Authors>
     <RepositoryUrl>https://github.com/fgilde/Nextended/tree/main/Nextended.CodeGen</RepositoryUrl>
     <Description>Generate DTOs, interfaces and more from JSON, XML, Excel or existing classes.</Description>
     <PackageTags>SourceGeneration;Excel;JsonToClass;DTO</PackageTags>
@@ -36,7 +37,7 @@
   <!-- ─────────────  Laufzeit‑Dependencies (Generator‑intern)  ───────────── -->
   <ItemGroup>
     <!-- Öffentliche Attribute + Hilfs‑API -->
-    <PackageReference Include="Nextended.Core"       Version="9.0.19" GeneratePathProperty="true"/>
+    <PackageReference Include="Nextended.Core"       Version="$(UsedCorePackageVersion)" GeneratePathProperty="true"/>
     <!-- Rest nur intern -->
     <PackageReference Include="ClosedXML"           Version="0.105.0" PrivateAssets="all"/>
     <PackageReference Include="Newtonsoft.Json"     Version="13.0.3"  PrivateAssets="all"/>
@@ -47,7 +48,6 @@
   <!-- ─────────────  Zusatzdateien fürs NuGet  ───────────── -->
   <ItemGroup>
     <None Include="README.md" Pack="true" PackagePath="README.md"/>
-    <None Include="..\icon.png" Pack="true" PackagePath="/"/>
   </ItemGroup>
 
   <!-- ─────────────  Alles aus bin\* in analyzers/dotnet/cs packen  ───────────── -->

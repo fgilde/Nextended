@@ -1,5 +1,5 @@
 /// <summary>
-/// --- AUTO GENERATED CODE (11.08.2025 19:14:06) ---
+/// --- AUTO GENERATED CODE (12.08.2025 10:57:36) ---
 /// --- UserLevelDto.g.cs ---
 /// </summary>
 

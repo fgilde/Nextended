@@ -1,4 +1,5 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+  <Import Project="..\Shared.props" />
   <PropertyGroup Label="Globals">
     <OutputType>Library</OutputType>
     <SccProjectName>SAK</SccProjectName>
@@ -8,40 +9,17 @@
   </PropertyGroup>
   <PropertyGroup>
 	  <IsPackable>true</IsPackable>
-    <TargetFrameworks>net8.0;net9.0</TargetFrameworks>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
   </PropertyGroup>
 
   <PropertyGroup>
-    <Title>Nextended.Web</Title>
-      <PackageLicenseExpression>GPL-3.0-or-later</PackageLicenseExpression>
-    <PackageId>Nextended.Web</PackageId>
-    <PackageVersion>9.0.15</PackageVersion>
-
-    <Authors>fgilde</Authors>
-    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
-    <RepositoryType>Git</RepositoryType>
-    <PackageProjectUrl>https://github.com/fgilde/Nextended</PackageProjectUrl>
-    <RepositoryUrl>https://github.com/fgilde/Nextended</RepositoryUrl>
     <Description>
       Provides helper and extensions for Blazor, AspNetCore and Asp MVC web applications
     </Description>
-    <Copyright>Copyright © $(Authors) 2020-$([System.DateTime]::Now.Year)</Copyright>
-      <PackageLicenseExpression>GPL-3.0-or-later</PackageLicenseExpression>
-    <PackageTags>WPF, Behaviours </PackageTags>
-    <PackageReadmeFile>README.md</PackageReadmeFile>
-    <PackageIcon>icon.png</PackageIcon>
+    <PackageTags>AspNetCore Extension, Behaviours </PackageTags>
   </PropertyGroup>
 
-
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-    <OutputPath>..\bin\Nextended.Web</OutputPath>
-    <DocumentationFile>..\bin\Nextended.Web\Nextended.Web.xml</DocumentationFile>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-    <OutputPath>..\bin\Nextended.Web</OutputPath>
-  </PropertyGroup>
   <ItemGroup>
     <Compile Include="..\SolutionInfo.cs" Link="Properties\SolutionInfo.cs" />
   </ItemGroup>
@@ -57,14 +35,5 @@
     <PackageReference Include="Microsoft.AspNet.WebApi.Client" Version="5.2.9" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
   </ItemGroup>
-  <ItemGroup>
-    <None Include="..\icon.png">
-      <Pack>True</Pack>
-      <PackagePath>\</PackagePath>
-    </None>
-    <None Include="..\README.md">
-      <Pack>True</Pack>
-      <PackagePath>\</PackagePath>
-    </None>
-  </ItemGroup>
+
 </Project>

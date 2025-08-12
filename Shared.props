@@ -1,9 +1,12 @@
 <Project>
+  <Import Project="Version.props" />
+  <Import Project="Output.props" />
+  <Import Project="Package.props" />
   <PropertyGroup>
-    <TargetFramework>net9.0</TargetFramework>
+    <!--<TargetFramework>net9.0</TargetFramework>-->
+    <TargetFrameworks>net8.0;net9.0</TargetFrameworks>
     <LangVersion>latest</LangVersion>
-    <Nullable>disable</Nullable> 
-    <MicrosoftPackagesVersion>9.0.4</MicrosoftPackagesVersion>
+    <Nullable>disable</Nullable>
   </PropertyGroup>
 
 </Project>

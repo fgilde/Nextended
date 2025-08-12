@@ -1,4 +1,5 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="..\Shared.props" />
 
   <PropertyGroup Label="Globals">
     <SccProjectName>SAK</SccProjectName>
@@ -8,41 +9,15 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <TargetFrameworks>net8.0;net9.0</TargetFrameworks>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
   </PropertyGroup>
 
   <PropertyGroup>
-    <Title>Nextended.Imaging</Title>
-      <PackageLicenseExpression>GPL-3.0-or-later</PackageLicenseExpression>
-    <PackageId>Nextended.Imaging</PackageId>
-    <PackageVersion>9.0.15</PackageVersion>
-
-    <Authors>fgilde</Authors>
-    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
-    <RepositoryType>Git</RepositoryType>
-    <PackageProjectUrl>https://github.com/fgilde/Nextended</PackageProjectUrl>
-    <RepositoryUrl>https://github.com/fgilde/Nextended</RepositoryUrl>
     <Description>
       Provides a simple ImageHelper class to deal with images
       This package is the new version of Nextended.Image nExt was renamed to Nextended
     </Description>
-    <Copyright>Copyright © $(Authors) 2020-$([System.DateTime]::Now.Year)</Copyright>
-      <PackageLicenseExpression>GPL-3.0-or-later</PackageLicenseExpression>
     <PackageTags>Imaging, ImageHelper</PackageTags>
-    <PackageReadmeFile>README.md</PackageReadmeFile>
-    <PackageIcon>icon.png</PackageIcon>
-  </PropertyGroup>
-
-
-
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-    <OutputPath>..\bin\Nextended.Imaging</OutputPath>
-    <DocumentationFile>..\bin\Nextended.Imaging\Nextended.Imaging.xml</DocumentationFile>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-    <OutputPath>..\bin\Nextended.Imaging</OutputPath>
   </PropertyGroup>
 
   <ItemGroup>
@@ -56,15 +31,5 @@
     <ProjectReference Include="..\Nextended.Core\Nextended.Core.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <None Include="..\icon.png">
-      <Pack>True</Pack>
-      <PackagePath>\</PackagePath>
-    </None>
-    <None Include="..\README.md">
-      <Pack>True</Pack>
-      <PackagePath>\</PackagePath>
-    </None>
-  </ItemGroup>
 
 </Project>
