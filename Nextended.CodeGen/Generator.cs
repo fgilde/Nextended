@@ -14,7 +14,7 @@ using Nextended.CodeGen.Helper;
 [Generator]
 public class MainGenerator : ISourceGenerator
 {
-    public static readonly Guid BuildId = new Guid("3294f60c-c418-4f5d-85ef-7342ea591fa2");
+    public static readonly Guid BuildId = new Guid("1d0b056a-ac75-40c4-b410-3bb01ff1b936");
     private bool attachDebugger = true;
     private bool generationEnabled = true;
     private DateTime LastGenerated = DateTime.MinValue;
@@ -92,16 +92,14 @@ public class MainGenerator : ISourceGenerator
         var generatedFiles = new List<GeneratedFile>();
         foreach (var sourceSubGenerator in generators)
         {
+            try
+            {
                 generatedFiles.AddRange(sourceSubGenerator.Execute(context));
-
-            //    try
-            //{
-            //    generatedFiles.AddRange(sourceSubGenerator.Execute(context));
-            //}
-            //catch (Exception e)
-            //{
-            //    Console.WriteLine("Nextended.CodeGen ERROR: "+ e.Message);
-            //}
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("Nextended.CodeGen ERROR: " + e.Message);
+            }
         }
        // var generatedFiles = Task.WhenAll(generators.Select(g => Task.Run(() => g.Execute(context)))).Result.SelectMany(f => f).ToList();
         WriteOrAddFiles(context, generatedFiles);
@@ -139,6 +137,12 @@ public class MainGenerator : ISourceGenerator
         }
     }
 }
+
+
+
+
+
+
 
 
 

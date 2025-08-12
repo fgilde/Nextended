@@ -1,5 +1,5 @@
 /// <summary>
-/// --- AUTO GENERATED CODE (12.08.2025 13:26:37) ---
+/// --- AUTO GENERATED CODE (12.08.2025 13:43:52) ---
 /// --- MyUserDto.g.cs ---
 /// </summary>
 
@@ -31,7 +31,7 @@ namespace MyGenerated.Code.Test {
 		public string XyZ { get; set; }
 		public ENUMS.UserLevelDto? UserLevel { get; set; }
 		public CodeGenSample.Entities.OtherInfos OtherInfos { get; set; }
-		MyGeneration.IAddressDto IMyUserDto.ThatUserAddress { get => ThatUserAddress; }
+		MyGeneration.IAddressDto IMyUserDto.ThatUserAddress { get => ThatUserAddress; set => ThatUserAddress = (MyGeneration.AddressDto)value; }
 		MyGeneration.IAddressDto IMyUserDto.AnotherAddress { get => AnotherAddress; }
 	}
 
