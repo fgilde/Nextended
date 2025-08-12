@@ -1,5 +1,5 @@
 /// <summary>
-/// --- AUTO GENERATED CODE (12.08.2025 11:56:44) ---
+/// --- AUTO GENERATED CODE (12.08.2025 13:26:37) ---
 /// --- AddressDto.g.cs ---
 /// </summary>
 
@@ -20,6 +20,8 @@ namespace MyGeneration {
 		string City { get; set; }
 		[DispId(3)]
 		string Country { get; set; }
+		[DispId(4)]
+		int Number { get; set; }
 	}
 
 
@@ -31,6 +33,7 @@ namespace MyGeneration {
 		public string Street { get; set; }
 		public string City { get; set; }
 		public string Country { get; set; }
+		public int Number { get; set; }
 	}
 
 

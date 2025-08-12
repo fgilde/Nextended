@@ -1,5 +1,5 @@
 /// <summary>
-/// --- AUTO GENERATED CODE (12.08.2025 11:40:30) ---
+/// --- AUTO GENERATED CODE (12.08.2025 13:26:37) ---
 /// --- MyUserDto.g.cs ---
 /// </summary>
 
@@ -14,7 +14,7 @@ namespace MyGenerated.Code.Test {
 		[System.ComponentModel.DataAnnotations.MaxLength(3)]
 		string Name { get; }
 		MyGeneration.IAddressDto ThatUserAddress { get; set; }
-		CodeGenSample.Entities.Address? AnotherAddress { get; }
+		MyGeneration.IAddressDto? AnotherAddress { get; }
 		string XyZ { get; }
 		ENUMS.UserLevelDto? UserLevel { get; set; }
 		CodeGenSample.Entities.OtherInfos OtherInfos { get; }
@@ -27,11 +27,12 @@ namespace MyGenerated.Code.Test {
 	{
 		public string Name { get; set; }
 		public MyGeneration.AddressDto ThatUserAddress { get; set; }
-		public CodeGenSample.Entities.Address? AnotherAddress { get; set; }
+		public MyGeneration.AddressDto? AnotherAddress { get; set; }
 		public string XyZ { get; set; }
 		public ENUMS.UserLevelDto? UserLevel { get; set; }
 		public CodeGenSample.Entities.OtherInfos OtherInfos { get; set; }
-		MyGeneration.IAddressDto IMyUserDto.ThatUserAddress { get => ThatUserAddress; set => ThatUserAddress = (MyGeneration.AddressDto)value; }
+		MyGeneration.IAddressDto IMyUserDto.ThatUserAddress { get => ThatUserAddress; }
+		MyGeneration.IAddressDto IMyUserDto.AnotherAddress { get => AnotherAddress; }
 	}
 
 

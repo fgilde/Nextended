@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -14,8 +14,8 @@ using Nextended.CodeGen.Helper;
 [Generator]
 public class MainGenerator : ISourceGenerator
 {
-    private int i = 1;
-    private bool attachDebugger = false;
+    public static readonly Guid BuildId = new Guid("3294f60c-c418-4f5d-85ef-7342ea591fa2");
+    private bool attachDebugger = true;
     private bool generationEnabled = true;
     private DateTime LastGenerated = DateTime.MinValue;
     private bool allowWithoutConfig = false;
@@ -31,6 +31,7 @@ public class MainGenerator : ISourceGenerator
 
     public void Execute(GeneratorExecutionContext context)
     {
+        Console.WriteLine("Execute with Build " + BuildId);
         if (!generationEnabled)
             return;
 
@@ -91,14 +92,16 @@ public class MainGenerator : ISourceGenerator
         var generatedFiles = new List<GeneratedFile>();
         foreach (var sourceSubGenerator in generators)
         {
-            try
-            {
                 generatedFiles.AddRange(sourceSubGenerator.Execute(context));
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine("Nextended.CodeGen ERROR: "+ e.Message);
-            }
+
+            //    try
+            //{
+            //    generatedFiles.AddRange(sourceSubGenerator.Execute(context));
+            //}
+            //catch (Exception e)
+            //{
+            //    Console.WriteLine("Nextended.CodeGen ERROR: "+ e.Message);
+            //}
         }
        // var generatedFiles = Task.WhenAll(generators.Select(g => Task.Run(() => g.Execute(context)))).Result.SelectMany(f => f).ToList();
         WriteOrAddFiles(context, generatedFiles);
@@ -136,3 +139,53 @@ public class MainGenerator : ISourceGenerator
         }
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

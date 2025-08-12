@@ -28,7 +28,9 @@
 
   <ItemGroup>
     <Folder Include="Generated\AppSettings\" />
+    <Folder Include="Generated\Dtos\" />
     <Folder Include="Generated\Extensions\" />
   </ItemGroup>
+
 
 </Project>

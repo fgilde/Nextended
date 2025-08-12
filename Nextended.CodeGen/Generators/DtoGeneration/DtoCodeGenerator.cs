@@ -153,7 +153,7 @@ public class DtoCodeGenerator
         if (DtoGenerationSymbols.IsDtoType(netPropType, dtoTypeDict))
         {
             var classType = netPropType.UnwrapNullableTypeSymbol();
-            var targetClass = dtoTypeDict[classType.ToDisplayString()];
+            var targetClass = dtoTypeDict.ContainsKey(classType.ToDisplayString()) ? dtoTypeDict[classType.ToDisplayString()] : dtoTypeDict[DtoGenerationSymbols.NormalizeForLookup(classType).ToDisplayString()];
             var targetAttr = targetClass.ClassCfg(_symbols);
 
             if (!targetAttr.GenerateMapping || (propAttr?.MapWithClassMapper ?? false))
@@ -454,11 +454,19 @@ public class DtoCodeGenerator
         foreach (var prop in DtoGenerationSymbols.GetDtoProperties(type, _symbols.Ignore))
         {
             var propType = prop.Type;
+            
             if (DtoGenerationSymbols.IsDtoType(propType, dtoTypeDict) && !DtoGenerationSymbols.IsDtoEnumType(propType, dtoTypeDict))
             {
                 var propAttr = prop.PropertyCfg(_symbols);
-                var targetClass = dtoTypeDict[propType.ToDisplayString()];
+
+                var targetClass = dtoTypeDict.ContainsKey(propType.ToDisplayString()) ? dtoTypeDict[propType.ToDisplayString()] : dtoTypeDict[DtoGenerationSymbols.NormalizeForLookup(propType).ToDisplayString()];
                 var targetAttr = targetClass.ClassCfg(_symbols);
+                var interfaceAccess = (propAttr?.InterfaceAccess != InterfaceProperty.Unset ? propAttr?.InterfaceAccess ?? classAttr.DefaultPropertyInterfaceAccess : classAttr.DefaultPropertyInterfaceAccess);
+                if (interfaceAccess == InterfaceProperty.Unset)
+                    interfaceAccess = propAttr?.InterfaceAccess ?? InterfaceProperty.Unset;
+                if (interfaceAccess == InterfaceProperty.Unset)
+                    interfaceAccess = targetAttr?.DefaultPropertyInterfaceAccess ?? InterfaceProperty.Unset;
+                
                 var propTypeString = DtoGenerationSymbols.GetDtoPropertyType(prop, dtoTypeDict, _symbols, false);
                 var comInterfaceTypeName = DtoGenerationSymbols.GetDtoClassName(targetClass, targetAttr, true);
                 var thisInterface = comInterfaceName;
@@ -467,7 +475,13 @@ public class DtoCodeGenerator
 
                 sb.AppendAttributesIf(prop, propAttr?.KeepAttributesOnGeneratedClass ?? classAttr?.KeepPropertyAttributesOnGeneratedClass ?? false, 2);
                 sb.AppendLineIf(propAttr?.PreClassString, !string.IsNullOrEmpty(propAttr?.PreClassString));
-                sb.AppendLine($"\t\t{ns}{comInterfaceTypeName} {thisInterface}.{propName} {{ get => {propName}; set => {propName} = ({ns}{propTypeString})value; }}");
+                // Explicit interface implementation for properties of DTOs
+                if(interfaceAccess is InterfaceProperty.GetAndSet or InterfaceProperty.Unset)
+                    sb.AppendLine($"\t\t{ns}{comInterfaceTypeName} {thisInterface}.{propName} {{ get => {propName}; set => {propName} = ({ns}{propTypeString})value; }}");
+                else if (interfaceAccess == InterfaceProperty.Get)
+                    sb.AppendLine($"\t\t{ns}{comInterfaceTypeName} {thisInterface}.{propName} {{ get => {propName}; }}");
+                else if(interfaceAccess == InterfaceProperty.Set)
+                    sb.AppendLine($"\t\t{ns}{comInterfaceTypeName} {thisInterface}.{propName} {{ set => {propName} = ({ns}{propTypeString})value; }}");
             }
         }
         sb.AppendLine("\t}\n");
