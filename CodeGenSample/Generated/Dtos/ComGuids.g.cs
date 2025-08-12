@@ -1,5 +1,5 @@
 /// <summary>
-/// --- AUTO GENERATED CODE (12.08.2025 10:57:36) ---
+/// --- AUTO GENERATED CODE (12.08.2025 11:40:30) ---
 /// </summary>
 
 using System;
@@ -7,8 +7,8 @@ namespace MyGenerated.Code.Test {
 	#region ComGuids
 	public static partial class ComGuids
 	{
-		public const string IdAddressDto = "7c7968ac-a807-4abc-b3b1-1a4f05f638af";
-		public const string IdUserLevelDto = "511007b3-37fd-464c-a0ac-4b49c7c7d92a";
+		public const string IdAddressDto = "918d849e-cf59-4255-a3ca-42ce8a61c1f3";
+		public const string IdUserLevelDto = "2aa9acba-b2ff-4629-9aaf-be509deb4069";
 	}
 	#endregion ComGuids
 

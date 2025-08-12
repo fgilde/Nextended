@@ -29,6 +29,9 @@ public class User: EntityBase
     )]
     public Address Address { get; set; }
     
+    public Address? AnotherAddress { get; set; }
+    public string XyZ { get; set; }
+    
     [GenerationPropertySetting(PropertyName = "UserLevel", InterfaceAccess = InterfaceProperty.GetAndSet)]
     public UserLevel? Level { get; set; }
 
