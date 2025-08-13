@@ -1,14 +1,10 @@
-/// <summary>
-/// --- AUTO GENERATED CODE (12.08.2025 14:52:56) ---
-/// </summary>
-
 using System;
 namespace MyGenerated.Code.Test {
 	#region ComGuids
 	public static partial class ComGuids
 	{
-		public const string IdAddressDto = "63a6253e-6896-4310-990e-88e335c236a9";
-		public const string IdUserLevelDto = "7e814fca-d062-4791-a5b1-b43096ab6ad5";
+		public const string IdAddressDto = "146b0eec-079b-4d74-9c01-772fa78603f5";
+		public const string IdUserLevelDto = "5da8a5a6-1fc6-41aa-91eb-b1c3e8c1b57f";
 	}
 	#endregion ComGuids
 

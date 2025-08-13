@@ -18,7 +18,7 @@ internal static class ModelClassEmitter
         var props = ResolveColumns(headerRow, cfg);
 
         var sb = new StringBuilder()
-            .AppendFileHeader(cfg.RootClassName)
+            .AppendFileHeaderIf(cfg.CreateFileHeaders, cfg.RootClassName)
             .AppendLine($$"""
                                      namespace {{cfg.Namespace}}
                                      {

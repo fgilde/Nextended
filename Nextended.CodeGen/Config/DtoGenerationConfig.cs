@@ -81,4 +81,5 @@ public class DtoGenerationConfig: CodeGenerationConfigBase
     public bool CreateComments { get; set; } = true;
     public bool GeneratePartial { get; set; } = true;
     public string? MappingOutputPath { get; set; }
+
 }

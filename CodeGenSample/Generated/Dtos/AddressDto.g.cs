@@ -1,14 +1,6 @@
-/// <summary>
-/// --- AUTO GENERATED CODE (12.08.2025 14:52:56) ---
-/// --- AddressDto.g.cs ---
-/// </summary>
-
 using System;
 using System.Runtime.InteropServices;
 namespace MyGeneration {
-	#region COM class for Address
-
-	/// <summary>IAddressDto - GENERATED FROM <see cref="T:CodeGenSample.Entities.Address"/></summary>
 	[ComVisible(true)]
 	[Guid(MyGenerated.Code.Test.ComGuids.IdAddressDto)]
 	[TypeLibType(TypeLibTypeFlags.FDual | TypeLibTypeFlags.FDispatchable)]
@@ -25,7 +17,6 @@ namespace MyGeneration {
 	}
 
 
-	/// <summary>AddressDto - GENERATED FROM <see cref="T:CodeGenSample.Entities.Address"/></summary>
 	[ComVisible(true)]
 	[Guid(MyGenerated.Code.Test.ComGuids.IdAddressDto)]
 	public partial class AddressDto :  MyGenerated.Code.Test.EntityBaseDto, IAddressDto 
@@ -36,7 +27,5 @@ namespace MyGeneration {
 		public int Number { get; set; }
 	}
 
-
-	#endregion COM class for Address
 
 }

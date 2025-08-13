@@ -34,4 +34,10 @@ public class CodeGenerationConfigBase
     /// If a path is set, the file will be saved to that path and NOT added to the generated code context.
     /// </summary>
     public string? OutputPath { get; set; }
+
+    /// <summary>
+    /// Set t true to generate file headers for the generated code files.
+    /// </summary>
+    public bool CreateFileHeaders { get; set; } = true;
+
 }

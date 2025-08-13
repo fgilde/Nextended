@@ -24,7 +24,7 @@ internal static class StaticTableEmitter
                           c => c.GetString().ToCSharpIdentifier());
 
         var sb = new StringBuilder()
-            .AppendFileHeader(cfg.StaticClassName)
+            .AppendFileHeaderIf(cfg.CreateFileHeaders,cfg.StaticClassName)
             .AppendLine($$"""
         namespace {{cfg.Namespace}}
         {

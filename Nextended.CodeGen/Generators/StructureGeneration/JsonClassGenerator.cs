@@ -21,7 +21,7 @@ public static class JsonClassGenerator
         BuildClass(root, mainClassName, config, classDefs);
 
         var sb = new StringBuilder();
-        sb.AppendFileHeader(mainClassName);
+        sb.AppendFileHeaderIf(config.CreateFileHeaders, mainClassName);
         sb.AppendLine($"namespace {config.Namespace}");
         sb.AppendLine("{");
 
