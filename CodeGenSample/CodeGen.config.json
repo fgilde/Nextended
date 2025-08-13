@@ -18,7 +18,7 @@
     "Usings": null,
     "CreateRegions": true,
     "CreateComments": true,
-    "CreateFileHeaders": true,
+    "CreateFileHeaders": false,
     "GeneratePartial": true,
     "Namespace": "MyGenerated.Code.Test",
     "Suffix": "Wanda",
