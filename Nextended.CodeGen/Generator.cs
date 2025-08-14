@@ -27,6 +27,11 @@ public class MainGenerator : ISourceGenerator
         _generators = GetType().Assembly.GetTypes().Where(t => typeof(ISourceSubGenerator).IsAssignableFrom(t) && !t.IsAbstract)
             .Select(t => (ISourceSubGenerator)Activator.CreateInstance(t))
             .ToList();
+        Console.WriteLine($"Found {_generators.Count} generators:");
+        foreach (var gen in _generators)
+        {
+            Console.WriteLine($"  - {gen.GetType().Name} (RequireConfig: {gen.RequireConfig})");
+        }
     }
 
     public void Execute(GeneratorExecutionContext context)
