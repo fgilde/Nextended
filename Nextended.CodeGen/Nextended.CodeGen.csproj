@@ -62,10 +62,10 @@
           Visible="false"/>
   </ItemGroup>
 
-  <Target Name="UpdateGuid" BeforeTargets="BeforeBuild">
+  <!-- <Target Name="UpdateGuid" BeforeTargets="BeforeBuild">
     <Exec Command="pwsh -NoProfile -File $(SolutionDir)$(AssemblyName)\UpdateGuid.ps1 $(MSBuildProjectDirectory)\Generator.cs BuildId" />
   </Target>
   <Target Name="UpdateGuid" BeforeTargets="AfterBuild">
     <Exec Command="pwsh -NoProfile -File $(SolutionDir)$(AssemblyName)\UpdateGuid.ps1 $(MSBuildProjectDirectory)\Generator.cs BuildId" />
-  </Target>
+  </Target> -->
 </Project>
