@@ -1,8 +1,3 @@
-/// <summary>
-/// --- AUTO GENERATED CODE (18.08.2025 09:20:47) ---
-/// --- GenericItemDto.g.cs ---
-/// </summary>
-
 using System;
 namespace MyGenerated.Code.Test {
 	#region Dto class for GenericItem
