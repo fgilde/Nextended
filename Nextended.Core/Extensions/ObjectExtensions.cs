@@ -33,7 +33,7 @@ namespace Nextended.Core.Extensions
             return new Lazy<T>(() => t, LazyThreadSafetyMode.PublicationOnly);
         }
 
-        public static string ToQueryString(this object obj, string firstDelimiter = "")
+        public static string ToUrlQueryString(this object obj, string firstDelimiter = "")
         {
             var properties = from p in obj.GetType().GetProperties()
                 let value = GetValue(obj, p)

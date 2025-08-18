@@ -181,6 +181,7 @@ public class DtoCodeGenerator
         if (types == null || !types.Any())
             return null;
 
+        types = types.OrderBy(s => s.Name).ToList();
         // Konfig-Schalter (falls nicht vorhanden, Defaults/Backfills)
         var generateToForAbstract = _config?.GenerateToMethodsForAbstract ?? false;
         var generateFactoryForAbstract = _config?.GenerateFactoryOverloadsForAbstract ?? true;

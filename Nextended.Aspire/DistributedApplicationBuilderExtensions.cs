@@ -19,7 +19,7 @@ public static partial class DistributedApplicationBuilderExtensions
     [GeneratedRegex("(?<=-)-+")]
     private static partial Regex MultipleDashRegex();
 
-    public static IResourceBuilder<ProjectResource> AddProjectWithAutoNaming<TProject>(
+    public static IResourceBuilder<ProjectResource> AddWithAutoNaming<TProject>(
         this IDistributedApplicationBuilder builder,
         [ResourceName] string? name = null,
         string? launchProfileName = null

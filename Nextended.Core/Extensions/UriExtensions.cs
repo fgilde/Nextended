@@ -10,13 +10,13 @@ namespace Nextended.Core.Extensions
 		public static Uri SetQuery(this Uri uri, object getParams)
 		{
 			return !uri.IsAbsoluteUri
-				? new Uri($"{uri.OriginalString}{getParams.ToQueryString("?")}", UriKind.Relative)
+				? new Uri($"{uri.OriginalString}{getParams.ToUrlQueryString("?")}", UriKind.Relative)
 				: new UriBuilder(uri).SetQuery(getParams).Uri;
 		}
 
 		public static UriBuilder SetQuery(this UriBuilder builder, object getParams)
 		{
-			builder.Query = getParams.ToQueryString("?");
+			builder.Query = getParams.ToUrlQueryString("?");
 			return builder;
 		}
 
