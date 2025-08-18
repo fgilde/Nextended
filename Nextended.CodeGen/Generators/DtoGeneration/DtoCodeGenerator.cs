@@ -40,7 +40,7 @@ public class DtoCodeGenerator
 
         var sb = new StringBuilder();
 
-        sb.AppendFileHeader(fileName)
+        sb.AppendFileHeaderIf(_config.CreateFileHeaders, fileName)
             .AppendUsings(usings);
         using (new NamespaceScope(sb, ns))
         {
@@ -58,7 +58,7 @@ public class DtoCodeGenerator
         var usings = DtoGenerationSymbols.GetUsings(types, dtoTypeDict, null, _config);
 
         var sb = new StringBuilder();
-        sb.AppendFileHeader()
+        sb.AppendFileHeaderIf(_config.CreateFileHeaders)
             .AppendUsings(usings);
 
         using (new NamespaceScope(sb, ns))
@@ -190,7 +190,7 @@ public class DtoCodeGenerator
         var ns = Namespace(null);
         var sb = new StringBuilder();
 
-        using (new ClassScope(sb, "MappingExtensions", ns))
+        using (new ClassScope(sb, _config?.CreateFileHeaders ?? true, "MappingExtensions", ns))
         {
             var dtoTypeDict = types.ToDictionary(t => t.ToDisplayString(), t => t);
 
@@ -694,7 +694,7 @@ public class DtoCodeGenerator
         var ns = Namespace(null);
         var usings = new[] { "System" };
         var sb = new StringBuilder();
-        sb.AppendFileHeader();
+        sb.AppendFileHeaderIf(_config.CreateFileHeaders);
         sb.AppendUsings(usings);
         sb.OpenNamespace(ns);
         sb.AppendLine(GenerateGuids());
