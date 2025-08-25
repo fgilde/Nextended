@@ -137,13 +137,13 @@ public class DtoCodeGenerator
         // ------------------------------
         if (DtoGenerationSymbols.IsDtoEnumType(netPropType, dtoTypeDict))
         {
-            var line = !reverse
-                ? (prop.IsNullable()
-                    ? $"\t\t\tresult.{targetName} = src.{sourceName}?.ToDto();"
-                    : $"\t\t\tresult.{targetName} = src.{sourceName}.ToDto();")
-                : (prop.IsNullable()
-                    ? $"\t\t\tresult.{targetName} = src.{sourceName}?.AsEntity();"
-                    : $"\t\t\tresult.{targetName} = src.{sourceName}.AsEntity();");
+            var meth = !reverse
+                ? GetSpecificSingleMapMethod(netPropType, toDto: true)
+                : GetSpecificSingleMapMethod(netPropType, toDto: false);
+            
+            var line = (prop.IsNullable()
+                ? $"\t\t\tresult.{targetName} = src.{sourceName}?.{meth}();"
+                : $"\t\t\tresult.{targetName} = src.{sourceName}.{meth}();");
 
             return (line, false);
         }

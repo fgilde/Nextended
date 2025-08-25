@@ -14,7 +14,7 @@ using Nextended.CodeGen.Helper;
 [Generator]
 public class MainGenerator : ISourceGenerator
 {
-    public static readonly Guid BuildId = new Guid("6fa154a3-7652-4019-ac3c-ede3d342092f");
+    public static readonly Guid BuildId = new Guid("8469ded1-14c5-4d10-9036-59dcd81b1f41");
     private bool attachDebugger = false;
     private bool generationEnabled = true;
     private DateTime LastGenerated = DateTime.MinValue;
@@ -137,6 +137,12 @@ public class MainGenerator : ISourceGenerator
         }
     }
 }
+
+
+
+
+
+
 
 
 
