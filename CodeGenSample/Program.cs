@@ -7,7 +7,7 @@ using MyGeneration;
 
 
 //ComUserLevel ds;
-IMyUserDto c = MappingExtensions.ToMyDto(new User() {Name = "Herbert", Address = new Address() {City = "Bremen"}});
+IMyUserDto c = MappingExtensions.ToMyDto(new User() {Name = "Herbert", OtherDate = DateTime.Now, Address = new Address() {City = "Bremen"}});
 var city = c.ThatUserAddress.City;
 var id = ComGuids.IdAddressDto;
 

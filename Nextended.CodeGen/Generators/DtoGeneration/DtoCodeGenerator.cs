@@ -92,9 +92,9 @@ public class DtoCodeGenerator
     }
 
     private (string Result, bool ClassMapperUsed) GeneratePropertyMappingAssignment(
-        IPropertySymbol prop,
-        Dictionary<string, INamedTypeSymbol> dtoTypeDict,
-        bool reverse)
+     IPropertySymbol prop,
+     Dictionary<string, INamedTypeSymbol> dtoTypeDict,
+     bool reverse)
     {
         var propAttr = prop.PropertyCfg(_symbols);
         var netPropName = prop.Name;
@@ -111,45 +111,11 @@ public class DtoCodeGenerator
 
         static ITypeSymbol Normalize(ITypeSymbol t) => DtoGenerationSymbols.NormalizeForLookup(t);
 
-        // Baut einen vollständigen Target-Typstring (inkl. generischer Inner-Types)
-        // toNet = true  -> Ziel ist .NET-Seite (Originaltypen, vollqualifiziert)
-        // toNet = false -> Ziel ist DTO-Seite (DTO/ENUMS mit Namespace)
-        string BuildTargetTypeString(ITypeSymbol type, bool toNet)
+        (string Line, bool Used) MapAssign(string dst, string src, ITypeSymbol type, bool toNet, bool isNullable)
         {
-            if (type is IArrayTypeSymbol ats)
-            {
-                var inner = BuildTargetTypeString(ats.ElementType, toNet);
-                return inner + "[]";
-            }
-
-            if (type is INamedTypeSymbol nts && nts.IsGenericType)
-            {
-                var baseName = nts.ConstructedFrom.ToDisplayString(SymbolDisplayFormat.CSharpErrorMessageFormat);
-                baseName = baseName.Split('<')[0]; // z. B. System.Collections.Generic.List
-                var args = nts.TypeArguments.Select(a => BuildTargetTypeString(a, toNet));
-                return $"{baseName}<{string.Join(", ", args)}>";
-            }
-
-            if (toNet)
-            {
-                // Vollqualifizierter Originaltyp
-                return type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
-            }
-
-            // DTO-Ziel (skalar)
-            return DtoGenerationSymbols.GetQualifiedDtoTypeName(type, dtoTypeDict, _symbols, false);
-        }
-
-        bool IsSimpleEnumerable(INamedTypeSymbol nts)
-        {
-            var gen = nts.ConstructedFrom.ToDisplayString(SymbolDisplayFormat.CSharpErrorMessageFormat);
-            return gen.StartsWith("System.Collections.Generic.IEnumerable<")
-                || gen.StartsWith("System.Collections.Generic.ICollection<")
-                || gen.StartsWith("System.Collections.Generic.IList<")
-                || gen.StartsWith("System.Collections.Generic.List<")
-                || gen.StartsWith("System.Collections.Generic.IReadOnlyList<")
-                || gen.StartsWith("System.Collections.Generic.IReadOnlyCollection<")
-                || gen.StartsWith("System.Collections.Generic.HashSet<");
+            var targetType = DtoGenerationSymbols.BuildMappingTargetTypeString(type, toNet, dtoTypeDict, _symbols);
+            var expr = isNullable ? $"{src}?.MapTo<{targetType}>()" : $"{src}.MapTo<{targetType}>()";
+            return ($"\t\t\t{dst} = {expr};", true);
         }
 
         // Bestimme (falls vorhanden) die "spezifische" Einzel-Mapper-Methode (z. B. ToMegaDto / AsSrc)
@@ -206,11 +172,7 @@ public class DtoCodeGenerator
             }
 
             // Fallback: ClassMapper (erzwungen) oder keine spezielle Methode verfügbar
-            var targetType = BuildTargetTypeString(netPropType, reverse);
-            var mapLine = prop.IsNullable()
-                ? $"\t\t\tresult.{targetName} = src.{sourceName}?.MapTo<{targetType}>();"
-                : $"\t\t\tresult.{targetName} = src.{sourceName}.MapTo<{targetType}>();";
-            return (mapLine, true);
+            return MapAssign($"result.{targetName}", $"src.{sourceName}", netPropType, reverse, prop.IsNullable());
         }
 
         // ------------------------------
@@ -231,6 +193,7 @@ public class DtoCodeGenerator
                 if (!string.IsNullOrEmpty(meth))
                 {
                     var body = $"System.Linq.Enumerable.ToArray(System.Linq.Enumerable.Select({src}, x => x?.{meth}()))";
+                    // Arrays: (unverändert) nur bei nullable Property mit Null-Check
                     var line = prop.IsNullable()
                         ? $"\t\t\t{dst} = {src} != null ? {body} : null;"
                         : $"\t\t\t{dst} = {body};";
@@ -238,12 +201,8 @@ public class DtoCodeGenerator
                 }
             }
 
-            // Fallback MapTo<T[]>
-            var targetType = BuildTargetTypeString(netPropType, reverse);
-            var mapLine = prop.IsNullable()
-                ? $"\t\t\tresult.{targetName} = src.{sourceName}?.MapTo<{targetType}>();"
-                : $"\t\t\tresult.{targetName} = src.{sourceName}.MapTo<{targetType}>();";
-            return (mapLine, true);
+            // Fallback MapTo<T[]> (unverändert)
+            return MapAssign($"result.{targetName}", $"src.{sourceName}", netPropType, reverse, prop.IsNullable());
         }
 
         // ------------------------------
@@ -251,14 +210,24 @@ public class DtoCodeGenerator
         // ------------------------------
         if (netPropType is INamedTypeSymbol nts && nts.IsGenericType)
         {
-            var constructed = nts.ConstructedFrom.ToDisplayString(SymbolDisplayFormat.CSharpErrorMessageFormat);
-
-            // 4a) Dictionary/IDictionary
-            if ((constructed.StartsWith("System.Collections.Generic.Dictionary<")
-                || constructed.StartsWith("System.Collections.Generic.IDictionary<"))
-                && nts.TypeArguments.Length == 2)
+            // 4a) Sonderfall: Nullable<T> (Value Type)
+            if (nts.ConstructedFrom?.SpecialType == SpecialType.System_Nullable_T && nts.TypeArguments.Length == 1)
             {
-                var k = nts.TypeArguments[0];
+                var underlying = nts.TypeArguments[0];
+
+                // Wenn kein DTO/DTO-Enum und kein ClassMapper erzwungen -> direkte Zuweisung
+                if (!mapWithClassMapper
+                    && !DtoGenerationSymbols.IsDtoType(underlying, dtoTypeDict)
+                    && !DtoGenerationSymbols.IsDtoEnumType(underlying, dtoTypeDict))
+                {
+                    return ($"\t\t\tresult.{targetName} = src.{sourceName};", false);
+                }
+                // (DTO-Enums sind bereits oben abgedeckt; übrige Fälle laufen weiter)
+            }
+
+            // 4b) Dictionary/IDictionary
+            if (DtoGenerationSymbols.IsDictionaryType(nts) && nts.TypeArguments.Length == 2)
+            {
                 var v = nts.TypeArguments[1];
                 var src = $"src.{sourceName}";
                 var dst = $"result.{targetName}";
@@ -272,23 +241,18 @@ public class DtoCodeGenerator
                     if (!string.IsNullOrEmpty(meth))
                     {
                         var body = $"System.Linq.Enumerable.ToDictionary({src}, kv => kv.Key, kv => kv.Value?.{meth}())";
-                        var line = prop.IsNullable()
-                            ? $"\t\t\t{dst} = {src} != null ? {body} : null;"
-                            : $"\t\t\t{dst} = {body};";
+                        // NEU: Immer Null-Check auf die gesamte Quelle, nicht nur bei nullable Property
+                        var line = $"\t\t\t{dst} = {src} != null ? {body} : null;";
                         return (line, false);
                     }
                 }
 
-                // Fallback MapTo<Dictionary<...>>
-                var targetType = BuildTargetTypeString(netPropType, reverse);
-                var mapLine = prop.IsNullable()
-                    ? $"\t\t\tresult.{targetName} = src.{sourceName}?.MapTo<{targetType}>();"
-                    : $"\t\t\tresult.{targetName} = src.{sourceName}.MapTo<{targetType}>();";
-                return (mapLine, true);
+                // Fallback MapTo<Dictionary<...>> – NEU: immer mit Null-Conditional (?.)
+                return MapAssign($"result.{targetName}", $"src.{sourceName}", netPropType, reverse, /*isNullable:*/ true);
             }
 
-            // 4b) Einfache Enumerables (List, IEnumerable, ICollection, IList, IReadOnly*, HashSet)
-            if (IsSimpleEnumerable(nts) && nts.TypeArguments.Length == 1)
+            // 4c) Einfache Enumerables (List, IEnumerable, ICollection, IList, IReadOnly*, HashSet)
+            if (DtoGenerationSymbols.IsSimpleEnumerableType(nts) && nts.TypeArguments.Length == 1)
             {
                 var elem = nts.TypeArguments[0];
                 var src = $"src.{sourceName}";
@@ -302,32 +266,20 @@ public class DtoCodeGenerator
 
                     if (!string.IsNullOrEmpty(meth))
                     {
-                        // Materialisierung: wir nehmen bewusst ToList() (robust), Arrays wurden oben behandelt
                         var bodyInner = $"System.Linq.Enumerable.Select({src}, x => x?.{meth}())";
                         var body = $"System.Linq.Enumerable.ToList({bodyInner})";
-                        var line = prop.IsNullable()
-                            ? $"\t\t\t{dst} = {src} != null ? {body} : null;"
-                            : $"\t\t\t{dst} = {body};";
+                        // NEU: Immer Null-Check auf die gesamte Quelle, nicht nur bei nullable Property
+                        var line = $"\t\t\t{dst} = {src} != null ? {body} : null;";
                         return (line, false);
                     }
                 }
 
-                // Fallback MapTo<List<...>> etc.
-                var targetType = BuildTargetTypeString(netPropType, reverse);
-                var mapLine = prop.IsNullable()
-                    ? $"\t\t\tresult.{targetName} = src.{sourceName}?.MapTo<{targetType}>();"
-                    : $"\t\t\tresult.{targetName} = src.{sourceName}.MapTo<{targetType}>();";
-                return (mapLine, true);
+                // Fallback MapTo<List<...>> etc. – NEU: immer mit Null-Conditional (?.)
+                return MapAssign($"result.{targetName}", $"src.{sourceName}", netPropType, reverse, /*isNullable:*/ true);
             }
 
-            // 4c) Sonstige generische Typen -> Fallback MapTo<...>
-            {
-                var targetType = BuildTargetTypeString(netPropType, reverse);
-                var mapLine = prop.IsNullable()
-                    ? $"\t\t\tresult.{targetName} = src.{sourceName}?.MapTo<{targetType}>();"
-                    : $"\t\t\tresult.{targetName} = src.{sourceName}.MapTo<{targetType}>();";
-                return (mapLine, true);
-            }
+            // 4d) Sonstige generische Typen -> Fallback MapTo<...>
+            return MapAssign($"result.{targetName}", $"src.{sourceName}", netPropType, reverse, prop.IsNullable());
         }
 
         // ------------------------------
@@ -335,7 +287,6 @@ public class DtoCodeGenerator
         // ------------------------------
         return ($"\t\t\tresult.{targetName} = src.{sourceName};", false);
     }
-
 
     public GeneratedFile? GenerateMappingExtensions(List<INamedTypeSymbol> types)
     {
@@ -534,163 +485,6 @@ public class DtoCodeGenerator
         return new GeneratedFile("MappingExtensions.g.cs", ns, sb.ToString(), _config?.MappingOutputPath ?? _config?.OutputPath);
     }
 
-
-
-
-    //public GeneratedFile? GenerateMappingExtensionsLegacy(List<INamedTypeSymbol> types)
-    //{
-    //    bool atLeastOneGenerated = false;
-    //    bool classMapperUsed = false;
-    //    var ns = Namespace(null);
-    //    var sb = new StringBuilder();
-    //    var generatedBaseTypes = new HashSet<string>();
-    //    if (types == null || !types.Any())
-    //        return null;
-    //    using (new ClassScope(sb, "MappingExtensions", ns))
-    //    {
-    //        var dtoTypeDict = types.ToDictionary(t => t.ToDisplayString(), t => t);
-
-    //        // 1. Hilfsmethoden pro DTO-Basistyp erzeugen
-    //        foreach (var baseType in types.Select(type => type.BaseType))
-    //        {
-    //            if (baseType == null) continue;
-    //            var baseTypeKey = baseType.ToDisplayString();
-    //            if (generatedBaseTypes.Contains(baseTypeKey)) continue;
-
-    //            if (dtoTypeDict.TryGetValue(baseTypeKey, out var baseTypeSymbol))
-    //            {
-    //                var baseAutoGenAttr = baseTypeSymbol.ClassCfg(_symbols);
-    //                if (baseAutoGenAttr != null)
-    //                {
-    //                    generatedBaseTypes.Add(baseTypeKey);
-
-    //                    var baseDtoName = DtoGenerationSymbols.GetDtoClassName(baseType, baseAutoGenAttr, false);
-    //                    var netBaseName = baseType.ToDisplayString();
-
-    //                    // Hilfsmethode: Entity -> DTO
-    //                    var baseProps = DtoGenerationSymbols.GetDtoProperties(baseType, _symbols.Ignore).ToList();
-    //                    sb.AppendLine($"\t\tpublic static void AssignBaseProperties(this {baseDtoName} dto, {netBaseName} src)");
-    //                    sb.AppendLine("\t\t{");
-    //                    foreach (var prop in baseProps)
-    //                    {
-    //                        var propAttr = prop.PropertyCfg(_symbols);
-    //                        var propTypeString = DtoGenerationSymbols.GetDtoPropertyType(prop, dtoTypeDict, _symbols, false);
-    //                        var propName = DtoGenerationSymbols.GetDtoPropertyName(prop, propAttr);
-    //                        sb.AppendLine($"\t\t\tdto.{propName} = src.{prop.Name};");
-    //                    }
-    //                    sb.AppendLine("\t\t}");
-
-    //                    // Hilfsmethode: DTO -> Entity
-    //                    sb.AppendLine($"\t\tpublic static void AssignBaseProperties(this {netBaseName} entity, {baseDtoName} dto)");
-    //                    sb.AppendLine("\t\t{");
-    //                    foreach (var prop in baseProps)
-    //                    {
-    //                        var propAttr = prop.PropertyCfg(_symbols);
-    //                        var propTypeString = DtoGenerationSymbols.GetDtoPropertyType(prop, dtoTypeDict, _symbols, false);
-    //                        var propName = DtoGenerationSymbols.GetDtoPropertyName(prop, propAttr);
-    //                        sb.AppendLine($"\t\t\tentity.{prop.Name} = dto.{propName};");
-    //                    }
-    //                    sb.AppendLine("\t\t}");
-    //                }
-    //            }
-    //        }
-
-    //        // 2. Eigentliche Mapping-Methoden
-    //        foreach (var type in types)
-    //        {
-    //            var autoGenAttr = type.ClassCfg(_symbols);
-    //            if (!autoGenAttr.GenerateMapping)
-    //                continue;
-
-    //            atLeastOneGenerated = true;
-    //            var toDtoMethod = DtoGenerationSymbols.GetToDtoMethodName(type, autoGenAttr);
-    //            var toNetMethod = DtoGenerationSymbols.GetToSourceMethodName(type, autoGenAttr);
-    //            var isEnum = type.TypeKind == TypeKind.Enum;
-    //            var netTypeName = type.ToDisplayString();
-    //            var dtoTypeName = DtoGenerationSymbols.GetDtoClassName(type, autoGenAttr, false);
-    //            var comTypeNs = !string.IsNullOrWhiteSpace(autoGenAttr.Namespace) ? $"{autoGenAttr.Namespace}." : string.Empty;
-    //            var genericParams = DtoGenerationSymbols.GetGenericTypeParameters(type);
-    //            var genericConstraints = type.GenerateGenericConstraintsWithDtoSubstitution(_symbols.AutoGenerateDto, dtoTypeDict);
-
-    //            if (isEnum)
-    //            {
-    //                sb.AppendLine($"\t\t{autoGenAttr.ClassModifier.ToCSharpKeyword()} static {comTypeNs}{dtoTypeName}? {toDtoMethod}(this {netTypeName}? src) => src.HasValue ? ({comTypeNs}{dtoTypeName})(int)src.Value : null;");
-    //                sb.AppendLine($"\t\t{autoGenAttr.ClassModifier.ToCSharpKeyword()} static {netTypeName}? {toNetMethod}(this {comTypeNs}{dtoTypeName}? src) => src.HasValue ? ({netTypeName})(int)src.Value : null;");
-    //                sb.AppendLine($"\t\t{autoGenAttr.ClassModifier.ToCSharpKeyword()} static {comTypeNs}{dtoTypeName} {toDtoMethod}(this {netTypeName} src) => ({comTypeNs}{dtoTypeName})(int)src;");
-    //                sb.AppendLine($"\t\t{autoGenAttr.ClassModifier.ToCSharpKeyword()} static {netTypeName} {toNetMethod}(this {comTypeNs}{dtoTypeName} src) => ({netTypeName})(int)src;");
-    //                continue;
-    //            }
-
-    //            var comProps = DtoGenerationSymbols.GetDtoProperties(type, _symbols.Ignore).ToList();
-
-    //            // Forward Mapping: Source → DTO
-    //            sb.AppendLine($"\t\t{autoGenAttr.ClassModifier.ToCSharpKeyword()} static {comTypeNs}{dtoTypeName}{genericParams} {toDtoMethod}{genericParams}(this {netTypeName} src) {genericConstraints}");
-    //            sb.AppendLine("\t\t{");
-    //            sb.AppendLine("\t\t\tif(src == null) return null;");
-    //            sb.AppendLine($"\t\t\tvar result = new {comTypeNs}{dtoTypeName}{genericParams}();");
-
-    //            // --- Basismapping aufrufen, falls Basisklasse mit DTO vorhanden
-    //            var baseType = type.BaseType;
-    //            if (baseType != null && dtoTypeDict.TryGetValue(baseType.ToDisplayString(), out var baseTypeSymbol))
-    //            {
-    //                var baseAutoGenAttr = baseTypeSymbol.ClassCfg(_symbols);
-    //                if (baseAutoGenAttr != null)
-    //                {
-    //                    var baseDtoName = DtoGenerationSymbols.GetDtoClassName(baseType, baseAutoGenAttr, false);
-    //                    sb.AppendLine($"\t\t\t(( {baseDtoName} )result).AssignBaseProperties(src);");
-    //                }
-    //            }
-
-    //            foreach (var prop in comProps.Where(prop => !_symbols.PropertyInBaseType(prop, type.BaseType, dtoTypeDict)))
-    //            {
-    //                var mappAssignment = GeneratePropertyMappingAssignment(prop, dtoTypeDict, false);
-    //                classMapperUsed = classMapperUsed || mappAssignment.ClassMapperUsed;
-    //                sb.AppendLine(mappAssignment.Result);
-    //            }
-
-    //            sb.AppendLine("\t\t\treturn result;");
-    //            sb.AppendLine("\t\t}");
-
-    //            // Reverse Mapping: DTO → Source
-    //            sb.AppendLine($"\t\t{autoGenAttr.ClassModifier.ToCSharpKeyword()} static {netTypeName} {toNetMethod}{genericParams}(this {comTypeNs}{dtoTypeName}{genericParams} src) {genericConstraints}");
-    //            sb.AppendLine("\t\t{");
-    //            sb.AppendLine("\t\t\tif(src == null) return null;");
-    //            sb.AppendLine($"\t\t\tvar result = new {netTypeName}();");
-
-    //            // --- Basismapping zurück
-    //            if (baseType != null && dtoTypeDict.TryGetValue(baseType.ToDisplayString(), out var baseTypeSymbol2))
-    //            {
-    //                var baseAutoGenAttr2 = baseTypeSymbol2.ClassCfg(_symbols);
-    //                if (baseAutoGenAttr2 != null)
-    //                {
-    //                    var baseDtoName = DtoGenerationSymbols.GetDtoClassName(baseType, baseAutoGenAttr2, false);
-    //                    sb.AppendLine($"\t\t\tresult.AssignBaseProperties(( {baseDtoName} )src);");
-    //                }
-    //            }
-    //            // --- Eigene Properties zurück
-    //            foreach (var prop in comProps.Where(prop => !_symbols.PropertyInBaseType(prop, type.BaseType, dtoTypeDict)))
-    //            {
-    //                var assignment = GeneratePropertyMappingAssignment(prop, dtoTypeDict, true);
-    //                classMapperUsed = classMapperUsed || assignment.ClassMapperUsed;
-    //                sb.AppendLine(assignment.Result);
-    //            }
-    //            sb.AppendLine("\t\t\treturn result;");
-    //            sb.AppendLine("\t\t}");
-    //        }
-    //        sb.AppendLine("\t}");
-    //    }
-
-    //    if(!atLeastOneGenerated)
-    //        return null;
-    //    if (classMapperUsed)
-    //        sb.Insert(0, "using Nextended.Core.Extensions;");
-    //    return new GeneratedFile("MappingExtensions.g.cs", ns, sb.ToString(), _config?.MappingOutputPath ?? _config?.OutputPath);
-
-    //}
-
-
-
-
     public string GenerateGuids()
     {
         if (!_comIds.Any()) return string.Empty;
@@ -788,7 +582,7 @@ public class DtoCodeGenerator
         var comCompatible = classAttr.IsComCompatible;
 
         var genericConstraints = type.GenerateGenericConstraintsWithDtoSubstitution(_symbols.AutoGenerateDto, dtoTypeDict);
-        
+
         var baseTypeStr = _symbols.GetBaseTypeString(type, [], dtoTypeDict, false)?.Replace(":", "");
         if (string.IsNullOrWhiteSpace(baseTypeStr))
             baseTypeStr = classAttr.BaseType ??= _config.BaseType;
@@ -819,7 +613,7 @@ public class DtoCodeGenerator
         foreach (var prop in DtoGenerationSymbols.GetDtoProperties(type, _symbols.Ignore))
         {
             var propType = prop.Type;
-            
+
             if (DtoGenerationSymbols.IsDtoType(propType, dtoTypeDict) && !DtoGenerationSymbols.IsDtoEnumType(propType, dtoTypeDict))
             {
                 var propAttr = prop.PropertyCfg(_symbols);
@@ -837,18 +631,18 @@ public class DtoCodeGenerator
                 sb.AppendAttributesIf(prop, propAttr?.KeepAttributesOnGeneratedClass ?? classAttr?.KeepPropertyAttributesOnGeneratedClass ?? false, 2);
                 sb.AppendLineIf(propAttr?.PreClassString, !string.IsNullOrEmpty(propAttr?.PreClassString));
                 // Explicit interface implementation for properties of DTOs
-                if(interfaceAccess is InterfaceProperty.GetAndSet or InterfaceProperty.Unset)
-                    sb.AppendLine($"\t\t{ns}{comInterfaceTypeName} {thisInterface}.{propName} {{ get => {propName}; set => {propName} = ({ns}{propTypeString})value; }}");
+                var castType = DtoGenerationSymbols.TrimNullableSuffix(propTypeString);
+                if (interfaceAccess is InterfaceProperty.GetAndSet or InterfaceProperty.Unset)
+                    sb.AppendLine($"\t\t{ns}{comInterfaceTypeName} {thisInterface}.{propName} {{ get => {propName}; set => {propName} = ({ns}{castType})value; }}");
                 else if (interfaceAccess == InterfaceProperty.Get)
                     sb.AppendLine($"\t\t{ns}{comInterfaceTypeName} {thisInterface}.{propName} {{ get => {propName}; }}");
-                else if(interfaceAccess == InterfaceProperty.Set)
-                    sb.AppendLine($"\t\t{ns}{comInterfaceTypeName} {thisInterface}.{propName} {{ set => {propName} = ({ns}{propTypeString})value; }}");
+                else if (interfaceAccess == InterfaceProperty.Set)
+                    sb.AppendLine($"\t\t{ns}{comInterfaceTypeName} {thisInterface}.{propName} {{ set => {propName} = ({ns}{castType})value; }}");
             }
         }
         sb.AppendLine("\t}\n");
         return sb.ToString();
     }
-
 
     public GeneratedFile GenerateComIdFile(IEnumerable<INamedTypeSymbol> allTypes)
     {

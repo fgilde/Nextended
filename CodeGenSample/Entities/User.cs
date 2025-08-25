@@ -30,12 +30,18 @@ public class User: EntityBase
     public Address Address { get; set; }
     
     public Address? AnotherAddress { get; set; }
+    public virtual List<Address> AdditionalAddresses { get; set; }
     public string XyZ { get; set; }
     
     [GenerationPropertySetting(PropertyName = "UserLevel", InterfaceAccess = InterfaceProperty.GetAndSet)]
     public UserLevel? Level { get; set; }
 
     public OtherInfos OtherInfos { get; set; }
+    
+    public DateTimeOffset? LastOnline { get; set; }
+    public DateTime Birthday { get; set; }
+    public DateTime? OtherDate { get; set; }
+
 }
 
 
