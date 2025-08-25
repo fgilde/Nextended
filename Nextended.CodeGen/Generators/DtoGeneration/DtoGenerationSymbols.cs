@@ -158,36 +158,111 @@ public class DtoGenerationSymbols
         DtoGenerationSymbols symbols,
         bool asInterface)
     {
-        var propType = prop.Type;
+        var t = prop.Type;
 
-        // Merken, ob das Property nullable ist (deckt Nullable<T> und "?" ab)
-        bool isNullable = prop.IsNullable(); // dein Helper
-
-        // Für die Typbestimmung REFERENZ-? entfernen und Nullable<T> entpacken
-        var underlyingType = NormalizeForLookup(propType);
-
-        string typeString;
-        if (IsDtoEnumType(underlyingType, comTypes))
+        // 1) Nullable<T> (z. B. Enums)
+        if (IsNullableValueType(t, out var underlying))
         {
-            var targetClass = comTypes[underlyingType.ToDisplayString()];
-            var targetAttr = targetClass.ClassCfg(symbols);
-            typeString = GetDtoClassName(targetClass, targetAttr, false);
-        }
-        else if (IsDtoType(underlyingType, comTypes))
-        {
-            var targetClass = comTypes[underlyingType.ToDisplayString()];
-            var targetAttr = targetClass.ClassCfg(symbols);
-            typeString = GetDtoClassName(targetClass, targetAttr, asInterface);
-        }
-        else
-        {
-            typeString = underlyingType.ToDisplayString();
+            var core = NormalizeForLookup(underlying);
+
+            if (IsDtoEnumType(core, comTypes))
+            {
+                var targetClass = comTypes[core.ToDisplayString()];
+                var cfg = targetClass.ClassCfg(symbols);
+                var name = GetDtoClassName(targetClass, cfg, /*asInterface*/ false); // nur Name!
+                return name + "?";
+            }
+
+            if (IsDtoType(core, comTypes))
+            {
+                var targetClass = comTypes[core.ToDisplayString()];
+                var cfg = targetClass.ClassCfg(symbols);
+                var name = GetDtoClassName(targetClass, cfg, asInterface); // nur Name!
+                return name + "?";
+            }
+
+            // nicht-DTO Nullable<T> -> "T?" als Kurzform, wenn möglich
+            var shortName = core.ToDisplayString(SymbolDisplayFormat.CSharpErrorMessageFormat);
+            return shortName + "?";
         }
 
-        if (isNullable && !typeString.EndsWith("?"))
-            typeString += "?";
+        // 2) Arrays & Generics (außer Nullable<T>)
+        if (t is IArrayTypeSymbol || (t is INamedTypeSymbol ng && ng.IsGenericType))
+        {
+            // kompletter Typstring inkl. innerer Namespaces
+            var core = BuildTypeStringWithDtoSubstitution(t, comTypes, symbols, insideGeneric: false);
 
-        return typeString;
+            // Property-Nullability für die gesamte generische Struktur berücksichtigen
+            if (prop.IsNullable() && !core.EndsWith("?"))
+                core += "?";
+
+            return core;
+        }
+
+        // 3) Skalar (nicht Nullable<T>)
+        var sNorm = NormalizeForLookup(t);
+        if (IsDtoEnumType(sNorm, comTypes))
+        {
+            var targetClass = comTypes[sNorm.ToDisplayString()];
+            var cfg = targetClass.ClassCfg(symbols);
+            var name = GetDtoClassName(targetClass, cfg, false); // nur Name!
+            return prop.IsNullable() && !name.EndsWith("?") ? name + "?" : name;
+        }
+
+        if (IsDtoType(sNorm, comTypes))
+        {
+            var targetClass = comTypes[sNorm.ToDisplayString()];
+            var cfg = targetClass.ClassCfg(symbols);
+            var name = GetDtoClassName(targetClass, cfg, asInterface); // nur Name!
+            return prop.IsNullable() && !name.EndsWith("?") ? name + "?" : name;
+        }
+
+        // 4) Nicht-DTO/-Enum
+        var plain = t.ToDisplayString(SymbolDisplayFormat.CSharpErrorMessageFormat);
+        if (prop.IsNullable() && !plain.EndsWith("?")) plain += "?";
+        return plain;
+    }
+
+    public static IEnumerable<string> GetReferencedNamespaces(
+        INamedTypeSymbol type,
+        Dictionary<string, INamedTypeSymbol> dtoTypeDict)
+    {
+        var result = new HashSet<string>();
+        foreach (var p in GetDtoProperties(type, null))
+        {
+            foreach (var inner in WalkTypeTree(p.Type))
+            {
+                var key = inner.ToDisplayString();
+                if (dtoTypeDict.ContainsKey(key))
+                {
+                    var ns = dtoTypeDict[key].ContainingNamespace?.ToDisplayString();
+                    if (!string.IsNullOrWhiteSpace(ns))
+                        result.Add(ns);
+                }
+            }
+        }
+        return result;
+    }
+
+    public string GetNamespaceForProperty(IPropertySymbol property, Dictionary<string, INamedTypeSymbol> dtoTypeDict)
+    {
+        var t = property.Type;
+
+        // Arrays & Generics (außer Nullable<T>) -> KEIN Prefix, da inner schon vollqualifiziert sind
+        if (t is IArrayTypeSymbol) return string.Empty;
+        if (t is INamedTypeSymbol ng && ng.IsGenericType && ng.ConstructedFrom?.SpecialType != SpecialType.System_Nullable_T)
+            return string.Empty;
+
+        // Nullable<T> -> underlying Typ für Namespace-Entscheidung
+        if (IsNullableValueType(t, out var underlying))
+            t = underlying;
+
+        var core = NormalizeForLookup(t);
+
+        if (!(IsDtoType(core, dtoTypeDict) || IsDtoEnumType(core, dtoTypeDict)))
+            return string.Empty;
+
+        return GetNamespacePrefixString(GetClassCfgForType(core, dtoTypeDict));
     }
 
     // DtoGenerationSymbols.cs
@@ -209,12 +284,6 @@ public class DtoGenerationSymbols
     public static bool IsDtoType(ITypeSymbol type, Dictionary<string, INamedTypeSymbol> comTypes)
         => comTypes.ContainsKey(NormalizeForLookup(type).ToDisplayString());
 
-    //public static bool IsDtoEnumType(ITypeSymbol type, Dictionary<string, INamedTypeSymbol> comTypes)
-    //{
-    //    type = NormalizeForLookup(type);
-    //    return comTypes.TryGetValue(type.ToDisplayString(), out var t) && t.TypeKind == TypeKind.Enum;
-    //}
-
 
     public static bool IsDtoEnumType(ITypeSymbol type, Dictionary<string, INamedTypeSymbol> comTypes)
     {
@@ -223,21 +292,7 @@ public class DtoGenerationSymbols
         return comTypes.TryGetValue(type.ToDisplayString(), out var t) && t.TypeKind == TypeKind.Enum;
     }
 
-
-    /// <summary>
-    /// Liefert alle Namespaces, auf die Properties des Typs verweisen (für Usings).
-    /// </summary>
-    public static IEnumerable<string> GetReferencedNamespaces(
-        INamedTypeSymbol type,
-        Dictionary<string, INamedTypeSymbol> dtoTypeDict)
-    {
-        return GetDtoProperties(type, null)
-            .Select(p => p.Type)
-            .Where(t => dtoTypeDict.ContainsKey(t.ToDisplayString()))
-            .Select(t => dtoTypeDict[t.ToDisplayString()].ContainingNamespace.ToDisplayString())
-            .Where(ns => !string.IsNullOrWhiteSpace(ns));
-    }
-
+    
     public static string[] GetUsings(INamedTypeSymbol type, Dictionary<string, INamedTypeSymbol> dtoTypeDict,
         AutoGenerateDtoAttribute autoGenAttr, DtoGenerationConfig cfg)
     {
@@ -295,6 +350,17 @@ public class DtoGenerationSymbols
         return GetBaseTypeString(type, baseTypeStr, dtoTypeDict, asInterface);
     }
 
+    private static bool IsNullableValueType(ITypeSymbol t, out ITypeSymbol underlying)
+    {
+        if (t is INamedTypeSymbol ng && ng.ConstructedFrom?.SpecialType == SpecialType.System_Nullable_T && ng.TypeArguments.Length == 1)
+        {
+            underlying = ng.TypeArguments[0];
+            return true;
+        }
+        underlying = null;
+        return false;
+    }
+
     public string GetBaseTypeString(INamedTypeSymbol type, string baseTypeStr, Dictionary<string, INamedTypeSymbol> dtoTypeDict, bool asInterface)
     {
         var baseType = type.BaseType;
@@ -349,14 +415,14 @@ public class DtoGenerationSymbols
         return baseTypeStr;
     }
     
-    public string GetNamespaceForProperty(IPropertySymbol property, Dictionary<string, INamedTypeSymbol> dtoTypeDict)
-    {
-        //var type = dtoTypeDict.ContainsKey(property.Type.ToDisplayString())
-        //    ? dtoTypeDict[property.Type.ToDisplayString()]
-        //    : null;
-        //return GetNamespacePrefixString(Namespace(type));
-        return GetNamespacePrefixString(GetClassCfgForType(property.Type, dtoTypeDict));
-    }
+    //public string GetNamespaceForProperty(IPropertySymbol property, Dictionary<string, INamedTypeSymbol> dtoTypeDict)
+    //{
+    //    //var type = dtoTypeDict.ContainsKey(property.Type.ToDisplayString())
+    //    //    ? dtoTypeDict[property.Type.ToDisplayString()]
+    //    //    : null;
+    //    //return GetNamespacePrefixString(Namespace(type));
+    //    return GetNamespacePrefixString(GetClassCfgForType(property.Type, dtoTypeDict));
+    //}
 
     //public string GetNamespaceForProperty(IPropertySymbol property, Dictionary<string, INamedTypeSymbol> dtoTypeDict)
     //{
@@ -429,6 +495,95 @@ public class DtoGenerationSymbols
             baseType = baseType.BaseType;
         }
         return false;
+    }
+
+    public static bool ContainsDtoTypeRecursive(ITypeSymbol type, Dictionary<string, INamedTypeSymbol> comTypes)
+        => WalkTypeTree(type).Any(t => IsDtoType(t, comTypes) || IsDtoEnumType(t, comTypes));
+
+    private static string BuildTypeStringWithDtoSubstitution(
+        ITypeSymbol type,
+        Dictionary<string, INamedTypeSymbol> comTypes,
+        DtoGenerationSymbols symbols,
+        bool insideGeneric)
+    {
+        // Arrays
+        if (type is IArrayTypeSymbol ats)
+        {
+            var elem = BuildTypeStringWithDtoSubstitution(ats.ElementType, comTypes, symbols, true);
+            return elem + "[]";
+        }
+
+        // Generics (außer Nullable<T>, das behandeln wir in GetDtoPropertyType gesondert)
+        if (type is INamedTypeSymbol nts && nts.IsGenericType && nts.ConstructedFrom?.SpecialType != SpecialType.System_Nullable_T)
+        {
+            var baseName = nts.ConstructedFrom.ToDisplayString(SymbolDisplayFormat.CSharpErrorMessageFormat);
+            baseName = baseName.Split('<')[0];
+            var argStrings = nts.TypeArguments
+                .Select(a => BuildTypeStringWithDtoSubstitution(a, comTypes, symbols, true))
+                .ToArray();
+            return $"{baseName}<{string.Join(", ", argStrings)}>";
+        }
+
+        // Skalar (oder Nullable-Untertyp wird separat gehandhabt)
+        var core = NormalizeForLookup(type);
+        var s = GetQualifiedDtoTypeName(core, comTypes, symbols, false);
+
+        // Kein '?' innerhalb generischer Argumente
+        if (insideGeneric)
+            return s;
+
+        // Referenz-Nullability nur auf oberster Ebene berücksichtigen
+        if (type.NullableAnnotation == NullableAnnotation.Annotated && !s.EndsWith("?"))
+            s += "?";
+
+        return s;
+    }
+
+    public static string GetQualifiedDtoTypeName(
+        ITypeSymbol type,
+        Dictionary<string, INamedTypeSymbol> comTypes,
+        DtoGenerationSymbols symbols,
+        bool asInterfaceForNonGeneric)
+    {
+        type = NormalizeForLookup(type);
+
+        if (IsDtoEnumType(type, comTypes))
+        {
+            var targetClass = comTypes[type.ToDisplayString()];
+            var cfg = targetClass.ClassCfg(symbols);
+            var name = GetDtoClassName(targetClass, cfg, false);
+            var ns = symbols.GetNamespacePrefixString(cfg);
+            return $"{ns}{name}";
+        }
+
+        if (IsDtoType(type, comTypes))
+        {
+            var targetClass = comTypes[type.ToDisplayString()];
+            var cfg = targetClass.ClassCfg(symbols);
+            var name = GetDtoClassName(targetClass, cfg, asInterfaceForNonGeneric);
+            var ns = symbols.GetNamespacePrefixString(cfg);
+            return $"{ns}{name}";
+        }
+
+        return type.ToDisplayString(SymbolDisplayFormat.CSharpErrorMessageFormat);
+    }
+
+    static IEnumerable<ITypeSymbol> WalkTypeTree(ITypeSymbol type)
+    {
+        type = NormalizeForLookup(type);
+        yield return type;
+
+        if (type is IArrayTypeSymbol ats)
+        {
+            foreach (var t in WalkTypeTree(ats.ElementType))
+                yield return t;
+        }
+        else if (type is INamedTypeSymbol nts && nts.IsGenericType)
+        {
+            foreach (var ta in nts.TypeArguments)
+            foreach (var t in WalkTypeTree(ta))
+                yield return t;
+        }
     }
 
 
