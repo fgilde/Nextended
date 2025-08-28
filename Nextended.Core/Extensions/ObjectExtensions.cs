@@ -18,9 +18,9 @@ namespace Nextended.Core.Extensions
             return ReflectionHelper.FindAllValuesOf<T>(instance, settings);
         }
 
-        public static IDictionary<string, string> ToFlatDictionary(this object obj)
+        public static IDictionary<string, string> ToFlatDictionary(this object obj, string separator = ".")
         {
-            return JsonDictionaryConverter.Flatten(obj);
+            return JsonDictionaryConverter.Flatten(obj, separator);
         }
 
         public static IDictionary<string, object> ToDictionary(this object obj)

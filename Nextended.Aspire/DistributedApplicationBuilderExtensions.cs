@@ -1,6 +1,7 @@
 ﻿using Aspire.Hosting;
 using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
+using Nextended.Core.Extensions;
 
 namespace Nextended.Aspire;
 
@@ -106,6 +107,40 @@ public static partial class DistributedApplicationBuilderExtensions
     {
         return condition ? builder.WaitForCompletion(dependency) : builder;
     }
+
+    public static IResourceBuilder<T> WithEnvironments<T, TObject>(this IResourceBuilder<T> builder, TObject options) where T : IResourceWithEnvironment
+    {
+        return builder.WithEnvironments(options, typeof(TObject).Name);
+    }
+
+    public static IResourceBuilder<T> WithEnvironments<T, TObject>(this IResourceBuilder<T> builder, TObject options, string prefix) where T : IResourceWithEnvironment
+    {
+        var flatDictionary = options.ToFlatDictionary("__");
+        flatDictionary?.Apply(kv => builder.WithEnvironment($"{prefix}__{kv.Key.Replace(".", "__")}", kv.Value));
+        return builder;
+    }
+
+    public static IResourceBuilder<T> WithEnvironmentsIf<T, TObject>(this IResourceBuilder<T> builder, bool condition, TObject options, string prefix) where T : IResourceWithEnvironment
+    {
+        return condition ? builder.WithEnvironments(options, prefix) : builder;
+    }
+
+    public static IResourceBuilder<T> WithEnvironmentsIf<T, TObject>(this IResourceBuilder<T> builder, bool condition, TObject options) where T : IResourceWithEnvironment
+    {
+        return condition ? builder.WithEnvironments(options) : builder;
+    }
+
+    public static IResourceBuilder<T> WithEnvironmentsIf<T, TObject>(this IResourceBuilder<T> builder, TObject options, string prefix) where T : IResourceWithEnvironment
+    {
+        return builder.WithEnvironmentsIf(options != null, options, prefix);
+
+    }
+
+    public static IResourceBuilder<T> WithEnvironmentsIf<T, TObject>(this IResourceBuilder<T> builder, TObject options) where T : IResourceWithEnvironment
+    {
+        return builder.WithEnvironmentsIf(options != null, options);
+    }
+
 
     /// <summary>
     /// Adds a reference to the environment if the specified dependency (with a connection string) is not null.

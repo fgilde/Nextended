@@ -66,9 +66,9 @@ namespace Nextended.Core.Helper
         /// </summary>
         /// <param name="obj">Object to flatten</param>
         /// <returns> Flat dictionary with path as key and value as string </returns>
-        public static Dictionary<string, string> Flatten(object obj)
+        public static Dictionary<string, string> Flatten(object obj, string separator = ".")
         {
-            return Flatten(JObject.FromObject(obj));
+            return Flatten(JObject.FromObject(obj), separator);
         }
 
         /// <summary>
@@ -76,15 +76,48 @@ namespace Nextended.Core.Helper
         /// </summary>
         /// <param name="jsonObject">JObject to flatten</param>
         /// <returns> Flat dictionary with path as key and value as string </returns>
-        public static Dictionary<string, string> Flatten(JObject jsonObject)
+        public static Dictionary<string, string> Flatten(JObject jsonObject, string separator = ".")
         {
-            IEnumerable<JToken> jTokens = jsonObject.Descendants().Where(p => !p.Any());
-            Dictionary<string, string> results = jTokens.Aggregate(new Dictionary<string, string>(), (properties, jToken) =>
+            if (separator == ".")
             {
-                properties.Add(jToken.Path, jToken.ToString());
-                return properties;
-            });
-            return results;
+                IEnumerable<JToken> jTokens = jsonObject.Descendants().Where(p => !p.Any());
+                Dictionary<string, string> results = jTokens.Aggregate(new Dictionary<string, string>(),
+                    (properties, jToken) =>
+                    {
+                        properties.Add(jToken.Path, jToken.ToString());
+                        return properties;
+                    });
+                return results;
+            }
+
+            var result = new Dictionary<string, string>();
+            FlattenToken(jsonObject, result, "", separator);
+            return result;
+
+        }
+
+        private static void FlattenToken(JToken token, Dictionary<string, string> result, string currentPath, string separator)
+        {
+            if (token is JValue value)
+            {
+                result[currentPath] = value.ToString();
+            }
+            else if (token is JObject obj)
+            {
+                foreach (var property in obj.Properties())
+                {
+                    var path = string.IsNullOrEmpty(currentPath) ? property.Name : currentPath + separator + property.Name;
+                    FlattenToken(property.Value, result, path, separator);
+                }
+            }
+            else if (token is JArray array)
+            {
+                for (int i = 0; i < array.Count; i++)
+                {
+                    var path = $"{currentPath}{separator}{i}";
+                    FlattenToken(array[i], result, path, separator);
+                }
+            }
         }
 
         /// <summary>
