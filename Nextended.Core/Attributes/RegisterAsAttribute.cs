@@ -10,6 +10,7 @@ public class RegisterAsAttribute: System.Attribute
     public object? ServiceKey { get; set; }
     public Type RegisterAsType { get; }
     public bool Enabled { get; set; } = true;
+    public bool ReplaceServices { get; set; }
 
     public bool RegisterAsImplementation { get; set; } = false;
 

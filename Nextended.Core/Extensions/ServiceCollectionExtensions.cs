@@ -2,6 +2,7 @@
 using System.Linq;
 using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Nextended.Core.Attributes;
 
 namespace Nextended.Core.Extensions;
@@ -22,11 +23,21 @@ public static class ServiceCollectionExtensions
             assembly.GetTypes()
                 .SelectMany(t => t.GetCustomAttributes<RegisterAsAttribute>().Select(a => a.SetImplementationType(t)))
                 .OrderBy(a => a.Order)
-                .SelectMany(a => a.GetServiceDescriptor())
-                .Apply(s =>
+                .Apply(a =>
                 {
-                    services.Add(s);
-                    onRegistered?.Invoke(s);
+                    foreach (var serviceDescriptor in a.GetServiceDescriptor())
+                    {
+                        if (a.ReplaceServices)
+                        {
+                            services.Replace(serviceDescriptor);
+                        }
+                        else
+                        {
+                            services.Add(serviceDescriptor);
+                        }
+
+                        onRegistered?.Invoke(serviceDescriptor);
+                    }
                 });
         }
         return services;
