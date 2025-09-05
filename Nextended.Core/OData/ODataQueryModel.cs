@@ -6,9 +6,13 @@ using StringToExpression.LanguageDefinitions;
 
 namespace Nextended.Core.OData;
 
-public class ODataQueryModel: IEquatable<ODataQueryModel>
-{
+#if NET8_0 || NET9_0
+    public class ODataQueryModel: IEquatable<ODataQueryModel>, IParsable<ODataQueryModel>
+#else
+    public class ODataQueryModel : IEquatable<ODataQueryModel>
+#endif
 
+{
     public string Filter { get; set; }
     public string FilterString => string.IsNullOrEmpty(Filter) ? "" : "$filter=" + Filter;
     
@@ -29,36 +33,14 @@ public class ODataQueryModel: IEquatable<ODataQueryModel>
             new[] { FilterString, SelectString, OrderByString, TakeString, SkipString }.Where(x =>
                 !string.IsNullOrEmpty(x)));
     
+    public bool IsValid=> !string.IsNullOrWhiteSpace(FullString); // TODO: More advanced validation?
     
-    public static ODataQueryModel FromString(string query)
-    {
-        if (string.IsNullOrEmpty(query))
-            return new ODataQueryModel();
-        var model = new ODataQueryModel();
-        var parts = query.TrimStart('?').Split('&');
-        foreach (var part in parts)
-        {
-            if (part.StartsWith("$filter="))
-                model.Filter = part.Substring("$filter=".Length);
-            else if (part.StartsWith("$select="))
-                model.Select = part.Substring("$select=".Length);
-            else if (part.StartsWith("$orderby="))
-                model.OrderBy = part.Substring("$orderby=".Length);
-            else if (part.StartsWith("$top="))
-                model.Take = part.Substring("$top=".Length);
-            else if (part.StartsWith("$skip="))
-                model.Skip = part.Substring("$skip=".Length);
-        }
-        return model;
-    }
-
-
     public Expression<Func<T, bool>> ToExpression<T>() => !string.IsNullOrEmpty(Filter) && Filter != "{}" ? new ODataFilterLanguage().Parse<T>(Filter) : null;
 
     public IQueryable<TSource> ToQueryable<TSource>(IQueryable<TSource> source)
     {
         var query = source;
-
+        
         if (!string.IsNullOrEmpty(Filter))
             query = query.Where(ToExpression<TSource>());
 
@@ -118,5 +100,49 @@ public class ODataQueryModel: IEquatable<ODataQueryModel>
     public static bool operator !=(ODataQueryModel obj1, ODataQueryModel obj2) => !(obj1 == obj2);
 
     #endregion
+
+    public static bool TryParse(string s, out ODataQueryModel res) => TryParse(s, null, out res);
+
+    public static bool TryParse(string s, IFormatProvider? culture, out ODataQueryModel res)
+    {
+        try
+        {
+            res = Parse(s, culture);
+            return string.IsNullOrWhiteSpace(s) ? res != null : res?.IsValid == true;
+        }
+        catch (Exception)
+        {
+            res = null;
+            return false;
+        }
+    }
+
+    public static ODataQueryModel Parse(string s, IFormatProvider? culture = null)
+    {
+        return FromString(s);
+    }
+
+    public static ODataQueryModel FromString(string query)
+    {
+        var comparison = StringComparison.InvariantCultureIgnoreCase;
+        if (string.IsNullOrEmpty(query))
+            return new ODataQueryModel();
+        var model = new ODataQueryModel();
+        var parts = query.TrimStart('?').Split('&');
+        foreach (var part in parts)
+        {
+            if (part.StartsWith("$filter=", comparison))
+                model.Filter = part.Substring("$filter=".Length);
+            else if (part.StartsWith("$select=", comparison))
+                model.Select = part.Substring("$select=".Length);
+            else if (part.StartsWith("$orderby=", comparison))
+                model.OrderBy = part.Substring("$orderby=".Length);
+            else if (part.StartsWith("$top=", comparison))
+                model.Take = part.Substring("$top=".Length);
+            else if (part.StartsWith("$skip=", comparison))
+                model.Skip = part.Substring("$skip=".Length);
+        }
+        return model;
+    }
 
 }
