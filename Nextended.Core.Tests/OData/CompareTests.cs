@@ -66,7 +66,7 @@ public class CompareTests
         var tests = new List<UnitTest1.Test>([new UnitTest1.Test(9, "Some"), new UnitTest1.Test(1, "Hello"), new UnitTest1.Test(5, "Sample"), new UnitTest1.Test(8, "Whatever")]);
         IQueryable<UnitTest1.Test> t = tests.AsQueryable();
 
-        var x = t.Where(s => s.SearchString.StartsWith('S'))
+        IQueryable<int> x = t.Where(s => s.SearchString.StartsWith('S'))
             .OrderBy(test => test.SearchInt)
             .Select(test => test.SearchInt);
 
@@ -83,5 +83,29 @@ public class CompareTests
         var exp = model.ToExpression<UnitTest1.Test>();
         var res = tests.AsQueryable().Where(exp).ToList();
         
+    }
+
+    [Fact]
+    public void ModelTest2()
+    {
+        var tests = new List<UnitTest1.Test>([new UnitTest1.Test(9, "Some"), new UnitTest1.Test(1, "Hello"), new UnitTest1.Test(5, "Sample"), new UnitTest1.Test(8, "Whatever")]);
+        IQueryable<UnitTest1.Test> t = tests.AsQueryable();
+
+
+        var model = ODataQueryModel.For<UnitTest1.Test>(q => q.Where(s => s.SearchString.StartsWith('S'))
+            .OrderBy(test => test.SearchInt)
+            .Select(test => test.SearchInt));
+        
+        model.ShouldNotBeNull();
+
+        var qres = model.ToQueryableWithSelect(t);
+        var qres2 = model.ToQueryable<UnitTest1.Test, int>(t);
+
+
+        List<UnitTest1.Test> xs = model.ToQueryable(t).ToList();
+
+        var exp = model.ToExpression<UnitTest1.Test>();
+        var res = tests.AsQueryable().Where(exp).ToList();
+
     }
 }

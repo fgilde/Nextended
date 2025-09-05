@@ -19,7 +19,21 @@ public static class ODataExtensions
             Take = oDataExpressionVisitor.Take,
         };
     }
-    
+
+    public static ODataQueryModel ToODataModel(this IQueryable source)
+    {
+        ODataExpressionVisitor oDataExpressionVisitor = new ODataExpressionVisitor();
+        oDataExpressionVisitor.Visit(source.Expression);
+        return new ODataQueryModel()
+        {
+            Filter = oDataExpressionVisitor.Result,
+            Select = oDataExpressionVisitor.Select,
+            OrderBy = oDataExpressionVisitor.OrderBy,
+            Skip = oDataExpressionVisitor.Skip,
+            Take = oDataExpressionVisitor.Take,
+        };
+    }
+
     public static string ToSelectString<TSource>(this IQueryable<TSource> source)
     {
         ODataExpressionVisitor oDataExpressionVisitor = new ODataExpressionVisitor();

@@ -7,7 +7,7 @@ using StringToExpression.LanguageDefinitions;
 namespace Nextended.Core.OData;
 
 #if NET8_0 || NET9_0
-    public class ODataQueryModel: IEquatable<ODataQueryModel>, IParsable<ODataQueryModel>
+public class ODataQueryModel : IEquatable<ODataQueryModel>, IParsable<ODataQueryModel>
 #else
     public class ODataQueryModel : IEquatable<ODataQueryModel>
 #endif
@@ -15,32 +15,32 @@ namespace Nextended.Core.OData;
 {
     public string Filter { get; set; }
     public string FilterString => string.IsNullOrEmpty(Filter) ? "" : "$filter=" + Filter;
-    
+
     public string Select { get; set; }
     public string SelectString => string.IsNullOrEmpty(Select) ? "" : "$select=" + Select;
-    
+
     public string OrderBy { get; set; }
     public string OrderByString => string.IsNullOrEmpty(OrderBy) ? "" : "$orderby=" + OrderBy;
-    
+
     public string Take { get; set; }
     public string TakeString => string.IsNullOrEmpty(Take) ? "" : "$top=" + Take;
 
     public string Skip { get; set; }
     public string SkipString => string.IsNullOrEmpty(Skip) ? "" : "$skip=" + Skip;
-    
+
     public string FullString =>
         string.Join("&",
             new[] { FilterString, SelectString, OrderByString, TakeString, SkipString }.Where(x =>
                 !string.IsNullOrEmpty(x)));
-    
-    public bool IsValid=> !string.IsNullOrWhiteSpace(FullString); // TODO: More advanced validation?
-    
+
+    public bool IsValid => !string.IsNullOrWhiteSpace(FullString); // TODO: More advanced validation?
+
     public Expression<Func<T, bool>> ToExpression<T>() => !string.IsNullOrEmpty(Filter) && Filter != "{}" ? new ODataFilterLanguage().Parse<T>(Filter) : null;
 
     public IQueryable<TSource> ToQueryable<TSource>(IQueryable<TSource> source)
     {
         var query = source;
-        
+
         if (!string.IsNullOrEmpty(Filter))
             query = query.Where(ToExpression<TSource>());
 
@@ -100,6 +100,13 @@ namespace Nextended.Core.OData;
     public static bool operator !=(ODataQueryModel obj1, ODataQueryModel obj2) => !(obj1 == obj2);
 
     #endregion
+
+
+    public static ODataQueryModel For<T>(Func<IQueryable<T>, IQueryable> action)
+    {
+        IQueryable queryable = action(Enumerable.Empty<T>().AsQueryable());
+        return queryable.ToODataModel();
+    }
 
     public static bool TryParse(string s, out ODataQueryModel res) => TryParse(s, null, out res);
 
