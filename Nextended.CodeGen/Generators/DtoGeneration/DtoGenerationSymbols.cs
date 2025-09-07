@@ -287,8 +287,19 @@ public class DtoGenerationSymbols
 
         if (type is INamedTypeSymbol nts && nts.IsGenericType)
         {
-            var baseName = nts.ConstructedFrom.ToDisplayString(SymbolDisplayFormat.CSharpErrorMessageFormat);
+            string baseName;
+            if (toNet)
+            {
+                // Richtung .NET: originaler .NET-Basistyp
+                baseName = nts.ConstructedFrom.ToDisplayString(SymbolDisplayFormat.CSharpErrorMessageFormat);
+            }
+            else
+            {
+                // Richtung DTO: Basistyp als vollqualifizierter DTO-Typ
+                baseName = GetQualifiedDtoTypeName(nts.ConstructedFrom, comTypes, symbols, asInterfaceForNonGeneric: false);
+            }
             baseName = baseName.Split('<')[0];
+
             var args = nts.TypeArguments.Select(a => BuildMappingTargetTypeString(a, toNet, comTypes, symbols));
             return $"{baseName}<{string.Join(", ", args)}>";
         }
@@ -553,11 +564,10 @@ public class DtoGenerationSymbols
         // Generics (außer Nullable<T>, das behandeln wir in GetDtoPropertyType gesondert)
         if (type is INamedTypeSymbol nts && nts.IsGenericType && nts.ConstructedFrom?.SpecialType != SpecialType.System_Nullable_T)
         {
-            var baseName = nts.ConstructedFrom.ToDisplayString(SymbolDisplayFormat.CSharpErrorMessageFormat);
+            var baseName = GetQualifiedDtoTypeName(nts.ConstructedFrom, comTypes, symbols, asInterfaceForNonGeneric: false);
             baseName = baseName.Split('<')[0];
             var argStrings = nts.TypeArguments
-                .Select(a => BuildTypeStringWithDtoSubstitution(a, comTypes, symbols, true))
-                .ToArray();
+                .Select(a => BuildTypeStringWithDtoSubstitution(a, comTypes, symbols, true));
             return $"{baseName}<{string.Join(", ", argStrings)}>";
         }
 

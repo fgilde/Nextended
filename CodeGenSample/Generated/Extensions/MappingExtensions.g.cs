@@ -86,6 +86,32 @@ namespace MyGenerated.Code.Test {
 			src.AssignTo(result);
 			return result;
 		}
+		public static void AssignTo(this CodeGenSample.Entities.ClassWithDimension src, MyGenerated.Code.Test.ClassWithDimensionDto dest) 
+		{
+			if (src == null || dest == null) return;
+			dest.Name = src.Name;
+			dest.Dimension = src.Dimension.MapTo<MyGenerated.Code.Test.DimensionDto<MyGenerated.Code.Test.SuperUnitDto>>();
+		}
+		public static void AssignTo(this MyGenerated.Code.Test.ClassWithDimensionDto src, CodeGenSample.Entities.ClassWithDimension dest) 
+		{
+			if (src == null || dest == null) return;
+			dest.Name = src.Name;
+			dest.Dimension = src.Dimension.MapTo<CodeGenSample.Entities.Dimension<global::CodeGenSample.Entities.SuperUnit>>();
+		}
+		public static MyGenerated.Code.Test.ClassWithDimensionDto ToDto(this CodeGenSample.Entities.ClassWithDimension src) 
+		{
+			if (src == null) return null;
+			var result = new MyGenerated.Code.Test.ClassWithDimensionDto();
+			src.AssignTo(result);
+			return result;
+		}
+		public static CodeGenSample.Entities.ClassWithDimension ToNet(this MyGenerated.Code.Test.ClassWithDimensionDto src) 
+		{
+			if (src == null) return null;
+			var result = new CodeGenSample.Entities.ClassWithDimension();
+			src.AssignTo(result);
+			return result;
+		}
 		public static void AssignTo(this CodeGenSample.Entities.DerivedClass src, MyGenerated.Code.Test.DerivedClassDto dest) 
 		{
 			if (src == null || dest == null) return;
@@ -188,6 +214,32 @@ namespace MyGenerated.Code.Test {
 			src.AssignTo(result);
 			return result;
 		}
+		public static void AssignTo<TUnit>(this CodeGenSample.Entities.Dimension<TUnit> src, MyGenerated.Code.Test.DimensionDto<TUnit> dest) where TUnit : UnitDto
+		{
+			if (src == null || dest == null) return;
+			dest.Value = src.Value;
+			dest.Unit = src.Unit;
+		}
+		public static void AssignTo<TUnit>(this MyGenerated.Code.Test.DimensionDto<TUnit> src, CodeGenSample.Entities.Dimension<TUnit> dest) where TUnit : UnitDto
+		{
+			if (src == null || dest == null) return;
+			dest.Value = src.Value;
+			dest.Unit = src.Unit;
+		}
+		public static MyGenerated.Code.Test.DimensionDto<TUnit> ToDto<TUnit>(this CodeGenSample.Entities.Dimension<TUnit> src) where TUnit : UnitDto
+		{
+			if (src == null) return null;
+			var result = new MyGenerated.Code.Test.DimensionDto<TUnit>();
+			src.AssignTo<TUnit>(result);
+			return result;
+		}
+		public static CodeGenSample.Entities.Dimension<TUnit> ToNet<TUnit>(this MyGenerated.Code.Test.DimensionDto<TUnit> src) where TUnit : UnitDto
+		{
+			if (src == null) return null;
+			var result = new CodeGenSample.Entities.Dimension<TUnit>();
+			src.AssignTo<TUnit>(result);
+			return result;
+		}
 		public static void AssignTo(this CodeGenSample.Entities.Base.EntityBase src, MyGenerated.Code.Test.EntityBaseDto dest) 
 		{
 			if (src == null || dest == null) return;
@@ -264,6 +316,56 @@ namespace MyGenerated.Code.Test {
 			if (src == null) return null;
 			var result = new CodeGenSample.Entities.GenericItem<T, T2>();
 			src.AssignTo<T, T2>(result);
+			return result;
+		}
+		public static void AssignTo(this CodeGenSample.Entities.SuperUnit src, MyGenerated.Code.Test.SuperUnitDto dest) 
+		{
+			if (src == null || dest == null) return;
+			((CodeGenSample.Entities.Unit)src).AssignTo(( UnitDto )dest);
+		}
+		public static void AssignTo(this MyGenerated.Code.Test.SuperUnitDto src, CodeGenSample.Entities.SuperUnit dest) 
+		{
+			if (src == null || dest == null) return;
+			((UnitDto)src).AssignTo(( CodeGenSample.Entities.Unit )dest);
+		}
+		public static MyGenerated.Code.Test.SuperUnitDto ToDto(this CodeGenSample.Entities.SuperUnit src) 
+		{
+			if (src == null) return null;
+			var result = new MyGenerated.Code.Test.SuperUnitDto();
+			src.AssignTo(result);
+			return result;
+		}
+		public static CodeGenSample.Entities.SuperUnit ToNet(this MyGenerated.Code.Test.SuperUnitDto src) 
+		{
+			if (src == null) return null;
+			var result = new CodeGenSample.Entities.SuperUnit();
+			src.AssignTo(result);
+			return result;
+		}
+		public static void AssignTo(this CodeGenSample.Entities.Unit src, MyGenerated.Code.Test.UnitDto dest) 
+		{
+			if (src == null || dest == null) return;
+			dest.BaseUnitFactor = src.BaseUnitFactor;
+			dest.NullPointShift = src.NullPointShift;
+		}
+		public static void AssignTo(this MyGenerated.Code.Test.UnitDto src, CodeGenSample.Entities.Unit dest) 
+		{
+			if (src == null || dest == null) return;
+			dest.BaseUnitFactor = src.BaseUnitFactor;
+			dest.NullPointShift = src.NullPointShift;
+		}
+		public static MyGenerated.Code.Test.UnitDto ToDto(this CodeGenSample.Entities.Unit src) 
+		{
+			if (src == null) return null;
+			var result = new MyGenerated.Code.Test.UnitDto();
+			src.AssignTo(result);
+			return result;
+		}
+		public static CodeGenSample.Entities.Unit ToNet(this MyGenerated.Code.Test.UnitDto src) 
+		{
+			if (src == null) return null;
+			var result = new CodeGenSample.Entities.Unit();
+			src.AssignTo(result);
 			return result;
 		}
 		public static void AssignTo(this CodeGenSample.Entities.User src, MyGenerated.Code.Test.MyUserDto dest) 
