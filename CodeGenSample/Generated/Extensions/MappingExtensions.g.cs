@@ -169,12 +169,14 @@ namespace MyGenerated.Code.Test {
 		public static void AssignTo<T>(this CodeGenSample.Entities.DerivedGenericClass<T> src, MyGenerated.Code.Test.DerivedGenericClassDto<T> dest) 
 		{
 			if (src == null || dest == null) return;
+// SUPER GENERIC DINGS DAT
 			((CodeGenSample.Entities.GenericBaseClass<T>)src).AssignTo<T>(( GenericBaseClassDto<T> )dest);
 			dest.Name = src.Name;
 		}
 		public static void AssignTo<T>(this MyGenerated.Code.Test.DerivedGenericClassDto<T> src, CodeGenSample.Entities.DerivedGenericClass<T> dest) 
 		{
 			if (src == null || dest == null) return;
+// SUPER GENERIC DINGS DAT 2
 			((GenericBaseClassDto<T>)src).AssignTo<T>(( CodeGenSample.Entities.GenericBaseClass<T> )dest);
 			dest.Name = src.Name;
 		}
@@ -212,32 +214,6 @@ namespace MyGenerated.Code.Test {
 			if (src == null) return null;
 			var result = new CodeGenSample.Entities.DerivedGenericClassWithInt();
 			src.AssignTo(result);
-			return result;
-		}
-		public static void AssignTo<TUnit>(this CodeGenSample.Entities.Dimension<TUnit> src, MyGenerated.Code.Test.DimensionDto<TUnit> dest) where TUnit : UnitDto
-		{
-			if (src == null || dest == null) return;
-			dest.Value = src.Value;
-			dest.Unit = src.Unit;
-		}
-		public static void AssignTo<TUnit>(this MyGenerated.Code.Test.DimensionDto<TUnit> src, CodeGenSample.Entities.Dimension<TUnit> dest) where TUnit : UnitDto
-		{
-			if (src == null || dest == null) return;
-			dest.Value = src.Value;
-			dest.Unit = src.Unit;
-		}
-		public static MyGenerated.Code.Test.DimensionDto<TUnit> ToDto<TUnit>(this CodeGenSample.Entities.Dimension<TUnit> src) where TUnit : UnitDto
-		{
-			if (src == null) return null;
-			var result = new MyGenerated.Code.Test.DimensionDto<TUnit>();
-			src.AssignTo<TUnit>(result);
-			return result;
-		}
-		public static CodeGenSample.Entities.Dimension<TUnit> ToNet<TUnit>(this MyGenerated.Code.Test.DimensionDto<TUnit> src) where TUnit : UnitDto
-		{
-			if (src == null) return null;
-			var result = new CodeGenSample.Entities.Dimension<TUnit>();
-			src.AssignTo<TUnit>(result);
 			return result;
 		}
 		public static void AssignTo(this CodeGenSample.Entities.Base.EntityBase src, MyGenerated.Code.Test.EntityBaseDto dest) 

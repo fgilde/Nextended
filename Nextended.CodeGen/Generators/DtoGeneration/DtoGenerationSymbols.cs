@@ -282,33 +282,34 @@ public class DtoGenerationSymbols
         Dictionary<string, INamedTypeSymbol> comTypes,
         DtoGenerationSymbols symbols)
     {
+        // Arrays
         if (type is IArrayTypeSymbol ats)
             return BuildMappingTargetTypeString(ats.ElementType, toNet, comTypes, symbols) + "[]";
 
+        // Generische Typen: Basistyp je Richtung (DTO vs .NET) wählen
         if (type is INamedTypeSymbol nts && nts.IsGenericType)
         {
-            string baseName;
-            if (toNet)
-            {
-                // Richtung .NET: originaler .NET-Basistyp
-                baseName = nts.ConstructedFrom.ToDisplayString(SymbolDisplayFormat.CSharpErrorMessageFormat);
-            }
-            else
-            {
-                // Richtung DTO: Basistyp als vollqualifizierter DTO-Typ
-                baseName = GetQualifiedDtoTypeName(nts.ConstructedFrom, comTypes, symbols, asInterfaceForNonGeneric: false);
-            }
+            var baseName = toNet
+                ? nts.ConstructedFrom.ToDisplayString(SymbolDisplayFormat.CSharpErrorMessageFormat)
+                : GetQualifiedDtoTypeName(nts.ConstructedFrom, comTypes, symbols, asInterfaceForNonGeneric: false);
+
             baseName = baseName.Split('<')[0];
 
-            var args = nts.TypeArguments.Select(a => BuildMappingTargetTypeString(a, toNet, comTypes, symbols));
+            var args = nts.TypeArguments
+                .Select(a => BuildMappingTargetTypeString(a, toNet, comTypes, symbols));
+
             return $"{baseName}<{string.Join(", ", args)}>";
         }
 
+        // Blätter:
+        // - toNet: vollqualifizierter .NET-Typ
+        // - sonst: vollqualifizierter DTO-/ENUM-Typ in Klassenform
         if (toNet)
             return type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
 
         return GetQualifiedDtoTypeName(type, comTypes, symbols, asInterfaceForNonGeneric: false);
     }
+
 
     /// <summary>
     /// Einfache Mengen-Typen (ohne Dictionary).
@@ -561,30 +562,46 @@ public class DtoGenerationSymbols
             return elem + "[]";
         }
 
-        // Generics (außer Nullable<T>, das behandeln wir in GetDtoPropertyType gesondert)
-        if (type is INamedTypeSymbol nts && nts.IsGenericType && nts.ConstructedFrom?.SpecialType != SpecialType.System_Nullable_T)
+        // Generics (außer Nullable<T>, das behandelt GetDtoPropertyType separat)
+        if (type is INamedTypeSymbol nts && nts.IsGenericType
+                                         && nts.ConstructedFrom?.SpecialType != SpecialType.System_Nullable_T)
         {
+            // Basistyp ebenfalls in DTO-Form umschalten
             var baseName = GetQualifiedDtoTypeName(nts.ConstructedFrom, comTypes, symbols, asInterfaceForNonGeneric: false);
             baseName = baseName.Split('<')[0];
-            var argStrings = nts.TypeArguments
+
+            // Typargumente rekursiv in DTO-Form bringen
+            var args = nts.TypeArguments
                 .Select(a => BuildTypeStringWithDtoSubstitution(a, comTypes, symbols, true));
-            return $"{baseName}<{string.Join(", ", argStrings)}>";
+
+            var s = $"{baseName}<{string.Join(", ", args)}>";
+
+            // Kein '?' innerhalb generischer Argumente
+            if (insideGeneric)
+                return s;
+
+            // Referenz-Nullability nur auf oberster Ebene berücksichtigen
+            if (type.NullableAnnotation == NullableAnnotation.Annotated && !s.EndsWith("?"))
+                s += "?";
+
+            return s;
         }
 
         // Skalar (oder Nullable-Untertyp wird separat gehandhabt)
         var core = NormalizeForLookup(type);
-        var s = GetQualifiedDtoTypeName(core, comTypes, symbols, false);
+        var scalar = GetQualifiedDtoTypeName(core, comTypes, symbols, asInterfaceForNonGeneric: false);
 
         // Kein '?' innerhalb generischer Argumente
         if (insideGeneric)
-            return s;
+            return scalar;
 
         // Referenz-Nullability nur auf oberster Ebene berücksichtigen
-        if (type.NullableAnnotation == NullableAnnotation.Annotated && !s.EndsWith("?"))
-            s += "?";
+        if (type.NullableAnnotation == NullableAnnotation.Annotated && !scalar.EndsWith("?"))
+            scalar += "?";
 
-        return s;
+        return scalar;
     }
+
 
     public static string GetQualifiedDtoTypeName(
         ITypeSymbol type,

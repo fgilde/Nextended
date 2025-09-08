@@ -359,8 +359,7 @@ public class DtoCodeGenerator
                         string baseGenericArgs = "";
                         if (baseType.IsGenericType && baseType.TypeArguments.Length > 0)
                         {
-                            baseGenericArgs = "<" + string.Join(", ",
-                                baseType.TypeArguments.Select(a => a.ToDisplayString(SymbolDisplayFormat.CSharpErrorMessageFormat))) + ">";
+                            baseGenericArgs = "<" + string.Join(", ", baseType.TypeArguments.Select(a => a.ToDisplayString(SymbolDisplayFormat.CSharpErrorMessageFormat))) + ">";
                         }
                         else
                         {
@@ -399,6 +398,7 @@ public class DtoCodeGenerator
                         string baseGenericArgs = "";
                         if (baseType.IsGenericType && baseType.TypeArguments.Length > 0)
                         {
+
                             baseGenericArgs = "<" + string.Join(", ",
                                 baseType.TypeArguments.Select(a => a.ToDisplayString(SymbolDisplayFormat.CSharpErrorMessageFormat))) + ">";
                         }
