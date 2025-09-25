@@ -86,8 +86,36 @@ public class CompareTests
     }
 
     [Fact]
+    public void SimpleParseTest()
+    {
+
+        var m = ODataQueryModel.Parse("/hello?xid=123&filer=378293");
+        var valid = m.IsValid;
+        valid.ShouldBe(false);
+
+        m = ODataQueryModel.Parse("");
+        valid = m.IsValid;
+        valid.ShouldBe(false);
+
+        m = ODataQueryModel.Parse("?$top=5&$filter=TransportationVehicle eq 'TRANSHIP'");
+        valid = m.IsValid;
+        valid.ShouldBe(true);
+        var query = m.FullString;
+
+
+        var m2 = ODataQueryModel.Parse("$top=5&$filter=TransportationVehicle%20eq%20%27TRANSHIP%27");
+        valid = m2.IsValid;
+        valid.ShouldBe(true);
+        var query2 = m2.FullString;
+
+        query.ShouldBeEquivalentTo(query2);
+    }
+
+
+    [Fact]
     public void ModelTest2()
     {
+
         var tests = new List<UnitTest1.Test>([new UnitTest1.Test(9, "Some"), new UnitTest1.Test(1, "Hello"), new UnitTest1.Test(5, "Sample"), new UnitTest1.Test(8, "Whatever")]);
         IQueryable<UnitTest1.Test> t = tests.AsQueryable();
 

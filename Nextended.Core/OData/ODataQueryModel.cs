@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using System.Linq.Dynamic.Core;
 using System.Linq.Expressions;
+using System.Web;
 using StringToExpression.LanguageDefinitions;
 
 namespace Nextended.Core.OData;
@@ -35,7 +36,7 @@ public class ODataQueryModel : IEquatable<ODataQueryModel>, IParsable<ODataQuery
 
     public bool IsValid => !string.IsNullOrWhiteSpace(FullString); // TODO: More advanced validation?
 
-    public Expression<Func<T, bool>> ToExpression<T>() => !string.IsNullOrEmpty(Filter) && Filter != "{}" ? new ODataFilterLanguage().Parse<T>(Filter) : null;
+    public Expression<Func<T, bool>> ToExpression<T>() => !string.IsNullOrEmpty(Filter) && Filter != "{}" ? new ODataFilterLanguage().Parse<T>(Filter) : _ => true;
 
     public IQueryable<TSource> ToQueryable<TSource>(IQueryable<TSource> source)
     {
@@ -134,6 +135,7 @@ public class ODataQueryModel : IEquatable<ODataQueryModel>, IParsable<ODataQuery
         var comparison = StringComparison.InvariantCultureIgnoreCase;
         if (string.IsNullOrEmpty(query))
             return new ODataQueryModel();
+        query = HttpUtility.UrlDecode(query);
         var model = new ODataQueryModel();
         var parts = query.TrimStart('?').Split('&');
         foreach (var part in parts)
