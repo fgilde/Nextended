@@ -169,14 +169,12 @@ namespace MyGenerated.Code.Test {
 		public static void AssignTo<T>(this CodeGenSample.Entities.DerivedGenericClass<T> src, MyGenerated.Code.Test.DerivedGenericClassDto<T> dest) 
 		{
 			if (src == null || dest == null) return;
-// SUPER GENERIC DINGS DAT
 			((CodeGenSample.Entities.GenericBaseClass<T>)src).AssignTo<T>(( GenericBaseClassDto<T> )dest);
 			dest.Name = src.Name;
 		}
 		public static void AssignTo<T>(this MyGenerated.Code.Test.DerivedGenericClassDto<T> src, CodeGenSample.Entities.DerivedGenericClass<T> dest) 
 		{
 			if (src == null || dest == null) return;
-// SUPER GENERIC DINGS DAT 2
 			((GenericBaseClassDto<T>)src).AssignTo<T>(( CodeGenSample.Entities.GenericBaseClass<T> )dest);
 			dest.Name = src.Name;
 		}

@@ -240,124 +240,7 @@ public static partial class DistributedApplicationBuilderExtensions
         var key = string.Join("__", caller.Split('.').Skip(1).ToArray());
         return builder.WithEnvironment(key, value);
     }
-
-    /// <summary>
-    /// Conditionally adds an endpoint as an environment variable if the specified reference is not null.
-    /// The key is derived from the provided expression.
-    /// </summary>
-    /// <typeparam name="T">The type of the resource that supports environment variables.</typeparam>
-    /// <typeparam name="TTarget">The target type used to derive the key.</typeparam>
-    /// <param name="builder">The resource builder to extend.</param>
-    /// <param name="keyExpression">An expression that indicates the key for the environment variable.</param>
-    /// <param name="reference">The resource builder containing endpoints to retrieve the endpoint from.</param>
-    /// <param name="endpointName">The name of the endpoint to retrieve. Defaults to "http".</param>
-    /// <param name="caller">The caller expression used to derive the key, automatically provided by the compiler.</param>
-    /// <returns>
-    /// The modified resource builder with the environment variable added if the endpoint is found;
-    /// otherwise, the original builder.
-    /// </returns>
-    /// <example>
-    /// <code>
-    /// builder.WithEndpointAsEnvironmentIf&lt;ProjectResource, ServerConfiguration&gt;(s => s.PublicSettings.Endpoints.Grafana, grafana);
-    /// </code>
-    /// </example>
-    public static IResourceBuilder<T> WithEndpointAsEnvironmentIf<T, TTarget>(this IResourceBuilder<T> builder, Func<TTarget, object> keyExpression, IResourceBuilder<IResourceWithEndpoints>? reference, string endpointName = "http", [CallerArgumentExpression(nameof(keyExpression))] string caller = null) where T : IResourceWithEnvironment
-    {
-        if (reference != null)
-        {
-            var endpointRef = reference?.GetEndpoint(endpointName);
-            if (endpointRef?.Exists == true)
-                return builder.WithEnvironment(keyExpression, endpointRef, caller);
-        }
-
-        return builder;
-    }
-
-    /// <summary>
-    /// Conditionally adds multiple endpoints as environment variables using a binded list.
-    /// For each non-null reference, a unique key is derived using the caller expression concatenated with an index.
-    /// </summary>
-    /// <typeparam name="T">The type of the resource that supports environment variables.</typeparam>
-    /// <typeparam name="TTarget">The target type used to derive the key.</typeparam>
-    /// <param name="builder">The resource builder to extend.</param>
-    /// <param name="keyExpression">An expression that indicates the key for the environment variables.</param>
-    /// <param name="references">An array of resource builders containing endpoints.</param>
-    /// <param name="endpointName">The name of the endpoint to retrieve. Defaults to "http".</param>
-    /// <param name="caller">The caller expression used to derive the key, automatically provided by the compiler.</param>
-    /// <returns>
-    /// The modified resource builder with environment variables added for each valid endpoint;
-    /// otherwise, the original builder.
-    /// </returns>
-    /// <example>
-    /// <code>
-    /// builder.WithEndpointsAsEnvironmentIf&lt;ProjectResource, ServerConfiguration&gt;(s => s.PublicSettings.Endpoints, new [] { grafana, ollama, prometheus, openWebUi, pgAdmin, keycloak, stirling });
-    /// </code>
-    /// </example>
-    public static IResourceBuilder<T> WithEndpointsAsEnvironmentIf<T, TTarget>(this IResourceBuilder<T> builder, Func<TTarget, IList<string>> keyExpression,
-        IResourceBuilder<IResourceWithEndpoints>[]? references,
-        string endpointName = "http",
-        [CallerArgumentExpression(nameof(keyExpression))] string caller = null) where T : IResourceWithEnvironment
-    {
-        if (references != null)
-        {
-            var index = 0;
-            foreach (var resourceBuilder in references.Where(r => r is not null))
-            {
-                var key = $"{string.Join("__", caller.Split('.').Skip(1).ToArray())}__{index}";
-                var endpointRef = resourceBuilder.GetEndpoint(endpointName);
-                if (endpointRef?.Exists == true)
-                {
-                    index += 1;
-                    builder.WithEnvironment(key, endpointRef);
-                }
-            }
-        }
-
-        return builder;
-    }
-
-    /// <summary>
-    /// Conditionally adds multiple endpoints as environment variables using a binded dictionary.
-    /// For each non-null reference, a unique key is derived using the caller expression concatenated with the resource name.
-    /// </summary>
-    /// <typeparam name="T">The type of the resource that supports environment variables.</typeparam>
-    /// <typeparam name="TTarget">The target type used to derive the key.</typeparam>
-    /// <param name="builder">The resource builder to extend.</param>
-    /// <param name="keyExpression">An expression that indicates the key for the environment variables.</param>
-    /// <param name="references">An array of resource builders containing endpoints.</param>
-    /// <param name="endpointName">The name of the endpoint to retrieve. Defaults to "http".</param>
-    /// <param name="caller">The caller expression used to derive the key, automatically provided by the compiler.</param>
-    /// <returns>
-    /// The modified resource builder with environment variables added for each valid endpoint;
-    /// otherwise, the original builder.
-    /// </returns>
-    /// <example>
-    /// <code>
-    /// builder.WithEndpointsAsEnvironmentIf&lt;ProjectResource, ServerConfiguration&gt;(s => s.PublicSettings.Endpoints, new [] { grafana, ollama, prometheus, openWebUi, pgAdmin, keycloak, stirling });
-    /// </code>
-    /// </example>
-    public static IResourceBuilder<T> WithEndpointsAsEnvironmentIf<T, TTarget>(this IResourceBuilder<T> builder, Func<TTarget, IDictionary<string, string>> keyExpression,
-        IResourceBuilder<IResourceWithEndpoints>[]? references,
-        string endpointName = "http",
-        [CallerArgumentExpression(nameof(keyExpression))] string caller = null) where T : IResourceWithEnvironment
-    {
-        if (references != null)
-        {
-            foreach (var resourceBuilder in references.Where(r => r is not null))
-            {
-                var key = $"{string.Join("__", caller.Split('.').Skip(1).ToArray())}__{resourceBuilder.Resource.Name}";
-                var endpointRef = resourceBuilder.GetEndpoint(endpointName);
-                if (endpointRef?.Exists == true)
-                {
-                    builder.WithEnvironment(key, endpointRef);
-                }
-            }
-        }
-
-        return builder;
-    }
-
-
+    
     public static IResourceBuilder<T> WaitForIf<T>(
         this IResourceBuilder<T> builder,
         IResourceBuilder<IResource>[]? dependencies)
@@ -403,6 +286,13 @@ public static partial class DistributedApplicationBuilderExtensions
             foreach (var dep in dependencies)
                 builder.WithReferenceIf(dep);
         }
+        return builder;
+    }
+
+    public static IResourceBuilder<T> WithExplicitStartIf<T>(this IResourceBuilder<T> builder, bool condition) where T : IResource
+    {
+        if (condition)
+            builder.WithExplicitStart();
         return builder;
     }
 
