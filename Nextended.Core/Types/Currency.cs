@@ -18,11 +18,12 @@ namespace Nextended.Core.Types
 		private string nativeName;
 		private string symbol;
 		private object externalId;
-
-		private static readonly object lockObj = new object();
+        private string isoCode;
+        private string name;
+        private static readonly object lockObj = new object();
 		private static List<Currency> cache;
 
-		private static readonly Lazy<IEnumerable<CultureInfo>> allCultures = new Lazy<IEnumerable<CultureInfo>>(() => CultureInfo.GetCultures(CultureTypes.AllCultures)
+		private static readonly Lazy<IEnumerable<CultureInfo>> allCultures = new(() => CultureInfo.GetCultures(CultureTypes.AllCultures)
 										  .Where(info => !info.IsNeutralCulture && !info.Equals(CultureInfo.InvariantCulture)));
 
 		private static readonly Lazy<IEnumerable<RegionInfo>> allRegions = new(() => allCultures.Value.Where(s => s.LCID != 4096).Select(source =>
@@ -38,14 +39,7 @@ namespace Nextended.Core.Types
             }
         }).Where(info => info != null));
 
-        private string isoCode;
-		private string name;
 
-		/// <summary>
-		/// Id
-		/// </summary>
-		[DataMember(IsRequired = true)]
-		public int Id { get; private set; }
 
 		/// <summary>
 		/// Name der währung
@@ -434,15 +428,15 @@ namespace Nextended.Core.Types
 
         public static IEnumerable<CultureInfo> GetCulturesForCurrencyISOCode(string isoCode)
 		{
-			return from culture in allCultures.Value.Where(s => s.LCID != 4096)
+			return (from culture in allCultures.Value.Where(s => s.LCID != 4096)
 				   let ri = new RegionInfo(culture.LCID)
 				   where ri.ISOCurrencySymbol == isoCode
-				   select culture;
+				   select culture).Distinct();
 		}
 
 		private static IEnumerable<RegionInfo> GetRegionsForCurrencyISOCode(string isoCode)
 		{
-			return allRegions.Value.Where(ri => ri.ISOCurrencySymbol == isoCode);
+			return allRegions.Value.Where(ri => ri.ISOCurrencySymbol == isoCode).Distinct();
 		}
 
 		#endregion

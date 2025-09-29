@@ -634,7 +634,6 @@ namespace Nextended.Core.Tests
 
             var anonymousCurrencies = Currency.All.Select(currency => new
             {
-                currency.Id,
                 ISO = currency.IsoCode,
                 currency.Name,
                 currency.Regions,
@@ -655,7 +654,6 @@ namespace Nextended.Core.Tests
             Assert.AreEqual(anonymousCurrencies.First().ISO, mappedResult[0].IsoCode);
             Assert.AreEqual(anonymousCurrencies.First().Description, mappedResult[0].NativeName);
             Assert.AreEqual(anonymousCurrencies.First().Name, mappedResult[0].Name);
-            Assert.AreEqual(anonymousCurrencies.First().Id, mappedResult[0].Id);
             Assert.AreEqual(anonymousCurrencies.First().Symbol, mappedResult[0].Symbol);
             Assert.AreEqual(anonymousCurrencies.First().Regions.Count(), mappedResult[0].Regions.Count());
             Assert.AreEqual(anonymousCurrencies.First().Cultures.Count(), mappedResult[0].Cultures.Count());
