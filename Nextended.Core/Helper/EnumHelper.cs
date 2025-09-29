@@ -158,6 +158,12 @@ namespace Nextended.Core.Helper
 
     public static class EnumExtensions
     {
+        public static TAttribute[] GetCustomAttributes<TAttribute>(this Enum val, bool inherit)
+        {
+            var customAttributes = val.GetType().GetField(val.ToString())?.GetCustomAttributes(typeof(TAttribute), inherit);
+            return customAttributes?.Select(o => (TAttribute)o).ToArray() ?? [];
+        }
+
         public static T ToEnum<T>(this string input) where T : struct
         {
             return input.MapTo<T>();
