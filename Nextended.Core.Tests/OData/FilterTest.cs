@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.OData.Query.Wrapper;
 using Nextended.Core.OData;
 using Nextended.Core.Tests.OData.Helpers;
 using Nextended.Core.Tests.OData.Models;
+using Shouldly;
 using Xunit;
 using Xunit.Abstractions;
 using JsonSerializer = System.Text.Json.JsonSerializer;
@@ -43,5 +44,14 @@ public class FilterTest(ITestOutputHelper output)
         }
 
     }
-    
+
+    [Fact]
+    public void Test_DataFilter()
+    {
+        string filter = "?$filter=DateField gt datetimeoffset'2024-01-02T10:00:00'";
+        var model = ODataQueryModel.Parse(filter);
+        var result = model.ToQueryable(_models).ToList();
+        result.Count.ShouldBe(2);
+    }
+
 }

@@ -9,6 +9,6 @@ public class ODataTestModel
     public string StringField { get; set; } = string.Empty;
     public decimal DecimalField { get; set; }
     public bool BoolField { get; set; }
-    public DateTime DateField { get; set; }
+    public DateTimeOffset DateField { get; set; }
     public ODataTestEnum TestEnum { get; set; }   
 }
