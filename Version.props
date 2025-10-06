@@ -1,6 +1,6 @@
 <Project>
   <PropertyGroup>
     <UsedCorePackageVersion>9.0.24</UsedCorePackageVersion>
-    <PackageVersion>9.0.25-prev-1</PackageVersion>
+    <PackageVersion>9.0.25-prev-2</PackageVersion>
   </PropertyGroup>
 </Project>
