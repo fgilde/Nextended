@@ -13,7 +13,7 @@ namespace Nextended.Core.Extensions
 {
     public static class ObjectExtensions
     {
-        public static T[] AllOf<T>(this object instance, ReflectReadSettings settings = null)
+        public static T[] AllOf<T>(this object instance, ReflectReadSettings? settings = null)
         {
             return ReflectionHelper.FindAllValuesOf<T>(instance, settings);
         }
@@ -66,12 +66,12 @@ namespace Nextended.Core.Extensions
             return input.GetType().GetProperties(bindingAttr);
         }
 
-        public static bool NotNull(this object input)
+        public static bool NotNull(this object? input)
         {
             return !input.IsNull();
         }
 
-        public static bool IsNull(this object input)
+        public static bool IsNull(this object? input)
         {
             return input == null;
         }

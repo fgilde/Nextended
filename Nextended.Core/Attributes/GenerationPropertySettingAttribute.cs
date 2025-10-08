@@ -14,7 +14,7 @@ public class GenerationPropertySettingAttribute : Attribute
     /// <summary>        
     /// The name to be used for the property in the COM interface and COM class.
     /// </summary>
-    public string PropertyName { get; set; }
+    public string? PropertyName { get; set; }
 
     /// <summary>
     /// If this property is set to true, the property will use the class mapper
@@ -27,12 +27,12 @@ public class GenerationPropertySettingAttribute : Attribute
     /// <summary>
     /// A string that will be added before the generated property on the interface, useful for adding attributes or something.
     /// </summary>
-    public string PreInterfaceString { get; set; }
+    public string? PreInterfaceString { get; set; }
 
     /// <summary>
     /// A string that will be added before the generated property on the generated class, useful for adding attributes or something.
     /// </summary>
-    public string PreClassString { get; set; }
+    public string? PreClassString { get; set; }
 
     /// <summary>
     /// If set to true, the generated classes will keep the attributes from the original class.

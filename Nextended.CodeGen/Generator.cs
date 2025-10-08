@@ -19,7 +19,7 @@ public class MainGenerator : ISourceGenerator
     private bool generationEnabled = true;
     private DateTime LastGenerated = DateTime.MinValue;
     private bool allowWithoutConfig = false;
-    private List<ISourceSubGenerator> _generators;
+    private List<ISourceSubGenerator> _generators = null!;
 
     public void Initialize(GeneratorInitializationContext context)
     {
@@ -74,7 +74,7 @@ public class MainGenerator : ISourceGenerator
                     generators.Remove(sourceSubGenerator); // remove generators that do not require a config, so they are not executed again
 
             }
-            catch (Exception e)
+            catch (Exception)
             {
                 //context.ReportDiagnostic(Diagnostic.Create(new DiagnosticDescriptor("NCG002", "Warning", $"Could not proceed configuration {configFile.Path}", "Nextended.CodeGen", DiagnosticSeverity.Warning, true), Location.None));
             }

@@ -21,10 +21,10 @@ namespace Nextended.Core
 
 	public class BindableKeyValuePair<TKey, TValue> : NotificationObject
 	{
-		public event EventHandler Changed;
+		public event EventHandler? Changed;
 
-		private TKey key;
-		private TValue _value;
+		private TKey key = default!;
+		private TValue _value = default!;
 
 		public TKey Key
 		{
@@ -75,9 +75,9 @@ namespace Nextended.Core
 
 	public class Bindable<TValue> : NotificationObject
 	{
-		public event EventHandler Changed;
+		public event EventHandler? Changed;
 
-		private TValue _value;
+		private TValue _value = default!;
 		
 		public TValue Value
 		{

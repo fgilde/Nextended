@@ -12,7 +12,7 @@ namespace Nextended.CodeGen.Generators.DtoGeneration;
 
 public class DtoGenerator : ISourceSubGenerator
 {
-    private DtoGenerationConfig _config;
+    private DtoGenerationConfig _config = null!;
     public bool RequireConfig => false;
 
     public DtoGenerator()
