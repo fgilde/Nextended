@@ -19,7 +19,7 @@ public class MainGenerator : ISourceGenerator
     private bool generationEnabled = true;
     private DateTime LastGenerated = DateTime.MinValue;
     private bool allowWithoutConfig = false;
-    private List<ISourceSubGenerator> _generators;
+    private List<ISourceSubGenerator> _generators = null!;
 
     public void Initialize(GeneratorInitializationContext context)
     {
