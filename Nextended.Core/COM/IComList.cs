@@ -16,14 +16,14 @@ namespace Nextended.Core.COM
         /// Element hinzufügen
         /// </summary>
         /// <param name="aValue"></param>
-        void Add([MarshalAs(UnmanagedType.Struct), In] object aValue);
+        void Add([MarshalAs(UnmanagedType.IUnknown), In] object aValue);
 
         /// <summary>
         /// Element aus der Liste holen
         /// </summary>
         /// <param name="index"></param>
         /// <returns></returns>
-        [return: MarshalAs(UnmanagedType.Struct)]
+        [return: MarshalAs(UnmanagedType.IUnknown)]
         object Get([In] int index);
 
         /// <summary>
