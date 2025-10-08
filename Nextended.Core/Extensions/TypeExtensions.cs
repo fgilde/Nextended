@@ -23,9 +23,9 @@ namespace Nextended.Core.Extensions
         /// <summary>
         /// Gibt an ob der Typ eine BaseId ist
         /// </summary>
-        public static Type GetBaseIdBaseType(this Type modelType)
+        public static Type? GetBaseIdBaseType(this Type modelType)
         {
-            Type baseType = modelType.BaseType;
+            Type? baseType = modelType.BaseType;
             while (baseType != null && baseType != typeof(object))
             {
                 if (baseType.IsGenericType
@@ -37,7 +37,7 @@ namespace Nextended.Core.Extensions
             return null;
         }
 
-        public static PropertyInfo GetPropertyIgnoreCase(this Type type, string propertyName)
+        public static PropertyInfo? GetPropertyIgnoreCase(this Type type, string propertyName)
         {
             var typeList = new List<Type> { type };
 
@@ -229,7 +229,7 @@ namespace Nextended.Core.Extensions
             => ReflectionHelper.CreateInstance<T>(checkCyclingDependencies);
 
         public static T CreateInstance<T>(this Type input, params object[] args) 
-            => (T)Activator.CreateInstance(input, args);
+            => (T)Activator.CreateInstance(input, args)!;
 
         public static bool IsSubclassOfInterfaceOf<TInterface>(this Type toCheck) 
             => IsSubclassOfInterfaceOf(toCheck, typeof(TInterface));

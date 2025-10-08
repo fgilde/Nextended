@@ -2,5 +2,7 @@
   <PropertyGroup>
     <OutputPath>$(SolutionDir)bin\$(AssemblyName)</OutputPath>
     <DocumentationFile>$(SolutionDir)bin\$(AssemblyName)\$(AssemblyName).xml</DocumentationFile>
+    <!-- Suppress CS1591: Missing XML comment for publicly visible type or member (will be addressed separately) -->
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
   </PropertyGroup>
 </Project>
