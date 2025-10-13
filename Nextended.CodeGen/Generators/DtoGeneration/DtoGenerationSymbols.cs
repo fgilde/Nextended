@@ -1,12 +1,13 @@
-﻿using System;
+﻿using DocumentFormat.OpenXml.Drawing.Charts;
+using Microsoft.CodeAnalysis;
+using Nextended.CodeGen.Config;
+using Nextended.CodeGen.Helper;
+using Nextended.Core.Attributes;
+using Nextended.Core.Enums;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using Microsoft.CodeAnalysis;
-using Nextended.Core.Attributes;
-using Nextended.CodeGen.Config;
-using Nextended.CodeGen.Helper;
-using Nextended.Core.Enums;
 
 namespace Nextended.CodeGen.Generators.DtoGeneration;
 
@@ -28,16 +29,19 @@ public class DtoGenerationSymbols
         return type;
     }
 
-    public static IEnumerable<IPropertySymbol> GetDtoPropertiesDeep(
+    public IEnumerable<IPropertySymbol> GetDtoPropertiesDeep(
         INamedTypeSymbol type,
         INamedTypeSymbol? ignoreAttr)
     {
+        var ignoredByName = type.ClassCfg(this)?.PropertiesToIgnore ?? [];
+
         var seen = new HashSet<string>(StringComparer.Ordinal);
         for (var t = type; t != null; t = t.BaseType)
         {
             foreach (var p in t.GetMembers().OfType<IPropertySymbol>())
             {
                 if (p.DeclaredAccessibility != Accessibility.Public || p.IsStatic) continue;
+                if (ignoredByName.Contains(p.Name)) continue;
                 if (ignoreAttr != null && p.GetAttributes().Any(a => SymbolEqualityComparer.Default.Equals(a.AttributeClass, ignoreAttr))) continue;
                 if (seen.Add(p.Name)) yield return p;
             }
@@ -46,13 +50,15 @@ public class DtoGenerationSymbols
 
     public IEnumerable<IPropertySymbol> GetDtoProperties(INamedTypeSymbol type, INamedTypeSymbol? ignoreAttr)
     {
-        if(deepProperties)
+        var ignoredByName = type.ClassCfg(this)?.PropertiesToIgnore ?? [];
+
+        if (deepProperties)
             return GetDtoPropertiesDeep(type, ignoreAttr);
         return type.GetMembers().OfType<IPropertySymbol>().Where(p =>
             p.DeclaredAccessibility == Accessibility.Public &&
             !p.IsStatic &&
-            (ignoreAttr == null || !p.GetAttributes()
-                .Any(a => SymbolEqualityComparer.Default.Equals(a.AttributeClass, ignoreAttr)))
+            !ignoredByName.Contains(p.Name) &&
+            (ignoreAttr == null || !p.GetAttributes().Any(a => SymbolEqualityComparer.Default.Equals(a.AttributeClass, ignoreAttr)))
         );
     }
 

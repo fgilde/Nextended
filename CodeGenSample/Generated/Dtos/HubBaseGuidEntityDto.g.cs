@@ -7,6 +7,8 @@ namespace MyGenerated.Code.Test {
 	{
 		string XName { get; set; }
 		CodeGenSample.Entities.Base.HubBaseSubClass HubBaseSubClass { get; set; }
+		System.Guid Id { get; set; }
+		string OwnerId { get; set; }
 	}
 
 
@@ -15,6 +17,8 @@ namespace MyGenerated.Code.Test {
 	{
 		public string XName { get; set; }
 		public CodeGenSample.Entities.Base.HubBaseSubClass HubBaseSubClass { get; set; }
+		public System.Guid Id { get; set; }
+		public string OwnerId { get; set; }
 	}
 
 
