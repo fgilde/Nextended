@@ -195,10 +195,14 @@ namespace MyGenerated.Code.Test {
 		public static void AssignTo(this CodeGenSample.Entities.DerivedGenericClassWithInt src, MyGenerated.Code.Test.DerivedGenericClassWithIntDto dest) 
 		{
 			if (src == null || dest == null) return;
+			dest.Name = src.Name;
+			dest.Id = src.Id;
 		}
 		public static void AssignTo(this MyGenerated.Code.Test.DerivedGenericClassWithIntDto src, CodeGenSample.Entities.DerivedGenericClassWithInt dest) 
 		{
 			if (src == null || dest == null) return;
+			dest.Name = src.Name;
+			dest.Id = src.Id;
 		}
 		public static MyGenerated.Code.Test.DerivedGenericClassWithIntDto ToDto(this CodeGenSample.Entities.DerivedGenericClassWithInt src) 
 		{
@@ -295,12 +299,16 @@ namespace MyGenerated.Code.Test {
 		public static void AssignTo(this CodeGenSample.Entities.Base.HubBaseGuidEntity src, MyGenerated.Code.Test.HubBaseGuidEntityDto dest) 
 		{
 			if (src == null || dest == null) return;
+			dest.XName = src.XName;
 			dest.Id = src.Id;
+			dest.OwnerId = src.OwnerId;
 		}
 		public static void AssignTo(this MyGenerated.Code.Test.HubBaseGuidEntityDto src, CodeGenSample.Entities.Base.HubBaseGuidEntity dest) 
 		{
 			if (src == null || dest == null) return;
+			dest.XName = src.XName;
 			// skipped 'Id': destination not publicly writable
+			dest.OwnerId = src.OwnerId;
 		}
 		public static MyGenerated.Code.Test.HubBaseGuidEntityDto ToDto(this CodeGenSample.Entities.Base.HubBaseGuidEntity src) 
 		{
@@ -324,7 +332,6 @@ namespace MyGenerated.Code.Test {
 			dest.ShippedDate = src.ShippedDate;
 			dest.DeliveredDate = src.DeliveredDate;
 			dest.OrderId = src.OrderId;
-			dest.Id = src.Id;
 		}
 		public static void AssignTo(this MyGenerated.Code.Test.ShipmentDto src, CodeGenSample.Entities.Base.Shipment dest) 
 		{
@@ -334,7 +341,6 @@ namespace MyGenerated.Code.Test {
 			dest.ShippedDate = src.ShippedDate;
 			dest.DeliveredDate = src.DeliveredDate;
 			dest.OrderId = src.OrderId;
-			// skipped 'Id': destination not publicly writable
 		}
 		public static MyGenerated.Code.Test.ShipmentDto ToDto(this CodeGenSample.Entities.Base.Shipment src) 
 		{
