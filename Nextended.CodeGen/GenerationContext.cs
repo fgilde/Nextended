@@ -25,7 +25,7 @@ public class GenerationContext
     }
 
     public NamespaceResolver NamespaceResolver { get; }
-    public AdditionalText AdditionalFile { get; }
+    public AdditionalText AdditionalFile { get; } = null!;
     public GeneratorExecutionContext ExecutionContext { get; }
     public MainConfig? Config { get; }
 }

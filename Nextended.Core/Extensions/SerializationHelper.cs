@@ -12,21 +12,21 @@ namespace Nextended.Core.Extensions
 
 		public static T XmlDeserialize<T>(string filename)
 		{
-			T result;
+			T? result;
 			if (TryXmlDeserialize(filename, out result))
 				return result;
 			return default(T);
 		}
 
-		public static T XmlDeserialize<T>(Stream stream)
+		public static T? XmlDeserialize<T>(Stream stream)
 		{
-			T result;
+			T? result;
 			if (TryXmlDeserialize(stream, out result))
 				return result;
 			return default(T);
 		}
 
-		public static bool TryXmlDeserialize<T>(string filename, out T result)
+		public static bool TryXmlDeserialize<T>(string filename, out T? result)
 		{
 			result = default(T);
 			if (File.Exists(filename))
@@ -44,15 +44,15 @@ namespace Nextended.Core.Extensions
 			return false;
 		}
 
-		public static bool TryXmlDeserialize<T>(Stream stream, out T result)
+		public static bool TryXmlDeserialize<T>(Stream stream, out T? result)
 		{
 			stream.Seek(0, SeekOrigin.Begin);
 			var serializer = new XmlSerializer(typeof(T));
-			result = (T)serializer.Deserialize(stream);
+			result = (T?)serializer.Deserialize(stream);
 			return true;
 		}
 
-		public static Stream XmlSerialize<T>(this T content, Stream stream = null)
+		public static Stream XmlSerialize<T>(this T content, Stream? stream = null)
 		{
 			if (stream == null)
 				stream = new MemoryStream();
@@ -111,7 +111,7 @@ namespace Nextended.Core.Extensions
 			return !string.IsNullOrEmpty(s);
 		}
 
-		public static string JsonSerialize<T>(this T obj, string fileName = "") where T : class
+		public static string JsonSerialize<T>(this T obj, string? fileName = "") where T : class
 		{
 			var serializer = new DataContractJsonSerializer(typeof(T));
             using var stream = new MemoryStream();
@@ -129,13 +129,13 @@ namespace Nextended.Core.Extensions
 			var obj = Activator.CreateInstance<T>();
 			var ms = new MemoryStream(Encoding.Unicode.GetBytes(json));
 			var serializer = new DataContractJsonSerializer(obj.GetType());
-			obj = (T)serializer.ReadObject(ms);
+			obj = (T?)serializer.ReadObject(ms);
 			ms.Close();
 			ms.Dispose();
-			return obj;
+			return obj!;
 		}
 
-		public static bool TryJsonDeserialize<T>(string json, out T obj)
+		public static bool TryJsonDeserialize<T>(string json, out T? obj)
 			where T : class
 		{
 			try

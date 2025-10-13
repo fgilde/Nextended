@@ -132,6 +132,19 @@ public class DtoCodeGenerator
                 : DtoGenerationSymbols.GetToSourceMethodName(targetClass, cfg);
         }
 
+
+
+        var canReadSource = prop.GetMethod != null && prop.GetMethod.DeclaredAccessibility == Accessibility.Public;
+
+        var canWriteDestWhenReverse = prop.SetMethod != null && prop.SetMethod.DeclaredAccessibility == Accessibility.Public;
+
+        if (!canReadSource)
+            return ($"\t\t\t// skipped '{prop.Name}': source not publicly readable", false);
+
+        if (reverse && !canWriteDestWhenReverse)
+            return ($"\t\t\t// skipped '{prop.Name}': destination not publicly writable", false);
+
+
         // ------------------------------
         // 1) Enums (nullable-handling wie gehabt)
         // ------------------------------
@@ -338,7 +351,7 @@ public class DtoCodeGenerator
                     continue;
                 }
 
-                var comProps = DtoGenerationSymbols.GetDtoProperties(type, _symbols.Ignore).ToList();
+                var comProps = DtoGenerationSymbols.GetDtoPropertiesDeep(type, _symbols.Ignore).ToList();
                 var baseType = type.BaseType;
 
                 // === AssignTo: Net -> DTO ===

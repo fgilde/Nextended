@@ -30,7 +30,7 @@ namespace Nextended.Core.Attributes
         /// <summary>
         /// Allows you to override the generated class name. If this is set, prefix and suffix logic will not be applied.
         /// </summary>        
-        public string GeneratedClassName { get; set; }
+        public string? GeneratedClassName { get; set; }
 
         /// <summary>
         /// Indicates whether the "ToNetMappingAttribute" should be generated for automatic COM to .NET conversion.
@@ -87,12 +87,12 @@ namespace Nextended.Core.Attributes
         /// <summary>
         /// A string that will be added before the generated interface, useful for adding attributes or something.
         /// </summary>
-        public string PreInterfaceString { get; set; }
+        public string? PreInterfaceString { get; set; }
 
         /// <summary>
         /// A string that will be added before the generated class, useful for adding attributes or something.
         /// </summary>
-        public string PreClassString { get; set; }
+        public string? PreClassString { get; set; }
 
         /// <summary>
         /// If set to true, the generated classes will keep the attributes from the original class.

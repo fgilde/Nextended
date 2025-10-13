@@ -146,7 +146,7 @@ namespace Nextended.Core
 		/// <summary>
 		/// Führt den code block in einem trycatch aus, und wirft ggf die Exception
 		/// </summary>
-		public static TResult TryCatch<TResult, TException>(Func<TResult> block, Func<TException, Exception> onException = null)
+		public static TResult? TryCatch<TResult, TException>(Func<TResult> block, Func<TException, Exception>? onException = null)
 			where TException : Exception
 		{
 			try
@@ -169,7 +169,7 @@ namespace Nextended.Core
 		/// <typeparam name="TResult"></typeparam>
 		/// <typeparam name="TException"></typeparam>
 		/// <returns></returns>
-		public static async Task TryCatchAsync<TResult, TException>(Func<TResult> block, Func<TException, Exception> onException = null)
+		public static async Task TryCatchAsync<TResult, TException>(Func<TResult> block, Func<TException, Exception>? onException = null)
 			where TException : Exception
 		{
 			await Task.Run(() => TryCatch(block, onException));
@@ -182,7 +182,7 @@ namespace Nextended.Core
 		/// <param name="onException"></param>
 		/// <typeparam name="TException"></typeparam>
 		/// <returns></returns>
-		public static async Task TryCatchAsync<TException>(Action block, Func<TException, Exception> onException = null)
+		public static async Task TryCatchAsync<TException>(Action block, Func<TException, Exception>? onException = null)
 			where TException : Exception
 		{
 			await Task.Run(() => TryCatch(block, onException));
@@ -198,8 +198,8 @@ namespace Nextended.Core
 		/// <typeparam name="TException"></typeparam>
 		/// <returns></returns>
 		/// <exception cref="Exception"></exception>
-		public static async Task<TResult> TryCatchAsync<TResult, TException>(Task<TResult> task,
-			Func<TException, Exception> onException = null, CancellationToken cancellation = default(CancellationToken))
+		public static async Task<TResult?> TryCatchAsync<TResult, TException>(Task<TResult> task,
+			Func<TException, Exception>? onException = null, CancellationToken cancellation = default(CancellationToken))
 			where TException : Exception
 		{
 			try
@@ -222,7 +222,7 @@ namespace Nextended.Core
 		/// <typeparam name="TException"></typeparam>
 		/// <returns></returns>
 		/// <exception cref="Exception"></exception>
-		public static async Task TryCatchAsync<TException>(Task block, Func<TException, Exception> onException = null)
+		public static async Task TryCatchAsync<TException>(Task block, Func<TException, Exception>? onException = null)
 			where TException : Exception
 		{
 			try
@@ -239,7 +239,7 @@ namespace Nextended.Core
 		/// <summary>
 		/// Führt den code block in einem trycatch aus, und wirft ggf die Exception
 		/// </summary>
-		public static void TryCatch<TException>(Action block, Func<TException, Exception> onException = null)
+		public static void TryCatch<TException>(Action block, Func<TException, Exception>? onException = null)
 			where TException : Exception
 		{
 			try

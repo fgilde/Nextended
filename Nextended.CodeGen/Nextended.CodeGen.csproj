@@ -7,12 +7,14 @@
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
     <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
     <PackReadMe>false</PackReadMe>
 
     <!-- Source‑Generator‑Flags -->
     <IsRoslynComponent>true</IsRoslynComponent>
     <IncludeBuildOutput>false</IncludeBuildOutput>
     <EnableDynamicLoading>true</EnableDynamicLoading>
+    <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
 
     <!-- Abhängigkeiten in bin\* kopieren -->
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
@@ -62,10 +64,11 @@
           Visible="false"/>
   </ItemGroup>
 
-  <Target Name="UpdateGuid" BeforeTargets="BeforeBuild">
+  <!-- Temporarily disabled to fix build in Linux environment -->
+  <!--<Target Name="UpdateGuid" BeforeTargets="BeforeBuild">
     <Exec Command="pwsh -NoProfile -File $(SolutionDir)$(AssemblyName)\UpdateGuid.ps1 $(MSBuildProjectDirectory)\Generator.cs BuildId" />
   </Target>
   <Target Name="UpdateGuid" BeforeTargets="AfterBuild">
     <Exec Command="pwsh -NoProfile -File $(SolutionDir)$(AssemblyName)\UpdateGuid.ps1 $(MSBuildProjectDirectory)\Generator.cs BuildId" />
-  </Target>
+  </Target>-->
 </Project>

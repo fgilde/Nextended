@@ -146,6 +146,7 @@ namespace Nextended.Core.DeepClone
         /// Create a type that implement INotifyPropertyChanged PropertyChanged.
         /// Note it will only include properties that are virtual.
         /// If type containe PropertyChanged(object sender, PropertyChangedEventArgs e) it will be bound automatically otherwise you will have to add it manually
+        /// </summary>
         /// <returns></returns>
         public static T CreateProxyInstance<T>()
         {
@@ -235,7 +236,7 @@ namespace Nextended.Core.DeepClone
         /// <param name="value"></param>
         /// <param name="defaultValue"></param>
         /// <returns></returns>
-        public static T ValueConverter<T>(this object value, object defaultValue = null)
+        public static T ValueConverter<T>(this object value, object? defaultValue = null)
         {
             return (T)ClonerCachedItems.Value(value, typeof(T), true, defaultValue);
         }
@@ -252,7 +253,7 @@ namespace Nextended.Core.DeepClone
         /// <param name="datatype">eg typeof(int?)</param>
         /// <param name="defaultValue"></param>
         /// <returns></returns>
-        public static object ValueConverter(this object value,Type datatype, object defaultValue = null)
+        public static object ValueConverter(this object value,Type datatype, object? defaultValue = null)
         {
             return ClonerCachedItems.Value(value, datatype, true, defaultValue);
         }
