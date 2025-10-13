@@ -195,7 +195,6 @@ namespace MyGenerated.Code.Test {
 		public static void AssignTo(this CodeGenSample.Entities.DerivedGenericClassWithInt src, MyGenerated.Code.Test.DerivedGenericClassWithIntDto dest) 
 		{
 			if (src == null || dest == null) return;
-			dest.Name = src.Name;
 			dest.Id = src.Id;
 		}
 		public static void AssignTo(this MyGenerated.Code.Test.DerivedGenericClassWithIntDto src, CodeGenSample.Entities.DerivedGenericClassWithInt dest) 
@@ -300,13 +299,14 @@ namespace MyGenerated.Code.Test {
 		{
 			if (src == null || dest == null) return;
 			dest.XName = src.XName;
+			dest.HubBaseSubClass = src.HubBaseSubClass;
 			dest.Id = src.Id;
-			dest.OwnerId = src.OwnerId;
 		}
 		public static void AssignTo(this MyGenerated.Code.Test.HubBaseGuidEntityDto src, CodeGenSample.Entities.Base.HubBaseGuidEntity dest) 
 		{
 			if (src == null || dest == null) return;
 			dest.XName = src.XName;
+			dest.HubBaseSubClass = src.HubBaseSubClass;
 			// skipped 'Id': destination not publicly writable
 			dest.OwnerId = src.OwnerId;
 		}

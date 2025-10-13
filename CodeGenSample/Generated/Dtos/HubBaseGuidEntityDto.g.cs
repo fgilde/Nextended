@@ -6,6 +6,7 @@ namespace MyGenerated.Code.Test {
 	public partial interface IHubBaseGuidEntityDto  
 	{
 		string XName { get; set; }
+		CodeGenSample.Entities.Base.HubBaseSubClass HubBaseSubClass { get; set; }
 	}
 
 
@@ -13,6 +14,7 @@ namespace MyGenerated.Code.Test {
 	public partial class HubBaseGuidEntityDto : IHubBaseGuidEntityDto 
 	{
 		public string XName { get; set; }
+		public CodeGenSample.Entities.Base.HubBaseSubClass HubBaseSubClass { get; set; }
 	}
 
 

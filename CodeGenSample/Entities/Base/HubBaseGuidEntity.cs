@@ -12,12 +12,18 @@ namespace CodeGenSample.Entities.Base;
 public class HubBaseGuidEntity : AuditedAggregateRoot<Guid>, IGuidEntity
 {
     public string XName { get; set; }
+    public HubBaseSubClass HubBaseSubClass { get; set; }
 }
 
 public class AuditedAggregateRoot<TKey>
 {
     public virtual TKey Id { get; protected set; }
     public string OwnerId { get; set; }
+}
+
+public class HubBaseSubClass
+{
+    public string SomeProp { get; set; }
 }
 
 

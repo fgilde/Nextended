@@ -4,7 +4,10 @@ namespace Nextended.CodeGen.Config;
 
 public class DtoGenerationConfig: CodeGenerationConfigBase
 {
-
+    /// <summary>
+    /// When set to true, properties of non generated base classes will also be included in the generated DTO.
+    /// </summary>
+    public bool DeepProperties { get; set; }
     public bool MakeDtoAbstractWhenSourceIsAbstract { get; set; } = true;
     public bool GenerateToMethodsForAbstract { get; set; } = false; // normale To-Methoden (mit new) bei abstrakten Typen
     public bool GenerateFactoryOverloadsForAbstract { get; set; } = true; // z.B. ToDto(factory)
