@@ -1,9 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
+﻿using System.Collections.Generic;
 using System.Linq;
 using Microsoft.CodeAnalysis;
-using Newtonsoft.Json;
 using Nextended.CodeGen.Config;
 using Nextended.CodeGen.Contracts;
 using Nextended.CodeGen.Helper;
@@ -26,6 +23,8 @@ public class DtoGenerator : ISourceSubGenerator
     public IEnumerable<GeneratedFile> Execute(GenerationContext context)
     {
         _config = context.Config?.DtoGeneration ?? new DtoGenerationConfig();
+        if (_config.DisableGeneration)
+            return [];
         //File.WriteAllText("D:\\mcfg.json",JsonConvert.SerializeObject(_config));
         return Execute(context.ExecutionContext);
     }

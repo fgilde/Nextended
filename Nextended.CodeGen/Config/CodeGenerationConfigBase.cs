@@ -5,6 +5,11 @@ namespace Nextended.CodeGen.Config;
 public class CodeGenerationConfigBase
 {
     /// <summary>
+    /// If set to true, the generation will be disabled.
+    /// </summary>
+    public bool DisableGeneration { get; set; }
+    
+    /// <summary>
     /// Type of the generated model.
     /// Can be one of the following: Class, Record, RecordStruct, Struct.
     /// </summary>
