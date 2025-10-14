@@ -1,6 +1,7 @@
 ﻿{
   "DtoGeneration": {
     // Notice:: The whole DtoGeneration section is optional and can also be overridden if set on the Attributes.
+    "DisableGeneration":  false, 
     "DeepProperties": true,
     "ComIdClassName": "ComGuids",
     "ModelType": "Class",
