@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Query;
 
 namespace Nextended.EF;
 
@@ -31,7 +32,7 @@ public static class DbSetExtensions
             {
                 await entry.Collection(nav.Name).LoadAsync();
                 var children = (entry.Collection(nav.Name).CurrentValue
-                    as IEnumerable<object>) ?? Array.Empty<object>();
+                    as IEnumerable<object>) ?? [];
                 foreach (var child in children)
                     await context.LoadGraphAsync(child, maxDepth - 1, seen);
             }
@@ -85,6 +86,49 @@ public static class DbSetExtensions
         return IncludeNavigations(query, context, typeof(T), "", excluded);
     }
 
+    public static IIncludableQueryable<TEntity, TProperty2> Include<TEntity, TProperty1, TProperty2>(
+        this IQueryable<TEntity> queryable,
+        Expression<Func<TEntity, IEnumerable<TProperty1>>> include1,
+        Expression<Func<TProperty1, TProperty2>> include2
+    ) where TEntity : class =>
+        queryable.Include(include1)
+            .ThenInclude(include2);
+
+    public static IIncludableQueryable<TEntity, TProperty3> Include<TEntity, TProperty1, TProperty2, TProperty3>(
+        this IQueryable<TEntity> queryable,
+        Expression<Func<TEntity, IEnumerable<TProperty1>>> include1,
+        Expression<Func<TProperty1, TProperty2>> include2,
+        Expression<Func<TProperty2, TProperty3>> include3
+    ) where TEntity : class =>
+        queryable.Include(include1)
+            .ThenInclude(include2)
+            .ThenInclude(include3);
+
+    public static IQueryable<TEntity> MultiInclude<TEntity, TProperty1>(
+        this IQueryable<TEntity> queryable,
+        Func<IQueryable<TEntity>, IIncludableQueryable<TEntity, IEnumerable<TProperty1>>> baseInclude,
+        params Expression<Func<TProperty1, object?>>[] includes
+    ) where TEntity : class
+    {
+        return includes.Aggregate(
+            queryable,
+            (current, include) => baseInclude(current)
+                .ThenInclude(include)
+        );
+    }
+
+    public static IQueryable<TEntity> MultiInclude<TEntity, TProperty1>(
+        this IQueryable<TEntity> queryable,
+        Func<IQueryable<TEntity>, IIncludableQueryable<TEntity, TProperty1>> baseInclude,
+        params Expression<Func<TProperty1, object?>>[] includes
+    ) where TEntity : class
+    {
+        return includes.Aggregate(
+            queryable,
+            (current, include) => baseInclude(current)
+                .ThenInclude(include)
+        );
+    }
 
     private static IQueryable<T> IncludeNavigations<T>(IQueryable<T> query, DbContext context, Type clrType, string prefix, HashSet<string> excluded) where T : class
     {
