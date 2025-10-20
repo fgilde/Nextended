@@ -23,8 +23,7 @@ public static class ODataExtensions
                 .AddRouteComponents(routePrefix, model, services =>
                 {
                     services.AddSingleton<IODataSerializerProvider, FacetSerializerProvider>();
-                    services.AddSingleton<Microsoft.OData.UriParser.ODataUriResolver>(sp =>
-                        new Microsoft.OData.UriParser.ODataUriResolver { EnableCaseInsensitive = true });
+                    services.AddSingleton<Microsoft.OData.UriParser.ODataUriResolver>(sp => new Microsoft.OData.UriParser.ODataUriResolver { EnableCaseInsensitive = true });
                 });
         });
         return mvcBuilder;

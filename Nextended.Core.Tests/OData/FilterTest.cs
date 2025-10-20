@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 using Microsoft.AspNetCore.OData.Query.Wrapper;
+using Microsoft.Rest.Azure.OData;
 using Nextended.Core.OData;
 using Nextended.Core.Tests.OData.Helpers;
 using Nextended.Core.Tests.OData.Models;
@@ -54,4 +56,20 @@ public class FilterTest(ITestOutputHelper output)
         result.Count.ShouldBe(2);
     }
 
+    [Fact]
+    public void Test_FS()
+    {
+        Expression<Func<Language, bool>> filter = lang => (bool)lang.Active && lang.Name.StartsWith("A");
+        var str = filter.ToFilterString();
+        var leg = FilterString.Generate(filter, true);
+        str.ShouldBeEquivalentTo(leg);
+    }
+
+}
+
+class Language
+{
+    public bool Active { get; set; }
+    public string Name { get; set; }
+    public string Code { get; set; }
 }

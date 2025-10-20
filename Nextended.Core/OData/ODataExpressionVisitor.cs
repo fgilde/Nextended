@@ -38,6 +38,30 @@ internal sealed class ODataExpressionVisitor : ExpressionVisitor
         };
     }
 
+    protected override Expression VisitUnary(UnaryExpression node)
+    {
+        switch (node.NodeType)
+        {
+            case ExpressionType.Convert:
+                if (node.Operand is MemberExpression me &&
+                    (me.Type == typeof(bool) || Nullable.GetUnderlyingType(me.Type) == typeof(bool)))
+                {
+                    _filterBuilder.Append(GetMemberName(me)).Append(" eq true");
+                    return node;
+                }
+                Visit(node.Operand);
+                return node;
+
+            case ExpressionType.Not:
+                _filterBuilder.Append("not ");
+                Visit(node.Operand);
+                return node;
+
+            default:
+                return base.VisitUnary(node);
+        }
+    }
+
     protected override Expression VisitBinary(BinaryExpression node)
     {
         switch (node.NodeType)

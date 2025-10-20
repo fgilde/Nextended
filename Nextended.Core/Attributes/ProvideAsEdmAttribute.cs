@@ -3,14 +3,14 @@
 namespace Nextended.Web;
 
 [AttributeUsage(AttributeTargets.Class, AllowMultiple = true, Inherited = false)]
-public class ProvideEdmAttribute : Attribute
+public class ProvideAsEdmAttribute : Attribute
 {
-    public ProvideEdmAttribute()
+    public ProvideAsEdmAttribute()
     {
         
     }
 
-    public ProvideEdmAttribute(string name)
+    public ProvideAsEdmAttribute(string name)
     {
         Name = name;
     }

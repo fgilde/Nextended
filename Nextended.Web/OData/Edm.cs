@@ -10,7 +10,7 @@ using Nextended.Web;
 public static class Edm
 {
     private static IEdmModel? _cachedModel;
-    private static IDictionary<Type, IEnumerable<ProvideEdmAttribute>>? _providedTypes;
+    private static IDictionary<Type, IEnumerable<ProvideAsEdmAttribute>>? _providedTypes;
 
     private static readonly Dictionary<string, Type> _entitySetClrMap = new(StringComparer.Ordinal);
     public static IReadOnlyDictionary<string, Type> EntitySetClrMap => _entitySetClrMap;
@@ -31,13 +31,13 @@ public static class Edm
         return _cachedModel;
     }
 
-    private static Dictionary<Type, IEnumerable<ProvideEdmAttribute>> CollectProvidedTypes()
+    private static Dictionary<Type, IEnumerable<ProvideAsEdmAttribute>> CollectProvidedTypes()
     {
-        var result = new Dictionary<Type, IEnumerable<ProvideEdmAttribute>>();
+        var result = new Dictionary<Type, IEnumerable<ProvideAsEdmAttribute>>();
         var allTypes = GetAllTypes();
 
         var withAttr = allTypes
-            .Select(t => new { Type = t, Attrs = t.GetCustomAttributes<ProvideEdmAttribute>(inherit: false).ToArray() })
+            .Select(t => new { Type = t, Attrs = t.GetCustomAttributes<ProvideAsEdmAttribute>(inherit: false).ToArray() })
             .Where(x => x.Attrs.Length > 0)
             .ToArray();
 
@@ -50,7 +50,7 @@ public static class Edm
             {
                 if (d == x.Type || !d.IsClass) continue;
                 if (!x.Type.IsAssignableFrom(d)) continue;
-                if (!result.ContainsKey(d)) result[d] = Array.Empty<ProvideEdmAttribute>();
+                if (!result.ContainsKey(d)) result[d] = Array.Empty<ProvideAsEdmAttribute>();
             }
         }
 
@@ -127,7 +127,7 @@ public static class Edm
     private static void EnsureEntitySetsForProvided(
         ODataConventionModelBuilder builder,
         IDictionary<Type, EntityTypeConfiguration> entities,
-        IDictionary<Type, IEnumerable<ProvideEdmAttribute>> provided)
+        IDictionary<Type, IEnumerable<ProvideAsEdmAttribute>> provided)
     {
         foreach (var (type, attrs) in provided)
         {
@@ -172,7 +172,7 @@ public static class Edm
         if (t.IsArray) return false;
 
         var hasId = t.GetProperty("Id", BindingFlags.Instance | BindingFlags.Public) != null;
-        var hasAttr = t.GetCustomAttributes<ProvideEdmAttribute>(inherit: false).Any();
+        var hasAttr = t.GetCustomAttributes<ProvideAsEdmAttribute>(inherit: false).Any();
 
         return hasId || hasAttr;
     }
