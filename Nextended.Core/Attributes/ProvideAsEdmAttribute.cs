@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Nextended.Web;
+namespace Nextended.Core.Attributes;
 
 [AttributeUsage(AttributeTargets.Class, AllowMultiple = true, Inherited = false)]
 public class ProvideAsEdmAttribute : Attribute

@@ -5,7 +5,7 @@ using System.Linq;
 using System.Reflection;
 using Microsoft.OData.Edm;
 using Microsoft.OData.ModelBuilder;
-using Nextended.Web;
+using Nextended.Core.Attributes;
 
 public static class Edm
 {
