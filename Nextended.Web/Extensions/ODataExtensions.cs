@@ -10,7 +10,7 @@ public static class ODataExtensions
 {
     public static IServiceCollection AddODataAuto(this IServiceCollection services)
     {
-        IEdmModel edmModel = Edm.GetEdmModel();
+        IEdmModel edmModel = ProvidedAsEdm.GetEdmModel();
         services.AddSingleton(edmModel);
         return services;    
     }

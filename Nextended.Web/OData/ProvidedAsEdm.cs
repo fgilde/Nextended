@@ -7,7 +7,7 @@ using Microsoft.OData.Edm;
 using Microsoft.OData.ModelBuilder;
 using Nextended.Core.Attributes;
 
-public static class Edm
+public static class ProvidedAsEdm
 {
     private static IEdmModel? _cachedModel;
     private static IDictionary<Type, IEnumerable<ProvideAsEdmAttribute>>? _providedTypes;
@@ -69,6 +69,7 @@ public static class Edm
 
             for (var cur = type; cur != null && cur != typeof(object); cur = cur.BaseType)
             {
+                if (cur.IsGenericTypeDefinition || cur.ContainsGenericParameters) continue;
                 if (entities.ContainsKey(cur)) continue;
 
                 var etc = builder.AddEntityType(cur);
@@ -166,6 +167,8 @@ public static class Edm
         if (t.IsAbstract && t == typeof(object)) return false;
         if (t.IsPrimitive || t.IsEnum) return false;
 
+        if (t.IsGenericTypeDefinition || t.ContainsGenericParameters) return false;
+
         if (t == typeof(string) || t == typeof(decimal) || t == typeof(DateTime) || t == typeof(Guid))
             return false;
 
@@ -213,7 +216,7 @@ public static class Edm
             .SelectMany(a =>
             {
                 try { return a.GetTypes(); }
-                catch { return Array.Empty<Type>(); }
+                catch { return []; }
             })
             .ToArray();
     }
