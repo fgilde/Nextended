@@ -1,6 +1,7 @@
-﻿using Microsoft.AspNetCore.OData;
-using Microsoft.AspNetCore.OData.Formatter.Serialization;
+﻿using System;
+using Microsoft.AspNetCore.OData;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using Microsoft.OData.Edm;
 using Nextended.Web.OData;
 
@@ -8,24 +9,23 @@ namespace Nextended.Web.Extensions;
 
 public static class ODataExtensions
 {
-    public static IServiceCollection AddODataAuto(this IServiceCollection services)
+
+    public static IServiceCollection AddODataAuto(this IServiceCollection services) => services.AddODataAuto(ProvidedAsEdm.GetEdmModel());
+    public static IServiceCollection AddODataAuto(this IServiceCollection services, IEdmModel edmModel) => services.AddODataAuto(_ => edmModel);
+
+    public static IServiceCollection AddODataAuto(this IServiceCollection services, Func<IServiceProvider, IEdmModel> edmModelProvider)
     {
-        IEdmModel edmModel = ProvidedAsEdm.GetEdmModel();
-        services.AddSingleton(edmModel);
+        services.AddSingleton<IEdmModel>(edmModelProvider);
+        services.AddSingleton<IConfigureOptions<ODataOptions>, ODataOptionsConfiguration>();
+
         return services;    
     }
 
     public static IMvcBuilder AddODataAuto(this IMvcBuilder mvcBuilder, IEdmModel model, string routePrefix = "odata")
     {
-        mvcBuilder.AddOData(opt =>
+        return mvcBuilder.AddOData(opt =>
         {
-            opt?.EnableQueryFeatures()?
-                .AddRouteComponents(routePrefix, model, services =>
-                {
-                    services.AddSingleton<IODataSerializerProvider, FacetSerializerProvider>();
-                    services.AddSingleton<Microsoft.OData.UriParser.ODataUriResolver>(sp => new Microsoft.OData.UriParser.ODataUriResolver { EnableCaseInsensitive = true });
-                });
+            ODataOptionsConfiguration.ConfigureDefaultAutoOData(opt, model, routePrefix);
         });
-        return mvcBuilder;
     }
 }
