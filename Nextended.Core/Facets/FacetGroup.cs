@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 
 namespace Nextended.Core.Facets;
 
@@ -18,4 +19,5 @@ public class FacetGroup
     public bool Enabled { get; set; } = true;
     public List<FacetDependency> DependsOn { get; set; } = new();
     public int Order { get; set; } = 0;
+    public TimeSpan BuildDuration { get; set; }
 }

@@ -1,33 +1,23 @@
 ﻿using System;
-using Nextended.Core.Facets;
 
-namespace Hub.Attributes.Facattes;
+namespace Nextended.Core.Facets;
 
 [AttributeUsage(AttributeTargets.Property)]
-public sealed class ProvideFacetAttribute : Attribute
+public sealed class ProvideFacetAttribute(
+    string label,
+    FacetType type = FacetType.CheckboxList,
+    bool multi = true,
+    FacetGroupOperator groupOperator = FacetGroupOperator.Or,
+    int order = 0,
+    int topDistinct = 50)
+    : Attribute
 {
-    public ProvideFacetAttribute(
-        string label,
-        FacetType type = FacetType.CheckboxList,
-        bool multi = true,
-        FacetGroupOperator groupOperator = FacetGroupOperator.Or,
-        int order = 0,
-        int topDistinct = 50)
-    {
-        Label = label;
-        Type = type;
-        MultiSelect = multi;
-        GroupOperator = groupOperator;
-        Order = order;
-        TopDistinct = topDistinct;
-    }
-
-    public string Label { get; }
-    public FacetType Type { get; }
-    public bool MultiSelect { get; }
-    public FacetGroupOperator GroupOperator { get; }
-    public int Order { get; }
-    public int TopDistinct { get; }
+    public string Label { get; } = label;
+    public FacetType Type { get; } = type;
+    public bool MultiSelect { get; } = multi;
+    public FacetGroupOperator GroupOperator { get; } = groupOperator;
+    public int Order { get; } = order;
+    public int TopDistinct { get; } = topDistinct;
 
     /// <summary>
     /// Optional value path for navigation properties (e.g., "TransportMode/Id" or "TransportModeId").

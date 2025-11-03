@@ -1,4 +1,5 @@
-﻿#if !NETSTANDARD2_0
+﻿#if !NETSTANDARD
+
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -7,8 +8,8 @@ using System.Linq.Dynamic.Core;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
-using Hub.Attributes.Facattes;
 using Nextended.Core.Attributes;
+using Nextended.Core.Extensions;
 
 namespace Nextended.Core.Facets;
 
@@ -20,31 +21,20 @@ namespace Nextended.Core.Facets;
 /// - Supports disjunctive faceting (OR within a group) controlled by options and GroupOperator
 /// </summary>
 [RegisterAs(typeof(IFacetBuilder))]
-public sealed class FacetBuilder : IFacetBuilder
+public sealed class FacetBuilder(FacetBuilderOptions? options = null,
+                                 IODataLiteralFormatter? literal = null
+) : IFacetBuilder
 {
-    private FacetBuilderOptions _options;
-    private readonly IODataLiteralFormatter _literal;
-    private Func<string, string>? _localizerFn;
+    
+    private FacetBuilderOptions _options = options ?? new FacetBuilderOptions();
+    private readonly IODataLiteralFormatter _literal = literal ?? new DefaultODataLiteralFormatter();
+    private Func<string, Type?, string> _localizerFn;
 
-    public FacetBuilder(FacetBuilderOptions? options = null, IODataLiteralFormatter? literal = null)
-    {
-        _options = options ?? new FacetBuilderOptions();
-        _literal = literal ?? new DefaultODataLiteralFormatter();
-    }
 
-    public IFacetBuilder WithOptions(FacetBuilderOptions options)
-    {
-        _options = options;
-        return this;
-    }
+    public IFacetBuilder WithLocalizationFunc(Func<string, Type?, string> localizerFn) => this.SetProperties(b => b._localizerFn = localizerFn);
 
-    public IFacetBuilder WithLocalizationFunc(Func<string, string> localizerFn)
-    {
-        _localizerFn = localizerFn;
-        return this;
-    }
+    public IFacetBuilder WithOptions(FacetBuilderOptions options) => this.SetProperties(b => b._options = options);
 
-    // Conjunctive: compute counts on already-filtered query
     public async Task<List<FacetGroup>> BuildAsync<T>(IQueryable<T> alreadyFilteredQuery, CancellationToken ct = default)
         => await BuildInternalAsync(alreadyFilteredQuery, applied: [], conjunctiveOnly: true, ct);
 
@@ -58,175 +48,192 @@ public sealed class FacetBuilder : IFacetBuilder
         bool conjunctiveOnly,
         CancellationToken ct)
     {
-        var type = typeof(T);
+        var props = typeof(T).GetProperties(BindingFlags.Instance | BindingFlags.Public)
+                             .Select(p => (Prop: p, Facet: p.GetCustomAttributes<ProvideFacetAttribute>(true).FirstOrDefault()))
+                             .Where(x => x.Facet != null)
+                             .OrderBy(x => x.Facet!.Order);
 
-        var props = type.GetProperties(BindingFlags.Instance | BindingFlags.Public)
-                        .Select(p => new { Prop = p, Facet = p.GetCustomAttributes(typeof(ProvideFacetAttribute), true).Cast<ProvideFacetAttribute>().FirstOrDefault() })
-                        .Where(x => x.Facet != null)
-                        .OrderBy(x => x.Facet!.Order)
-                        .ToList();
 
-        var groups = new List<FacetGroup>(props.Count);
-
-        // Meta map for disjunctive mode
-        var metaByKey = props.Select(x =>
+        var metaByKey = props.Select((x) =>
         {
-            var p = x.Prop;
-            var f = x.Facet!;
-            var scalarType = Nullable.GetUnderlyingType(p.PropertyType) ?? p.PropertyType;
+            (var propertyInfo, var ProvideFacetAttribute) = (x.Prop, x.Facet!);
+            var scalarType = Nullable.GetUnderlyingType(propertyInfo.PropertyType) ?? propertyInfo.PropertyType;
 
-            var rawValuePath = string.IsNullOrWhiteSpace(f.ValuePath) ? p.Name : f.ValuePath!;
-            var valuePathOData = ToODataPath(rawValuePath);
-            var valuePathDyn = ToDynPath(rawValuePath);
+            var rawValuePath = string.IsNullOrWhiteSpace(ProvideFacetAttribute.ValuePath) ? propertyInfo.Name : ProvideFacetAttribute.ValuePath!;
 
-            var valueClr = f.ValueType ?? (string.IsNullOrWhiteSpace(f.ValuePath) ? scalarType : typeof(string));
+            var valueClr = ProvideFacetAttribute.ValueType ?? (string.IsNullOrWhiteSpace(ProvideFacetAttribute.ValuePath) ? scalarType : typeof(string));
 
             return new FacetMeta
             {
-                Key = ToCamel(p.Name),
-                Field = p.Name,
-                ValuePathOData = valuePathOData,
-                ValuePathDyn = valuePathDyn,
-                ValueClr = valueClr
+                Key = propertyInfo.Name.ToCamel(),
+                Field = propertyInfo.Name,
+                ValuePathDyn = ToDynPath(rawValuePath),
+                LabelPathDyn = string.IsNullOrWhiteSpace(ProvideFacetAttribute.LabelPath) ? ToDynPath(rawValuePath) : ToDynPath(ProvideFacetAttribute.LabelPath),
+                ValueClr = valueClr,
+                ProvideFacetAttribute = ProvideFacetAttribute,
+                ScalarType = scalarType,
+                FacetGroup = new FacetGroup
+                {
+                    Key = propertyInfo.Name.ToCamel(),
+                    Label = L(ProvideFacetAttribute.Label ?? propertyInfo.Name),
+                    Field = propertyInfo.Name,
+                    ValuePath = ToODataPath(rawValuePath),
+                    LabelPath = string.IsNullOrWhiteSpace(ProvideFacetAttribute.LabelPath) ? null : ToODataPath(ProvideFacetAttribute.LabelPath),
+                    ValueClrType = valueClr.AssemblyQualifiedName!,
+                    Type = ProvideFacetAttribute.Type,
+                    GroupOperator = ProvideFacetAttribute.GroupOperator,
+                    MultiSelect = ProvideFacetAttribute.MultiSelect,
+                    Order = ProvideFacetAttribute.Order,
+                    Options = new List<FacetOption>()
+                }
             };
         }).ToDictionary(m => m.Key, StringComparer.OrdinalIgnoreCase);
 
-        foreach (var x in props)
+        var query = metaByKey.Values.Where(m => m.ProvideFacetAttribute.Type is FacetType.CheckboxList or FacetType.TokenList or FacetType.Radio)
+                             .Select(facetMeta => BuildFaceQuery(
+                                                                 facetMeta,
+                                                                 baseQuery,
+                                                                 applied,
+                                                                 metaByKey
+                                                                )
+                                    )
+                             .Aggregate((q1, q2) => q1.Union(q2));
+
+        // TODO ASYNC
+        //var facetResults = _options.ComputeDynamicLists
+        //                       ? await query.ToListAsync(ct)
+        //                       : new();
+
+        var facetResults = _options.ComputeDynamicLists
+            ? query.ToList()
+            : new();
+
+        var groupedFacetResults = facetResults
+            .GroupBy(fr => fr.Discriminator, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g => g.Key, StringComparer.OrdinalIgnoreCase);
+
+
+        foreach (var facetMeta in metaByKey.Values)
         {
-            ct.ThrowIfCancellationRequested();
-
-            var p = x.Prop;
-            var f = x.Facet!;
-            var scalarType = Nullable.GetUnderlyingType(p.PropertyType) ?? p.PropertyType;
-
-            var rawValuePath = string.IsNullOrWhiteSpace(f.ValuePath) ? p.Name : f.ValuePath!;
-            var rawLabelPath = f.LabelPath;
-
-            var valuePathDyn = ToDynPath(rawValuePath);    // e.g. TransportMode.Id
-            var valuePathOData = ToODataPath(rawValuePath);  // e.g. TransportMode/Id
-            var labelPathDyn = string.IsNullOrWhiteSpace(rawLabelPath) ? null : ToDynPath(rawLabelPath!);
-
-            var valueClr = f.ValueType ?? (string.IsNullOrWhiteSpace(f.ValuePath) ? scalarType : typeof(string));
-
-            var group = new FacetGroup
+            var groupSw = System.Diagnostics.Stopwatch.StartNew();
+            var group = facetMeta.FacetGroup;
+            var ProvideFacetAttribute = facetMeta.ProvideFacetAttribute;
+            if (ProvideFacetAttribute.Type is FacetType.CheckboxList or FacetType.TokenList or FacetType.Radio)
             {
-                Key = ToCamel(p.Name),
-                Label = L(f.Label),
-                Field = p.Name,
-                ValuePath = valuePathOData,
-                LabelPath = string.IsNullOrWhiteSpace(rawLabelPath) ? null : ToODataPath(rawLabelPath!),
-                ValueClrType = valueClr.AssemblyQualifiedName,
-                Type = f.Type,
-                GroupOperator = f.GroupOperator,
-                MultiSelect = f.MultiSelect,
-                Order = f.Order,
-                Options = new List<FacetOption>()
-            };
-
-            // choose context query for this group
-            bool disjunctiveForGroup =
-                (_options.DisjunctiveFacets) ||
-                (_options.DisjunctiveByGroupOperator && group.GroupOperator == FacetGroupOperator.Or);
-
-            IQueryable<T> ctxQ = disjunctiveForGroup
-                ? ApplyAppliedFiltersExceptGroup(baseQuery, applied, group.Key, metaByKey)
-                : baseQuery;
-
-            if (f.Type is FacetType.CheckboxList or FacetType.TokenList or FacetType.Radio)
-            {
-                if (_options.ComputeCounts)
+                if (_options.ComputeDynamicLists)
                 {
-                    var top = f.TopDistinct > 0 ? f.TopDistinct : _options.DefaultTopDistinct;
-
-                    // ALWAYS exclude nulls to avoid null Key in grouping
-                    var qq = ctxQ.Where($"{valuePathDyn} != null");
-
-                    if (!string.IsNullOrEmpty(labelPathDyn))
+                    if (groupedFacetResults.TryGetValue(group.Key, out var rows))
                     {
-                        IQueryable queryable = qq.GroupBy($"new ({valuePathDyn} as value, {labelPathDyn} as label)")
-                            .Select("new (Key.value as K, Key.label as L, Count() as C)")
-                            .OrderBy("C desc");
-                        if (top != null)
-                            queryable = queryable.Take(top.Value);
-
-                        List<dynamic> rows = await queryable
-                            .ToDynamicListAsync(ct);
-
-                        foreach (var r in rows)
+                        foreach (var row in rows)
                         {
-                            var rawVal = r.K;
-                            var lbl = r.L is null ? Convert.ToString(rawVal) ?? "" : Convert.ToString(r.L)!;
-                            var vl = ToValueLiteral(rawVal, valueClr);
+                            var vl = ToValueLiteral(row.Value, facetMeta.ValueClr);
 
-                            group.Options.Add(new FacetOption
-                            {
-                                Value = vl.Display,
-                                Label = L(string.IsNullOrEmpty(lbl) ? vl.Display : lbl),
-                                Count = Convert.ToInt64(r.C),
-                                Enabled = true,
-                                OData = $"{valuePathOData} eq {vl.Literal}"
-                            });
-                        }
-                    }
-                    else
-                    {
-                        IQueryable queryable = qq.GroupBy(valuePathDyn)
-                            .Select("new (Key as K, Count() as C)")
-                            .OrderBy("C desc");
-                        if (top != null)
-                            queryable = queryable.Take(top.Value);
-
-                        var rows = await queryable
-                            .ToDynamicListAsync(ct);
-
-                        foreach (var r in rows)
-                        {
-                            var rawVal = r.K;
-                            var vl = ToValueLiteral(rawVal, valueClr);
-
-                            group.Options.Add(new FacetOption
-                            {
-                                Value = vl.Display,
-                                Label = L(vl.Display),
-                                Count = Convert.ToInt64(r.C),
-                                Enabled = true,
-                                OData = $"{valuePathOData} eq {vl.Literal}"
-                            });
+                            group.Options.Add(
+                                              new FacetOption
+                                              {
+                                                  Value = vl.Display,
+                                                  Label = L(row.Label ?? vl.Display, facetMeta.ScalarType),
+                                                  Count = Convert.ToInt64(row.Count),
+                                                  Enabled = true,
+                                                  OData = $"{group.ValuePath} eq {vl.Literal}"
+                                              }
+                                             );
                         }
                     }
 
-                    // Keep selected options visible even if they wouldn't appear (OR UX)
-                    IncludeSelectedEvenIfMissing(group, applied);
+                    IncludeSelectedEvenIfMissing(group, applied, facetMeta.ScalarType);
                 }
             }
-            else if (f.Type is FacetType.Range or FacetType.DateRange)
+            else if (ProvideFacetAttribute.Type is FacetType.Range or FacetType.DateRange)
             {
-                var dt = f.ValueType ?? scalarType;
-                group.Range = DefaultDateOrNumberRange(valuePathOData, dt);
+                var dt = facetMeta.ValueClr;
+                group.Range = DefaultDateOrNumberRange(group.ValuePath, dt);
 
-                // Optional: counts for date presets (potentially expensive)
-                if (_options.ComputeCounts && group.Range?.Presets?.Any() == true)
+                if (_options.ComputeDynamicLists && group.Range?.Presets.Any() == true)
                 {
-                    var dynPath = ToDynPath(group.ValuePath ?? group.Field);
+                    var dynPath = ToDynPath(group.ValuePath);
                     foreach (var preset in group.Range.Presets)
                     {
                         if (DateTimeOffset.TryParse(preset.Value.From, out var from) &&
                             DateTimeOffset.TryParse(preset.Value.To, out var to))
                         {
+                            //var cnt = await ApplyAppliedFiltersExceptGroup(baseQuery, applied, group.Key, metaByKey)
+                            //    .Where($"{dynPath} >= @0 && {dynPath} < @1", from, to)
+                            //    .CountAsync(ct);
+
+                            // TODO ASYNC
                             var cnt = ApplyAppliedFiltersExceptGroup(baseQuery, applied, group.Key, metaByKey)
                                 .Where($"{dynPath} >= @0 && {dynPath} < @1", from, to)
                                 .Count();
+
                             preset.Count = cnt;
                         }
                     }
                 }
             }
 
-            groups.Add(group);
+            groupSw.Stop();
+            group.BuildDuration = groupSw.Elapsed;
+
         }
 
-        return groups;
+
+        return metaByKey.Values.Select(m => m.FacetGroup).ToList();
     }
+
+    private IQueryable<FacetResult> BuildFaceQuery<T>(
+        FacetMeta meta,
+        IQueryable<T> baseQuery,
+        IReadOnlyList<AppliedFacet> applied,
+        Dictionary<string, FacetMeta> metaByKey
+    )
+    {
+
+        // choose context query for this group
+        FacetGroup groupDto = meta.FacetGroup;
+
+        bool disjunctiveForGroup =
+            _options.DisjunctiveFacets ||
+            (_options.DisjunctiveByGroupOperator && groupDto.GroupOperator == FacetGroupOperator.Or);
+
+        IQueryable<T> ctxQ = disjunctiveForGroup
+                                 ? ApplyAppliedFiltersExceptGroup(baseQuery, applied, meta.Key, metaByKey)
+                                 : baseQuery;
+
+        var top = meta.ProvideFacetAttribute.TopDistinct > 0
+                      ? meta.ProvideFacetAttribute.TopDistinct
+                      : _options.DefaultTopDistinct;
+
+        // ALWAYS exclude nulls to avoid null Key in grouping
+        IQueryable query = ctxQ.Where($"{meta.ValuePathDyn} != null")
+                                .GroupBy($"new ({meta.ValuePathDyn} as value, {meta.LabelPathDyn} as label)")
+                               .OrderBy("Count() desc");
+
+        if (top != null)
+        {
+            query = query.Take(top.Value);
+        }
+
+        return query
+              .Select<FacetResult>(
+                   $"""
+                    new (
+                        "{meta.Key}" as {nameof(FacetResult.Discriminator)},
+                        As(Key.value, "string")  as {nameof(FacetResult.Value)},
+                        As(Key.label, "string") as {nameof(FacetResult.Label)},
+                        Count() as {nameof(FacetResult.Count)}
+                        )
+                    """
+               );
+    }
+
+    private string L(string key, Type? type = null)
+    {
+        return _localizerFn != null ? _localizerFn(key, type) : key;
+    }
+
+    private string ToDynPath(string raw) => raw.Replace("/", ".");
+    private string ToODataPath(string raw) => raw.Replace(".", "/");
 
     // ----- disjunctive helper -----
 
@@ -236,7 +243,7 @@ public sealed class FacetBuilder : IFacetBuilder
         string currentGroupKey,
         IReadOnlyDictionary<string, FacetMeta> metaByKey)
     {
-        if (applied == null || applied.Count == 0) return baseQuery;
+        if (applied.Count == 0) return baseQuery;
 
         var otherGroups = applied
             .Where(a => !string.Equals(a.GroupKey, currentGroupKey, StringComparison.OrdinalIgnoreCase))
@@ -250,10 +257,7 @@ public sealed class FacetBuilder : IFacetBuilder
             if (!metaByKey.TryGetValue(grp.Key, out var meta))
                 continue;
 
-            var dynPath = meta.ValuePathDyn;
-            var clrType = meta.ValueClr;
-
-            var values = grp.SelectMany(g => g.Values ?? Enumerable.Empty<string>())
+            var values = grp.SelectMany(g => g.Values)
                             .Distinct(StringComparer.OrdinalIgnoreCase)
                             .ToList();
             if (values.Count == 0) continue;
@@ -263,8 +267,8 @@ public sealed class FacetBuilder : IFacetBuilder
 
             foreach (var v in values)
             {
-                pars.Add(ParseValue(v, clrType));
-                ors.Add($"{dynPath} == @{pars.Count - 1}");
+                pars.Add(ParseValue(v, meta.ValueClr));
+                ors.Add($"{meta.ValuePathDyn} == @{pars.Count - 1}");
             }
 
             var predicate = "(" + string.Join(" OR ", ors) + ")";
@@ -293,19 +297,23 @@ public sealed class FacetBuilder : IFacetBuilder
         return s;
     }
 
-    private void IncludeSelectedEvenIfMissing(FacetGroup group, IReadOnlyList<AppliedFacet> applied)
+    private void IncludeSelectedEvenIfMissing(
+        FacetGroup group,
+        IReadOnlyList<AppliedFacet> applied,
+        Type scalarType
+    )
     {
         var chips = applied.Where(a => string.Equals(a.GroupKey, group.Key, StringComparison.OrdinalIgnoreCase));
         foreach (var chip in chips)
         {
-            foreach (var v in chip.Values ?? Enumerable.Empty<string>())
+            foreach (var v in chip.Values)
             {
                 if (!group.Options.Any(o => string.Equals(o.Value, v, StringComparison.OrdinalIgnoreCase)))
                 {
                     group.Options.Add(new FacetOption
                     {
                         Value = v,
-                        Label = L(v),
+                        Label = L(v, scalarType),
                         Count = 0,
                         Enabled = true
                     });
@@ -315,11 +323,6 @@ public sealed class FacetBuilder : IFacetBuilder
     }
 
     // ----------------- literal & range helpers -----------------
-
-    private string L(string key)
-    {
-        return _localizerFn != null ? _localizerFn(key) : key;
-    }
 
     private ValueLiteral ToValueLiteral(object? rawValue, Type clrType)
     {
@@ -342,35 +345,9 @@ public sealed class FacetBuilder : IFacetBuilder
 
         var literal = _options.BuildLiterals
             ? _literal.ToLiteral(coerced, clrType)
-            : ToSimpleLiteral(coerced, clrType);
+            : DefaultODataLiteralFormatter.ToSimpleLiteral(coerced, clrType);
 
         return new ValueLiteral(display, literal);
-    }
-
-    /// <summary>
-    /// Simple literal builder without OData type prefixes (for BuildLiterals=false).
-    /// - strings are single-quoted
-    /// - booleans are true/false
-    /// - DateTime/DateTimeOffset are ISO8601 and quoted
-    /// - enums use their name as quoted string
-    /// - numerics are culture-invariant without quotes
-    /// </summary>
-    public static string ToSimpleLiteral(object? value, Type type)
-    {
-        if (value is null) return "null";
-        var t = Nullable.GetUnderlyingType(type) ?? type;
-
-        if (t == typeof(string)) return $"'{value.ToString()!.Replace("'", "''")}'";
-        if (t == typeof(bool)) return (bool)value ? "true" : "false";
-        if (t == typeof(Guid)) return $"{value}";
-        if (t == typeof(DateTimeOffset)) { var dto = value is DateTimeOffset d ? d : new DateTimeOffset(Convert.ToDateTime(value, CultureInfo.InvariantCulture), TimeSpan.Zero); return $"'{dto.UtcDateTime:yyyy-MM-ddTHH:mm:ssZ}'"; }
-        if (t == typeof(DateTime)) { var dt = value is DateTime d ? (d.Kind == DateTimeKind.Utc ? d : d.ToUniversalTime()) : Convert.ToDateTime(value, CultureInfo.InvariantCulture).ToUniversalTime(); return $"'{dt:yyyy-MM-ddTHH:mm:ssZ}'"; }
-        if (t.IsEnum) { var name = ResolveEnumNameSafe(t, value) ?? value.ToString()!; return $"'{name.Replace("'", "''")}'"; }
-        if (t == typeof(int) || t == typeof(long) || t == typeof(short) || t == typeof(byte) ||
-            t == typeof(double) || t == typeof(float) || t == typeof(decimal))
-            return Convert.ToString(value, CultureInfo.InvariantCulture)!;
-
-        return $"'{value.ToString()!.Replace("'", "''")}'";
     }
 
     private FacetRangeDefinition DefaultDateOrNumberRange(string odataPath, Type type)
@@ -391,43 +368,37 @@ public sealed class FacetBuilder : IFacetBuilder
             {
                 if (_options.BuildLiterals)
                     return _literal.RangeClause(odataPath, fromInclusive, toExclusive, dt);
-                var from = ToSimpleLiteral(fromInclusive, dt);
-                var to = ToSimpleLiteral(toExclusive, dt);
+                var from = DefaultODataLiteralFormatter.ToSimpleLiteral(fromInclusive, dt);
+                var to = DefaultODataLiteralFormatter.ToSimpleLiteral(toExclusive, dt);
                 return $"({odataPath} ge {from} and {odataPath} lt {to})";
             }
+
+            FacetRangeBucket buildRangeValueForDays(int days) => new()
+            {
+                Key = $"last{days}d",
+                Label = string.Format(L("Last {0} days"), days),
+                Value = new FacetRangeValue
+                {
+                    From = FromDays(-days).ToString("yyyy-MM-dd"),
+                    To = NextDayUtcMidnight().ToString("yyyy-MM-dd"),
+                    OData = RangeClauseLocal(FromDays(-7), NextDayUtcMidnight())
+                }
+            };
 
             DateTimeOffset FromDays(int days) => now.AddDays(days);
             DateTimeOffset NextDayUtcMidnight() => new DateTimeOffset(now.UtcDateTime.Date.AddDays(1), TimeSpan.Zero);
 
             range.Presets = new List<FacetRangeBucket>
             {
-                new FacetRangeBucket{
-                    Key="last7d", Label="Last 7 days",
-                    Value = new FacetRangeValue{
-                        From = FromDays(-7).ToString("yyyy-MM-dd"),
-                        To   = NextDayUtcMidnight().ToString("yyyy-MM-dd"),
-                        OData = RangeClauseLocal(FromDays(-7), NextDayUtcMidnight())
-                    }
-                },
-                new FacetRangeBucket{
-                    Key="last30d", Label="Last 30 days",
-                    Value = new FacetRangeValue{
-                        From = FromDays(-30).ToString("yyyy-MM-dd"),
-                        To   = NextDayUtcMidnight().ToString("yyyy-MM-dd"),
-                        OData = RangeClauseLocal(FromDays(-30), NextDayUtcMidnight())
-                    }
-                }
+                buildRangeValueForDays(7),
+                buildRangeValueForDays(14),
+                buildRangeValueForDays(30),
             };
         }
 
         return range;
     }
 
-    // ----------------- misc helpers -----------------
-
-    private static bool CanBeNull(Type t) => !t.IsValueType || Nullable.GetUnderlyingType(t) != null;
-
-    public static string ToCamel(string s) => string.IsNullOrEmpty(s) ? s : char.ToLowerInvariant(s[0]) + s[1..];
 
     private static FacetRangeDataType InferRangeType(Type t)
     {
@@ -437,8 +408,6 @@ public sealed class FacetBuilder : IFacetBuilder
         return FacetRangeDataType.Number;
     }
 
-    private static string ToDynPath(string raw) => raw.Replace("/", ".");
-    private static string ToODataPath(string raw) => raw.Replace(".", "/");
 
     private sealed class ValueLiteral
     {
@@ -449,34 +418,25 @@ public sealed class FacetBuilder : IFacetBuilder
 
     private sealed class FacetMeta
     {
-        public string Key { get; set; } = default!;
-        public string Field { get; set; } = default!;
-        public string ValuePathOData { get; set; } = default!;
-        public string ValuePathDyn { get; set; } = default!;
-        public Type ValueClr { get; set; } = typeof(string);
+        public required string Key { get; init; }
+        public required string Field { get; init; }
+        public required string ValuePathDyn { get; init; }
+        public required Type ValueClr { get; init; } = typeof(string);
+
+        public required FacetGroup FacetGroup { get; init; }
+        public required ProvideFacetAttribute ProvideFacetAttribute { get; init; }
+        public required string LabelPathDyn { get; init; }
+        public required Type ScalarType { get; init; }
     }
 
-    private static string? ResolveEnumNameSafe(Type enumType, object? value)
+    private sealed class FacetResult
     {
-        if (value is null) return null;
+        public string Discriminator { get; set; }
+        public string Value { get; set; }
+        public string? Label { get; set; }
+        public int Count { get; set; }
 
-        if (value is string s)
-        {
-            if (Enum.TryParse(enumType, s, true, out object? parsed) && parsed is not null)
-                return Enum.GetName(enumType, parsed);
-            return null;
-        }
-
-        if (value.GetType().IsEnum && value.GetType() == enumType)
-            return Enum.GetName(enumType, value);
-
-        try
-        {
-            var underlying = Enum.GetUnderlyingType(enumType);
-            var numeric = Convert.ChangeType(value, underlying, CultureInfo.InvariantCulture);
-            return Enum.GetName(enumType, numeric!);
-        }
-        catch { return null; }
     }
+
 }
 #endif

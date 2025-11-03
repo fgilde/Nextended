@@ -74,35 +74,53 @@ public sealed class DefaultODataLiteralFormatter : IODataLiteralFormatter
     }
 
     /// <summary>
-    /// Returns the enum member name for a given value, tolerating numeric or string input; null if it can't be resolved.
+    /// Simple literal builder without OData type prefixes (for BuildLiterals=false).
+    /// - strings are single-quoted
+    /// - booleans are true/false
+    /// - DateTime/DateTimeOffset are ISO8601 and quoted
+    /// - enums use their name as quoted string
+    /// - numerics are culture-invariant without quotes
     /// </summary>
-    private static string? ResolveEnumName(Type enumType, object value)
+    public static string ToSimpleLiteral(object? value, Type type)
     {
-        // 1) Direct enum instance
+        if (value is null) return "null";
+        var t = Nullable.GetUnderlyingType(type) ?? type;
+
+        if (t == typeof(string)) return $"'{value.ToString()!.Replace("'", "''")}'";
+        if (t == typeof(bool)) return (bool)value ? "true" : "false";
+        if (t == typeof(Guid)) return $"{value}";
+        if (t == typeof(DateTimeOffset)) { var dto = value is DateTimeOffset d ? d : new DateTimeOffset(Convert.ToDateTime(value, CultureInfo.InvariantCulture), TimeSpan.Zero); return $"'{dto.UtcDateTime:yyyy-MM-ddTHH:mm:ssZ}'"; }
+        if (t == typeof(DateTime)) { var dt = value is DateTime d ? (d.Kind == DateTimeKind.Utc ? d : d.ToUniversalTime()) : Convert.ToDateTime(value, CultureInfo.InvariantCulture).ToUniversalTime(); return $"'{dt:yyyy-MM-ddTHH:mm:ssZ}'"; }
+        if (t.IsEnum) { var name = ResolveEnumName(t, value) ?? value.ToString()!; return $"'{name.Replace("'", "''")}'"; }
+        if (t == typeof(int) || t == typeof(long) || t == typeof(short) || t == typeof(byte) ||
+            t == typeof(double) || t == typeof(float) || t == typeof(decimal))
+            return Convert.ToString(value, CultureInfo.InvariantCulture)!;
+
+        return $"'{value.ToString()!.Replace("'", "''")}'";
+    }
+
+    private static string? ResolveEnumName(Type enumType, object? value)
+    {
+        if (value is null) return null;
+
+        if (value is string s)
+        {
+            if (Enum.TryParse(enumType, s, true, out object? parsed))
+                return Enum.GetName(enumType, parsed);
+            return null;
+        }
+
         if (value.GetType().IsEnum && value.GetType() == enumType)
             return Enum.GetName(enumType, value);
 
-        // 2) String name (case-insensitive)
-        if (value is string s)
-        {
-            // Try parse to confirm it's a valid name; then return the normalized casing (GetName).
-            if (Enum.TryParse(enumType, s, ignoreCase: true, out object? parsed) && parsed is not null)
-                return Enum.GetName(enumType, parsed);
-            // Not a valid name -> return null, so caller can fall back
-            return null;
-        }
-
-        // 3) Numeric (underlying type)
         try
         {
             var underlying = Enum.GetUnderlyingType(enumType);
-            var numeric = Convert.ChangeType(value, underlying, Invariant);
-            return Enum.GetName(enumType, numeric!);
+            var numeric = Convert.ChangeType(value, underlying, CultureInfo.InvariantCulture);
+            return Enum.GetName(enumType, numeric);
         }
-        catch
-        {
-            return null;
-        }
+        catch { return null; }
     }
+
 }
 #endif

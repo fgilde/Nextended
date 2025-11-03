@@ -23,6 +23,13 @@ namespace Nextended.Core.Extensions
 
     public static class StringExtensions
     {
+        public static string ToCamel(this string input)
+        {
+            if (string.IsNullOrEmpty(input)) return input;
+            var pascalCase = input.ToPascalCase();
+            return char.ToLowerInvariant(pascalCase[0]) + pascalCase.Substring(1);
+        }
+
         public static string ToPascalCase(this string input)
         {
             if (string.IsNullOrEmpty(input)) return input;

@@ -6,11 +6,11 @@ public sealed class FacetBuilderOptions
     /// If true, facets will be built. If false, only applied filters will be extracted.
     /// </summary>
     public bool BuildFacets { get; set; }
-    
+
     /// <summary>
-    /// If true, facet counts will be computed via GROUP BY.
+    /// If true, the list of available values for properties with <see cref="ProvideFacetAttribute.Type"/> <see cref="FacetType.CheckboxList"/>, <see cref="FacetType.TokenList"/> or <see cref="FacetType.Radio"/> will be calculated
     /// </summary>
-    public bool ComputeCounts { get; set; } = true;
+    public bool ComputeDynamicLists { get; set; } = true;
 
     /// <summary>
     /// If true, compute counts per group on a query with all other groups' filters applied (disjunctive faceting).
@@ -32,4 +32,6 @@ public sealed class FacetBuilderOptions
     /// Specifies whether to build literals should be false for Edm provided models.
     /// </summary>
     public bool BuildLiterals { get; set; } = false;
+
+    public bool IsDisjunctiveBuild => DisjunctiveFacets || DisjunctiveByGroupOperator;
 }
