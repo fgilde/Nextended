@@ -1,7 +1,12 @@
-﻿
-# .NET Aspire Extensions
+# Nextended.Aspire
 
-The .NET Aspire Extensions library provides a set of convenient extension methods that simplify the configuration of distributed applications built with the Aspire framework. These extensions enable conditional dependency setup, environment variable management, and Docker checks in a clear and expressive manner.
+[![NuGet](https://img.shields.io/nuget/v/Nextended.Aspire.svg)](https://www.nuget.org/packages/Nextended.Aspire/)
+
+Extensions for .NET Aspire distributed application framework.
+
+## Overview
+
+The Nextended.Aspire library provides a set of convenient extension methods that simplify the configuration of distributed applications built with the Aspire framework. These extensions enable conditional dependency setup, environment variable management, and Docker checks in a clear and expressive manner.
 
 ## Key Features
 
@@ -52,9 +57,28 @@ builder.Build()
     .Run();
 ```
 
+## Documentation
+
+For comprehensive documentation, examples, and API reference, see:
+- 📚 [Complete Documentation](https://github.com/fgilde/Nextended/blob/main/docs/projects/aspire.md)
+- 🏠 [Main Documentation Portal](https://fgilde.github.io/Nextended/)
+
+## Supported Frameworks
+
+- .NET 8.0
+- .NET 9.0
+
+## Links
+
+- [NuGet Package](https://www.nuget.org/packages/Nextended.Aspire/)
+- [Documentation](https://github.com/fgilde/Nextended/blob/main/docs/projects/aspire.md)
+- [Source Code](https://github.com/fgilde/Nextended/tree/main/Nextended.Aspire)
+- [Report Issues](https://github.com/fgilde/Nextended/issues)
+
 ## Contributing
 
 Contributions are welcome! If you have suggestions or find any issues, please open an issue or submit a pull request.
 
+## License
 
-
+This project is licensed under the MIT License.
