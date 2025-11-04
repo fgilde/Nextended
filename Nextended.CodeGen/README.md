@@ -1,8 +1,11 @@
-﻿# Nextended.CodeGen
+# Nextended.CodeGen
 
-> **_NOTE:_**  This package is in an early test stage and the API may change near in the future 
-or it is not working as expected. 
-.
+[![NuGet](https://img.shields.io/nuget/v/Nextended.CodeGen.svg)](https://www.nuget.org/packages/Nextended.CodeGen/)
+
+Compile-time source code generation from various sources including classes, JSON, XML, and Excel files.
+
+> **_NOTE:_**  This package is in an early test stage and the API may change in the near future 
+or it may not work as expected.
 
 ### Features
  1. **DTO Generation**: Automatically generate Data Transfer Objects (DTOs) from your classes and enums using attributes like this.
@@ -163,3 +166,26 @@ To use this package, you need to add the `Nextended.CodeGen` package to your pro
 ```
 
 Please have a look at this sample project to see how to use the code generation features: [Nextended.CodeGen.Sample](https://github.com/fgilde/Nextended/tree/main/CodeGenSample)
+
+## Documentation
+
+For comprehensive documentation, examples, and API reference, see:
+- 📚 [Complete Documentation](https://github.com/fgilde/Nextended/blob/main/docs/projects/codegen.md)
+- 🏠 [Main Documentation Portal](https://fgilde.github.io/Nextended/)
+
+## Supported Frameworks
+
+- .NET Standard 2.0 (Generator)
+- .NET 8.0+ (Generated code)
+
+## Links
+
+- [NuGet Package](https://www.nuget.org/packages/Nextended.CodeGen/)
+- [Documentation](https://github.com/fgilde/Nextended/blob/main/docs/projects/codegen.md)
+- [Source Code](https://github.com/fgilde/Nextended/tree/main/Nextended.CodeGen)
+- [Sample Project](https://github.com/fgilde/Nextended/tree/main/CodeGenSample)
+- [Report Issues](https://github.com/fgilde/Nextended/issues)
+
+## License
+
+This project is licensed under the MIT License.
