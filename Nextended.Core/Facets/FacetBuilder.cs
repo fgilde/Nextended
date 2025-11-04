@@ -20,7 +20,7 @@ namespace Nextended.Core.Facets;
 /// - Emits OData filter snippets (slash-paths) and correct literals depending on FacetBuilderOptions.BuildLiterals
 /// - Supports disjunctive faceting (OR within a group) controlled by options and GroupOperator
 /// </summary>
-[RegisterAs(typeof(IFacetBuilder))]
+[RegisterAs(typeof(IFacetBuilder), RegisterAsImplementation = true)]
 public sealed class FacetBuilder(FacetBuilderOptions? options = null,
                                  IODataLiteralFormatter? literal = null
 ) : IFacetBuilder

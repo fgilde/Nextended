@@ -4,25 +4,30 @@ using Microsoft.OData;
 using Microsoft.OData.Edm;
 using System;
 using System.Collections;
+using System.Text.Json;
 
 namespace Nextended.Web.OData;
 
-public sealed class FacetResourceSetSerializer : ODataResourceSetSerializer
+public sealed class FacetResourceSetSerializer(ODataSerializerProvider provider) : ODataResourceSetSerializer(provider)
 {
-    public const string NAME = "cn.facets";
-    public FacetResourceSetSerializer(ODataSerializerProvider provider) : base(provider) { }
+    public const string FacetsAnnotationName = "cn.facets";
 
     public override ODataResourceSet CreateResourceSet(
         IEnumerable resourceSet, IEdmCollectionTypeReference collectionType, ODataSerializerContext writeContext)
     {
         var set = base.CreateResourceSet(resourceSet, collectionType, writeContext);
 
-        if (writeContext.Request?.HttpContext.Items.TryGetValue(NAME, out var facetsObj) == true && facetsObj is not null)
+        if (writeContext.Request?.HttpContext.Items.TryGetValue(FacetsAnnotationName, out var facetsObj) == true && facetsObj is not null)
         {
-            var raw = System.Text.Json.JsonSerializer.Serialize(facetsObj);
+            var options = new JsonSerializerOptions
+            {
+                PropertyNamingPolicy = JsonNamingPolicy.KebabCaseLower
+            };
+
+            var raw = JsonSerializer.Serialize(facetsObj, options);
             set.InstanceAnnotations.Add(
                 new ODataInstanceAnnotation(
-                    NAME,
+                    FacetsAnnotationName,
                     new ODataUntypedValue { RawValue = raw }
                 )
             );
@@ -42,7 +47,7 @@ public sealed class FacetSerializerProvider : ODataSerializerProvider
 
     public override IODataSerializer GetODataPayloadSerializer(Type type, HttpRequest request)
     {
-        if (typeof(System.Collections.IEnumerable).IsAssignableFrom(type) && type != typeof(string))
+        if (typeof(IEnumerable).IsAssignableFrom(type) && type != typeof(string))
             return _setSerializer;
 
         return base.GetODataPayloadSerializer(type, request);

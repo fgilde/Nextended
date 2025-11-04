@@ -24,23 +24,38 @@ namespace Nextended.Core.Extensions
 			return PropertyPath<T>.Get(expr).ToArray();
 		}
 
-        /// <summary>
-			/// Gets the member info represented by an expression.
-			/// </summary>
-			public static MemberInfo GetMemberInfo(this Expression expression)
-		{
-			if (expression is LambdaExpression lambda)
-			{
-				MemberExpression memberExpression;
-				if (lambda.Body is UnaryExpression unaryExpression)
-				{
-					memberExpression = (MemberExpression)unaryExpression.Operand;
-				}
-				else memberExpression = (MemberExpression)lambda.Body;
+        public static MemberExpression? GetMemberExpression<T>(this Expression<Func<T, object>> expression)
+        {
+            return expression.Body switch
+            {
+                MemberExpression memberExpression => memberExpression,
+                UnaryExpression { Operand: MemberExpression operand } => operand,
+                _ => null
+            };
+        }
 
-				return memberExpression.Member;
-			}
-			return null;
+        public static MemberExpression? GetMemberExpression(this Expression expression)
+        {
+            if (expression is LambdaExpression lambda)
+            {
+                MemberExpression memberExpression;
+                if (lambda.Body is UnaryExpression unaryExpression)
+                {
+                    memberExpression = (MemberExpression)unaryExpression.Operand;
+                }
+                else memberExpression = (MemberExpression)lambda.Body;
+
+                return memberExpression;
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// Gets the member info represented by an expression.
+        /// </summary>
+        public static MemberInfo? GetMemberInfo(this Expression expression)
+        {
+            return expression.GetMemberExpression()?.Member;
 		}
 
 		/// <summary> 

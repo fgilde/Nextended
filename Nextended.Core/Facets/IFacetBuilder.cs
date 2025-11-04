@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -14,4 +15,8 @@ public interface IFacetBuilder
         IQueryable<T> baseQuery,
         IReadOnlyList<AppliedFacet> applied,
         CancellationToken ct = default);
+
+    IFacetBuilder WithOptions(FacetBuilderOptions options);
+    IFacetBuilder WithLocalizationFunc(Func<string, Type?, string> localizerFn);
+
 }

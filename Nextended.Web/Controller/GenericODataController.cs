@@ -1,43 +1,41 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.OData.Formatter;
+﻿using Microsoft.AspNetCore.OData.Formatter;
 using Microsoft.AspNetCore.OData.Query;
 using Microsoft.AspNetCore.OData.Results;
 using Microsoft.AspNetCore.OData.Routing.Controllers;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.OData.Edm;
+using Nextended.Core.Facets;
+using Nextended.Web.OData;
 using System;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Threading;
 using System.Threading.Tasks;
-using Nextended.Core.Facets;
-using Nextended.Web.OData;
 
 namespace Nextended.Web.Controller;
 
-public abstract class GenericODataController<T> : ODataController 
+public abstract class GenericODataController<T> : ODataController where T : class
 {
+    protected virtual TService Get<TService>() => Request.HttpContext.RequestServices.GetRequiredService<TService>();
+    protected virtual FacetBuilderOptions GetFacetBuilderOptions() => new();
     protected virtual string IdPropertyName => "Id";
 
     [EnableQuery]
     protected abstract IQueryable<T> Queryable();
 
+   
     [EnableQuery]
-    public virtual async Task<IQueryable<T>> Get()
+    public virtual async Task<IQueryable<T>> Get(CancellationToken ct = default)
     {
         var res = Queryable();
-        if (Request.Headers["Prefer"].Contains("odata.include-annotations=\"*\""))
+        if (ShouldBuildFacets())
         {
-            var facetBuilder = Request.HttpContext.RequestServices.GetService<IFacetBuilder>();
-            if (facetBuilder != null)
-            {
-                var facets = await facetBuilder.BuildAsync(res);
-                HttpContext.Items[FacetResourceSetSerializer.NAME] = facets;
-            }
+            await AddFacetResponseAsync(res, ct);
         }
         return res;
     }
 
     [EnableQuery]
-    [HttpGet("{key}")]
     public virtual SingleResult<T> Get([FromODataUri] Guid key)
     {
         var param = Expression.Parameter(typeof(T), "e");
@@ -48,4 +46,19 @@ public abstract class GenericODataController<T> : ODataController
         var query = Queryable().Where(lambda);
         return SingleResult.Create(query);
     }
+
+    protected virtual async Task AddFacetResponseAsync(IQueryable<T> queryable, CancellationToken ct)
+    {
+        var facetBuilderOptions = GetFacetBuilderOptions();
+        var facets = await Get<IFacetBuilder>().WithOptions(facetBuilderOptions)
+            .BuildAsync(facetBuilderOptions.IsDisjunctiveBuild ? queryable.ApplyODataFilter(Request.ODataQueryOptions<T>(Get<IEdmModel>())) : queryable, ct);
+        HttpContext.Items[FacetResourceSetSerializer.FacetsAnnotationName] = facets;
+    }
+
+    protected virtual bool ShouldBuildFacets()
+    {
+        return Request.Headers["Prefer"].Any(h => h?.Contains("odata.include-annotations=\"*\"", StringComparison.InvariantCultureIgnoreCase) == true
+                                                  || h?.Contains(FacetResourceSetSerializer.FacetsAnnotationName, StringComparison.InvariantCultureIgnoreCase) == true);
+    }
+
 }
