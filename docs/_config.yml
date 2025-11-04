@@ -1,0 +1,8 @@
+theme: jekyll-theme-cayman
+title: Nextended
+description: A comprehensive .NET library suite providing powerful extension methods, types, and utilities
+show_downloads: true
+github:
+  repository_url: https://github.com/fgilde/Nextended
+  zip_url: https://github.com/fgilde/Nextended/zipball/main
+  tar_url: https://github.com/fgilde/Nextended/tarball/main
