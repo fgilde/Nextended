@@ -85,6 +85,7 @@ var today = Date.Today;
 ### API Reference
 - [Extension Methods Reference](api/extensions.md)
 - [Custom Types Reference](api/types.md)
+- [Class Mapping Reference](api/class-mapping.md)
 
 ## 🎯 Key Features
 
@@ -115,9 +116,11 @@ var dto = sourceObject.MapTo<TargetDto>();
 // Advanced mapping with settings
 var settings = ClassMappingSettings.Default
     .IgnoreProperties<Source>(s => s.InternalField)
-    .IgnoreProperties<Target>(t => t.CalculatedField);
+    .AddConverter<string, DateTime>(DateTime.Parse);
 var result = source.MapTo<Target>(settings);
 ```
+
+See the [Class Mapping Reference](api/class-mapping.md) for complete documentation, examples, and usage scenarios.
 
 ### Code Generation
 Generate code at compile-time from various sources:
