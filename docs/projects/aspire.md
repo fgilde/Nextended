@@ -49,7 +49,7 @@ var api = builder.AddProject<Projects.MyApi>("api")
 
 ### 3. Docker Management
 
-Ensure Docker is running before application starts.
+Ensure Docker is running before application starts. If Docker is not running, these methods will automatically attempt to start Docker Desktop.
 
 ```csharp
 using Nextended.Aspire;
@@ -59,17 +59,17 @@ var builder = DistributedApplication.CreateBuilder(args);
 // Configure resources...
 
 builder.Build()
-    .EnsureDockerRunning() // Throws if Docker not running
+    .EnsureDockerRunning() // Starts Docker Desktop if not running
     .Run();
 
 // Or conditionally check
 builder.Build()
-    .EnsureDockerRunningIf(condition) // Only checks if condition is true
+    .EnsureDockerRunningIf(condition) // Only checks and starts if condition is true
     .Run();
 
 // Or check only in local debug
 builder.Build()
-    .EnsureDockerRunningIfLocalDebug() // Checks only when debugging locally
+    .EnsureDockerRunningIfLocalDebug() // Checks and starts only when debugging locally
     .Run();
 ```
 
@@ -264,9 +264,9 @@ var api = builder.AddProject<Projects.Api>("api")
 - `WithEndpointAsEnvironmentIf()` - Endpoint as environment variable
 
 ### Docker Extensions
-- `EnsureDockerRunning()` - Ensure Docker is running
-- `EnsureDockerRunningIf()` - Conditionally check Docker
-- `EnsureDockerRunningIfLocalDebug()` - Check Docker in debug mode
+- `EnsureDockerRunning()` - Ensure Docker is running, starts Docker Desktop if not running
+- `EnsureDockerRunningIf()` - Conditionally check and start Docker
+- `EnsureDockerRunningIfLocalDebug()` - Check and start Docker in debug mode only
 
 ### Dev Certificate Extensions
 - `UseDevelopmentCertificate()` - Configure dev certificates

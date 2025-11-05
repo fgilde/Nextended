@@ -26,7 +26,7 @@ The Nextended.Aspire library provides a set of convenient extension methods that
 
 ### Docker Management
 - **EnsureDockerRunning / EnsureDockerRunningIf / EnsureDockerRunningIfLocalDebug**  
-  Ensures that Docker is running before the application starts, which is especially useful during development and debugging.
+  Ensures that Docker is running before the application starts. If Docker is not running, these methods will automatically attempt to start Docker Desktop. This is especially useful during development and debugging.
 
 ## Example Usage
 

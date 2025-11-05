@@ -323,7 +323,7 @@ public class FilesController : ControllerBase
     
     [HttpPost("upload")]
     [RequestSizeLimit(10_000_000)] // 10 MB limit
-    public async Task<IActionResult> Upload(IFormFile file)
+    public async Task<IFormFile> Upload(IFormFile file)
     {
         if (file == null || file.Length == 0)
             return BadRequest("No file uploaded");
@@ -354,6 +354,76 @@ public class FilesController : ControllerBase
             fileData.Content, 
             fileData.ContentType, 
             fileData.FileName
+        );
+    }
+}
+```
+
+### File Download with ControllerExtensions
+
+Nextended.Web provides `DownloadDataAsync` extension methods for efficient file downloads with proper headers:
+
+```csharp
+using Nextended.Web.Extensions;
+
+[ApiController]
+[Route("api/[controller]")]
+public class ReportsController : ControllerBase
+{
+    [HttpGet("export/{reportId}")]
+    public async Task ExportReport(string reportId)
+    {
+        // Generate report data
+        var reportData = await GenerateReportAsync(reportId);
+        using var stream = new MemoryStream(reportData);
+        
+        // Download with proper headers
+        await this.DownloadDataAsync(
+            dataContent: stream,
+            mimeType: "application/pdf",
+            fileName: $"report-{reportId}.pdf",
+            inlineFile: false, // Force download dialog
+            httpStatusCode: 200
+        );
+    }
+    
+    [HttpGet("preview/{documentId}")]
+    public async Task PreviewDocument(string documentId)
+    {
+        var documentData = await GetDocumentAsync(documentId);
+        using var stream = new MemoryStream(documentData);
+        
+        // Display inline in browser
+        await this.DownloadDataAsync(
+            dataContent: stream,
+            mimeType: "application/pdf",
+            fileName: $"document-{documentId}.pdf",
+            inlineFile: true, // Display in browser
+            httpStatusCode: 200
+        );
+    }
+    
+    [HttpGet("csv-export")]
+    public async Task ExportToCsv()
+    {
+        // Stream large CSV data efficiently
+        await this.DownloadDataAsync(
+            writeResponseDataAction: async (outputStream) =>
+            {
+                using var writer = new StreamWriter(outputStream);
+                await writer.WriteLineAsync("Id,Name,Email,Created");
+                
+                // Stream data in chunks
+                await foreach (var user in GetUsersAsync())
+                {
+                    await writer.WriteLineAsync(
+                        $"{user.Id},{user.Name},{user.Email},{user.Created:yyyy-MM-dd}");
+                }
+            },
+            mimeType: "text/csv",
+            fileName: "users-export.csv",
+            inlineFile: false,
+            httpStatusCode: 200
         );
     }
 }
