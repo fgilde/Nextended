@@ -11,23 +11,56 @@ using System.Dynamic;
 
 namespace Nextended.Core.Helper;
 
+/// <summary>
+/// Represents an object that can be converted to structured data formats.
+/// </summary>
 public interface IStructuredDataObject
 {
+    /// <summary>
+    /// Converts the object to a string representation of the specified structured data type.
+    /// </summary>
+    /// <param name="dataType">The target structured data type format.</param>
+    /// <returns>A string representation in the specified format.</returns>
     string ToString(StructuredDataType dataType);
 }
+
+/// <summary>
+/// Interface for parsing structured data content into JObject instances.
+/// </summary>
 public interface IJObjectParser
 {
+    /// <summary>
+    /// Parses the content string into a JObject.
+    /// </summary>
+    /// <param name="content">The content to parse.</param>
+    /// <returns>A JObject representing the parsed content.</returns>
     JObject Parse(string content);
 }
 
 
+/// <summary>
+/// Parser for JSON content that converts it to JObject instances.
+/// </summary>
 public class JsonJObjectParser : IJObjectParser
 {
+    /// <summary>
+    /// Parses JSON content into a JObject.
+    /// </summary>
+    /// <param name="content">The JSON content to parse.</param>
+    /// <returns>A JObject representing the parsed JSON.</returns>
     public JObject Parse(string content) => JObject.Parse(content);
 }
 
+/// <summary>
+/// Parser for XML content that converts it to JObject instances.
+/// </summary>
 public class XmlJObjectParser : IJObjectParser
 {
+    /// <summary>
+    /// Parses XML content into a JObject.
+    /// </summary>
+    /// <param name="content">The XML content to parse.</param>
+    /// <returns>A JObject representing the parsed XML.</returns>
     public JObject Parse(string content)
     {
         var xmlDoc = new XmlDocument();
@@ -57,8 +90,16 @@ public class XmlJObjectParser : IJObjectParser
 }
 
 
+/// <summary>
+/// Parser for YAML content that converts it to JObject instances.
+/// </summary>
 public class YamlJObjectParser : IJObjectParser
 {
+    /// <summary>
+    /// Parses YAML content into a JObject.
+    /// </summary>
+    /// <param name="content">The YAML content to parse.</param>
+    /// <returns>A JObject representing the parsed YAML.</returns>
     public JObject Parse(string content)
     {        
         var deserializer = new YamlDotNet.Serialization.DeserializerBuilder().Build();
@@ -68,10 +109,24 @@ public class YamlJObjectParser : IJObjectParser
     }
 }
 
+/// <summary>
+/// Enumeration of supported structured data types.
+/// </summary>
 public enum StructuredDataType
 {
+    /// <summary>
+    /// JavaScript Object Notation format.
+    /// </summary>
     Json,
+    
+    /// <summary>
+    /// Extensible Markup Language format.
+    /// </summary>
     Xml,
+    
+    /// <summary>
+    /// YAML Ain't Markup Language format.
+    /// </summary>
     Yaml
 }
 

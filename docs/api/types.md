@@ -447,6 +447,132 @@ var topLevel = laptops.Parent.Parent; // electronics
        throw new ArgumentException("Invalid range");
    ```
 
+---
+
+## SmallProcessInfo
+
+**Namespace**: `Nextended.Core.Types`
+
+Represents basic information about a running process, including its ID, executable path, and command-line arguments.
+
+### Properties
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `Id` | `int` | Process ID |
+| `Process` | `Process` | The Process object |
+| `CommandLine` | `string` | Command-line arguments |
+| `Path` | `string` | Full path to executable |
+| `FileName` | `string` | File name without path |
+
+### Usage Example
+
+```csharp
+using Nextended.Core.Helper;
+using Nextended.Core.Types;
+
+// Get all running processes with details
+var processes = ProcessHelper.GetProcesses();
+foreach (SmallProcessInfo proc in processes)
+{
+    Console.WriteLine($"Process: {proc.FileName}");
+    Console.WriteLine($"  ID: {proc.Id}");
+    Console.WriteLine($"  Path: {proc.Path}");
+    Console.WriteLine($"  Command: {proc.CommandLine}");
+}
+```
+
+---
+
+## SymbolLinkInfo
+
+**Namespace**: `Nextended.Core.Types`
+
+Represents information about a symbolic link, including the link path and its target.
+
+### Properties
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `LinkName` | `string` | Path to the symbolic link |
+| `Target` | `string` | Target path the link points to |
+
+### Usage Example
+
+```csharp
+using Nextended.Core.Types;
+using Nextended.Core.Helper;
+
+// Create a symbolic link
+var linkInfo = new SymbolLinkInfo(@"C:\MyLink", @"C:\Target\Folder");
+FileHelper.CreateSymbolicLink(linkInfo);
+
+Console.WriteLine($"Created link: {linkInfo.LinkName} -> {linkInfo.Target}");
+
+// Remove symbolic link
+FileHelper.RemoveSymbolicLink(linkInfo.LinkName);
+```
+
+---
+
+## DataUrl
+
+**Namespace**: `Nextended.Core.Types`
+
+Represents a data URL (RFC 2397) that encodes binary data in a base64 string with an optional MIME type.
+
+### Constructor
+
+```csharp
+public DataUrl(byte[] bytes, string mimeType = null)
+public DataUrl(string url)
+```
+
+### Properties
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `Bytes` | `byte[]` | Binary data encoded in the URL |
+| `MimeType` | `string` | MIME type of the data |
+
+### Methods
+
+| Method | Description |
+|--------|-------------|
+| `ToString()` | Returns the data URL string |
+| `Parse(string url)` | Parses a data URL string |
+| `TryParse(string url, out DataUrl)` | Tries to parse a data URL |
+
+### Usage Example
+
+```csharp
+using Nextended.Core.Types;
+
+// Create from binary data
+byte[] imageData = File.ReadAllBytes("photo.jpg");
+var dataUrl = new DataUrl(imageData, "image/jpeg");
+string dataUrlString = dataUrl.ToString();
+// Returns: "data:image/jpeg;base64,/9j/4AAQSkZJRg..."
+
+// Parse existing data URL
+string urlString = "data:text/plain;base64,SGVsbG8gV29ybGQh";
+var parsed = new DataUrl(urlString);
+string text = Encoding.UTF8.GetString(parsed.Bytes); // "Hello World!"
+
+// Try parse with error handling
+if (DataUrl.TryParse(urlString, out var result))
+{
+    Console.WriteLine($"MIME type: {result.MimeType}");
+    Console.WriteLine($"Data size: {result.Bytes.Length} bytes");
+}
+
+// Use in HTML/CSS contexts
+var bgImage = new DataUrl(imageBytes, "image/png");
+string css = $"background-image: url('{bgImage}');";
+```
+
+---
+
 ## See Also
 
 - [Extension Methods Reference](extensions.md)

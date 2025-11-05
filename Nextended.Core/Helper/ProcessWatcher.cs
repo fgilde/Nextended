@@ -7,18 +7,33 @@ using Nextended.Core.Types;
 
 namespace Nextended.Core.Helper
 {
-
+    /// <summary>
+    /// Monitors system processes and raises events when processes are started or stopped.
+    /// </summary>
     public class ProcessWatcher : IDisposable
     {
         private CancellationTokenSource tokenSource;
         private IList<SmallProcessInfo> processes;
 
+        /// <summary>
+        /// Occurs when new processes are started.
+        /// </summary>
         public event EventHandler<List<SmallProcessInfo>> NewProcessesStarted;
+        
+        /// <summary>
+        /// Occurs when processes are stopped.
+        /// </summary>
         public event EventHandler<List<SmallProcessInfo>> ProcessesStopped;
 
+        /// <summary>
+        /// Initializes a new instance of the ProcessWatcher class.
+        /// </summary>
         public ProcessWatcher()
         { }
 
+        /// <summary>
+        /// Stops monitoring processes.
+        /// </summary>
         public void Stop()
         {
             tokenSource.Cancel();

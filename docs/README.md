@@ -37,7 +37,9 @@ docs/
 └── api/                        # API reference
     ├── extensions.md           # Extension methods reference
     ├── types.md                # Custom types reference
-    └── class-mapping.md        # Class mapping reference
+    ├── class-mapping.md        # Class mapping reference
+    ├── helpers.md              # Helper utilities reference
+    └── encryption.md           # Encryption and security reference
 ```
 
 ## 📖 Quick Links
@@ -49,6 +51,8 @@ docs/
 - [Extension Methods API](api/extensions.md)
 - [Custom Types API](api/types.md)
 - [Class Mapping API](api/class-mapping.md)
+- [Helper Utilities API](api/helpers.md)
+- [Encryption & Security API](api/encryption.md)
 
 ## 🚀 GitHub Pages Setup
 

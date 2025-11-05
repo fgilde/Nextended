@@ -6,8 +6,16 @@ using YamlDotNet.RepresentationModel;
 
 namespace Nextended.Core.Helper;
 
+/// <summary>
+/// Provides methods to validate and detect structured data formats (JSON, XML, YAML).
+/// </summary>
 public class StructuredDataTypeValidator
 {
+    /// <summary>
+    /// Detects the structured data type of the provided content.
+    /// </summary>
+    /// <param name="content">The content to analyze.</param>
+    /// <returns>The detected StructuredDataType, or null if the type cannot be determined.</returns>
     public static StructuredDataType? DetectInputType(string content)
     {
         return TryDetectInputType(content, out var detectedType) ? detectedType : (StructuredDataType?)null;

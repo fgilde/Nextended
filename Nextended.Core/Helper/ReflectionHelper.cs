@@ -267,10 +267,10 @@ namespace Nextended.Core.Helper
         }
 
         /// <summary>
-        /// Instanz für interface erzeugen
+        /// Instanz fï¿½r interface erzeugen
         /// </summary>
         /// <typeparam name="TInterface">The type of the interface.</typeparam>
-        /// <param name="coverUpAbstractMembers">Wenn true werden Abstrakte basis properties überdeckt</param>
+        /// <param name="coverUpAbstractMembers">Wenn true werden Abstrakte basis properties ï¿½berdeckt</param>
         /// <returns></returns>
         public static TInterface CreateInstanceFromInterfaceOrAbstractType<TInterface>(bool coverUpAbstractMembers)
 			where TInterface : class
@@ -291,7 +291,7 @@ namespace Nextended.Core.Helper
 		/// </summary>
 		/// <typeparam name="T"></typeparam>
 		/// <param name="allowInterfacesAndAbstractClasses">if set to <c>true</c> [allow interfaces and abstract classes].</param>
-		/// <param name="coverUpAbstractMembers">Wenn true werden Abstrakte basis properties überdeckt</param>
+		/// <param name="coverUpAbstractMembers">Wenn true werden Abstrakte basis properties ï¿½berdeckt</param>
 		/// <returns></returns>
 		public static T CreateInstance<T>(bool allowInterfacesAndAbstractClasses,
 			bool coverUpAbstractMembers, bool checkCyclicDependencies = true) 
@@ -312,7 +312,7 @@ namespace Nextended.Core.Helper
 		}
 
 		/// <summary>
-		/// PropertyInfo auch für parenttypes zurückgeben
+		/// PropertyInfo auch fï¿½r parenttypes zurï¿½ckgeben
 		/// </summary>
 		public static PropertyInfo[] GetPropertiesRecursive(this Type type, BindingFlags flags, Func<Type, bool> continueCondition = null)
 		{
@@ -330,7 +330,7 @@ namespace Nextended.Core.Helper
 		}
 
 		/// <summary>
-		/// PropertyInfo auch für parenttypes zurückgeben
+		/// PropertyInfo auch fï¿½r parenttypes zurï¿½ckgeben
 		/// </summary>
 		public static FieldInfo[] GetFieldsRecursive(this Type type, BindingFlags flags, Func<Type, bool> continueCondition = null)
 		{
@@ -351,8 +351,8 @@ namespace Nextended.Core.Helper
 		/// </summary>
 		/// <param name="t">The t.</param>
 		/// <param name="allowInterfacesAndAbstractClasses">Abstrakte klassen oder Interface instanzen erstellen</param>
-		/// <param name="coverUpAbstractMembers">Wenn true werden Abstrakte basis properties überdeckt</param>
-		/// <param name="tryResolve">Gibt an ob versucht werden soll per unity den typen aufzulösen</param>
+		/// <param name="coverUpAbstractMembers">Wenn true werden Abstrakte basis properties ï¿½berdeckt</param>
+		/// <param name="tryResolve">Gibt an ob versucht werden soll per unity den typen aufzulï¿½sen</param>
 		/// <param name="serviceProvider">Container</param>
 		/// <returns></returns>
 		public static object CreateInstance(Type t, bool allowInterfacesAndAbstractClasses,
@@ -386,7 +386,7 @@ namespace Nextended.Core.Helper
         /// </summary>
         /// <param name="t">The t.</param>
         /// <param name="allowInterfacesAndAbstractClasses">Abstrakte klassen oder Interface instanzen erstellen</param>
-        /// <param name="coverUpAbstractMembers">Wenn true werden Abstrakte basis properties überdeckt</param>
+        /// <param name="coverUpAbstractMembers">Wenn true werden Abstrakte basis properties ï¿½berdeckt</param>
         /// <returns></returns>
         public static object CreateInstance(Type t, bool allowInterfacesAndAbstractClasses, bool coverUpAbstractMembers, bool checkCyclicDependencies = true, HashSet<Type> processedTypes = null)
         {
@@ -497,10 +497,10 @@ namespace Nextended.Core.Helper
         }
 
         /// <summary>
-		/// Instanz für interface erzeugen
+		/// Instanz fï¿½r interface erzeugen
 		/// </summary>
 		/// <param name="interfaceType">Typ</param>
-		/// <param name="coverUpAbstractMembers">Wenn true werden Abstrakte basis properties überdeckt</param>
+		/// <param name="coverUpAbstractMembers">Wenn true werden Abstrakte basis properties ï¿½berdeckt</param>
 		public static object CreateInstanceFromInterfaceOrAbstractType(Type interfaceType, bool coverUpAbstractMembers, bool checkCyclicDependencies = true, HashSet<Type> processedTypes = null)
         {
             processedTypes ??= new HashSet<Type>();
@@ -555,7 +555,7 @@ namespace Nextended.Core.Helper
         }
 
         /// <summary>
-        /// Enthaltene typen zurückgeben
+        /// Enthaltene typen zurï¿½ckgeben
         /// </summary>
         public static Type[] GetDeclaringTypes(Type t)
 		{
@@ -737,7 +737,7 @@ namespace Nextended.Core.Helper
 		}
 
 		/// <summary>
-		/// Gibt alle Properties mit wert zurück
+		/// Gibt alle Properties mit wert zurï¿½ck
 		/// </summary>
 		/// <param name="objectValue">Objekt</param>
 		/// <param name="except">Alle Properties ausser diesen</param>
@@ -771,7 +771,7 @@ namespace Nextended.Core.Helper
 		}
 
 		/// <summary>
-		/// Gibt die signatur der methode zurück
+		/// Gibt die signatur der methode zurï¿½ck
 		/// </summary>
 		public static string GetSignature(this MethodInfo method, bool callable = false)
 		{
@@ -846,7 +846,7 @@ namespace Nextended.Core.Helper
 		}
 
 		/// <summary>
-		/// Prüft ob ein bestimmter Typ ein bestimmtes interface implementiert
+		/// Prï¿½ft ob ein bestimmter Typ ein bestimmtes interface implementiert
 		/// </summary>
 		public static bool ImplementsInterface(this Type type, Type interfaceType)
         {
@@ -899,7 +899,7 @@ namespace Nextended.Core.Helper
 
 
 		/// <summary>
-		/// Gibt den wert einer Property eines Objektes zurück
+		/// Gibt den wert einer Property eines Objektes zurï¿½ck
 		/// </summary>
 		public static object GetValue(object obj, string property)
 		{
@@ -920,7 +920,7 @@ namespace Nextended.Core.Helper
 		}
 
 		/// <summary>
-		/// Gibt die Methode zurück, von der der Aufruf der Methode, die "GetCallingMethod" aufgerufen hat kam
+		/// Gibt die Methode zurï¿½ck, von der der Aufruf der Methode, die "GetCallingMethod" aufgerufen hat kam
 		/// </summary>
 		public static MethodBase GetCallingMethod(int skip = 0)
 		{			
@@ -941,14 +941,39 @@ namespace Nextended.Core.Helper
 		}
     }
 	
+	/// <summary>
+	/// Configuration settings for reflection-based member reading operations.
+	/// </summary>
 	public class ReflectReadSettings
 	{
+		/// <summary>
+		/// Gets or sets the binding flags used to control which members are reflected.
+		/// </summary>
 		public BindingFlags BindingFlags { get; set; } = BindingFlags.Public | BindingFlags.Instance | BindingFlags.NonPublic;
+		
+		/// <summary>
+		/// Gets or sets the type matching strategy to use when filtering members.
+		/// </summary>
         public ReflectTypeMatch TypeMatch { get; set; }
+        
+        /// <summary>
+        /// Gets or sets a value indicating whether to traverse the type hierarchy when reading members.
+        /// </summary>
         public bool TraverseHierarchy { get; set; }
+        
+        /// <summary>
+        /// Gets or sets the strategy for removing duplicate members.
+        /// </summary>
         public MemberDistinct MemberDistinct { get; set; } = MemberDistinct.Default;
+        
+        /// <summary>
+        /// Gets or sets which member types (fields, properties, or both) to retrieve.
+        /// </summary>
         public MemberMethod MemberMethod { get; set; } = MemberMethod.All;
 
+        /// <summary>
+        /// Gets the default reflection settings (public and non-public instance members).
+        /// </summary>
         public static ReflectReadSettings Default => new();
         public static ReflectReadSettings AllPublic => new() { BindingFlags = BindingFlags.Public | BindingFlags.Instance };
         public static ReflectReadSettings AllPublicExactType => AllPublic.SetProperties(v => v.TypeMatch = ReflectTypeMatch.ExactType);
@@ -962,27 +987,72 @@ namespace Nextended.Core.Helper
         public static ReflectReadSettings AllWithHierarchyTraversal => All.SetProperties(s => s.TraverseHierarchy = true);
     }
 
+	/// <summary>
+	/// Specifies which member types to retrieve during reflection operations.
+	/// </summary>
 	[Flags]
     public enum MemberMethod
     {
+        /// <summary>
+        /// Retrieve all member types (fields and properties).
+        /// </summary>
 		All = 3,
+		
+		/// <summary>
+		/// Retrieve only fields.
+		/// </summary>
         GetFields = 1,
+        
+        /// <summary>
+        /// Retrieve only properties.
+        /// </summary>
         GetProperty = 2,        
     }
 
+    /// <summary>
+    /// Specifies how to handle duplicate members during reflection operations.
+    /// </summary>
     public enum MemberDistinct
-	{ 
+	{
+		/// <summary>
+		/// Use the default deduplication strategy.
+		/// </summary>
 		Default,
+		
+		/// <summary>
+		/// Do not deduplicate members.
+		/// </summary>
 		None,
+		
+		/// <summary>
+		/// Deduplicate members by name.
+		/// </summary>
 		ByName
 	}
 
-
+    /// <summary>
+    /// Specifies the type matching strategy to use when filtering reflected members.
+    /// </summary>
     public enum ReflectTypeMatch
 	{
+		/// <summary>
+		/// Do not perform type checking.
+		/// </summary>
 		NoCheck,
+		
+		/// <summary>
+		/// Match only the exact type.
+		/// </summary>
 		ExactType,
+		
+		/// <summary>
+		/// Match types that are assignable to the target type.
+		/// </summary>
 		IsAssignableTo,
+		
+		/// <summary>
+		/// Match types that the target type is assignable from.
+		/// </summary>
 		IsAssignableFrom
 	}
 }
