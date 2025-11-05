@@ -59,7 +59,35 @@ public abstract class IncludePathDefinitionBase<TIncludeDefinition> : IIncludePa
         where TChild : class
         => IncludeWithPrefix(navigation.GetPropertyPath(), other);
 
-    
+    public TIncludeDefinition IncludeWithPrefix<TEntity, TChild>(
+        Expression<Func<TEntity, TChild?>> navigation,
+        IIncludePathDefinition def,
+        Func<IIncludePathDefinition, IIncludePathDefinition>? mutate)
+        where TEntity : class where TChild : class
+    {
+        var prefixed = mutate?.Invoke(def) ?? def;
+        return IncludeWithPrefix(navigation, prefixed);
+    }
+
+    /*
+     IncludeWithPrefix<Order, Shipment>(
+               o => o.Shipment,
+               new ShipmentBaseIncludeDefinition(),
+               d => d.Without<Shipment>(s => s.Consols)
+           );
+     
+     */
+    public TIncludeDefinition IncludeWithPrefix<TEntity, TChild>(
+        Expression<Func<TEntity, IEnumerable<TChild>>> navigation,
+        IIncludePathDefinition def,
+        Func<IIncludePathDefinition, IIncludePathDefinition>? mutate)
+        where TEntity : class where TChild : class
+    {
+        var prefixed = mutate?.Invoke(def) ?? def;
+        return IncludeWithPrefix(navigation, prefixed);
+    }
+
+
     public TIncludeDefinition IncludeAllWhere(Type type,
         Func<PropertyInfo, bool> condition,
         int maxDepth = 6,
