@@ -340,6 +340,576 @@ var usLocation = Locations.US;
 var allLocations = Locations.All;
 ```
 
+## Detailed Generation Examples
+
+### JSON Structure Generation
+
+Generate strongly-typed classes from JSON files such as configuration files, API responses, or data schemas.
+
+#### Example 1: Application Configuration
+
+**Source File: `appsettings.json`**
+```json
+{
+  "Database": {
+    "ConnectionString": "Server=localhost;Database=MyApp;",
+    "Timeout": 30,
+    "MaxRetryCount": 3
+  },
+  "Redis": {
+    "Host": "localhost",
+    "Port": 6379,
+    "DefaultDatabase": 0
+  },
+  "Security": {
+    "JwtSecret": "your-secret-key",
+    "TokenExpirationMinutes": 60,
+    "EnableTwoFactor": true
+  },
+  "Features": {
+    "EnableCache": true,
+    "EnableLogging": true,
+    "MaxUploadSizeMB": 10
+  }
+}
+```
+
+**Configuration: `CodeGen.config.json`**
+```json
+{
+  "StructureGenerations": [
+    {
+      "SourceFile": "/Sources/appsettings.json",
+      "RootClassName": "ApplicationSettings",
+      "Namespace": "MyApp.Configuration",
+      "Prefix": "App",
+      "OutputPath": "./Generated/Configuration/"
+    }
+  ]
+}
+```
+
+**Generated Classes:**
+```csharp
+namespace MyApp.Configuration
+{
+    public class AppApplicationSettings
+    {
+        public Database Database { get; set; }
+        public Redis Redis { get; set; }
+        public Security Security { get; set; }
+        public Features Features { get; set; }
+    }
+
+    public class Database
+    {
+        public string ConnectionString { get; set; }
+        public int Timeout { get; set; }
+        public int MaxRetryCount { get; set; }
+    }
+
+    public class Redis
+    {
+        public string Host { get; set; }
+        public int Port { get; set; }
+        public int DefaultDatabase { get; set; }
+    }
+
+    public class Security
+    {
+        public string JwtSecret { get; set; }
+        public int TokenExpirationMinutes { get; set; }
+        public bool EnableTwoFactor { get; set; }
+    }
+
+    public class Features
+    {
+        public bool EnableCache { get; set; }
+        public bool EnableLogging { get; set; }
+        public int MaxUploadSizeMB { get; set; }
+    }
+}
+```
+
+**Usage:**
+```csharp
+using MyApp.Configuration;
+
+// Use the generated strongly-typed configuration
+var settings = new AppApplicationSettings
+{
+    Database = new Database 
+    { 
+        ConnectionString = "...",
+        Timeout = 30 
+    }
+};
+
+// Access with IntelliSense support
+var timeout = settings.Database.Timeout;
+var enableCache = settings.Features.EnableCache;
+```
+
+#### Example 2: API Response Schema
+
+**Source File: `user-api-response.json`**
+```json
+{
+  "user": {
+    "id": 123,
+    "username": "john_doe",
+    "email": "john@example.com",
+    "profile": {
+      "firstName": "John",
+      "lastName": "Doe",
+      "avatar": "https://example.com/avatar.jpg",
+      "bio": "Software Developer"
+    },
+    "settings": {
+      "notifications": {
+        "email": true,
+        "push": false,
+        "sms": true
+      },
+      "privacy": {
+        "profileVisible": true,
+        "showEmail": false
+      }
+    },
+    "metadata": {
+      "createdAt": "2024-01-01T00:00:00Z",
+      "lastLogin": "2024-06-15T10:30:00Z",
+      "accountStatus": "active"
+    }
+  }
+}
+```
+
+**Configuration:**
+```json
+{
+  "StructureGenerations": [
+    {
+      "SourceFile": "/Sources/user-api-response.json",
+      "RootClassName": "UserApiResponse",
+      "Namespace": "MyApp.ApiModels",
+      "Ignore": ["metadata.lastLogin"]
+    }
+  ]
+}
+```
+
+**Generated Classes:**
+```csharp
+namespace MyApp.ApiModels
+{
+    public class UserApiResponse
+    {
+        public User User { get; set; }
+    }
+
+    public class User
+    {
+        public int Id { get; set; }
+        public string Username { get; set; }
+        public string Email { get; set; }
+        public Profile Profile { get; set; }
+        public Settings Settings { get; set; }
+        public Metadata Metadata { get; set; }
+    }
+
+    public class Profile
+    {
+        public string FirstName { get; set; }
+        public string LastName { get; set; }
+        public string Avatar { get; set; }
+        public string Bio { get; set; }
+    }
+
+    public class Settings
+    {
+        public Notifications Notifications { get; set; }
+        public Privacy Privacy { get; set; }
+    }
+
+    public class Notifications
+    {
+        public bool Email { get; set; }
+        public bool Push { get; set; }
+        public bool Sms { get; set; }
+    }
+
+    public class Privacy
+    {
+        public bool ProfileVisible { get; set; }
+        public bool ShowEmail { get; set; }
+    }
+
+    public class Metadata
+    {
+        public string CreatedAt { get; set; }
+        public string AccountStatus { get; set; }
+    }
+}
+```
+
+### XML Structure Generation
+
+Generate classes from XML files using the same configuration structure.
+
+**Source File: `config.xml`**
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<Configuration>
+  <Server>
+    <Host>localhost</Host>
+    <Port>8080</Port>
+    <EnableSSL>true</EnableSSL>
+  </Server>
+  <Logging>
+    <Level>Information</Level>
+    <FilePath>./logs/app.log</FilePath>
+    <MaxFileSizeMB>50</MaxFileSizeMB>
+  </Logging>
+</Configuration>
+```
+
+**Configuration:**
+```json
+{
+  "StructureGenerations": [
+    {
+      "SourceFile": "/Sources/config.xml",
+      "RootClassName": "ServerConfiguration",
+      "Namespace": "MyApp.XmlConfig"
+    }
+  ]
+}
+```
+
+**Generated Classes:**
+```csharp
+namespace MyApp.XmlConfig
+{
+    public class ServerConfiguration
+    {
+        public Server Server { get; set; }
+        public Logging Logging { get; set; }
+    }
+
+    public class Server
+    {
+        public string Host { get; set; }
+        public int Port { get; set; }
+        public bool EnableSSL { get; set; }
+    }
+
+    public class Logging
+    {
+        public string Level { get; set; }
+        public string FilePath { get; set; }
+        public int MaxFileSizeMB { get; set; }
+    }
+}
+```
+
+### Excel Generation (Advanced)
+
+Generate data models and static lookup tables from Excel spreadsheets. This is particularly useful for reference data, lookup tables, and configuration data.
+
+#### Example 1: Country/Region Codes
+
+**Excel File Structure: `countries.xlsx`**
+
+| Code | Name | ISO3 | NumericCode | PhonePrefix | Capital |
+|------|------|------|-------------|-------------|---------|
+| US | United States | USA | 840 | +1 | Washington, D.C. |
+| GB | United Kingdom | GBR | 826 | +44 | London |
+| DE | Germany | DEU | 276 | +49 | Berlin |
+| JP | Japan | JPN | 392 | +81 | Tokyo |
+| CA | Canada | CAN | 124 | +1 | Ottawa |
+
+**Configuration:**
+```json
+{
+  "ExcelGenerations": [
+    {
+      "ModelType": "RecordStruct",
+      "SourceFile": "/Sources/countries.xlsx",
+      "SheetName": null,
+      "Namespace": "MyApp.Data.Geography",
+      "RootClassName": "Country",
+      "KeyColumn": "A",
+      "HeaderRowIndex": 1,
+      "DataStartRowIndex": 2,
+      "GenerateModelClass": true,
+      "GenerateStaticTable": true,
+      "StaticClassName": "Countries",
+      "GenerateAllCollection": true,
+      "ColumnMappings": {
+        "Code": "IsoCode",
+        "ISO3": "Iso3Code"
+      },
+      "PropertyTypeOverrides": {
+        "NumericCode": "int",
+        "PhonePrefix": "string"
+      }
+    }
+  ]
+}
+```
+
+**Generated Code:**
+```csharp
+namespace MyApp.Data.Geography
+{
+    // Model class
+    public record struct Country
+    {
+        public string IsoCode { get; init; }
+        public string Name { get; init; }
+        public string Iso3Code { get; init; }
+        public int NumericCode { get; init; }
+        public string PhonePrefix { get; init; }
+        public string Capital { get; init; }
+    }
+
+    // Static lookup table
+    public static class Countries
+    {
+        public static Country US => new Country
+        {
+            IsoCode = "US",
+            Name = "United States",
+            Iso3Code = "USA",
+            NumericCode = 840,
+            PhonePrefix = "+1",
+            Capital = "Washington, D.C."
+        };
+
+        public static Country GB => new Country
+        {
+            IsoCode = "GB",
+            Name = "United Kingdom",
+            Iso3Code = "GBR",
+            NumericCode = 826,
+            PhonePrefix = "+44",
+            Capital = "London"
+        };
+
+        public static Country DE => new Country
+        {
+            IsoCode = "DE",
+            Name = "Germany",
+            Iso3Code = "DEU",
+            NumericCode = 276,
+            PhonePrefix = "+49",
+            Capital = "Berlin"
+        };
+
+        // ... more countries
+
+        public static IReadOnlyList<Country> All { get; } = new[]
+        {
+            US, GB, DE, JP, CA
+        };
+
+        public static Country GetByCode(string code)
+        {
+            return All.FirstOrDefault(c => c.IsoCode == code);
+        }
+    }
+}
+```
+
+**Usage:**
+```csharp
+using MyApp.Data.Geography;
+
+// Access individual countries
+var usa = Countries.US;
+Console.WriteLine($"{usa.Name} - {usa.PhonePrefix}");
+
+// Get all countries
+var allCountries = Countries.All;
+foreach (var country in allCountries)
+{
+    Console.WriteLine($"{country.Name} ({country.IsoCode})");
+}
+
+// Lookup by code
+var germany = Countries.GetByCode("DE");
+```
+
+#### Example 2: Product Categories with Hierarchies
+
+**Excel File: `product-categories.xlsx`**
+
+| CategoryId | CategoryName | ParentId | SortOrder | Active | Description |
+|------------|-------------|----------|-----------|--------|-------------|
+| 1 | Electronics | | 1 | Y | Electronic devices and accessories |
+| 2 | Computers | 1 | 1 | Y | Desktop and laptop computers |
+| 3 | Laptops | 2 | 1 | Y | Portable computers |
+| 4 | Desktops | 2 | 2 | Y | Desktop computers |
+| 5 | Smartphones | 1 | 2 | Y | Mobile phones |
+
+**Configuration:**
+```json
+{
+  "ExcelGenerations": [
+    {
+      "ModelType": "Class",
+      "SourceFile": "/Sources/product-categories.xlsx",
+      "Namespace": "MyApp.Catalog",
+      "RootClassName": "ProductCategory",
+      "KeyColumn": "A",
+      "HeaderRowIndex": 1,
+      "DataStartRowIndex": 2,
+      "GenerateModelClass": true,
+      "GenerateStaticTable": true,
+      "StaticClassName": "ProductCategories",
+      "GenerateAllCollection": true,
+      "PropertyTypeOverrides": {
+        "CategoryId": "int",
+        "ParentId": "int?",
+        "SortOrder": "int",
+        "Active": "bool"
+      },
+      "ColumnMappings": {
+        "Active": "IsActive"
+      }
+    }
+  ]
+}
+```
+
+**Generated Classes:**
+```csharp
+namespace MyApp.Catalog
+{
+    public class ProductCategory
+    {
+        public int CategoryId { get; set; }
+        public string CategoryName { get; set; }
+        public int? ParentId { get; set; }
+        public int SortOrder { get; set; }
+        public bool IsActive { get; set; }
+        public string Description { get; set; }
+    }
+
+    public static class ProductCategories
+    {
+        public static ProductCategory Electronics => new ProductCategory
+        {
+            CategoryId = 1,
+            CategoryName = "Electronics",
+            ParentId = null,
+            SortOrder = 1,
+            IsActive = true,
+            Description = "Electronic devices and accessories"
+        };
+
+        public static ProductCategory Computers => new ProductCategory
+        {
+            CategoryId = 2,
+            CategoryName = "Computers",
+            ParentId = 1,
+            SortOrder = 1,
+            IsActive = true,
+            Description = "Desktop and laptop computers"
+        };
+
+        // ... more categories
+
+        public static IReadOnlyList<ProductCategory> All { get; } = new[]
+        {
+            Electronics,
+            Computers,
+            Laptops,
+            Desktops,
+            Smartphones
+        };
+
+        public static ProductCategory GetById(int id)
+        {
+            return All.FirstOrDefault(c => c.CategoryId == id);
+        }
+
+        public static IEnumerable<ProductCategory> GetChildren(int parentId)
+        {
+            return All.Where(c => c.ParentId == parentId);
+        }
+    }
+}
+```
+
+**Usage:**
+```csharp
+using MyApp.Catalog;
+
+// Get root categories
+var rootCategories = ProductCategories.All
+    .Where(c => c.ParentId == null);
+
+// Get children of Electronics
+var electronicsChildren = ProductCategories.GetChildren(1);
+
+// Build category tree
+var category = ProductCategories.Computers;
+Console.WriteLine($"{category.CategoryName}: {category.Description}");
+```
+
+#### Excel Generation Configuration Options
+
+| Property | Type | Description |
+|----------|------|-------------|
+| **ModelType** | `string` | Type of model to generate: `Class`, `Struct`, `Record`, `RecordStruct` |
+| **SourceFile** | `string` | Path to the Excel file (relative to project root) |
+| **SheetName** | `string?` | Specific sheet name. If null, uses first sheet |
+| **Namespace** | `string` | Namespace for generated classes |
+| **RootClassName** | `string` | Name of the model class |
+| **KeyColumn** | `string` | Column letter to use as key (e.g., "A", "B") |
+| **HeaderRowIndex** | `int` | Row number containing column headers (1-based) |
+| **DataStartRowIndex** | `int` | First row containing data (1-based) |
+| **GenerateModelClass** | `bool` | Whether to generate the model class |
+| **GenerateStaticTable** | `bool` | Whether to generate static lookup class |
+| **StaticClassName** | `string` | Name of the static lookup class |
+| **GenerateAllCollection** | `bool` | Whether to generate `All` property with all records |
+| **ColumnMappings** | `object` | Dictionary mapping Excel column names to property names |
+| **PropertyTypeOverrides** | `object` | Dictionary specifying custom types for properties |
+| **OutputPath** | `string?` | Custom output path for generated files |
+
+#### Tips for Excel Generation
+
+1. **Column Headers**: Use clear, descriptive names in the header row. These become property names.
+
+2. **Data Types**: By default, all columns are strings. Use `PropertyTypeOverrides` to specify correct types:
+   ```json
+   "PropertyTypeOverrides": {
+     "Id": "int",
+     "Price": "decimal",
+     "IsActive": "bool",
+     "CreatedDate": "DateTime"
+   }
+   ```
+
+3. **Naming**: Use `ColumnMappings` to rename columns that don't follow C# naming conventions:
+   ```json
+   "ColumnMappings": {
+     "Full Name": "FullName",
+     "E-Mail": "Email",
+     "ZIP Code": "PostalCode"
+   }
+   ```
+
+4. **Model Types**:
+   - `RecordStruct`: Immutable, value type, best for small lookup data
+   - `Record`: Immutable, reference type, good for DTOs
+   - `Class`: Mutable, reference type, most flexible
+   - `Struct`: Mutable, value type, for small data structures
+
+5. **Key Column**: Choose a unique identifier column (usually first column) for generating property accessors.
+
 ## AutoGenerateDto Attribute Reference
 
 The `AutoGenerateDto` attribute is applied to classes or enums to generate DTOs at compile-time.
