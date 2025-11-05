@@ -2,6 +2,10 @@
 
 namespace Nextended.Core.Facets;
 
+/// <summary>
+/// Represents a facet filter that has been applied to a search or query.
+/// Contains the group key, display label, selected values, and the OData filter expression.
+/// </summary>
 public class AppliedFacet
 {
     /// <summary>

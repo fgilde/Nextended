@@ -2,6 +2,9 @@
 
 namespace Nextended.Core.Facets;
 
+/// <summary>
+/// Defines the configuration for a range-based facet filter, including data type, selected range, and preset range options.
+/// </summary>
 public class FacetRangeDefinition
 {
     /// <summary>

@@ -3,6 +3,10 @@ using System.Text;
 
 namespace Nextended.Core.Encode
 {
+    /// <summary>
+    /// Provides hexadecimal encoding and decoding functionality for strings.
+    /// Converts strings to their hexadecimal representation and vice versa.
+    /// </summary>
     public class HexEncoding : StringEncodingBase<HexEncoding>
     {
         public HexEncoding()

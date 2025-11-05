@@ -2,6 +2,9 @@
 
 namespace Nextended.Core.Enums;
 
+/// <summary>
+/// Specifies the type of model to generate during code generation (class, struct, record, or record struct).
+/// </summary>
 public enum GeneratedModelType
 {
     Unset,

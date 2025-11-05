@@ -1,5 +1,8 @@
 ﻿namespace Nextended.Core.Facets;
 
+/// <summary>
+/// Specifies the type of UI control and behavior for a facet filter group.
+/// </summary>
 public enum FacetType
 {
     /// <summary>

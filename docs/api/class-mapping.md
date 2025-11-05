@@ -720,18 +720,75 @@ var result2 = source2.MapTo<Destination>();
 
 ## Testing Support
 
-The class mapping system is extensively tested. See `Nextended.Core.Tests/ClassMappingTests.cs` for comprehensive examples including:
+The class mapping system is extensively tested. The `Nextended.Core.Tests/ClassMappingTests.cs` file contains comprehensive real-world examples that demonstrate all mapping features. These tests serve as executable documentation and can be used as reference implementations.
 
-- Basic type conversions
-- DateOnly and TimeOnly mapping
-- Interface implementation
-- Enum conversions
-- Collection mapping
-- Dictionary to object mapping
-- Nested object mapping
-- Private field mapping
-- Custom converter usage
-- Async operations
+### Test Examples Reference
+
+The test suite includes verified examples of:
+
+#### Basic Type Conversions
+- **MoneyPropTest**: String to Money type conversion
+- **TestGInt**: GUID to integer conversions and vice versa
+- **ToEnum**: String and numeric to enum conversions
+
+#### Date and Time Mapping
+- **TestMapDateOnly**: DateTime ↔ DateOnly conversions
+- **TestMapTimeOnly**: DateTime ↔ TimeOnly ↔ TimeSpan conversions
+
+#### Advanced Features
+- **TestInterface**: Creating instances of interfaces dynamically
+- **TestSystemInterface**: Mapping to system interfaces like IList<T>
+- **TestString**: String to char array and list conversions
+
+#### Custom Converters
+- **TestConvertWithBaseTypeMapOverride**: Adding custom type converters
+- **TestConvertWithInheritedValues**: Handling inheritance hierarchies with custom converters
+- **TestConvertWithInheritedValuesAndInputs**: Complex inheritance scenarios with assignable type converters
+
+#### Collection Mapping
+- **TestIEnumerableToJObjects**: Mapping collections to JObject
+- **TestGetValueFromListItem**: Extracting values from collections
+
+#### Error Handling
+- **TestParamCountMissMatch**: Handling constructor parameter mismatches with IgnoreExceptions
+
+### Running the Tests
+
+To explore these examples:
+
+```bash
+# Clone the repository
+git clone https://github.com/fgilde/Nextended.git
+cd Nextended
+
+# Run all mapping tests
+dotnet test --filter "FullyQualifiedName~ClassMappingTests"
+
+# Run specific test
+dotnet test --filter "FullyQualifiedName~ClassMappingTests.TestMapDateOnly"
+```
+
+### Using Tests as Examples
+
+Each test method is self-contained and demonstrates a specific mapping scenario. You can copy and adapt the patterns from these tests to your own code:
+
+```csharp
+// From TestMapDateOnly - Example of DateTime to DateOnly conversion
+var dateTime = new DateTime(2022, 12, 24, 10, 10, 10);
+var dateOnly = dateTime.MapTo<DateOnly>();
+
+// From TestConvertWithBaseTypeMapOverride - Example of custom converter
+ClassMappingSettings settings = ClassMappingSettings.Default;
+settings.AddConverter<string, DateTime>(DateTime.Parse);
+var result = source.MapTo<Target>(settings);
+
+// From TestInterface - Example of interface implementation
+var instance = typeof(IMyInterface).CreateInstance<IMyInterface>(
+    checkCyclingDependencies: false
+);
+```
+
+The test file is continuously updated with new scenarios and edge cases, making it a valuable resource for understanding the full capabilities of the class mapping system.
 
 ## Best Practices
 

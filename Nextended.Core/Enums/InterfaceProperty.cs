@@ -1,5 +1,8 @@
 ﻿namespace Nextended.Core.Enums;
 
+/// <summary>
+/// Specifies the accessor types for interface properties (get, set, or both).
+/// </summary>
 public enum InterfaceProperty
 {
     Unset,

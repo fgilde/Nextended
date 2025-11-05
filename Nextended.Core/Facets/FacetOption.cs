@@ -2,6 +2,10 @@
 
 namespace Nextended.Core.Facets;
 
+/// <summary>
+/// Represents a single option within a faceted search/filter system.
+/// Contains the value, label, selection state, and associated metadata for filtering operations.
+/// </summary>
 public class FacetOption
 {
 

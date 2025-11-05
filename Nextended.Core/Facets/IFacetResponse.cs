@@ -3,6 +3,9 @@ using Nextended.Core.OData;
 
 namespace Nextended.Core.Facets;
 
+/// <summary>
+/// Represents the response from a faceted search operation, containing filter groups, applied filters, and query metadata.
+/// </summary>
 public interface IFacetResponse
 {
     /// <summary>

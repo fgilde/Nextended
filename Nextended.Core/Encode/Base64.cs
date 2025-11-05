@@ -3,6 +3,9 @@ using System.Text;
 
 namespace Nextended.Core.Encode
 {
+    /// <summary>
+    /// Provides Base64 encoding and decoding functionality for strings.
+    /// </summary>
     public class Base64Encoding: StringEncodingBase<Base64Encoding>
     {
         protected override string EncodeCore(string str)
