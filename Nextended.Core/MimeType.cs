@@ -1030,7 +1030,6 @@ public static class MimeType
     public static bool IsArchive(string contentType)
          => !string.IsNullOrWhiteSpace(contentType) && (ArchiveTypes.Contains(contentType) || Is7Zip(contentType) || IsZip(contentType) || IsRar(contentType) || IsTar(contentType));
 
-
     public static bool IsZip(string contentType) 
         => !string.IsNullOrWhiteSpace(contentType) && Matches(contentType, "application/zip*", "application/x-zip*");
 
@@ -1042,6 +1041,23 @@ public static class MimeType
 
     public static bool Is7Zip(string contentType)
         => !string.IsNullOrWhiteSpace(contentType) && contentType == _mimeTypeMap.Value["7z"];
+
+    public static bool IsAudio(string contentType)
+        => !string.IsNullOrWhiteSpace(contentType) && Matches(contentType, AudioTypes);
+
+    public static bool IsExcel(string contentType)
+        => !string.IsNullOrWhiteSpace(contentType) && Matches(contentType, Xls, OpenXml);
+    public static bool IsWord(string contentType)
+        => !string.IsNullOrWhiteSpace(contentType) && Matches(contentType, "application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "application/vnd.openxmlformats-officedocument.wordprocessingml.template");
+    
+    public static bool IsImage(string contentType)
+            => !string.IsNullOrWhiteSpace(contentType) && Matches(contentType, ImageTypes);
+    public static bool IsPdf(string contentType)
+            => !string.IsNullOrWhiteSpace(contentType) && Matches(contentType, Pdf);
+
+    public static bool IsVideo(string contentType)
+            => !string.IsNullOrWhiteSpace(contentType) && Matches(contentType, VideoTypes);
+
 
     /**
      * Returns true if the given mimeType matches any of given mimeTypes

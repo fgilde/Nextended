@@ -6,6 +6,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Query;
+using Nextended.Core.Extensions;
 
 namespace Nextended.EF;
 
@@ -73,7 +74,7 @@ public static class DbSetExtensions
     public static IQueryable<T> IncludeAll<T>(this IQueryable<T> query, DbContext context, params Expression<Func<T, object>>[] excludeExpressions) where T : class
     {
         var excludePaths = excludeExpressions?
-            .Select(expr => GetPropertyPath(expr.Body))
+            .Select(expr => expr.Body.GetPropertyPath())
             .Where(path => !string.IsNullOrEmpty(path))
             .ToHashSet(StringComparer.OrdinalIgnoreCase) ?? new();
 
@@ -147,29 +148,6 @@ public static class DbSetExtensions
         }
 
         return query;
-    }
-
-    private static string? GetPropertyPath(Expression expression)
-    {
-        if (expression is UnaryExpression unary && unary.Operand is MemberExpression member1)
-            return GetMemberPath(member1);
-
-        if (expression is MemberExpression member2)
-            return GetMemberPath(member2);
-
-        return null;
-    }
-
-    private static string? GetMemberPath(MemberExpression member)
-    {
-        var parts = new Stack<string>();
-        Expression? current = member;
-        while (current is MemberExpression m)
-        {
-            parts.Push(m.Member.Name);
-            current = m.Expression;
-        }
-        return string.Join(".", parts);
     }
 
 

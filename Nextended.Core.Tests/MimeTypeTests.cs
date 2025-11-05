@@ -1,10 +1,5 @@
-﻿using System;
-using System.Linq;
+﻿using System.Linq;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Nextended.Core.Encode;
-using Nextended.Core.Encryption;
-using Nextended.Core.Hashing;
-using Nextended.Core.Helper;
 
 namespace Nextended.Core.Tests
 {

@@ -356,5 +356,16 @@ namespace Nextended.Core.Extensions
                 .SelectMany(s => s.GetTypes())
                 .Where(p => type.IsAssignableFrom(p) && !p.IsInterface && !p.IsAbstract).Distinct();
         }
+
+        public static bool IsScalar(this Type t)
+            => t.IsPrimitive
+               || t.IsEnum
+               || t == typeof(string)
+               || t == typeof(decimal)
+               || t == typeof(DateTime)
+               || t == typeof(DateTimeOffset)
+               || t == typeof(TimeSpan)
+               || t == typeof(Guid)
+               || (Nullable.GetUnderlyingType(t) is Type inner && IsScalar(inner));
     }
 }

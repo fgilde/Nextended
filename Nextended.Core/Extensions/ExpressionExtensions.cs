@@ -126,5 +126,38 @@ namespace Nextended.Core.Extensions
             }
             return result;
         }
-	}
+
+        public static string? GetPropertyPath(this Expression expression)
+        {
+            if (expression is UnaryExpression { Operand: MemberExpression member1 })
+                return GetPropertyPath(member1);
+
+            if (expression is MemberExpression member2)
+                return GetPropertyPath(member2);
+
+            return null;
+        }
+
+        public static string? GetPropertyPath(this MemberExpression member)
+        {
+            var parts = new Stack<string>();
+            Expression? current = member;
+            while (current is MemberExpression m)
+            {
+                parts.Push(m.Member.Name);
+                current = m.Expression;
+            }
+            return string.Join(".", parts);
+        }
+
+        public static string GetPropertyPath(this LambdaExpression expr)
+        {
+            static IEnumerable<string> Unwind(Expression e)
+            {
+                while (e is MemberExpression m) { yield return m.Member.Name; e = m.Expression!; }
+            }
+            return string.Join(".", Unwind(expr.Body).Reverse());
+        }
+
+    }
 }
