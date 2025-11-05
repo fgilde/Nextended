@@ -20,6 +20,6 @@ public class IncludeDefinitionFor<TEntity>: IncludePathDefinitionBase<IncludeDef
         bool includeCollections = true) =>
         IncludeAllWhere<TEntity>(condition, maxDepth, includeCollections);
 
-    public IncludeDefinitionFor<TEntity> IncludeAllVirtual(int maxDepth = 6, bool includeCollections = true)
-        => IncludeAllVirtual<TEntity>(maxDepth, includeCollections);
+    public IncludeDefinitionFor<TEntity> IncludeAllVirtual(Func<PropertyInfo, bool>? condition = null, int maxDepth = 6, bool includeCollections = true)
+        => IncludeAllVirtual<TEntity>(condition, maxDepth, includeCollections);
 }
