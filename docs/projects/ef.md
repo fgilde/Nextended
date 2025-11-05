@@ -4,7 +4,7 @@ Entity Framework Core extensions for enhanced database operations and query capa
 
 ## Overview
 
-Nextended.EF provides powerful extensions for Entity Framework Core, including advanced query matching, DbSet operations, and query optimization utilities.
+Nextended.EF provides powerful extensions for Entity Framework Core, including graph loading, automatic inclusion of related entities, alternate query matching, and simplified multi-level includes.
 
 ## Installation
 
@@ -15,7 +15,77 @@ dotnet add package Microsoft.EntityFrameworkCore
 
 ## Key Features
 
-### 1. Alternate Query Match Extensions
+### 1. Load Graph Async
+
+Automatically load entity graphs with navigation properties to a specified depth, preventing circular references.
+
+```csharp
+using Nextended.EF;
+using Microsoft.EntityFrameworkCore;
+
+// Load an entity with all its navigation properties up to depth 2
+var user = await dbContext.Users.FindAsync(userId);
+await dbContext.LoadGraphAsync(user, maxDepth: 2);
+
+// Now user.Orders, user.Address, and nested properties are loaded
+```
+
+### 2. Include All Extensions
+
+Automatically include all navigation properties without manually specifying each one.
+
+```csharp
+using Nextended.EF;
+
+// Include all navigation properties
+var users = await dbContext.Users
+    .IncludeAll(dbContext)
+    .ToListAsync();
+
+// Include all except specific paths
+var users = await dbContext.Users
+    .IncludeAll(dbContext, new[] { "Orders.OrderItems", "Profile.Avatar" })
+    .ToListAsync();
+
+// Include all except specific properties using expressions
+var users = await dbContext.Users
+    .IncludeAll(dbContext, u => u.Orders, u => u.Profile)
+    .ToListAsync();
+
+// For DbSet (context is automatically retrieved)
+var products = await dbContext.Products
+    .IncludeAll(excludePaths: new[] { "Category.Products" })
+    .ToListAsync();
+```
+
+### 3. Multi-Level Include Helpers
+
+Simplified syntax for chaining multiple ThenInclude operations.
+
+```csharp
+using Nextended.EF;
+
+// Chain multiple includes at once
+var orders = await dbContext.Orders
+    .MultiInclude(
+        q => q.Include(o => o.OrderItems),
+        oi => oi.Product,
+        oi => oi.Product.Category,
+        oi => oi.Discounts
+    )
+    .ToListAsync();
+
+// Simplified nested includes for collections
+var users = await dbContext.Users
+    .Include(
+        u => u.Orders,
+        o => o.OrderItems,
+        oi => oi.Product
+    )
+    .ToListAsync();
+```
+
+### 4. Alternate Query Match Extensions
 
 Advanced query matching capabilities for flexible search operations.
 
@@ -23,7 +93,7 @@ Advanced query matching capabilities for flexible search operations.
 using Nextended.EF;
 using Microsoft.EntityFrameworkCore;
 
-// Search across multiple properties
+// Search across multiple properties (requires AlternateQueryMatchExtensions)
 var searchTerm = "john";
 var users = await dbContext.Users
     .AlternateQueryMatch(searchTerm)
@@ -32,71 +102,38 @@ var users = await dbContext.Users
 // This will match users where any text property contains "john"
 ```
 
-### 2. DbSet Extensions
-
-Enhanced DbSet operations for common database tasks.
-
-```csharp
-using Nextended.EF;
-
-// Upsert (Insert or Update)
-await dbContext.Users.UpsertAsync(user);
-
-// Bulk operations
-await dbContext.Users.BulkInsertAsync(userList);
-await dbContext.Users.BulkUpdateAsync(userList);
-
-// Find or create
-var user = await dbContext.Users
-    .FindOrCreateAsync(u => u.Email == "test@example.com", 
-        () => new User { Email = "test@example.com" });
-```
-
-### 3. Query Optimization
-
-Utilities for optimizing Entity Framework queries.
-
-```csharp
-// Include related entities conditionally
-var query = dbContext.Users.AsQueryable();
-
-if (includeOrders)
-{
-    query = query.Include(u => u.Orders);
-}
-
-if (includeAddress)
-{
-    query = query.Include(u => u.Address);
-}
-
-var users = await query.ToListAsync();
-```
-
 ## Usage Examples
 
-### Basic CRUD with Extensions
+### Load Complete Entity Graphs
 
 ```csharp
 using Nextended.EF;
 using Microsoft.EntityFrameworkCore;
 
-public class UserRepository
+public class OrderRepository
 {
     private readonly ApplicationDbContext _context;
     
-    public UserRepository(ApplicationDbContext context)
+    public OrderRepository(ApplicationDbContext context)
     {
         _context = context;
     }
     
-    public async Task<User> GetOrCreateAsync(string email)
+    public async Task<Order> GetOrderWithAllRelatedDataAsync(int orderId)
     {
-        return await _context.Users
-            .FindOrCreateAsync(
-                u => u.Email == email,
-                () => new User { Email = email, CreatedDate = DateTime.Now }
-            );
+        var order = await _context.Orders.FindAsync(orderId);
+        
+        // Load all navigation properties up to 3 levels deep
+        // Prevents circular references and N+1 queries
+        await _context.LoadGraphAsync(order, maxDepth: 3);
+        
+        return order;
+        // Order now includes:
+        // - Order.Customer
+        // - Order.OrderItems
+        // - Order.OrderItems[].Product
+        // - Order.OrderItems[].Product.Category
+        // And so on, up to depth 3
     }
     
     public async Task<List<User>> SearchUsersAsync(string searchTerm)
@@ -109,12 +146,29 @@ public class UserRepository
 }
 ```
 
-### Advanced Search Operations
+### Using IncludeAll for Automatic Loading
 
 ```csharp
 public class ProductRepository
 {
     private readonly ApplicationDbContext _context;
+    
+    public async Task<List<Product>> GetAllProductsWithRelationsAsync()
+    {
+        // Automatically include all navigation properties
+        return await _context.Products
+            .IncludeAll(dbContext)
+            .ToListAsync();
+        // Loads Product.Category, Product.Supplier, Product.Reviews, etc.
+    }
+    
+    public async Task<List<Product>> GetProductsExcludingReviewsAsync()
+    {
+        // Include all except Reviews to avoid loading large collections
+        return await _context.Products
+            .IncludeAll(_context, new[] { "Reviews", "Reviews.User" })
+            .ToListAsync();
+    }
     
     public async Task<List<Product>> SearchProductsAsync(
         string searchTerm, 
@@ -122,6 +176,7 @@ public class ProductRepository
         decimal? maxPrice = null)
     {
         var query = _context.Products
+            .IncludeAll(_context, p => p.Reviews) // Exclude reviews
             .AlternateQueryMatch(searchTerm);
         
         if (minPrice.HasValue)
@@ -135,57 +190,97 @@ public class ProductRepository
         }
         
         return await query
-            .Include(p => p.Category)
             .OrderByDescending(p => p.CreatedDate)
             .ToListAsync();
     }
 }
 ```
 
-### Bulk Operations
+### Multi-Level Includes Made Easy
 
 ```csharp
 public class OrderService
 {
     private readonly ApplicationDbContext _context;
     
-    public async Task ProcessBulkOrdersAsync(List<Order> orders)
+    public async Task<List<Order>> GetOrdersWithDetailsAsync()
     {
-        // Bulk insert for better performance
-        await _context.Orders.BulkInsertAsync(orders);
-        await _context.SaveChangesAsync();
-    }
-    
-    public async Task UpdateOrderStatusesAsync(
-        List<int> orderIds, 
-        OrderStatus newStatus)
-    {
-        var orders = await _context.Orders
-            .Where(o => orderIds.Contains(o.Id))
+        // Traditional way - verbose
+        var ordersOld = await _context.Orders
+            .Include(o => o.OrderItems)
+                .ThenInclude(oi => oi.Product)
+            .Include(o => o.OrderItems)
+                .ThenInclude(oi => oi.Discounts)
+            .Include(o => o.OrderItems)
+                .ThenInclude(oi => oi.Product)
+                    .ThenInclude(p => p.Category)
             .ToListAsync();
         
-        foreach (var order in orders)
-        {
-            order.Status = newStatus;
-            order.UpdatedDate = DateTime.Now;
-        }
+        // Nextended way - concise
+        var orders = await _context.Orders
+            .MultiInclude(
+                q => q.Include(o => o.OrderItems),
+                oi => oi.Product,
+                oi => oi.Product.Category,
+                oi => oi.Discounts
+            )
+            .ToListAsync();
         
-        await _context.Orders.BulkUpdateAsync(orders);
-        await _context.SaveChangesAsync();
+        return orders;
+    }
+    
+    public async Task<Order> GetOrderWithAllDataAsync(int orderId)
+    {
+        // Load single order with all related data
+        var order = await _context.Orders
+            .Include(o => o.Customer, c => c.Address, a => a.City)
+            .Include(o => o.OrderItems, oi => oi.Product, p => p.Category)
+            .FirstOrDefaultAsync(o => o.Id == orderId);
+        
+        return order;
     }
 }
 ```
 
-### Query Building with Extensions
+### Complete Data Loading Example
 
 ```csharp
 public class ReportService
 {
     private readonly ApplicationDbContext _context;
     
+    public async Task<UserReport> GenerateUserReportAsync(int userId)
+    {
+        // Find user
+        var user = await _context.Users.FindAsync(userId);
+        
+        if (user == null)
+            return null;
+        
+        // Load complete graph of related data
+        await _context.LoadGraphAsync(user, maxDepth: 3);
+        
+        // Now we have access to:
+        // - user.Orders
+        // - user.Orders[].OrderItems
+        // - user.Orders[].OrderItems[].Product
+        // - user.Profile
+        // - user.Address
+        // All loaded in a single efficient operation
+        
+        return new UserReport
+        {
+            User = user,
+            TotalOrders = user.Orders.Count,
+            TotalSpent = user.Orders.Sum(o => o.Total),
+            RecentOrders = user.Orders.OrderByDescending(o => o.Date).Take(5).ToList()
+        };
+    }
+    
     public async Task<List<User>> GetFilteredUsersAsync(UserFilter filter)
     {
-        var query = _context.Users.AsQueryable();
+        var query = _context.Users
+            .IncludeAll(_context, u => u.Orders); // Include all except Orders to control data size
         
         // Apply search term if provided
         if (!string.IsNullOrWhiteSpace(filter.SearchTerm))
@@ -202,18 +297,6 @@ public class ReportService
         if (filter.CreatedBefore.HasValue)
         {
             query = query.Where(u => u.CreatedDate <= filter.CreatedBefore.Value);
-        }
-        
-        // Apply status filter
-        if (filter.Status.HasValue)
-        {
-            query = query.Where(u => u.Status == filter.Status.Value);
-        }
-        
-        // Include related data if requested
-        if (filter.IncludeOrders)
-        {
-            query = query.Include(u => u.Orders);
         }
         
         // Apply sorting
@@ -242,51 +325,10 @@ public class UserFilter
     public string SearchTerm { get; set; }
     public DateTime? CreatedAfter { get; set; }
     public DateTime? CreatedBefore { get; set; }
-    public UserStatus? Status { get; set; }
-    public bool IncludeOrders { get; set; }
     public string SortBy { get; set; }
     public int Page { get; set; } = 1;
     public int PageSize { get; set; } = 20;
 }
-```
-
-### Upsert Operations
-
-```csharp
-public class ConfigurationService
-{
-    private readonly ApplicationDbContext _context;
-    
-    public async Task SaveSettingAsync(string key, string value)
-    {
-        var setting = await _context.Settings
-            .FirstOrDefaultAsync(s => s.Key == key);
-        
-        if (setting != null)
-        {
-            // Update existing
-            setting.Value = value;
-            setting.UpdatedDate = DateTime.Now;
-        }
-        else
-        {
-            // Insert new
-            setting = new Setting
-            {
-                Key = key,
-                Value = value,
-                CreatedDate = DateTime.Now
-            };
-            _context.Settings.Add(setting);
-        }
-        
-        await _context.SaveChangesAsync();
-        
-        // Or use UpsertAsync extension
-        await _context.Settings.UpsertAsync(setting);
-    }
-}
-```
 
 ## Best Practices
 
@@ -296,14 +338,16 @@ public class ConfigurationService
 // Better performance for read-only scenarios
 var users = await _context.Users
     .AsNoTracking()
+    .IncludeAll(_context)
     .AlternateQueryMatch(searchTerm)
     .ToListAsync();
 ```
 
-### 2. Avoid N+1 Query Problems
+### 2. Avoid N+1 Query Problems with LoadGraphAsync
 
 ```csharp
 // Bad - N+1 queries
+var users = await _context.Users.ToListAsync();
 foreach (var user in users)
 {
     var orders = await _context.Orders
@@ -311,18 +355,50 @@ foreach (var user in users)
         .ToListAsync();
 }
 
-// Good - Single query with Include
+// Good - Use IncludeAll or LoadGraphAsync
 var users = await _context.Users
-    .Include(u => u.Orders)
+    .IncludeAll(_context)
+    .ToListAsync();
+
+// Or for a single entity
+var user = await _context.Users.FindAsync(userId);
+await _context.LoadGraphAsync(user, maxDepth: 2);
+```
+
+### 3. Control Depth to Avoid Loading Too Much Data
+
+```csharp
+// Be careful with depth - higher values load more data
+var order = await _context.Orders.FindAsync(orderId);
+
+// Depth 1: Load direct navigation properties only
+await _context.LoadGraphAsync(order, maxDepth: 1);
+
+// Depth 3: Load navigation properties, their properties, and one more level
+await _context.LoadGraphAsync(order, maxDepth: 3);
+```
+
+### 4. Exclude Large Collections with IncludeAll
+
+```csharp
+// Exclude collections that might be very large
+var products = await _context.Products
+    .IncludeAll(_context, new[] { "Reviews", "OrderItems" })
+    .ToListAsync();
+
+// Or use expressions
+var products = await _context.Products
+    .IncludeAll(_context, p => p.Reviews, p => p.OrderItems)
     .ToListAsync();
 ```
 
-### 3. Use Pagination for Large Datasets
+### 5. Use Pagination for Large Datasets
 
 ```csharp
 public async Task<PagedResult<User>> GetPagedUsersAsync(int page, int pageSize)
 {
-    var query = _context.Users.AsQueryable();
+    var query = _context.Users
+        .IncludeAll(_context, u => u.Orders); // Exclude large collections
     
     var total = await query.CountAsync();
     var users = await query
@@ -338,19 +414,6 @@ public async Task<PagedResult<User>> GetPagedUsersAsync(int page, int pageSize)
         Page = page,
         PageSize = pageSize
     };
-}
-```
-
-### 4. Use Compiled Queries for Repeated Queries
-
-```csharp
-private static readonly Func<ApplicationDbContext, int, Task<User>> GetUserByIdCompiled =
-    EF.CompileAsyncQuery((ApplicationDbContext context, int id) =>
-        context.Users.FirstOrDefault(u => u.Id == id));
-
-public async Task<User> GetUserAsync(int id)
-{
-    return await GetUserByIdCompiled(_context, id);
 }
 ```
 
@@ -401,12 +464,14 @@ public class ApplicationDbContext : DbContext
 
 ## Performance Tips
 
-- Use `AsNoTracking()` for read-only queries
+- Use `AsNoTracking()` for read-only queries to avoid change tracking overhead
+- Use `LoadGraphAsync` with appropriate `maxDepth` to control how much data is loaded
+- Use `IncludeAll` with exclusions to automatically load relations while avoiding large collections
 - Implement pagination for large datasets
+- Use `MultiInclude` to simplify complex include chains
 - Use compiled queries for frequently executed queries
-- Leverage bulk operations for multiple inserts/updates
-- Use `Include()` judiciously to avoid loading unnecessary data
-- Consider splitting large queries into smaller ones
+- Consider splitting very large queries into smaller batches
+- Monitor the depth parameter in `LoadGraphAsync` - higher values can significantly impact performance
 
 ## Related Projects
 

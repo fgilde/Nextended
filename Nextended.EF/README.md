@@ -17,9 +17,10 @@ dotnet add package Microsoft.EntityFrameworkCore
 
 ## Key Features
 
+- **LoadGraphAsync**: Automatically load entity graphs with navigation properties to a specified depth
+- **IncludeAll**: Automatically include all navigation properties without manual specification
+- **MultiInclude**: Simplified syntax for chaining multiple ThenInclude operations
 - **Alternate Query Match Extensions**: Flexible search across multiple properties
-- **DbSet Extensions**: Enhanced DbSet operations (Upsert, BulkInsert, FindOrCreate)
-- **Query Optimization**: Utilities for optimizing EF queries
 
 ## Quick Start
 
@@ -27,21 +28,33 @@ dotnet add package Microsoft.EntityFrameworkCore
 using Nextended.EF;
 using Microsoft.EntityFrameworkCore;
 
-// Search across multiple properties
-var searchTerm = "john";
-var users = await dbContext.Users
-    .AlternateQueryMatch(searchTerm)
+// Load an entity with all its navigation properties
+var user = await dbContext.Users.FindAsync(userId);
+await dbContext.LoadGraphAsync(user, maxDepth: 2);
+
+// Include all navigation properties automatically
+var products = await dbContext.Products
+    .IncludeAll(dbContext)
     .ToListAsync();
 
-// Find or create
-var user = await dbContext.Users
-    .FindOrCreateAsync(
-        u => u.Email == "test@example.com",
-        () => new User { Email = "test@example.com" }
-    );
+// Include all except specific paths
+var users = await dbContext.Users
+    .IncludeAll(dbContext, new[] { "Orders.OrderItems" })
+    .ToListAsync();
 
-// Bulk operations
-await dbContext.Users.BulkInsertAsync(userList);
+// Simplified multi-level includes
+var orders = await dbContext.Orders
+    .MultiInclude(
+        q => q.Include(o => o.OrderItems),
+        oi => oi.Product,
+        oi => oi.Product.Category
+    )
+    .ToListAsync();
+
+// Search across multiple properties
+var searchResults = await dbContext.Users
+    .AlternateQueryMatch("john")
+    .ToListAsync();
 ```
 
 ## Documentation
