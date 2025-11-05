@@ -4,9 +4,9 @@ namespace Nextended.Core
 {
 
 	/// <summary>
-	/// Basisklasse für Singelton (alles was von dieser klasse erbt kann mit Type.Instance aufgerufen werden)
+	/// Base class for singleton pattern (everything that inherits from this class can be accessed via Type.Instance)
 	/// </summary>
-	/// <typeparam name="T"></typeparam>
+	/// <typeparam name="T">The type of the singleton</typeparam>
 	public abstract class SingletonBase<T> : NotificationObject
 		where T : SingletonBase<T>, new()
 	{
@@ -14,7 +14,7 @@ namespace Nextended.Core
 		private static readonly Lazy<T> current = new Lazy<T>(() => new T());
 
 		/// <summary>
-		/// Aktuelle Instanz
+		/// Gets the current instance
 		/// </summary>
 		public static T Instance => current.Value;
     }

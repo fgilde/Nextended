@@ -6,6 +6,9 @@ using System.Reflection;
 
 namespace Nextended.Core
 {
+    /// <summary>
+    /// Provides access to static members of a class including private members using a dynamic object
+    /// </summary>
     public class ExposedClass : DynamicObject
     {
         private readonly Type classType;

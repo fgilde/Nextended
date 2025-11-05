@@ -41,12 +41,12 @@ namespace Nextended.Core
 		}
 
 		/// <summary>
-		/// Echtes internes Objekt
+		/// Gets the actual internal object
 		/// </summary>
 		public object Object => objectInstance;
 
         /// <summary>
-		/// Neues exposed objekt erstellen
+		/// Creates a new exposed object
 		/// </summary>
 		public static dynamic New<T>(params object[] parameters)
 		{

@@ -8,6 +8,9 @@ using System.Threading.Tasks;
 
 namespace Nextended.Core;
 
+/// <summary>
+/// Provides MIME type mappings and utilities for file extensions and content types
+/// </summary>
 public static class MimeType
 {
     private static readonly string _defaultExtension = "bin";
@@ -1007,19 +1010,64 @@ public static class MimeType
         ["tar.gz"] = "application/tar+gzip"
     });
 
+    /// <summary>
+    /// MIME type for CSV files
+    /// </summary>
     public const string Csv = "text/csv";
+    
+    /// <summary>
+    /// MIME type for OpenXML spreadsheet files
+    /// </summary>
     public const string OpenXml = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+    
+    /// <summary>
+    /// MIME type for Excel files
+    /// </summary>
     public const string Xls = "application/vnd.ms-excel";
+    
+    /// <summary>
+    /// MIME type for PDF files
+    /// </summary>
     public const string Pdf = "application/pdf";
 
+    /// <summary>
+    /// Gets all MIME type mappings
+    /// </summary>
     public static Dictionary<string, string> All => _mimeTypeMap.Value;
+    
+    /// <summary>
+    /// Gets all available MIME types
+    /// </summary>
     public static string[] AllTypes => _mimeTypeMap.Value.Values.ToArray();
+    
+    /// <summary>
+    /// Gets all image MIME types
+    /// </summary>
     public static string[] ImageTypes => _mimeTypeMap.Value.Values.Where(x => x.StartsWith("image/")).ToArray();
+    
+    /// <summary>
+    /// Gets all office document MIME types
+    /// </summary>
     public static string[] OfficeTypes => _mimeTypeMap.Value.Values.Where(x => Matches(x, "application/msword", "application/vnd.ms-excel","application/vnd.openxmlformats-officedocument.*")).ToArray();
+    
+    /// <summary>
+    /// Gets all video MIME types
+    /// </summary>
     public static string[] VideoTypes => _mimeTypeMap.Value.Values.Where(x => x.StartsWith("video/")).ToArray();
+    
+    /// <summary>
+    /// Gets all audio MIME types
+    /// </summary>
     public static string[] AudioTypes => _mimeTypeMap.Value.Values.Where(x => x.StartsWith("audio/")).ToArray();
+    
+    /// <summary>
+    /// Gets all document MIME types
+    /// </summary>
     public static string[] DocumentTypes => _mimeTypeMap.Value.Values.Where(x => Matches(x, "application/pdf", "application/msword", "application/vnd.ms-excel", "application/vnd.openxmlformats-officedocument.*")).ToArray();
     
+    /// <summary>
+    /// Gets all archive MIME types
+    /// </summary>
     public static string[] ArchiveTypes => new[] {"application/x-compressed"}.Concat(_mimeTypeMap.Value.Values.Where(x => Matches(x, "application/x-*-compressed") 
     || x.Contains("compressed") 
     || IsRar(x) 
@@ -1027,41 +1075,101 @@ public static class MimeType
     || Is7Zip(x) 
     || IsTar(x))).Concat(new []{ "application/x-zip-compressed" }).ToArray();
 
+    /// <summary>
+    /// Determines whether the specified content type is an archive
+    /// </summary>
+    /// <param name="contentType">The content type to check</param>
+    /// <returns>True if the content type is an archive; otherwise, false</returns>
     public static bool IsArchive(string contentType)
          => !string.IsNullOrWhiteSpace(contentType) && (ArchiveTypes.Contains(contentType) || Is7Zip(contentType) || IsZip(contentType) || IsRar(contentType) || IsTar(contentType));
 
+    /// <summary>
+    /// Determines whether the specified content type is a ZIP archive
+    /// </summary>
+    /// <param name="contentType">The content type to check</param>
+    /// <returns>True if the content type is a ZIP archive; otherwise, false</returns>
     public static bool IsZip(string contentType) 
         => !string.IsNullOrWhiteSpace(contentType) && Matches(contentType, "application/zip*", "application/x-zip*");
 
+    /// <summary>
+    /// Determines whether the specified content type is a RAR archive
+    /// </summary>
+    /// <param name="contentType">The content type to check</param>
+    /// <returns>True if the content type is a RAR archive; otherwise, false</returns>
     public static bool IsRar(string contentType)
         => !string.IsNullOrWhiteSpace(contentType) && Matches(contentType, "application/x-compressed") || contentType == _mimeTypeMap.Value["rar"];
 
+    /// <summary>
+    /// Determines whether the specified content type is a TAR archive
+    /// </summary>
+    /// <param name="contentType">The content type to check</param>
+    /// <returns>True if the content type is a TAR archive; otherwise, false</returns>
     public static bool IsTar(string contentType)
         => !string.IsNullOrWhiteSpace(contentType) && (contentType == _mimeTypeMap.Value["tar"] || contentType == _mimeTypeMap.Value["tgz"] || contentType == _mimeTypeMap.Value["tar.gz"]);
 
+    /// <summary>
+    /// Determines whether the specified content type is a 7-Zip archive
+    /// </summary>
+    /// <param name="contentType">The content type to check</param>
+    /// <returns>True if the content type is a 7-Zip archive; otherwise, false</returns>
     public static bool Is7Zip(string contentType)
         => !string.IsNullOrWhiteSpace(contentType) && contentType == _mimeTypeMap.Value["7z"];
 
+    /// <summary>
+    /// Determines whether the specified content type is an audio file
+    /// </summary>
+    /// <param name="contentType">The content type to check</param>
+    /// <returns>True if the content type is audio; otherwise, false</returns>
     public static bool IsAudio(string contentType)
         => !string.IsNullOrWhiteSpace(contentType) && Matches(contentType, AudioTypes);
 
+    /// <summary>
+    /// Determines whether the specified content type is an Excel file
+    /// </summary>
+    /// <param name="contentType">The content type to check</param>
+    /// <returns>True if the content type is Excel; otherwise, false</returns>
     public static bool IsExcel(string contentType)
         => !string.IsNullOrWhiteSpace(contentType) && Matches(contentType, Xls, OpenXml);
+    
+    /// <summary>
+    /// Determines whether the specified content type is a Word document
+    /// </summary>
+    /// <param name="contentType">The content type to check</param>
+    /// <returns>True if the content type is Word; otherwise, false</returns>
     public static bool IsWord(string contentType)
         => !string.IsNullOrWhiteSpace(contentType) && Matches(contentType, "application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "application/vnd.openxmlformats-officedocument.wordprocessingml.template");
     
+    /// <summary>
+    /// Determines whether the specified content type is an image
+    /// </summary>
+    /// <param name="contentType">The content type to check</param>
+    /// <returns>True if the content type is an image; otherwise, false</returns>
     public static bool IsImage(string contentType)
             => !string.IsNullOrWhiteSpace(contentType) && Matches(contentType, ImageTypes);
+    
+    /// <summary>
+    /// Determines whether the specified content type is PDF
+    /// </summary>
+    /// <param name="contentType">The content type to check</param>
+    /// <returns>True if the content type is PDF; otherwise, false</returns>
     public static bool IsPdf(string contentType)
             => !string.IsNullOrWhiteSpace(contentType) && Matches(contentType, Pdf);
 
+    /// <summary>
+    /// Determines whether the specified content type is a video
+    /// </summary>
+    /// <param name="contentType">The content type to check</param>
+    /// <returns>True if the content type is video; otherwise, false</returns>
     public static bool IsVideo(string contentType)
             => !string.IsNullOrWhiteSpace(contentType) && Matches(contentType, VideoTypes);
 
 
-    /**
-     * Returns true if the given mimeType matches any of given mimeTypes
-     */
+    /// <summary>
+    /// Returns true if the given MIME type matches any of the given MIME types
+    /// </summary>
+    /// <param name="mimeType">The MIME type to check</param>
+    /// <param name="mimeTypes">The MIME types to match against</param>
+    /// <returns>True if the MIME type matches; otherwise, false</returns>
     public static bool Matches(string mimeType, params string[] mimeTypes)
     {
          
@@ -1070,8 +1178,18 @@ public static class MimeType
         return mimeTypes.Any(type => mimeType != null && (type.Equals(mimeType, StringComparison.InvariantCultureIgnoreCase) || Regex.IsMatch(mimeType, type, RegexOptions.CultureInvariant | RegexOptions.IgnoreCase)));
     }
 
+    /// <summary>
+    /// Gets the file extension for the specified MIME type
+    /// </summary>
+    /// <param name="mime">The MIME type</param>
+    /// <returns>The file extension</returns>
     public static string GetExtension(string mime) => _mimeTypeMap.Value.FirstOrDefault(x => x.Value.Contains(mime)).Key ?? _defaultExtension;
 
+    /// <summary>
+    /// Gets the MIME type for the specified file name
+    /// </summary>
+    /// <param name="fileName">The file name</param>
+    /// <returns>The MIME type</returns>
     public static string GetMimeType(string fileName)
     {
         string ext = fileName;
@@ -1083,11 +1201,23 @@ public static class MimeType
         return _mimeTypeMap.Value.TryGetValue(ext, out string result) ? result : _defaultMimeType;
     }
 
+    /// <summary>
+    /// Adds or updates a MIME type mapping for the specified extension
+    /// </summary>
+    /// <param name="mime">The MIME type</param>
+    /// <param name="extension">The file extension</param>
     public static void AddOrUpdate(string mime, string extension) 
         => _mimeTypeMap.Value[extension] = mime;
 
     private static bool IsValidUrl(string s) => Uri.TryCreate(s, UriKind.Absolute, out var uriResult) && (uriResult.Scheme == Uri.UriSchemeHttp || uriResult.Scheme == Uri.UriSchemeHttps);
 
+    /// <summary>
+    /// Reads the MIME type from the specified URL asynchronously
+    /// </summary>
+    /// <param name="url">The URL to check</param>
+    /// <param name="client">The HTTP client to use</param>
+    /// <param name="cancellationToken">The cancellation token</param>
+    /// <returns>The MIME type</returns>
     public static async Task<string> ReadMimeTypeFromUrlAsync(string url, HttpClient client, CancellationToken cancellationToken = default)
     {
         try
@@ -1102,6 +1232,12 @@ public static class MimeType
         }
     }
 
+    /// <summary>
+    /// Reads the MIME type from the specified URL asynchronously
+    /// </summary>
+    /// <param name="url">The URL to check</param>
+    /// <param name="cancellationToken">The cancellation token</param>
+    /// <returns>The MIME type</returns>
     public static Task<string> ReadMimeTypeFromUrlAsync(string url, CancellationToken cancellationToken = default)
     {
         return ReadMimeTypeFromUrlAsync(url, new HttpClient(), cancellationToken);

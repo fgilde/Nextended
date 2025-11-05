@@ -7,34 +7,59 @@ using YamlDotNet.Core.Tokens;
 
 namespace Nextended.Core;
 
-
+/// <summary>
+/// A cancellation token source that can be paused and resumed
+/// </summary>
 public class PausableCancellationTokenSource : CancellationTokenSource
 {
     private BindingFlags flags = BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.GetField | BindingFlags.GetProperty;
+    
+    /// <summary>
+    /// Gets a value indicating whether the token source is currently paused
+    /// </summary>
     public bool IsPaused { get; private set; }
 
+    /// <summary>
+    /// Pauses the cancellation token source
+    /// </summary>
     public void Pause()
     {
         SetPaused(true);
     }
 
+    /// <summary>
+    /// Resumes the cancellation token source
+    /// </summary>
     public void Resume()
     {
         SetPaused(false);
     }
 
+    /// <summary>
+    /// Pauses the cancellation token source after the specified delay
+    /// </summary>
+    /// <param name="delay">The delay before pausing</param>
     public void PauseAfter(TimeSpan delay)
     {
         var context = TaskScheduler.FromCurrentSynchronizationContext();
         Task.Delay(delay).ContinueWith(task => Pause(), context);
     }
 
+    /// <summary>
+    /// Resumes the cancellation token source after the specified delay
+    /// </summary>
+    /// <param name="delay">The delay before resuming</param>
     public void ResumeAfter(TimeSpan delay)
     {
         var context = TaskScheduler.FromCurrentSynchronizationContext();
         Task.Delay(delay).ContinueWith(_ => Resume(), context);
     }
 
+    /// <summary>
+    /// Creates a pausable cancellation token source that is linked to the specified tokens
+    /// </summary>
+    /// <param name="tokens">The cancellation tokens to link</param>
+    /// <returns>A linked pausable cancellation token source</returns>
     public new static PausableCancellationTokenSource CreateLinkedTokenSource(params CancellationToken[] tokens)
     {
         if (tokens == null || tokens.Length == 0) throw new ArgumentException(nameof(tokens));
@@ -48,6 +73,12 @@ public class PausableCancellationTokenSource : CancellationTokenSource
         return cancellationTokenSource;
     }
 
+    /// <summary>
+    /// Creates a pausable cancellation token source that is linked to the specified two tokens
+    /// </summary>
+    /// <param name="token1">The first cancellation token</param>
+    /// <param name="token2">The second cancellation token</param>
+    /// <returns>A linked pausable cancellation token source</returns>
     public new static PausableCancellationTokenSource CreateLinkedTokenSource(CancellationToken token1, CancellationToken token2)
     {
         return CreateLinkedTokenSource([token1, token2]);
@@ -75,6 +106,9 @@ public class PausableCancellationTokenSource : CancellationTokenSource
 
 }
 
+/// <summary>
+/// Provides extension methods for pausable cancellation tokens
+/// </summary>
 public static class PausableCancellationToken
 {
     private static readonly ConcurrentDictionary<CancellationToken, bool> pausedTokens = new ConcurrentDictionary<CancellationToken, bool>();
@@ -101,6 +135,11 @@ public static class PausableCancellationToken
         return (CancellationTokenRegistration)methodInfo.Invoke(token, new[] { callback, state });
     }
 
+    /// <summary>
+    /// Waits asynchronously while the cancellation token is paused
+    /// </summary>
+    /// <param name="token">The cancellation token</param>
+    /// <returns>A task representing the asynchronous operation</returns>
     public static async Task WaitWhenPaused(this CancellationToken token)
     {
         while (token.IsPaused()) await Task.Delay(100, token);
@@ -113,12 +152,22 @@ public static class PausableCancellationToken
         return isPaused;
     }
 
+    /// <summary>
+    /// Registers an action to be called when the cancellation token's paused state changes
+    /// </summary>
+    /// <param name="token">The cancellation token</param>
+    /// <param name="pausedChangedAction">The action to call when paused state changes</param>
     public static void RegisterPaused(this CancellationToken token,
         Action<CancellationToken, bool> pausedChangedAction)
     {
         onPausedActions.GetOrAdd(token, new ConcurrentBag<Action<CancellationToken, bool>>()).Add(pausedChangedAction);
     }
 
+    /// <summary>
+    /// Determines whether the cancellation token is currently paused
+    /// </summary>
+    /// <param name="token">The cancellation token</param>
+    /// <returns>True if the token is paused; otherwise, false</returns>
     public static bool IsPaused(this CancellationToken token)
     {
         return pausedTokens.ContainsKey(token) && pausedTokens[token] && !token.IsCancellationRequested;
