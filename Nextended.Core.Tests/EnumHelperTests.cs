@@ -192,7 +192,7 @@ namespace Nextended.Core.Tests
 		[TestMethod]
 		public void Enum_GetAttributes_ReturnsAttributes()
 		{
-			var attributes = Enum<TestEnum>.GetAttributes<DescriptionAttribute>(TestEnum.First).ToList();
+			var attributes = Enum<TestEnum>.GetAttributes<System.ComponentModel.DescriptionAttribute>(TestEnum.First).ToList();
 			
 			Assert.AreEqual(1, attributes.Count);
 			Assert.AreEqual("First Value", attributes[0].Description);
@@ -201,7 +201,7 @@ namespace Nextended.Core.Tests
 		[TestMethod]
 		public void Enum_GetAttributes_NoAttributes_ReturnsEmpty()
 		{
-			var attributes = Enum<TestEnum>.GetAttributes<DescriptionAttribute>(TestEnum.Third).ToList();
+			var attributes = Enum<TestEnum>.GetAttributes<System.ComponentModel.DescriptionAttribute>(TestEnum.Third).ToList();
 			
 			Assert.AreEqual(0, attributes.Count);
 		}
@@ -225,7 +225,7 @@ namespace Nextended.Core.Tests
 		[TestMethod]
 		public void EnumExtensions_GetCustomAttributes_ReturnsAttributes()
 		{
-			var attributes = TestEnum.First.GetCustomAttributes<DescriptionAttribute>(false);
+			var attributes = TestEnum.First.GetCustomAttributes<System.ComponentModel.DescriptionAttribute>(false);
 			
 			Assert.AreEqual(1, attributes.Length);
 			Assert.AreEqual("First Value", attributes[0].Description);

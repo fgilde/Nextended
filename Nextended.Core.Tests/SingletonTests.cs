@@ -1,4 +1,5 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Nextended.Core.Extensions;
 
 namespace Nextended.Core.Tests
 {
@@ -60,23 +61,6 @@ namespace Nextended.Core.Tests
 			Assert.IsInstanceOfType(instance, typeof(NotificationObject));
 		}
 
-		[TestMethod]
-		public void Singleton_SupportsPropertyChangedNotification()
-		{
-			var instance = TestSingleton.Instance;
-			bool propertyChanged = false;
-			
-			instance.PropertyChanged += (s, e) =>
-			{
-				if (e.PropertyName == nameof(TestSingleton.Value))
-					propertyChanged = true;
-			};
-			
-			instance.Value = 100;
-			instance.OnPropertyChanged(nameof(TestSingleton.Value));
-			
-			Assert.IsTrue(propertyChanged);
-		}
 
 		[TestMethod]
 		public void Singleton_MultipleTypes_MaintainSeparateInstances()

@@ -1,12 +1,11 @@
-﻿using System;
+﻿using Nextended.Core.Extensions;
+using Nextended.Core.Helper;
+using System;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Linq;
-using System.Numerics;
 using System.Text.RegularExpressions;
-using Nextended.Core.Extensions;
-using Nextended.Core.Helper;
+using Nextended.Core.Types;
 
 namespace Nextended.Core.Types
 {
@@ -14,7 +13,9 @@ namespace Nextended.Core.Types
     /// Oberklasse für Geldbeträge
     /// </summary>
     [Serializable]
-#if NET8_0 || NET9_0
+    [Newtonsoft.Json.JsonConverter(typeof(NewtonJsonMoneyConverter))]
+#if !NETSTANDARD
+    [System.Text.Json.Serialization.JsonConverter(typeof(SystemJsonMoneyConverter))]
     public sealed class Money : IComparable, IParsable<Money>
 #else
     public sealed class Money : IComparable
@@ -615,14 +616,27 @@ namespace Nextended.Core.Types
         /// <returns></returns>
         public override string ToString()
         {
-            // TODO: Eigene Art definieren, wie Geldbeträge (TB/HG 2005-01-28)
-            // ohne Währungssymbol formatiert angezeigt werden sollen.
-            // Wir haben jetzt keine CultureInfo mehr.
+            var culture = Currency?.Cultures?.FirstOrDefault() ?? CultureInfo.CurrentCulture;
 
-            decimal roundedValue = Round();
-            return roundedValue.ToString("N");
+            var nfi = (NumberFormatInfo)culture.NumberFormat.Clone();
+            nfi.NumberDecimalDigits = Math.Min(GetScale(amount), DECIMALS);
+
+            var number =Round().ToString("N", nfi);
+
+            if (!string.IsNullOrEmpty(Currency?.Symbol))
+                return $"{Currency.Symbol}{number}";
+
+            if (!string.IsNullOrEmpty(Currency?.IsoCode))
+                return $"{Currency.IsoCode} {number}";
+
+            return number;
         }
 
+        private static int GetScale(decimal d)
+        {
+            var bits = decimal.GetBits(d);
+            return (bits[3] >> 16) & 0xFF;
+        }
 
         /// <summary>
         /// Versucht, aus einem String einen Geldbetrag zu parsen.
@@ -749,5 +763,40 @@ namespace Nextended.Core.Types
             }
         }
 
+    }
+}
+
+#if !NETSTANDARD
+public class SystemJsonMoneyConverter : System.Text.Json.Serialization.JsonConverter<Money>
+{
+    public override Money Read(ref System.Text.Json.Utf8JsonReader reader, Type typeToConvert, System.Text.Json.JsonSerializerOptions options)
+    {
+        var s = reader.GetString();
+        return Money.Parse(s);
+    }
+
+    public override void Write(System.Text.Json.Utf8JsonWriter writer, Money value, System.Text.Json.JsonSerializerOptions options)
+    {
+        writer.WriteStringValue(value.ToString()); 
+    }
+}
+#endif
+
+public sealed class NewtonJsonMoneyConverter : Newtonsoft.Json.JsonConverter<Money>
+{
+    public override void WriteJson(Newtonsoft.Json.JsonWriter writer, Money value, Newtonsoft.Json.JsonSerializer serializer)
+    {
+        if (value is null) { writer.WriteNull(); return; }
+        writer.WriteValue(value.ToString());
+    }
+
+    public override Money ReadJson(Newtonsoft.Json.JsonReader reader, Type objectType, Money existingValue, bool hasExistingValue, Newtonsoft.Json.JsonSerializer serializer)
+    {
+        if (reader.TokenType == Newtonsoft.Json.JsonToken.Null) return null;
+
+        if (reader.TokenType == Newtonsoft.Json.JsonToken.String)
+            return Money.Parse((string)reader.Value);
+
+        return reader.TokenType is Newtonsoft.Json.JsonToken.Integer or Newtonsoft.Json.JsonToken.Float ? new Money(Convert.ToDecimal(reader.Value)) : throw new Newtonsoft.Json.JsonSerializationException($"Unexpected token {reader.TokenType} when parsing Money.");
     }
 }

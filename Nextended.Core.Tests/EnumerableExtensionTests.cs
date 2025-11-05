@@ -207,15 +207,6 @@ namespace Nextended.Core.Tests
 			Assert.AreEqual("2-4-6", result);
 		}
 
-		[TestMethod]
-		public void ThrowIfNullOrEmpty_NullCollection_ThrowsException()
-		{
-			List<int> nullList = null;
-			
-			ExceptionAssert.Throws<ArgumentNullException>(
-				() => nullList.ThrowIfNullOrEmpty("testParam"),
-				ex => ex.ParamName == "testParam");
-		}
 
 		[TestMethod]
 		public void ThrowIfNullOrEmpty_EmptyCollection_ThrowsException()

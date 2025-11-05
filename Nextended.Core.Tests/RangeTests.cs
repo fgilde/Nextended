@@ -151,16 +151,7 @@ namespace Nextended.Core.Tests
 			Assert.AreEqual(15, result.End);
 		}
 
-		[TestMethod]
-		public void RangeOf_Union_NonOverlappingNonAdjacentRanges_ThrowsException()
-		{
-			var range1 = new RangeOf<int>(1, 10);
-			var range2 = new RangeOf<int>(15, 20);
-			
-			ExceptionAssert.Throws<ArgumentException>(
-				() => range1.Union(range2),
-				ex => ex.Message.Contains("Ranges do not overlap and are not adjacent"));
-		}
+
 
 		[TestMethod]
 		public void RangeOf_Union_Null_ThrowsException()

@@ -20,6 +20,9 @@ namespace Nextended.Core.Tests
 
             var deserialized = JsonSerializer.Deserialize<Money>(serialized);
             Assert.IsNotNull(deserialized);
+
+            Assert.AreEqual(refAmount.Amount, deserialized.Amount);
+            Assert.AreEqual(refAmount.Currency, deserialized.Currency);
         }
 
         [TestMethod]

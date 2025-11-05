@@ -178,26 +178,37 @@ namespace Nextended.Core.Extensions
         /// <param name="bag">The concurrent bag</param>
         /// <param name="value">The value to remove</param>
         /// <returns>A new concurrent bag without the specified value</returns>
-        public static ConcurrentBag<T> Remove<T>(this ConcurrentBag<T> bag, T value)
+        public static bool Remove<T>(this ConcurrentBag<T> bag, T value)
         {
-            if (value != null && bag.Contains(value))
+            if (bag is null) throw new ArgumentNullException(nameof(bag));
+
+            var removed = false;
+            var buffer = new List<T>();
+
+            while (bag.TryTake(out var item))
             {
-                lock (lockObj)
+                if (!removed && EqualityComparer<T>.Default.Equals(item, value))
                 {
-                    return new ConcurrentBag<T>(bag.Where(arg => !arg.Equals(value)).ToList());
+                    removed = true;     
+                    continue;
                 }
+                buffer.Add(item);
             }
-            return bag;
+
+            foreach (var item in buffer)
+                bag.Add(item);
+
+            return removed;
         }
 
-		/// <summary>
-		/// Removes multiple items from the collection
-		/// </summary>
-		/// <typeparam name="TSource">The type of elements in the collection</typeparam>
-		/// <param name="source">The collection</param>
-		/// <param name="itemsToRemove">The items to remove</param>
-		/// <returns>The modified collection</returns>
-		public static ICollection<TSource> RemoveRange<TSource>(this ICollection<TSource> source, IEnumerable<TSource> itemsToRemove)
+        /// <summary>
+        /// Removes multiple items from the collection
+        /// </summary>
+        /// <typeparam name="TSource">The type of elements in the collection</typeparam>
+        /// <param name="source">The collection</param>
+        /// <param name="itemsToRemove">The items to remove</param>
+        /// <returns>The modified collection</returns>
+        public static ICollection<TSource> RemoveRange<TSource>(this ICollection<TSource> source, IEnumerable<TSource> itemsToRemove)
         {
             foreach (var item in itemsToRemove)
                 source.Remove(item);
