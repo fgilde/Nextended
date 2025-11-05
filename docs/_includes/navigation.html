@@ -1,6 +1,7 @@
 <nav class="site-nav">
   <div class="nav-container">
     <a href="{{ site.baseurl }}/" class="nav-home">🏠 Home</a>
+    <a href="{{ site.baseurl }}/search" class="nav-search">🔍 Search</a>
     
     <div class="nav-section">
       <h3>📦 Projects</h3>
@@ -64,19 +65,25 @@
     gap: 20px;
   }
   
-  .nav-home {
-    font-size: 18px;
+  .nav-home, .nav-search {
+    font-size: 16px;
     font-weight: bold;
     color: #159957;
     text-decoration: none;
-    padding: 10px;
+    padding: 8px 10px;
     display: block;
-    border-bottom: 2px solid #ddd;
-    margin-bottom: 10px;
+    border-radius: 3px;
+    margin-bottom: 5px;
   }
   
-  .nav-home:hover {
+  .nav-home:hover, .nav-search:hover {
+    background-color: #e8e8e8;
     color: #0d6e3f;
+  }
+  
+  .nav-search {
+    border-bottom: 2px solid #ddd;
+    margin-bottom: 15px;
   }
   
   .nav-section h3 {
