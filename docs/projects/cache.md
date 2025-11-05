@@ -4,7 +4,7 @@ Caching utilities and extensions for simplified caching operations in .NET appli
 
 ## Overview
 
-Nextended.Cache provides a unified caching interface and extensions for working with various caching providers including `IMemoryCache` and `System.Runtime.Caching.MemoryCache`.
+Nextended.Cache provides caching extensions for `IMemoryCache` and `System.Runtime.Caching.MemoryCache`, along with a `CacheProvider` class for expression-based caching with automatic cache invalidation.
 
 ## Installation
 
@@ -14,305 +14,436 @@ dotnet add package Nextended.Cache
 
 ## Key Features
 
-### 1. Unified Cache Provider
+### 1. CacheProvider with Expression-Based Caching
 
-The `CacheProvider` class offers a consistent interface across different caching implementations.
+The `CacheProvider` class provides intelligent caching based on method expressions with automatic key generation and conditional cache clearing.
 
 ```csharp
 using Nextended.Cache;
-
-var cacheProvider = new CacheProvider();
-
-// Store item with default expiration
-cacheProvider.Set("key", myObject);
-
-// Store item with custom expiration
-cacheProvider.Set("key", myObject, TimeSpan.FromMinutes(30));
-
-// Retrieve item
-var item = cacheProvider.Get<MyType>("key");
-
-// Remove item
-cacheProvider.Remove("key");
-```
-
-### 2. Cache Extensions
-
-Extensions for `IMemoryCache` and `MemoryCache` for fluent caching operations.
-
-```csharp
-using Nextended.Cache.Extensions;
 using Microsoft.Extensions.Caching.Memory;
 
-IMemoryCache cache = new MemoryCache(new MemoryCacheOptions());
+// Create cache provider
+var cacheProvider = new CacheProvider();
 
-// Get or create cached item
-var user = cache.GetOrCreate("user:123", () => 
-{
-    // This expensive operation only runs if not cached
-    return LoadUserFromDatabase(123);
-}, TimeSpan.FromMinutes(10));
+// Or with custom options
+var cacheProvider = new CacheProvider(
+    cache: myMemoryCache,
+    cacheEntryOptions: new MemoryCacheEntryOptions()
+        .SetAbsoluteExpiration(TimeSpan.FromMinutes(30))
+);
 
-// Async version
-var userData = await cache.GetOrCreateAsync("user:123", async () => 
-{
-    return await LoadUserFromDatabaseAsync(123);
-}, TimeSpan.FromMinutes(10));
-```
-
-### 3. Automatic Cache Invalidation
-
-Built-in support for time-based cache invalidation.
-
-```csharp
-// Sliding expiration - resets timer on access
-cacheProvider.Set("key", value, new CacheItemPolicy
-{
-    SlidingExpiration = TimeSpan.FromMinutes(20)
-});
-
-// Absolute expiration - expires at specific time
-cacheProvider.Set("key", value, new CacheItemPolicy
-{
-    AbsoluteExpiration = DateTimeOffset.Now.AddHours(1)
-});
-```
-
-### 4. Cache Key Management
-
-Utilities for generating and managing cache keys.
-
-```csharp
-// Generate consistent cache keys
-string key = CacheKeyHelper.GenerateKey("users", userId, "profile");
-// Result: "users:123:profile"
-
-// Clear all keys with prefix
-cacheProvider.RemoveByPattern("users:*");
-```
-
-## Usage Examples
-
-### Basic Caching Pattern
-
-```csharp
-using Nextended.Cache;
-using Nextended.Cache.Extensions;
-
+// Cache method execution results automatically
 public class UserService
 {
     private readonly CacheProvider _cache;
     
-    public UserService()
-    {
-        _cache = new CacheProvider();
-    }
-    
     public User GetUser(int userId)
     {
-        var cacheKey = $"user:{userId}";
-        
-        return _cache.GetOrCreate(cacheKey, () =>
-        {
-            // Expensive database operation
-            return DatabaseContext.Users.Find(userId);
-        }, TimeSpan.FromMinutes(10));
+        // ExecuteWithCache generates cache key from method expression
+        return this.ExecuteWithCache(_cache, () => LoadUserFromDb(userId));
+    }
+    
+    private User LoadUserFromDb(int userId)
+    {
+        // Expensive database operation
+        return database.Users.Find(userId);
     }
 }
 ```
 
-### Caching with ASP.NET Core
+### 2. AddOrGetExisting for ObjectCache
+
+Thread-safe lazy initialization for System.Runtime.Caching.MemoryCache.
 
 ```csharp
-using Microsoft.Extensions.Caching.Memory;
 using Nextended.Cache.Extensions;
+using System.Runtime.Caching;
+
+var cache = MemoryCache.Default;
+
+// Thread-safe get or create
+var user = cache.AddOrGetExisting(
+    key: "user:123",
+    valueFactory: () => LoadUserFromDatabase(123),
+    absoluteExpiration: DateTimeOffset.Now.AddMinutes(10)
+);
+
+// The valueFactory only executes if the item isn't in cache
+// Multiple concurrent calls with the same key won't result in multiple executions
+```
+
+### 3. ExecuteWithCache Extensions for IMemoryCache
+
+Execute and cache method results with automatic key generation from expressions.
+
+```csharp
+using Nextended.Cache.Extensions;
+using Microsoft.Extensions.Caching.Memory;
 
 public class ProductService
 {
     private readonly IMemoryCache _cache;
-    private readonly IProductRepository _repository;
     
-    public ProductService(IMemoryCache cache, IProductRepository repository)
+    public Product GetProduct(int productId)
     {
-        _cache = cache;
-        _repository = repository;
-    }
-    
-    public async Task<Product> GetProductAsync(int productId)
-    {
-        var cacheKey = $"product:{productId}";
+        // Cache key is automatically generated from the expression
+        var info = this.ExecuteWithCache(
+            _cache,
+            () => LoadProductFromDb(productId),
+            new MemoryCacheEntryOptions()
+                .SetAbsoluteExpiration(TimeSpan.FromMinutes(15))
+        );
         
-        return await _cache.GetOrCreateAsync(cacheKey, async () =>
-        {
-            return await _repository.GetByIdAsync(productId);
-        }, TimeSpan.FromMinutes(15));
+        // info.Result contains the product
+        // info.IsNewEntry tells you if it was cached or newly loaded
+        // info.Key contains the generated cache key
+        return info.Result;
     }
     
-    public void InvalidateProduct(int productId)
+    private Product LoadProductFromDb(int productId)
     {
-        _cache.Remove($"product:{productId}");
+        return database.Products.Find(productId);
     }
 }
 ```
 
-### Advanced Caching with Dependencies
+### 4. Conditional Cache Clearing
+
+Clear cache based on conditions with automatic monitoring.
+
+```csharp
+var cacheProvider = new CacheProvider();
+
+// Clear cache automatically when a condition is met
+cacheProvider.ClearWhen(cache => 
+{
+    // Clear if more than 1 hour has passed since last write
+    return (DateTime.Now - cache.LastWriteTime).TotalHours > 1;
+});
+
+// Clear manually
+cacheProvider.Clear();
+
+// Check cache size
+int itemCount = cacheProvider.Count();
+
+// Subscribe to clear event
+cacheProvider.Cleared += (sender, args) =>
+{
+    Console.WriteLine("Cache was cleared!");
+};
+```
+
+## Usage Examples
+
+### Expression-Based Caching
+
+```csharp
+using Nextended.Cache;
+using Nextended.Cache.Extensions;
+
+public class DataService
+{
+    private readonly CacheProvider _cacheProvider;
+    private readonly IMemoryCache _memoryCache;
+    
+    public DataService(IMemoryCache memoryCache)
+    {
+        _memoryCache = memoryCache;
+        _cacheProvider = new CacheProvider(memoryCache);
+    }
+    
+    public List<Product> GetProducts(string category)
+    {
+        // Cache key is automatically generated from method signature and parameters
+        return this.ExecuteWithCache(_cacheProvider, () => 
+            LoadProductsFromDb(category));
+    }
+    
+    public User GetUserProfile(int userId)
+    {
+        // Using IMemoryCache directly
+        var cacheInfo = this.ExecuteWithCache(
+            _memoryCache,
+            () => LoadUserProfile(userId),
+            new MemoryCacheEntryOptions()
+                .SetSlidingExpiration(TimeSpan.FromMinutes(20))
+        );
+        
+        if (cacheInfo.IsNewEntry)
+        {
+            Console.WriteLine($"Loaded user {userId} from database");
+        }
+        
+        return cacheInfo.Result;
+    }
+    
+    private List<Product> LoadProductsFromDb(string category)
+    {
+        return database.Products.Where(p => p.Category == category).ToList();
+    }
+    
+    private User LoadUserProfile(int userId)
+    {
+        return database.Users
+            .Include(u => u.Profile)
+            .FirstOrDefault(u => u.Id == userId);
+    }
+}
+```
+
+### Thread-Safe Caching with ObjectCache
 
 ```csharp
 using System.Runtime.Caching;
+using Nextended.Cache.Extensions;
 
-public class ConfigurationCache
+public class ConfigurationService
 {
-    private readonly CacheProvider _cache;
+    private readonly ObjectCache _cache = MemoryCache.Default;
     
-    public T GetConfiguration<T>(string fileName) where T : class
+    public AppSettings GetSettings()
     {
-        var cacheKey = $"config:{fileName}";
-        
-        var policy = new CacheItemPolicy
-        {
-            AbsoluteExpiration = DateTimeOffset.Now.AddHours(1),
-            ChangeMonitors =
-            {
-                // Invalidate cache when file changes
-                new HostFileChangeMonitor(new[] { fileName })
-            }
-        };
-        
-        return _cache.Get<T>(cacheKey) ?? LoadAndCache(cacheKey, fileName, policy);
+        // Multiple threads calling this will only execute LoadSettings once
+        return _cache.AddOrGetExisting(
+            "app:settings",
+            () => LoadSettings(),
+            DateTimeOffset.Now.AddHours(1)
+        );
     }
     
-    private T LoadAndCache<T>(string key, string fileName, CacheItemPolicy policy) 
-        where T : class
+    public string GetConnectionString(string name)
     {
-        var config = LoadConfigFromFile<T>(fileName);
-        _cache.Set(key, config, policy);
-        return config;
+        return _cache.AddOrGetExisting(
+            $"connection:{name}",
+            () => LoadConnectionString(name),
+            ObjectCache.InfiniteAbsoluteExpiration // Never expires
+        );
+    }
+    
+    private AppSettings LoadSettings()
+    {
+        // Expensive operation - read from file, database, etc.
+        return Configuration.LoadFromFile("appsettings.json");
+    }
+    
+    private string LoadConnectionString(string name)
+    {
+        return Configuration.GetConnectionString(name);
     }
 }
 ```
 
-### Bulk Cache Operations
+### Automatic Cache Invalidation
 
 ```csharp
-public class CacheManager
+using Nextended.Cache;
+
+public class CachedDataService
 {
     private readonly CacheProvider _cache;
     
-    public void CacheMultipleItems<T>(IDictionary<string, T> items, TimeSpan expiration)
+    public CachedDataService()
     {
-        foreach (var item in items)
-        {
-            _cache.Set(item.Key, item.Value, expiration);
-        }
+        _cache = new CacheProvider();
+        
+        // Configure automatic cache clearing
+        ConfigureCacheInvalidation();
     }
     
-    public IDictionary<string, T> GetMultipleItems<T>(IEnumerable<string> keys)
+    private void ConfigureCacheInvalidation()
     {
-        var result = new Dictionary<string, T>();
+        // Clear cache after 2 hours of inactivity
+        _cache.ClearWhen(cache => 
+            (DateTime.Now - cache.LastWriteTime).TotalHours > 2);
         
-        foreach (var key in keys)
-        {
-            var value = _cache.Get<T>(key);
-            if (value != null)
+        // Clear cache if it grows too large
+        _cache.ClearWhen(cache => cache.Count() > 1000);
+        
+        // Set custom check interval
+        _cache.ClearCheckInterval = TimeSpan.FromMinutes(5);
+        
+        // Log when cache is cleared
+        _cache.Cleared += (sender, args) => 
+            Logger.Info("Cache was automatically cleared");
+    }
+    
+    public Product GetProduct(int id)
+    {
+        return this.ExecuteWithCache(_cache, () => LoadProduct(id));
+    }
+    
+    private Product LoadProduct(int id)
+    {
+        return database.Products.Find(id);
+    }
+}
+```
+
+### Custom Cache Entry Options
+
+```csharp
+using Microsoft.Extensions.Caching.Memory;
+using Nextended.Cache;
+
+public class AdvancedCachingService
+{
+    private readonly CacheProvider _cache;
+    
+    public AdvancedCachingService()
+    {
+        // Configure default cache options
+        var options = new MemoryCacheEntryOptions()
+            .SetPriority(CacheItemPriority.High)
+            .SetAbsoluteExpiration(TimeSpan.FromHours(1))
+            .SetSlidingExpiration(TimeSpan.FromMinutes(20))
+            .RegisterPostEvictionCallback((key, value, reason, state) =>
             {
-                result[key] = value;
-            }
-        }
+                Console.WriteLine($"Cache key {key} was evicted: {reason}");
+            });
         
-        return result;
+        _cache = new CacheProvider(
+            cache: null, // Will create default MemoryCache
+            cacheEntryOptions: options
+        );
     }
     
-    public void ClearCache()
+    public Data GetData(string key)
     {
-        _cache.Clear();
+        return this.ExecuteWithCache(_cache, () => LoadData(key));
+    }
+    
+    private Data LoadData(string key)
+    {
+        return dataSource.Get(key);
     }
 }
 ```
 
 ## Best Practices
 
-### 1. Use Appropriate Expiration Times
+### 1. Use Expression-Based Caching for Method Results
 
 ```csharp
-// Frequently changing data - short expiration
-_cache.Set("active-users", users, TimeSpan.FromMinutes(1));
+// Good: Automatic key generation based on method and parameters
+return this.ExecuteWithCache(_cache, () => ExpensiveOperation(param1, param2));
 
-// Rarely changing data - longer expiration
-_cache.Set("app-settings", settings, TimeSpan.FromHours(24));
-
-// Static/reference data - very long expiration
-_cache.Set("countries", countries, TimeSpan.FromDays(7));
+// The cache key is automatically generated from the expression
+// Different parameters result in different cache keys
 ```
 
-### 2. Implement Cache-Aside Pattern
+### 2. Monitor Cache Performance
 
 ```csharp
-public async Task<T> GetOrCreateAsync<T>(string key, Func<Task<T>> factory)
+public class MonitoredCacheService
 {
-    // Try to get from cache
-    var cached = _cache.Get<T>(key);
-    if (cached != null)
-        return cached;
+    private readonly CacheProvider _cache;
     
-    // Not in cache - load from source
-    var value = await factory();
-    
-    // Store in cache for next time
-    _cache.Set(key, value, TimeSpan.FromMinutes(10));
-    
-    return value;
-}
-```
-
-### 3. Handle Cache Failures Gracefully
-
-```csharp
-public T GetWithFallback<T>(string key, Func<T> fallback)
-{
-    try
+    public MonitoredCacheService()
     {
-        return _cache.Get<T>(key) ?? fallback();
+        _cache = new CacheProvider();
+        
+        // Subscribe to events
+        _cache.Cleared += OnCacheCleared;
+        
+        // Set up periodic monitoring
+        _cache.ClearWhen(cache => 
+        {
+            var count = cache.Count();
+            if (count > 0)
+                Logger.Debug($"Cache size: {count} items");
+            return false; // Don't clear
+        });
     }
-    catch (Exception ex)
+    
+    private void OnCacheCleared(object sender, EventArgs e)
     {
-        _logger.LogError(ex, "Cache operation failed");
-        return fallback();
+        Logger.Info("Cache was cleared");
     }
 }
 ```
 
-### 4. Use Meaningful Cache Keys
+### 3. Use Appropriate Expiration Strategies
 
 ```csharp
-// Good: descriptive and hierarchical
-"user:123:profile"
-"product:456:details"
-"order:789:items"
-
-// Bad: unclear or too generic
-"data1"
-"temp"
-"x"
+var cacheProvider = new CacheProvider(
+    cacheEntryOptions: new MemoryCacheEntryOptions()
+        // Use sliding expiration for frequently accessed data
+        .SetSlidingExpiration(TimeSpan.FromMinutes(30))
+        // Use absolute expiration for time-sensitive data
+        .SetAbsoluteExpiration(TimeSpan.FromHours(2))
+);
 ```
+
+### 4. Handle Cache Invalidation Properly
+
+```csharp
+public class UserService
+{
+    private readonly CacheProvider _cache;
+    
+    public void UpdateUser(User user)
+    {
+        database.Users.Update(user);
+        database.SaveChanges();
+        
+        // Clear cache to ensure fresh data on next request
+        _cache.Clear();
+    }
+}
+```
+
+## API Reference
+
+### CacheProvider
+
+- **Constructor**: `CacheProvider(IMemoryCache cache = null, MemoryCacheEntryOptions cacheEntryOptions = null)`
+- **ExecuteWithCache**: `T ExecuteWithCache<TInstance, T>(TInstance owner, Expression<Func<TInstance, T>> expression)`
+- **Clear**: `void Clear()` - Clears all cached items
+- **Count**: `int Count()` - Returns the number of items in cache
+- **ClearWhen**: `CacheProvider ClearWhen(Func<CacheProvider, bool> predicate)` - Registers a condition for automatic cache clearing
+- **Properties**:
+  - `MemoryCacheEntryOptions CacheEntryOptions` - Default cache entry options
+  - `TimeSpan ClearCheckInterval` - Interval for checking clear conditions (default: 10 minutes)
+  - `DateTime LastWriteTime` - Time of last cache write
+- **Events**:
+  - `EventHandler<EventArgs> Cleared` - Fired when cache is cleared
+
+### CacheExtensions
+
+- **AddOrGetExisting**: `T AddOrGetExisting<T>(this ObjectCache cache, string key, Func<T> valueFactory, DateTimeOffset absoluteExpiration, string regionName = null)`
+- **ExecuteWithCache**: `CacheExecutionInfo<TResult> ExecuteWithCache<TParam, TResult>(this TParam param, IMemoryCache cache, Expression<Func<TParam, TResult>> expression, MemoryCacheEntryOptions entryOptions = null)`
 
 ## Configuration
 
 ### ASP.NET Core Integration
 
 ```csharp
-// Startup.cs or Program.cs
+// Program.cs
+builder.Services.AddMemoryCache();
+builder.Services.AddSingleton<CacheProvider>();
+
+// Or with custom configuration
 builder.Services.AddMemoryCache(options =>
 {
-    options.SizeLimit = 1024; // Limit cache size
-    options.CompactionPercentage = 0.25; // Compact when 75% full
+    options.SizeLimit = 1024;
+    options.CompactionPercentage = 0.25;
 });
 
-// Register cache provider
-builder.Services.AddSingleton<CacheProvider>();
+builder.Services.AddSingleton(sp =>
+{
+    var memoryCache = sp.GetRequiredService<IMemoryCache>();
+    var cacheOptions = new MemoryCacheEntryOptions()
+        .SetAbsoluteExpiration(TimeSpan.FromHours(1));
+    
+    return new CacheProvider(memoryCache, cacheOptions);
+});
 ```
 
 ## Supported Frameworks
 
+- .NET Standard 2.0
+- .NET Standard 2.1
 - .NET 8.0
 - .NET 9.0
 
@@ -325,15 +456,15 @@ builder.Services.AddSingleton<CacheProvider>();
 
 ## Performance Considerations
 
-- **Memory Usage**: Monitor cache size to prevent memory issues
-- **Expiration**: Use sliding expiration for frequently accessed items
-- **Serialization**: Consider serialization cost for complex objects
-- **Distributed Caching**: For multi-server scenarios, consider Redis or distributed cache
+- **Automatic Key Generation**: Cache keys are generated from method expressions, including parameters
+- **Thread Safety**: `AddOrGetExisting` uses lazy initialization for thread-safe caching
+- **Memory Usage**: Monitor cache size using `Count()` method
+- **Automatic Invalidation**: Use `ClearWhen` for condition-based cache clearing
+- **Check Interval**: Adjust `ClearCheckInterval` based on your needs
 
 ## Related Projects
 
-- [Nextended.Core](core.md) - Foundation library
-- [Nextended.Imaging](imaging.md) - Uses caching for processed images
+- [Nextended.Core](core.md) - Foundation library with core extensions
 
 ## Links
 

@@ -16,10 +16,11 @@ dotnet add package Nextended.Cache
 
 ## Key Features
 
-- **Unified Cache Provider**: Consistent interface across different caching implementations
-- **Cache Extensions**: Fluent API for `IMemoryCache` and `MemoryCache`
-- **Automatic Invalidation**: Time-based cache expiration support
-- **Cache Key Management**: Utilities for generating and managing cache keys
+- **Expression-Based Caching**: Automatic cache key generation from method expressions
+- **CacheProvider**: Intelligent caching with conditional clearing and monitoring
+- **Thread-Safe Lazy Initialization**: AddOrGetExisting for ObjectCache
+- **IMemoryCache Extensions**: ExecuteWithCache for simplified caching
+- **Automatic Invalidation**: Condition-based cache clearing with monitoring
 
 ## Quick Start
 
@@ -27,17 +28,25 @@ dotnet add package Nextended.Cache
 using Nextended.Cache;
 using Nextended.Cache.Extensions;
 
+// Create cache provider
 var cacheProvider = new CacheProvider();
 
-// Store and retrieve with expiration
-cacheProvider.Set("key", myObject, TimeSpan.FromMinutes(30));
-var item = cacheProvider.Get<MyType>("key");
-
-// Get or create pattern
-var user = cache.GetOrCreate("user:123", () => 
+// Cache method execution with automatic key generation
+public User GetUser(int userId)
 {
-    return LoadUserFromDatabase(123);
-}, TimeSpan.FromMinutes(10));
+    return this.ExecuteWithCache(_cacheProvider, () => LoadUserFromDb(userId));
+}
+
+// Thread-safe caching with ObjectCache
+var result = MemoryCache.Default.AddOrGetExisting(
+    "key",
+    () => ExpensiveOperation(),
+    DateTimeOffset.Now.AddMinutes(10)
+);
+
+// Conditional cache clearing
+cacheProvider.ClearWhen(cache => 
+    (DateTime.Now - cache.LastWriteTime).TotalHours > 1);
 ```
 
 ## Documentation
