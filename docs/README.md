@@ -36,7 +36,8 @@ docs/
 │
 └── api/                        # API reference
     ├── extensions.md           # Extension methods reference
-    └── types.md                # Custom types reference
+    ├── types.md                # Custom types reference
+    └── class-mapping.md        # Class mapping reference
 ```
 
 ## 📖 Quick Links
@@ -47,6 +48,7 @@ docs/
 - [Common Use Cases](examples/common-use-cases.md)
 - [Extension Methods API](api/extensions.md)
 - [Custom Types API](api/types.md)
+- [Class Mapping API](api/class-mapping.md)
 
 ## 🚀 GitHub Pages Setup
 

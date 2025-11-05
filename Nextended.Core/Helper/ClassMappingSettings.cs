@@ -13,7 +13,8 @@ namespace Nextended.Core.Helper
 {
 
     /// <summary>
-    /// Settings für das Classmapping
+    /// Configuration settings for class mapping operations that control how objects are mapped between different types.
+    /// Includes options for exception handling, type conversion, async processing, custom converters, and property mapping behavior.
     /// </summary>
     public class ClassMappingSettings
     {
@@ -35,8 +36,11 @@ namespace Nextended.Core.Helper
         }
 
         /// <summary>
-        /// Typeconverter zu den einstellungen hinzufügen
+        /// Removes a type converter from the global converters collection.
+        /// Global converters are applied to all mapping operations unless explicitly ignored.
         /// </summary>
+        /// <param name="converter">The type converter to remove.</param>
+        /// <returns>The current or default ClassMappingSettings instance.</returns>
         public static ClassMappingSettings RemoveGlobalConverter(TypeConverter converter)
         {
             if (converter != null && GlobalConverters.Contains(converter))
@@ -52,8 +56,10 @@ namespace Nextended.Core.Helper
         }
 
         /// <summary>
-        /// Globalen Konverter hinzufügen der dann immer bei allen Settings greift, es sei denn die Setting hat 
+        /// Adds one or more type converters to the global converters collection.
+        /// Global converters are applied to all mapping operations unless explicitly ignored by setting IgnoreGlobalConverters to true.
         /// </summary>
+        /// <param name="converters">One or more type converters to add globally.</param>
         public static void AddGlobalConverters(params TypeConverter[] converters)
         {
             foreach (var converter in converters)
@@ -61,8 +67,13 @@ namespace Nextended.Core.Helper
         }
 
         /// <summary>
-        /// Eine Func als Type Converter hinzufügen
+        /// Adds a global type converter using a function to convert from TIn to TOut.
         /// </summary>
+        /// <typeparam name="TIn">The input type to convert from.</typeparam>
+        /// <typeparam name="TOut">The output type to convert to.</typeparam>
+        /// <param name="fn">The conversion function. If null, uses default MapTo behavior.</param>
+        /// <param name="allowAssignableInputs">If true, the converter also handles types assignable to TIn.</param>
+        /// <returns>The created type converter.</returns>
         public static TypeConverter AddGlobalConverter<TIn, TOut>(Func<TIn, TOut> fn = null, bool allowAssignableInputs = false)
         {
             GenericTypeConverter<TIn, TOut> converter = new GenericTypeConverter<TIn, TOut>(null, allowAssignableInputs);
@@ -72,8 +83,13 @@ namespace Nextended.Core.Helper
         }
 
         /// <summary>
-        /// Eine Func als Type Converter hinzufügen
+        /// Adds a global type converter using a function to convert from one type to another (non-generic version).
         /// </summary>
+        /// <param name="tIn">The input type to convert from.</param>
+        /// <param name="tOut">The output type to convert to.</param>
+        /// <param name="fn">The conversion function. If null, uses default MapTo behavior.</param>
+        /// <param name="allowAssignableInputs">If true, the converter also handles types assignable to the input type.</param>
+        /// <returns>The created type converter.</returns>
         public static TypeConverter AddGlobalConverter(Type tIn, Type tOut, Func<object, object> fn = null,
             bool allowAssignableInputs = false)
         {
@@ -87,12 +103,14 @@ namespace Nextended.Core.Helper
 
 
         /// <summary>
-        /// Standard Settings
+        /// Gets the default mapping settings instance.
+        /// If no custom default has been set, creates a new instance with standard configuration.
         /// </summary>
         public static ClassMappingSettings Default => defaults ?? new ClassMappingSettings();
 
         /// <summary>
-		/// Settings für schnelles Mapping
+		/// Gets optimized settings for fast mapping operations.
+		/// This configuration ignores exceptions, skips DataContract checks, enables async processing, and disables container resolution for improved performance.
 		/// </summary>
 		public static ClassMappingSettings Fast
         {
