@@ -11,8 +11,22 @@ using Nextended.Core.Extensions;
 
 namespace Nextended.Core.Helper
 {
+    /// <summary>
+    /// Provides methods for executing scripts and command-line applications with customizable execution settings,
+    /// output capture, and error handling.
+    /// </summary>
     public class ScriptHelper
     {
+        /// <summary>
+        /// Asynchronously executes a script or command with the specified arguments and settings.
+        /// </summary>
+        /// <param name="fileName">The path to the script or executable to run.</param>
+        /// <param name="arguments">Command-line arguments to pass to the script.</param>
+        /// <param name="settings">Execution settings that control process behavior.</param>
+        /// <param name="onDataReceived">Optional callback for standard output data.</param>
+        /// <param name="onError">Optional callback for error output data.</param>
+        /// <param name="cancellationToken">Cancellation token to stop execution.</param>
+        /// <returns>A task that represents the asynchronous operation, containing the execution result.</returns>
         public static Task<ScriptExecutingResult> ExecuteScriptAsync(string fileName, string arguments,
             ScriptExecutionSettings settings,
             Action<string> onDataReceived = null, Action<string> onError = null,
@@ -214,14 +228,30 @@ namespace Nextended.Core.Helper
 
     }
 
+    /// <summary>
+    /// Represents the result of a script execution, containing the process and execution status.
+    /// </summary>
     public class ScriptExecutingResult
     {
         private ScriptExecutingResult()
         { }
 
+        /// <summary>
+        /// Gets a value indicating whether the process execution was successful.
+        /// </summary>
         public bool ProcessResult { get; private set; }
+        
+        /// <summary>
+        /// Gets the Process object associated with the script execution.
+        /// </summary>
         public Process Process { get; private set; }
 
+        /// <summary>
+        /// Creates a ScriptExecutingResult from the specified result and process.
+        /// </summary>
+        /// <param name="result">True if the execution was successful; otherwise, false.</param>
+        /// <param name="process">The process that was executed.</param>
+        /// <returns>A new ScriptExecutingResult instance.</returns>
         public static ScriptExecutingResult FromResult(bool result, Process process = null)
         {
             return new ScriptExecutingResult { Process = process, ProcessResult = result };

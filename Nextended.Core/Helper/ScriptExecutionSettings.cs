@@ -1,5 +1,8 @@
 ﻿namespace Nextended.Core.Helper
 {
+    /// <summary>
+    /// Configuration settings for script execution, controlling visibility, output tracking, and process behavior.
+    /// </summary>
     public class ScriptExecutionSettings
     {
         //bool hidden = true, bool waitForProcessExit = true, 

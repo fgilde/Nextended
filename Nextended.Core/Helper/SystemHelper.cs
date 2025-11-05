@@ -2,8 +2,15 @@
 
 namespace Nextended.Core.Helper
 {
+    /// <summary>
+    /// Provides system-level utility methods for querying hardware and environment information.
+    /// </summary>
     public class SystemHelper
     {
+        /// <summary>
+        /// Determines whether the current system is running in a virtual machine.
+        /// </summary>
+        /// <returns>True if running in a virtual machine (VMware or Microsoft VM); otherwise, false.</returns>
 		public static bool IsVirtualMachine()
         {
             const string microsoftcorporation = "microsoft corporation";

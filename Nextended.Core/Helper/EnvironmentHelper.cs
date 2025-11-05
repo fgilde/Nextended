@@ -95,13 +95,17 @@ namespace Nextended.Core.Helper
 		}
 	}
 
+	/// <summary>
+	/// Provides a scope for temporarily setting environment variables that are automatically restored when disposed.
+	/// </summary>
 	public class EnvironmentSetScope: IDisposable
 	{
 		private readonly IDictionary<string, string> varsToSetBack;
 
 		/// <summary>
-		/// Initializes a new instance of the <see cref="T:System.Object"/> class.
+		/// Initializes a new instance of the EnvironmentSetScope class and sets the specified environment variables.
 		/// </summary>
+		/// <param name="varsToSet">A dictionary of environment variable names and values to set temporarily.</param>
 		public EnvironmentSetScope(IDictionary<string, string> varsToSet)
 		{
 			if (varsToSet != null)

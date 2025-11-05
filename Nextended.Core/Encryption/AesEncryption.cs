@@ -7,6 +7,10 @@ using Nextended.Core.Contracts;
 namespace Nextended.Core.Encryption
 {
 #if NETSTANDARD2_0
+    /// <summary>
+    /// Provides string encryption and decryption using the AES algorithm with PBKDF2 key derivation.
+    /// This implementation is optimized for .NET Standard 2.0.
+    /// </summary>
     public class AesEncryption : IStringEncryption
     {
         // Standard-Salt (Beispiel)
@@ -17,15 +21,22 @@ namespace Nextended.Core.Encryption
         };
 
         /// <summary>
-        /// Salt, kann bei Bedarf überschrieben werden.
+        /// Gets or sets the salt used for key derivation. Can be overridden if needed.
         /// </summary>
         public byte[] Salt { get; set; } = DefaultSalt;
 
         /// <summary>
-        /// Anzahl Iterationen für PBKDF2. 
+        /// Gets or sets the number of iterations for PBKDF2 key derivation. 
+        /// Default is 1223. Higher values increase security but reduce performance.
         /// </summary>
         public int Iterations { get; set; } = 1223;
 
+        /// <summary>
+        /// Encrypts the specified clear text using AES encryption with the provided key.
+        /// </summary>
+        /// <param name="clearText">The text to encrypt.</param>
+        /// <param name="key">The encryption key.</param>
+        /// <returns>The Base64-encoded encrypted string.</returns>
         public string Encrypt(string clearText, string key)
         {
             if (string.IsNullOrEmpty(clearText))
@@ -92,11 +103,26 @@ namespace Nextended.Core.Encryption
         }
     }
 #else
+    /// <summary>
+    /// Provides string encryption and decryption using the AES algorithm with PBKDF2-SHA512 key derivation.
+    /// This implementation uses modern .NET cryptographic APIs.
+    /// </summary>
     public class AesEncryption: IStringEncryption
     {
         private byte[] salt = { 0x19, 0x35, 0x11, 0x3e, 0x2a, 0x4d, 0x65, 0x64, 0x76, 0x65, 0x64, 0x65, 0x76 };
+        
+        /// <summary>
+        /// Gets or sets the number of iterations for PBKDF2 key derivation. 
+        /// Default is 1223. Higher values increase security but reduce performance.
+        /// </summary>
         public int Iterations { get; set; } = 1223;
 
+        /// <summary>
+        /// Encrypts the specified clear text using AES encryption with the provided key.
+        /// </summary>
+        /// <param name="clearText">The text to encrypt.</param>
+        /// <param name="key">The encryption key.</param>
+        /// <returns>The Base64-encoded encrypted string.</returns>
         public string Encrypt(string clearText, string key)
         {
             byte[] clearBytes = Encoding.Unicode.GetBytes(clearText);

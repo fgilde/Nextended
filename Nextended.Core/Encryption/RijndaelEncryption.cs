@@ -7,15 +7,26 @@ using Nextended.Core.Contracts;
 
 namespace Nextended.Core.Encryption
 {
+    /// <summary>
+    /// Provides string encryption and decryption using the Rijndael (AES) algorithm with CBC mode and PKCS7 padding.
+    /// </summary>
     public class RijndaelEncryption : IStringEncryption
     {
         private const int blockSize = 128;
         private const int Keysize = 128;
 
-        // This constant determines the number of iterations for the password bytes generation function.
+        /// <summary>
+        /// Gets or sets the number of iterations for the password bytes generation function.
+        /// Default is 1347. Higher values increase security but reduce performance.
+        /// </summary>
         public int Iterations { get; set; } = 1347;
 
-
+        /// <summary>
+        /// Encrypts the specified string using the Rijndael algorithm with the provided key.
+        /// </summary>
+        /// <param name="str">The string to encrypt.</param>
+        /// <param name="key">The encryption key.</param>
+        /// <returns>The Base64-encoded encrypted string.</returns>
         public string Encrypt(string str, string key)
         {
             var saltStringBytes = GenerateBitsOfRandomEntropy(blockSize);

@@ -6,8 +6,16 @@ using Nextended.Core.Types;
 
 namespace Nextended.Core.Helper
 {
+    /// <summary>
+    /// Provides utility methods for working with system processes, including retrieving process information 
+    /// such as executable paths and command-line arguments.
+    /// </summary>
     public class ProcessHelper
     {
+        /// <summary>
+        /// Gets a list of all running processes with their executable paths and command-line arguments.
+        /// </summary>
+        /// <returns>A list of SmallProcessInfo objects containing process details.</returns>
         public static IList<SmallProcessInfo> GetProcesses()
         {
             const string wmiQueryString = "SELECT ProcessId, ExecutablePath, CommandLine FROM Win32_Process";

@@ -15,7 +15,10 @@ using Nextended.Core.Types;
 
 namespace Nextended.Core.Helper
 {
-
+    /// <summary>
+    /// Provides utility methods for file and directory operations, including symbolic links, file locking detection, 
+    /// path manipulation, and file system operations with Windows shell integration.
+    /// </summary>
     public class FileHelper
     {
 
@@ -114,14 +117,36 @@ namespace Nextended.Core.Helper
             public IntPtr Monitor;
         }
 
+        /// <summary>
+        /// Structure that encapsulates information about file icons from the Windows shell.
+        /// </summary>
         [StructLayout(LayoutKind.Sequential)]
         public struct ShfileInfo
         {
+            /// <summary>
+            /// Handle to the icon.
+            /// </summary>
             public IntPtr hIcon;
+            
+            /// <summary>
+            /// Index of the icon.
+            /// </summary>
             public IntPtr iIcon;
+            
+            /// <summary>
+            /// File attributes.
+            /// </summary>
             public uint dwAttributes;
+            
+            /// <summary>
+            /// Display name of the file.
+            /// </summary>
             [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 260)]
             public string szDisplayName;
+            
+            /// <summary>
+            /// Type name of the file.
+            /// </summary>
             [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 80)]
             public string szTypeName;
         }
