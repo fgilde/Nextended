@@ -17,7 +17,8 @@ using YamlDotNet.Core.Tokens;
 namespace Nextended.Core.Helper
 {
 	/// <summary>
-	/// Classmapper
+	/// Provides object-to-object mapping functionality with support for type conversion, custom converters, and complex mapping scenarios.
+	/// The ClassMapper can automatically map properties between objects of different types, handling type conversions, nested objects, collections, and more.
 	/// </summary>
 	public class ClassMapper : IDisposable
 	{
