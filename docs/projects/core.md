@@ -351,6 +351,9 @@ Console.WriteLine(json);
 For a complete API reference, see:
 - [Extension Methods Reference](../api/extensions.md)
 - [Custom Types Reference](../api/types.md)
+- [Class Mapping Reference](../api/class-mapping.md)
+- [Helper Utilities Reference](../api/helpers.md)
+- [Encryption & Security Reference](../api/encryption.md)
 
 ## Related Projects
 
