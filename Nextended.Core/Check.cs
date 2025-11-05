@@ -9,7 +9,7 @@ using Nextended.Core.Helper;
 namespace Nextended.Core
 {
 	/// <summary>
-	/// Statische Klasse um bestimmte vorraussetzungen zu Prüfen
+	/// Static class to check certain preconditions
 	/// </summary>
 	public static class Check
 	{
@@ -32,10 +32,10 @@ namespace Nextended.Core
         }
 
         /// <summary>
-		/// Prüft ob die Bedingung <paramref name="condition"/> erfüllt ist. 
+		/// Checks if the condition <paramref name="condition"/> is met.
 		/// </summary>
-		/// <param name="condition">Bedingung die erfüllt sein muss, sonst wird eine Ausnahme geworfen</param>
-		/// <param name="exceptionCreateFactory">Methode um die exception zu erzeugen, die geworfen werden soll, wenn condition false ist</param>
+		/// <param name="condition">Condition that must be met, otherwise an exception is thrown</param>
+		/// <param name="exceptionCreateFactory">Method to create the exception to be thrown when condition is false</param>
 		public static void Requires(bool condition, Func<Exception> exceptionCreateFactory)
 		{
 			if (!condition)
@@ -43,11 +43,11 @@ namespace Nextended.Core
 		}
 
 		/// <summary>
-		/// Prüft ob die Bedingung <paramref name="condition"/> erfüllt ist. 
-		/// Wenn nicht wird eine Ausnahme vom <typeparamref name="TException"/> geworfen.
+		/// Checks if the condition <paramref name="condition"/> is met.
+		/// If not, an exception of type <typeparamref name="TException"/> is thrown.
 		/// </summary>
-		/// <typeparam name="TException">Typ der Ausnahme die geworfen werden soll</typeparam>
-		/// <param name="condition">Bedingung die erfüllt sein muss, sonst wird eine Ausnahme geworfen</param>
+		/// <typeparam name="TException">Type of exception to be thrown</typeparam>
+		/// <param name="condition">Condition that must be met, otherwise an exception is thrown</param>
 		public static void Requires<TException>(bool condition)
 			where TException : Exception, new()
 		{
@@ -56,12 +56,12 @@ namespace Nextended.Core
 		}
 
 		/// <summary>
-		/// Prüft ob die Bedingung <paramref name="condition" /> erfüllt ist.
-		/// Wenn nicht wird eine Ausnahme vom <typeparamref name="TException" /> geworfen.
+		/// Checks if the condition <paramref name="condition" /> is met.
+		/// If not, an exception of type <typeparamref name="TException" /> is thrown.
 		/// </summary>
-		/// <typeparam name="TException">Typ der Ausnahme die geworfen werden soll</typeparam>
-		/// <param name="condition">Bedingung die erfüllt sein muss, sonst wird eine Ausnahme geworfen</param>
-		/// <param name="message">Fehlermedlung</param>
+		/// <typeparam name="TException">Type of exception to be thrown</typeparam>
+		/// <param name="condition">Condition that must be met, otherwise an exception is thrown</param>
+		/// <param name="message">Error message</param>
 		public static void Requires<TException>(bool condition, string message)
 			where TException : Exception
 		{
@@ -70,9 +70,9 @@ namespace Nextended.Core
 		}
 
 		/// <summary>
-		/// Prüft ob einer der <c>parameter</c> null ist.
+		/// Checks if any of the <c>parameter</c> is null.
 		/// </summary>
-		/// <exception cref="System.ArgumentNullException">Falls <code>parameter</code> null ist.</exception>
+		/// <exception cref="System.ArgumentNullException">If <code>parameter</code> is null.</exception>
 		public static void NotNull(Expression<Func<object>> expression1, Expression<Func<object>> expression2,
 			params Expression<Func<object>>[] parameters)
 		{
@@ -84,10 +84,10 @@ namespace Nextended.Core
 		}
 
 		/// <summary>
-		/// Prüft ob ein <c>parameter</c> null ist.
+		/// Checks if a <c>parameter</c> is null.
 		/// </summary>
-		/// <exception cref="System.ArgumentNullException">Falls <code>parameter</code> null ist.</exception>
-		/// <param name="parameter">Ausdruck des zu prüfenden Objektes z.B ()=>name</param>
+		/// <exception cref="System.ArgumentNullException">If <code>parameter</code> is null.</exception>
+		/// <param name="parameter">Expression of the object to be checked e.g. ()=>name</param>
 		public static T NotNull<T>(Expression<Func<T>> parameter)
 		{
 			var parameterToCheck = parameter.Compile()();
@@ -100,11 +100,11 @@ namespace Nextended.Core
 		}
 
 		/// <summary>
-		/// Prüft ob ein <c>parameter</c> null ist.
+		/// Checks if a <c>parameter</c> is null.
 		/// </summary>
-		/// <exception cref="System.ArgumentNullException">Falls <code>parameter</code> null ist.</exception>
-		/// <param name="parameter">Das zu prüfende Objekt</param>
-		/// <param name="parameterName">Name des Parameters</param>
+		/// <exception cref="System.ArgumentNullException">If <code>parameter</code> is null.</exception>
+		/// <param name="parameter">The object to be checked</param>
+		/// <param name="parameterName">Name of the parameter</param>
 		public static void NotNull(object parameter, string parameterName)
 		{
 			if (parameter == null)
@@ -112,7 +112,7 @@ namespace Nextended.Core
 		}
 
 		/// <summary>
-		/// Prüft ob ein <see cref="Guid"/> is leer (Empty)
+		/// Checks if a <see cref="Guid"/> is empty
 		/// </summary>
 		/// <param name="parameter">The parameter.</param>
 		/// <param name="parameterName">Name of the parameter.</param>
@@ -123,7 +123,7 @@ namespace Nextended.Core
 		}
 
 		/// <summary>
-		/// Prüft ob ein <c>parameter</c> null or leer ist.
+		/// Checks if a <c>parameter</c> is null or empty.
 		/// </summary>
 		/// <param name="parameter">The parameter.</param>
 		/// <param name="parameterName">Name of the parameter.</param>
@@ -135,7 +135,7 @@ namespace Nextended.Core
 
 
 		/// <summary>
-		/// Prüft ob das Betribssystem mindestens Vista ist
+		/// Checks if the operating system is at least Vista
 		/// </summary>
 		public static void IsVistaOrHigher()
 		{
@@ -144,7 +144,7 @@ namespace Nextended.Core
 		}
 
 		/// <summary>
-		/// Führt den code block in einem trycatch aus, und wirft ggf die Exception
+		/// Executes the code block in a try-catch and throws the exception if necessary
 		/// </summary>
 		public static TResult? TryCatch<TResult, TException>(Func<TResult> block, Func<TException, Exception>? onException = null)
 			where TException : Exception
@@ -162,13 +162,13 @@ namespace Nextended.Core
 		}
 
 		/// <summary>
-		/// 
+		/// Executes the code block asynchronously in a try-catch and throws the exception if necessary
 		/// </summary>
-		/// <param name="block"></param>
-		/// <param name="onException"></param>
-		/// <typeparam name="TResult"></typeparam>
-		/// <typeparam name="TException"></typeparam>
-		/// <returns></returns>
+		/// <param name="block">The code block to execute</param>
+		/// <param name="onException">Optional exception handler</param>
+		/// <typeparam name="TResult">The result type</typeparam>
+		/// <typeparam name="TException">The exception type to catch</typeparam>
+		/// <returns>A task representing the asynchronous operation</returns>
 		public static async Task TryCatchAsync<TResult, TException>(Func<TResult> block, Func<TException, Exception>? onException = null)
 			where TException : Exception
 		{
@@ -176,12 +176,12 @@ namespace Nextended.Core
 		}
 
 		/// <summary>
-		///  Führt den code block in einem trycatch aus, und wirft ggf die Exception
+		/// Executes the code block asynchronously in a try-catch and throws the exception if necessary
 		/// </summary>
-		/// <param name="block"></param>
-		/// <param name="onException"></param>
-		/// <typeparam name="TException"></typeparam>
-		/// <returns></returns>
+		/// <param name="block">The code block to execute</param>
+		/// <param name="onException">Optional exception handler</param>
+		/// <typeparam name="TException">The exception type to catch</typeparam>
+		/// <returns>A task representing the asynchronous operation</returns>
 		public static async Task TryCatchAsync<TException>(Action block, Func<TException, Exception>? onException = null)
 			where TException : Exception
 		{
@@ -189,14 +189,14 @@ namespace Nextended.Core
 		}
 
 		/// <summary>
-		///  Führt den code block in einem trycatch aus, und wirft ggf die Exception
+		/// Executes the task in a try-catch and throws the exception if necessary
 		/// </summary>
-		/// <param name="task"></param>
-		/// <param name="onException"></param>
-		/// <param name="cancellation"></param>
-		/// <typeparam name="TResult"></typeparam>
-		/// <typeparam name="TException"></typeparam>
-		/// <returns></returns>
+		/// <param name="task">The task to execute</param>
+		/// <param name="onException">Optional exception handler</param>
+		/// <param name="cancellation">Cancellation token</param>
+		/// <typeparam name="TResult">The result type</typeparam>
+		/// <typeparam name="TException">The exception type to catch</typeparam>
+		/// <returns>A task representing the asynchronous operation with the result</returns>
 		/// <exception cref="Exception"></exception>
 		public static async Task<TResult?> TryCatchAsync<TResult, TException>(Task<TResult> task,
 			Func<TException, Exception>? onException = null, CancellationToken cancellation = default(CancellationToken))
@@ -215,12 +215,12 @@ namespace Nextended.Core
 		}
 
 		/// <summary>
-		///  Führt den code block in einem trycatch aus, und wirft ggf die Exception
+		/// Executes the task in a try-catch and throws the exception if necessary
 		/// </summary>
-		/// <param name="block"></param>
-		/// <param name="onException"></param>
-		/// <typeparam name="TException"></typeparam>
-		/// <returns></returns>
+		/// <param name="block">The task to execute</param>
+		/// <param name="onException">Optional exception handler</param>
+		/// <typeparam name="TException">The exception type to catch</typeparam>
+		/// <returns>A task representing the asynchronous operation</returns>
 		/// <exception cref="Exception"></exception>
 		public static async Task TryCatchAsync<TException>(Task block, Func<TException, Exception>? onException = null)
 			where TException : Exception
@@ -237,7 +237,7 @@ namespace Nextended.Core
 		}
 
 		/// <summary>
-		/// Führt den code block in einem trycatch aus, und wirft ggf die Exception
+		/// Executes the code block in a try-catch and throws the exception if necessary
 		/// </summary>
 		public static void TryCatch<TException>(Action block, Func<TException, Exception>? onException = null)
 			where TException : Exception

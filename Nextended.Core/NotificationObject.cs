@@ -9,7 +9,7 @@ using System.Runtime.Serialization;
 namespace Nextended.Core
 {
 	/// <summary>
-	/// <see cref="INotifyPropertyChanged"/> und <see cref="INotifyPropertyChanging"/> implementierung
+	/// Implementation of <see cref="INotifyPropertyChanged"/> and <see cref="INotifyPropertyChanging"/>
 	/// </summary>
 	[Serializable]
 	[DataContract]

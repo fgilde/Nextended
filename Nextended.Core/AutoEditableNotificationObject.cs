@@ -13,7 +13,7 @@ namespace Nextended.Core
 		private readonly PropertyWatcher watcher;
 
 		/// <summary>
-		/// Wird ausgelöst sobald sich die Eigenschaft ändert
+		/// Occurs when a property changes, providing detailed information about the change
 		/// </summary>
 		public event EventHandler<PropertyChangedEventArgs<object>> PropertyChangedDetailed;
 
