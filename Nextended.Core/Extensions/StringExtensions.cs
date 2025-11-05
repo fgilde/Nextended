@@ -8,6 +8,9 @@ using System.Text.RegularExpressions;
 
 namespace Nextended.Core.Extensions
 {
+    /// <summary>
+    /// Specifies how characters should be matched when checking if a string contains certain characters.
+    /// </summary>
     public enum ContainsType
     {
         /// <summary>

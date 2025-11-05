@@ -2,6 +2,9 @@
 
 namespace Nextended.Core.Enums;
 
+/// <summary>
+/// Specifies the access modifier for generated code (public, private, protected, or internal).
+/// </summary>
 public enum Modifier
 {
     Unset,

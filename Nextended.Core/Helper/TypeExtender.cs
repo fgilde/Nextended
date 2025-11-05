@@ -6,6 +6,10 @@ using System.Reflection.Emit;
 
 namespace Nextended.Core.Helper;
 
+/// <summary>
+/// Provides functionality to dynamically create and extend types at runtime using System.Reflection.Emit.
+/// This class allows you to build new types with properties, fields, and attributes programmatically.
+/// </summary>
 public class TypeExtender
 {
     /// <summary>
