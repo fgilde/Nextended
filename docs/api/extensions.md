@@ -93,11 +93,15 @@ Located in `Nextended.Core.Extensions.ObjectExtensions`
 
 ### Mapping
 
+See the [Class Mapping Reference](class-mapping.md) for comprehensive documentation, examples, and usage scenarios.
+
 | Method | Description |
 |--------|-------------|
 | `MapTo<TTarget>()` | Maps object to target type |
 | `MapTo<TTarget>(ClassMappingSettings)` | Maps with custom settings |
 | `MapTo<TTarget>(TTarget target)` | Maps to existing instance |
+| `MapToAsync<TTarget>()` | Maps object asynchronously |
+| `MapElementsTo<T>()` | Maps each element in collection |
 
 ### Cloning
 

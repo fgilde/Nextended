@@ -77,13 +77,19 @@ var properties = type.GetPublicProperties();
 - Property access and manipulation
 - Conversion utilities
 - Null-safe operations
+- Object-to-object mapping
 
 ```csharp
 var original = new MyClass { Name = "Test" };
 var clone = original.DeepClone();
 
 object value = myObject.GetPropertyValue("PropertyName");
+
+// Map between different types
+var dto = entity.MapTo<EntityDto>();
 ```
+
+See the [Class Mapping Reference](../api/class-mapping.md) for comprehensive mapping documentation.
 
 #### Task Extensions
 - Async/await utilities

@@ -422,7 +422,8 @@ public class ProductsController : ControllerBase
 
 ## Next Steps
 
-- Explore [Class Mapping Examples](class-mapping.md)
+- Explore [Class Mapping Reference](../api/class-mapping.md)
 - Learn about [Custom Types](custom-types.md)
 - See [Code Generation Examples](code-generation.md)
-- Review [API Reference](../api/extensions.md)
+- Review [Extension Methods API Reference](../api/extensions.md)
+- Review [Custom Types API Reference](../api/types.md)
