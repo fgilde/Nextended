@@ -16,16 +16,40 @@ namespace Nextended.Core.Extensions
 	{
         static readonly object lockObj = new object();
 
+		/// <summary>
+		/// Gets the index of the specified object in the array
+		/// </summary>
+		/// <typeparam name="T">The type of elements in the array</typeparam>
+		/// <param name="array">The array to search</param>
+		/// <param name="obj">The object to locate</param>
+		/// <returns>The zero-based index of the object, or -1 if not found</returns>
 		public static int IndexOf<T>(this T[] array, T obj)
         {
             return Array.IndexOf(array, obj);
         }
 
+		/// <summary>
+		/// Orders a sequence by a key selector in the specified direction
+		/// </summary>
+		/// <typeparam name="TSource">The type of the elements of source</typeparam>
+		/// <typeparam name="TKey">The type of the key returned by keySelector</typeparam>
+		/// <param name="source">A sequence of values to order</param>
+		/// <param name="keySelector">A function to extract a key from an element</param>
+		/// <param name="direction">The sort direction</param>
+		/// <returns>An ordered sequence</returns>
 		public static IOrderedEnumerable<TSource> Order<TSource, TKey>(this IEnumerable<TSource> source, Func<TSource, TKey> keySelector, ListSortDirection direction)
         {
             return direction == ListSortDirection.Ascending ? source.OrderBy(keySelector) : source.OrderByDescending(keySelector);
         }
 
+		/// <summary>
+		/// Gets the value associated with the specified key, or null if the key is not found
+		/// </summary>
+		/// <typeparam name="T">The type of the keys in the dictionary</typeparam>
+		/// <typeparam name="TU">The type of the values in the dictionary</typeparam>
+		/// <param name="dict">The dictionary</param>
+		/// <param name="key">The key to locate</param>
+		/// <returns>The value if found; otherwise, null</returns>
 		public static TU Get<T, TU>(this Dictionary<T, TU> dict, T key)
             where TU : class
         {
@@ -91,7 +115,14 @@ namespace Nextended.Core.Extensions
             return source;
         }
 
-
+        /// <summary>
+        /// Merges multiple dictionaries into the current dictionary
+        /// </summary>
+        /// <typeparam name="TKey">The type of the keys</typeparam>
+        /// <typeparam name="TValue">The type of the values</typeparam>
+        /// <param name="collection">The dictionary to merge into</param>
+        /// <param name="collections">The dictionaries to merge from</param>
+        /// <returns>The merged dictionary</returns>
         public static IDictionary<TKey, TValue> MergeWith<TKey, TValue>(this IDictionary<TKey, TValue> collection, params IDictionary<TKey, TValue>[] collections)
         {
             foreach (var value in collections.SelectMany(dictionary => dictionary))
@@ -101,6 +132,15 @@ namespace Nextended.Core.Extensions
             return collection;
         }
 
+        /// <summary>
+        /// Adds a key-value pair to the dictionary if the key does not exist, or updates the value if the key exists
+        /// </summary>
+        /// <typeparam name="TKey">The type of the keys</typeparam>
+        /// <typeparam name="TSource">The type of the values</typeparam>
+        /// <param name="collection">The dictionary</param>
+        /// <param name="key">The key to add or update</param>
+        /// <param name="value">The value to add or update</param>
+        /// <returns>The updated dictionary</returns>
         public static IDictionary<TKey, TSource> AddOrUpdate<TKey, TSource>(this IDictionary<TKey, TSource> collection, TKey key, TSource value)
         {
             if (collection.ContainsKey(key))
