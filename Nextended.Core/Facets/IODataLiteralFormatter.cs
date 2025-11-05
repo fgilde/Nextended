@@ -4,6 +4,9 @@ using System.Globalization;
 
 namespace Nextended.Core.Facets;
 
+/// <summary>
+/// Provides formatting of CLR values to OData v4 literal representations for use in $filter expressions.
+/// </summary>
 public interface IODataLiteralFormatter
 {
     /// <summary>Formats a CLR value to an OData literal (v4) suitable for $filter.</summary>

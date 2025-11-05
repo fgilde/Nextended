@@ -2,6 +2,9 @@
 
 namespace Nextended.Core.Facets;
 
+/// <summary>
+/// Represents a dependency relationship between facet groups, where one group's availability depends on selections in another group.
+/// </summary>
 public class FacetDependency
 {
     /// <summary>
