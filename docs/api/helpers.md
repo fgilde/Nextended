@@ -403,14 +403,15 @@ Provides utility methods for working with enumerations.
 
 Generic helper class for enum operations:
 
-| Method | Description |
-|--------|-------------|
-| `Values` | Gets all enum values |
+| Property/Method | Description |
+|-----------------|-------------|
+| `Values` | Property that gets all enum values |
 | `Parse(string name)` | Parses string to enum |
 | `TryParse(string name)` | Safe parse with null return |
 | `GetName(T value)` | Gets name of enum value |
 | `GetDictionary()` | Gets enum as dictionary |
 | `GetAttributes<TAttribute>(T value)` | Gets custom attributes |
+| `DescriptionFor(T value)` | Gets description attribute value |
 
 ### Example Usage
 

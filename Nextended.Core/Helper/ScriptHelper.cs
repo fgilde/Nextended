@@ -35,6 +35,11 @@ namespace Nextended.Core.Helper
             return Task.Run(() => ExecuteScript(fileName, arguments, settings, onDataReceived, onError, cancellationToken), cancellationToken);
         }
 
+        /// <summary>
+        /// Determines whether the specified file is a PowerShell script based on its extension.
+        /// </summary>
+        /// <param name="filename">The file path to check.</param>
+        /// <returns>True if the file is a PowerShell script (.ps1, .psm1, .psd1, .ps1xml); otherwise, false.</returns>
         public static bool IsPowerShell(string filename)
         {
             string[] extensions = { ".ps1", "psm1", "psd1", "ps1xml" };
@@ -42,6 +47,16 @@ namespace Nextended.Core.Helper
             return !string.IsNullOrEmpty(extension) && extensions.Contains(extension.ToLower());
         }
 
+        /// <summary>
+        /// Synchronously executes a script or command with the specified arguments and settings.
+        /// </summary>
+        /// <param name="fileName">The path to the script or executable to run.</param>
+        /// <param name="arguments">Command-line arguments to pass to the script.</param>
+        /// <param name="settings">Execution settings that control process behavior.</param>
+        /// <param name="onDataReceived">Optional callback for standard output data.</param>
+        /// <param name="onError">Optional callback for error output data.</param>
+        /// <param name="cancellationToken">Cancellation token to stop execution.</param>
+        /// <returns>The execution result containing the process and success status.</returns>
         public static ScriptExecutingResult ExecuteScript(string fileName, string arguments,
             ScriptExecutionSettings settings,
             Action<string> onDataReceived = null, Action<string> onError = null,

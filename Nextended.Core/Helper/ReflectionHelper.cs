@@ -1049,6 +1049,10 @@ namespace Nextended.Core.Helper
 		/// Match types that are assignable to the target type.
 		/// </summary>
 		IsAssignableTo,
+		
+		/// <summary>
+		/// Match types that the target type is assignable from.
+		/// </summary>
 		IsAssignableFrom
 	}
 }
