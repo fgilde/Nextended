@@ -171,6 +171,13 @@ namespace Nextended.Core.Extensions
             return source;
         }
 
+        /// <summary>
+        /// Removes the specified value from the concurrent bag
+        /// </summary>
+        /// <typeparam name="T">The type of elements in the bag</typeparam>
+        /// <param name="bag">The concurrent bag</param>
+        /// <param name="value">The value to remove</param>
+        /// <returns>A new concurrent bag without the specified value</returns>
         public static ConcurrentBag<T> Remove<T>(this ConcurrentBag<T> bag, T value)
         {
             if (value != null && bag.Contains(value))
@@ -183,6 +190,13 @@ namespace Nextended.Core.Extensions
             return bag;
         }
 
+		/// <summary>
+		/// Removes multiple items from the collection
+		/// </summary>
+		/// <typeparam name="TSource">The type of elements in the collection</typeparam>
+		/// <param name="source">The collection</param>
+		/// <param name="itemsToRemove">The items to remove</param>
+		/// <returns>The modified collection</returns>
 		public static ICollection<TSource> RemoveRange<TSource>(this ICollection<TSource> source, IEnumerable<TSource> itemsToRemove)
         {
             foreach (var item in itemsToRemove)
@@ -219,6 +233,13 @@ namespace Nextended.Core.Extensions
             return items;
 		}
 		
+        /// <summary>
+        /// Applies the specified action to each item in the collection along with its index
+        /// </summary>
+        /// <typeparam name="T">The type of elements in the collection</typeparam>
+        /// <param name="enumerable">The enumerable collection</param>
+        /// <param name="action">The action to apply, receiving the index and item</param>
+        /// <returns>The original collection</returns>
         public static IEnumerable<T> Apply<T>(this IEnumerable<T> enumerable, Action<int, T> action)
         {
             var items = enumerable.ToSafeEnumeration();
@@ -231,17 +252,35 @@ namespace Nextended.Core.Extensions
             return items;
         }
 
+        /// <summary>
+        /// Applies the specified action to each item in the non-generic enumerable collection
+        /// </summary>
+        /// <param name="enumerable">The enumerable collection</param>
+        /// <param name="action">The action to apply to each item</param>
+        /// <returns>The original collection</returns>
         public static IEnumerable Apply(this IEnumerable enumerable, Action<object> action)
         {
             enumerable.Cast<object>().Apply(action);
             return enumerable;
         }
 
+        /// <summary>
+        /// Applies the specified action to each item in the non-generic enumerable collection along with its index
+        /// </summary>
+        /// <param name="enumerable">The enumerable collection</param>
+        /// <param name="action">The action to apply, receiving the index and item</param>
+        /// <returns>The original collection</returns>
         public static IEnumerable Apply(this IEnumerable enumerable, Action<int, object> action)
         {
             return enumerable.Cast<object>().Apply(action);
         }
 
+		/// <summary>
+		/// Converts the enumerable to an array, or returns null if the enumerable is null
+		/// </summary>
+		/// <typeparam name="T">The type of elements in the collection</typeparam>
+		/// <param name="enumerable">The enumerable collection</param>
+		/// <returns>An array of elements, or null if the input is null</returns>
 		public static T[] ToSafeEnumeration<T>(this IEnumerable<T> enumerable)
         {
             if (enumerable.IsNull())
@@ -252,6 +291,12 @@ namespace Nextended.Core.Extensions
             return enumerable as T[] ?? enumerable.ToArray();
         }
 
+		/// <summary>
+		/// Converts the enumerable collection to a DataTable
+		/// </summary>
+		/// <typeparam name="T">The type of elements in the collection</typeparam>
+		/// <param name="source">The enumerable collection</param>
+		/// <returns>A DataTable representation of the collection</returns>
 		public static DataTable AsDataTable<T>(this IEnumerable<T> source)
 		{
 			var dataTableResult = new DataTable();
@@ -296,6 +341,12 @@ namespace Nextended.Core.Extensions
 			return enumerable == null || !enumerable.Any(predicate);
 		}
 		
+        /// <summary>
+        /// Returns an empty enumerable if the collection is null; otherwise returns the collection
+        /// </summary>
+        /// <typeparam name="T">The type of elements in the collection</typeparam>
+        /// <param name="collection">The collection to check</param>
+        /// <returns>The collection or an empty enumerable</returns>
         public static IEnumerable<T> EmptyIfNull<T>(this IEnumerable<T> collection)
 		{
 			return collection ?? Enumerable.Empty<T>();
@@ -318,11 +369,25 @@ namespace Nextended.Core.Extensions
 			return collection?.Any() == true ? collection : null;
 		}
 
+		/// <summary>
+		/// Returns null if the list is null or empty; otherwise returns the list
+		/// </summary>
+		/// <typeparam name="T">The type of elements in the list</typeparam>
+		/// <param name="collection">The list to check</param>
+		/// <returns>The list or null if empty</returns>
 		public static IList<T> NullIfEmpty<T>(this IList<T> collection)
 		{
 			return (IList<T>)NullIfEmpty((ICollection<T>)collection);
 		}
 
+		/// <summary>
+		/// Throws an ArgumentNullException if the enumerable is null or empty
+		/// </summary>
+		/// <typeparam name="T">The type of elements in the collection</typeparam>
+		/// <param name="items">The enumerable to check</param>
+		/// <param name="paramName">The name of the parameter for the exception message</param>
+		/// <returns>The original enumerable if not null or empty</returns>
+		/// <exception cref="ArgumentNullException">Thrown if items is null or empty</exception>
 		public static IEnumerable<T> ThrowIfNullOrEmpty<T>(this IEnumerable<T> items, string paramName)
 		{
 			if (items.IsNullOrEmpty())
