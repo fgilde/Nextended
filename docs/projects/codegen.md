@@ -646,8 +646,8 @@ Complete reference for generating classes from JSON and XML files.
 
 **Basic Configuration File:**
 
+**appsettings.json:**
 ```json
-// appsettings.json
 {
   "Database": {
     "ConnectionString": "Server=localhost;Database=MyDb;",
@@ -732,8 +732,8 @@ var config = new AppSettings
 
 **Complex JSON Structure:**
 
+**users.json:**
 ```json
-// users.json
 {
   "users": [
     {
