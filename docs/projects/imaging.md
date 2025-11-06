@@ -1,3 +1,10 @@
+---
+layout: default
+title: Nextended.Imaging
+parent: Projects
+nav_order: 3
+---
+
 # Nextended.Imaging
 
 Image processing and manipulation utilities for .NET applications.

@@ -1,3 +1,10 @@
+---
+layout: default
+title: Helper Utilities
+parent: API Reference
+nav_order: 4
+---
+
 # Helper Utilities Reference
 
 This page provides an overview of the helper utility classes available in Nextended.Core.Helper.

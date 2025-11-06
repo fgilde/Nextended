@@ -71,7 +71,8 @@ The documentation is automatically deployed to GitHub Pages using GitHub Actions
    - Manual deployment can be triggered via the Actions tab
 
 3. **Jekyll Theme**:
-   - Theme: `jekyll-theme-cayman`
+   - Theme: `just-the-docs` (ReadTheDocs-like styling)
+   - Built-in search functionality
    - Configured in `_config.yml`
 
 ## 🤝 Contributing to Documentation

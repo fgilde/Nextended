@@ -1,3 +1,10 @@
+---
+layout: default
+title: Nextended.UI
+parent: Projects
+nav_order: 8
+---
+
 # Nextended.UI
 
 WPF and Windows Forms utilities for desktop application development.

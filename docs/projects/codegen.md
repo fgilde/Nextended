@@ -1,3 +1,10 @@
+---
+layout: default
+title: Nextended.CodeGen
+parent: Projects
+nav_order: 5
+---
+
 # Nextended.CodeGen
 
 Compile-time source code generation from various sources including classes, JSON, XML, and Excel files.

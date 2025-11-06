@@ -1,3 +1,10 @@
+---
+layout: default
+title: Common Use Cases
+parent: Examples
+nav_order: 1
+---
+
 # Common Use Cases
 
 This guide demonstrates common scenarios and use cases for Nextended libraries.

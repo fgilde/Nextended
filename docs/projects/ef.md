@@ -1,3 +1,10 @@
+---
+layout: default
+title: Nextended.EF
+parent: Projects
+nav_order: 1
+---
+
 # Nextended.EF
 
 Entity Framework Core extensions for enhanced database operations and query capabilities.

@@ -1,3 +1,10 @@
+---
+layout: default
+title: Nextended.Cache
+parent: Projects
+nav_order: 10
+---
+
 # Nextended.Cache
 
 Caching utilities and extensions for simplified caching operations in .NET applications.

@@ -1,3 +1,10 @@
+---
+layout: default
+title: Migration from nExt
+parent: Guides
+nav_order: 3
+---
+
 # Migration Guide from nExt to Nextended
 
 This guide helps you migrate from the legacy nExt package to Nextended.

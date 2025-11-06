@@ -1,3 +1,10 @@
+---
+layout: default
+title: Nextended.Blazor
+parent: Projects
+nav_order: 6
+---
+
 # Nextended.Blazor
 
 Blazor-specific helpers, extensions, and utilities for building modern web applications.
