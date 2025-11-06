@@ -1,3 +1,10 @@
+---
+layout: default
+title: Nextended.Web
+parent: Projects
+nav_order: 7
+---
+
 # Nextended.Web
 
 ASP.NET Core and web application helpers, extensions, and utilities.

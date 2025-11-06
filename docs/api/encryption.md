@@ -1,3 +1,10 @@
+---
+layout: default
+title: Encryption & Security
+parent: API Reference
+nav_order: 5
+---
+
 # Encryption and Security Reference
 
 This page documents the encryption and security utilities available in Nextended.Core.

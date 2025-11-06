@@ -1,3 +1,10 @@
+---
+layout: default
+title: Custom Types
+parent: API Reference
+nav_order: 2
+---
+
 # Custom Types Reference
 
 This page documents the custom types provided by Nextended.Core.

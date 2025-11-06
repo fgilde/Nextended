@@ -1,3 +1,10 @@
+---
+layout: default
+title: Architecture
+parent: Guides
+nav_order: 2
+---
+
 # Architecture Overview
 
 ## Solution Structure

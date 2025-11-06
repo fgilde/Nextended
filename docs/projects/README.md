@@ -1,3 +1,11 @@
+---
+layout: default
+title: Projects
+nav_order: 2
+has_children: true
+permalink: /projects
+---
+
 # Nextended Projects
 
 This document provides an overview of all projects in the Nextended solution.

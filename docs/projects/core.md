@@ -1,3 +1,10 @@
+---
+layout: default
+title: Nextended.Core
+parent: Projects
+nav_order: 2
+---
+
 # Nextended.Core
 
 The foundation library providing essential extension methods, custom types, and utilities for .NET development.

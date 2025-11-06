@@ -1,3 +1,11 @@
+---
+layout: default
+title: Home
+nav_order: 1
+description: "Nextended - A comprehensive .NET library suite providing powerful extension methods, types, and utilities"
+permalink: /
+---
+
 # Nextended
 
 [![NuGet](https://img.shields.io/nuget/v/Nextended.Core.svg)](https://www.nuget.org/packages/Nextended.Core/)

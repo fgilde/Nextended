@@ -1,3 +1,10 @@
+---
+layout: default
+title: Nextended.Aspire
+parent: Projects
+nav_order: 9
+---
+
 # Nextended.Aspire
 
 Extensions for .NET Aspire distributed application framework.

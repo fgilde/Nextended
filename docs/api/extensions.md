@@ -1,3 +1,10 @@
+---
+layout: default
+title: Extension Methods
+parent: API Reference
+nav_order: 1
+---
+
 # Extension Methods Reference
 
 This page provides an overview of the extension methods available in Nextended.Core.
