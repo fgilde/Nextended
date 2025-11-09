@@ -2,7 +2,7 @@
 
 ## Repository Overview
 
-Nextended (formerly nExt) is a comprehensive suite of .NET libraries providing powerful extension methods, custom types, utilities, and code generation tools. The library targets multiple .NET versions including netstandard2.0, netstandard2.1, net8.0, and net9.0.
+Nextended (formerly nExt) is a comprehensive suite of .NET libraries providing powerful extension methods, custom types, utilities, and code generation tools. The library targets multiple .NET versions including netstandard2.0, netstandard2.1, net8.0, net9.0, and net10.0 (when available).
 
 ### Main Packages
 
@@ -52,7 +52,7 @@ Build the entire solution:
 dotnet build Nextended.sln
 ```
 
-**Note**: On non-Windows platforms, the `Nextended.UI` project (which targets `net8.0-windows` and `net9.0-windows`) cannot be built. You can either:
+**Note**: On non-Windows platforms, the `Nextended.UI` project (which targets `net8.0-windows`, `net9.0-windows`, and `net10.0-windows` when available) cannot be built. You can either:
 - Build individual projects: `dotnet build Nextended.Core/Nextended.Core.csproj`
 - Use the `--filter` option to exclude Windows-specific projects
 - Build on Windows to include all projects
@@ -153,7 +153,7 @@ Nextended/
 - Use C# latest language version (specified in project files)
 - Follow .NET naming conventions (PascalCase for types/methods, camelCase for parameters/variables)
 - Enable nullable reference types (`<Nullable>enable</Nullable>`)
-- Target multiple frameworks when possible (netstandard2.0, netstandard2.1, net8.0, net9.0)
+- Target multiple frameworks when possible (netstandard2.0, netstandard2.1, net8.0, net9.0, net10.0)
 - Use conditional compilation symbols when framework-specific code is needed
 
 ### Code Style
@@ -186,7 +186,9 @@ All projects inherit from:
 When adding framework-specific code, use conditional compilation:
 
 ```csharp
-#if NET9_0
+#if NET10_0
+    // .NET 10 specific code
+#elif NET9_0
     // .NET 9 specific code
 #elif NET8_0
     // .NET 8 specific code

@@ -19,7 +19,7 @@ Nextended.UI provides comprehensive utilities, behaviors, and helpers for buildi
 dotnet add package Nextended.UI
 ```
 
-**Note**: This package is Windows-only and targets `net8.0-windows` and `net9.0-windows`.
+**Note**: This package is Windows-only and targets `net8.0-windows`, `net9.0-windows`, and `net10.0-windows` (when available).
 
 ## Key Features
 
@@ -450,6 +450,7 @@ public partial class App : Application
 
 - .NET 8.0 (Windows)
 - .NET 9.0 (Windows)
+- .NET 10.0 (Windows) - when available
 
 ## Platform Support
 

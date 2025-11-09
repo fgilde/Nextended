@@ -5,7 +5,7 @@
 
 A comprehensive suite of .NET libraries providing powerful extension methods, custom types, utilities, and code generation tools.
 
-> **Note**: This library was previously known as "nExt". It has been renamed to Nextended with full support for modern .NET versions including .NET 8 and .NET 9.
+> **Note**: This library was previously known as "nExt". It has been renamed to Nextended with full support for modern .NET versions including .NET 8, .NET 9, and .NET 10 (when available).
 
 ## 📦 Package Ecosystem
 
