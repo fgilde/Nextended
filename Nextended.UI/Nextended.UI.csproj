@@ -2,7 +2,11 @@
   <Import Project="..\Shared.props" />
 
   <PropertyGroup>
-    <TargetFrameworks>net8.0-windows; net9.0-windows; net10.0-windows</TargetFrameworks>
+    <!-- Define base target frameworks that are always supported -->
+    <_UIBaseTargetFrameworks>net8.0-windows; net9.0-windows</_UIBaseTargetFrameworks>
+    <!-- Add net10.0-windows when SDK 10.0 or higher is available -->
+    <TargetFrameworks Condition="$([MSBuild]::VersionGreaterThanOrEquals('$(NETCoreSdkVersion)', '10.0'))">$(_UIBaseTargetFrameworks); net10.0-windows</TargetFrameworks>
+    <TargetFrameworks Condition="!$([MSBuild]::VersionGreaterThanOrEquals('$(NETCoreSdkVersion)', '10.0'))">$(_UIBaseTargetFrameworks)</TargetFrameworks>
     <OutputType>Library</OutputType>
     <SccProjectName>SAK</SccProjectName>
     <SccLocalPath>SAK</SccLocalPath>

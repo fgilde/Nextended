@@ -4,7 +4,11 @@
   <Import Project="Package.props" />
   <PropertyGroup>
     <!--<TargetFramework>net10.0</TargetFramework>-->
-    <TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
+    <!-- Define base target frameworks that are always supported -->
+    <_BaseTargetFrameworks>net8.0;net9.0</_BaseTargetFrameworks>
+    <!-- Add net10.0 when SDK 10.0 or higher is available -->
+    <TargetFrameworks Condition="$([MSBuild]::VersionGreaterThanOrEquals('$(NETCoreSdkVersion)', '10.0'))">$(_BaseTargetFrameworks);net10.0</TargetFrameworks>
+    <TargetFrameworks Condition="!$([MSBuild]::VersionGreaterThanOrEquals('$(NETCoreSdkVersion)', '10.0'))">$(_BaseTargetFrameworks)</TargetFrameworks>
     <LangVersion>latest</LangVersion>
     <Nullable>enable</Nullable>
   </PropertyGroup>

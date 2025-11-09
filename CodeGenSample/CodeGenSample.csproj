@@ -2,7 +2,9 @@
   <Import Project="..\Version.props" />
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net10.0</TargetFramework>
+    <!-- Use net10.0 when SDK 10.0 or higher is available, otherwise use net9.0 -->
+    <TargetFramework Condition="$([MSBuild]::VersionGreaterThanOrEquals('$(NETCoreSdkVersion)', '10.0'))">net10.0</TargetFramework>
+    <TargetFramework Condition="!$([MSBuild]::VersionGreaterThanOrEquals('$(NETCoreSdkVersion)', '10.0'))">net9.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <!--<EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>-->
