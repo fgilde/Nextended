@@ -3,8 +3,8 @@
   <Import Project="Output.props" />
   <Import Project="Package.props" />
   <PropertyGroup>
-    <!--<TargetFramework>net9.0</TargetFramework>-->
-    <TargetFrameworks>net8.0;net9.0</TargetFrameworks>
+    <!--<TargetFramework>net10.0</TargetFramework>-->
+    <TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
     <LangVersion>latest</LangVersion>
     <Nullable>enable</Nullable>
   </PropertyGroup>
