@@ -13,10 +13,10 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Nextended.Core\Nextended.Core.csproj" />
-    <PackageReference Include="Microsoft.Extensions.Caching.Abstractions" Version="7.0.0" />
-    <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="7.0.0" />
-    <PackageReference Include="Microsoft.Extensions.Options" Version="7.0.0" />
-    <PackageReference Include="System.Runtime.Caching" Version="7.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Caching.Abstractions" Version="$(ManagementVersion)" />
+    <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="$(ManagementVersion)" />
+    <PackageReference Include="Microsoft.Extensions.Options" Version="$(MsVersion)" />
+    <PackageReference Include="System.Runtime.Caching" Version="$(ManagementVersion)" />
   </ItemGroup>
   
 </Project>
