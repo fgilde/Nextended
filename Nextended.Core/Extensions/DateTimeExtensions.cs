@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Nextended.Core.Types;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
@@ -10,6 +11,13 @@ namespace Nextended.Core.Extensions
 	/// </summary>
 	public static class DateTimeExtensions
 	{
+
+        public static int MonthsBetween(this DateTime anchor, DateTime v)
+            => (v.Year - anchor.Year) * 12 + (v.Month - anchor.Month);
+
+        public static int MonthsBetween(this DateOnly anchor, DateOnly v)
+            => (v.Year - anchor.Year) * 12 + (v.Month - anchor.Month);
+
         public static bool Between(this DateTime dateTime, DateTime startDate, DateTime endDate)
         {
             return dateTime >= startDate && dateTime < endDate;
