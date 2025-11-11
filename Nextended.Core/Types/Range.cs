@@ -1,5 +1,6 @@
 ﻿using System;
 using Nextended.Core.Contracts;
+using Nextended.Core.Types.Ranges.Math;
 
 namespace Nextended.Core.Types;
 
@@ -14,18 +15,44 @@ public readonly struct RangeOf<T> : IRange<T> where T : IComparable<T>
     /// <inheritdoc />
     public T End { get; }
 
-    private readonly Func<IRange<T>, IRange<T>, bool>? _areAdjacentFncFunc;
+    private readonly Func<IRange<T>, IRange<T>, double, bool>? _areAdjacentFncFunc;
+    private static readonly IRangeMath<T> M = RangeMathFactory.For<T>();
+
+    public RangeLength<T> Length => new(M.Difference(Start, End), M);
+
+    public static RangeOf<T> operator +(RangeOf<T> range, RangeLength<T> len)
+        => new(len.AddTo(range.Start), len.AddTo(range.End));
+
+    public static RangeOf<T> operator -(RangeOf<T> range, RangeLength<T> len)
+        => new(len.SubtractFrom(range.Start), len.SubtractFrom(range.End));
+
+    //public static RangeLength<T> operator -(RangeOf<T> a, RangeOf<T> b)
+    //    => new(M.Difference(a.Start, b.Start), M);
+
+    public static RangeLength<T> operator -(RangeOf<T> a, RangeOf<T> b)
+        => new(M.Difference(b.Start, a.Start), M);
+
+    public static RangeOf<T> operator +(RangeOf<T> a, RangeOf<T> b)
+    {
+        if (!a.Intersects(b) && a.End.CompareTo(b.Start) < 0)
+            throw new InvalidOperationException("Ranges are disjoint; cannot union.");
+        return (RangeOf<T>)a.Union(b);
+    }
+
 
     /// <summary>
     /// Constructor
     /// </summary>
-    public RangeOf(T startAndEnd, Func<IRange<T>, IRange<T>, bool>? areAdjacentFncFunc = null) : this(startAndEnd, startAndEnd, areAdjacentFncFunc)
+    public RangeOf(T startAndEnd, Func<IRange<T>, IRange<T>, double, bool>? areAdjacentFncFunc = null) : this(startAndEnd, startAndEnd, areAdjacentFncFunc)
+    { }
+
+    public RangeOf(IRange<T> other, Func<IRange<T>, IRange<T>, double, bool>? areAdjacentFncFunc = null) : this(other.Start, other.End, areAdjacentFncFunc)
     {}
 
     /// <summary>
     /// Constructor that ensures that the start value is less than or equal to the end value.
     /// </summary>
-    public RangeOf(T start, T end, Func<IRange<T>, IRange<T>, bool>? areAdjacentFncFunc = null)
+    public RangeOf(T start, T end, Func<IRange<T>, IRange<T>, double, bool>? areAdjacentFncFunc = null)
     {
         _areAdjacentFncFunc = areAdjacentFncFunc;
         if (start.CompareTo(end) > 0)
@@ -39,10 +66,7 @@ public readonly struct RangeOf<T> : IRange<T> where T : IComparable<T>
     /// <summary>
     /// Checks if a value is within the range (inclusive of start and end).
     /// </summary>
-    public bool Contains(T value)
-    {
-        return Start.CompareTo(value) <= 0 && value.CompareTo(End) <= 0;
-    }
+    public bool Contains(T value) => Start.CompareTo(value) <= 0 && value.CompareTo(End) <= 0;
 
     /// <summary>
     /// Alias for Contains.
@@ -69,15 +93,10 @@ public readonly struct RangeOf<T> : IRange<T> where T : IComparable<T>
     /// </summary>
     public IRange<T>? Intersection(IRange<T> other)
     {
-        if (!Intersects(other))
-        {
-            return null;
-        }
-        // Der Schnittbereich startet beim höheren der beiden Startwerte
-        T newStart = Start.CompareTo(other.Start) >= 0 ? Start : other.Start;
-        // Der Schnittbereich endet beim kleineren der beiden Endwerte
-        T newEnd = End.CompareTo(other.End) <= 0 ? End : other.End;
-        return new RangeOf<T>(newStart, newEnd);
+        if (!Intersects(other)) return null;
+        var s = Max(Start, other.Start);
+        var e = Min(End, other.End);
+        return new RangeOf<T>(s, e);
     }
 
     /// <summary>
@@ -86,31 +105,36 @@ public readonly struct RangeOf<T> : IRange<T> where T : IComparable<T>
     /// </summary>
     public IRange<T> Union(IRange<T> other)
     {
-        if (other == null)
-            throw new ArgumentNullException(nameof(other));
-
-        if (!Intersects(other) && !AreAdjacent(this, other))
-        {
-            throw new ArgumentException("Ranges do not overlap and are not adjacent.");
-        }
-        T newStart = Start.CompareTo(other.Start) <= 0 ? Start : other.Start;
-        T newEnd = End.CompareTo(other.End) >= 0 ? End : other.End;
-        return new RangeOf<T>(newStart, newEnd);
+        if (!Intersects(other) && !IsAdjacent(other))
+            throw new InvalidOperationException("Ranges are disjoint and not adjacent.");
+        var s = Min(Start, other.Start);
+        var e = Max(End, other.End);
+        return new RangeOf<T>(s, e);
     }
 
-    /// <summary>
-    /// Checks if two ranges are adjacent.
-    /// Note: For generic T, this check is not generally possible.
-    /// For specific types (like int or DateTime) a specific logic may need to be implemented.
-    /// </summary>
-    public bool AreAdjacent(IRange<T> first, IRange<T> second)
+    public bool IsAdjacent(IRange<T> other, double tolerance = 0)
     {
-        if(_areAdjacentFncFunc == null)
-        {
-            throw new InvalidOperationException("No function to check adjacency is provided.");
-        }
-        return _areAdjacentFncFunc(first, second);
+        if (_areAdjacentFncFunc != null)
+            return _areAdjacentFncFunc(this, other, tolerance);
+
+        var math = RangeMathFactory.For<T>();
+        var gap1 = math.Difference(End, other.Start);
+        var gap2 = math.Difference(other.End, Start);
+        return Math.Abs(gap1) <= tolerance || Math.Abs(gap2) <= tolerance;
     }
+
+    public RangeOf<T> ClampLength(RangeLength<T> min, RangeLength<T> max)
+    {
+        var len = Length.Delta;
+        var minL = Math.Min(min.Delta, max.Delta);
+        var maxL = Math.Max(min.Delta, max.Delta);
+        var newLen = RangeMath<T>.Clamp(len, minL, maxL);
+        var end = M.Add(Start, newLen);
+        return new RangeOf<T>(Start, end);
+    }
+
+    private static T Min(T a, T b) => a.CompareTo(b) <= 0 ? a : b;
+    private static T Max(T a, T b) => a.CompareTo(b) >= 0 ? a : b;
 
     public override string ToString()
     {

@@ -15,9 +15,9 @@ public sealed class DateRange : SimpleRange<DateOnly>
     }
 
     public DateRange(DateOnly start, DateOnly end) : base(start, end)
-    {}
+    { }
 
-    public override bool AreAdjacent(IRange<DateOnly> other)
+    public override bool IsAdjacent(IRange<DateOnly> other, double tolerance = 0)
     {
         return End.AddDays(1) == other.Start || other.End.AddDays(1) == Start;
     }
@@ -31,10 +31,7 @@ public class DateRange: DateRangeLegacy
 {
     public DateRange(Date start, Date end) : base(start, end)
     {}
-    public override bool AreAdjacent(IRange<Date> other)
-    {
-        return End.AddDays(1) == other.Start || other.End.AddDays(1) == Start;
-    }
+
     public override string ToString() =>
         $"DateRange: [{Start} - {End}]";
 }
@@ -45,14 +42,14 @@ public class DateRange: DateRangeLegacy
 /// Zeitbereich zwischen zwei Dates
 /// </summary>
 [DataContract]
-public class DateRangeLegacy: SimpleRange<Date>
+public class DateRangeLegacy : SimpleRange<Date>
 {
     /// <summary>
     /// Konstruktor
     /// </summary>
     /// <param name="startDate">Beginn</param>
     /// <param name="endDate">Ende</param>
-    public DateRangeLegacy(Date startDate, Date endDate) : base(startDate, endDate){}
+    public DateRangeLegacy(Date startDate, Date endDate) : base(startDate, endDate) { }
 
     /// <summary>
     /// Beginn
@@ -66,7 +63,7 @@ public class DateRangeLegacy: SimpleRange<Date>
     [DataMember]
     public Date EndDate => End;
 
-    public override bool AreAdjacent(IRange<Date> other)
+    public override bool IsAdjacent(IRange<Date> other, double tolerance = 0)
     {
         return End.AddDays(1) == other.Start || other.End.AddDays(1) == Start;
     }

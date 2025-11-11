@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Nextended.Core.Types;
+using System;
 
 namespace Nextended.Core.Contracts;
 
@@ -43,4 +44,13 @@ public interface IRange<T> where T : IComparable<T>
     /// If the ranges are separate, an exception is thrown.
     /// </summary>
     IRange<T> Union(IRange<T> other);
+
+    /// <summary>
+    /// Length
+    /// </summary>
+    RangeLength<T> Length { get; }
+
+    bool IsAdjacent(IRange<T> other, double tolerance = 0);
+
+    RangeOf<T> ClampLength(RangeLength<T> min, RangeLength<T> max);
 }

@@ -9,11 +9,8 @@ public sealed class DateTimeRange : SimpleRange<DateTime>
 
     public DateTimeRange(DateTime start, DateTime end) : base(start, end) { }
 
-    public override bool AreAdjacent(IRange<DateTime> other)
+    public override bool IsAdjacent(IRange<DateTime> other, double tolerance = 0)
     {
-        // Zwei DateTimeRanges gelten als angrenzend, wenn:
-        // - das Ende dieses Bereichs plus 1 Tick genau dem Start des anderen entspricht
-        // - oder umgekehrt
         return End.AddTicks(1) == other.Start || other.End.AddTicks(1) == Start;
     }
 

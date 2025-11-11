@@ -10,7 +10,7 @@ public sealed class TimeRange : SimpleRange<TimeOnly>
 
     public TimeRange(TimeOnly start, TimeOnly end) : base(start, end) { }
 
-    public override bool AreAdjacent(IRange<TimeOnly> other)
+    public override bool IsAdjacent(IRange<TimeOnly> other, double tolerance = 0)
     {
         return End.Add(TimeSpan.FromTicks(1)) == other.Start || other.End.Add(TimeSpan.FromTicks(1)) == Start;
     }

@@ -6,7 +6,7 @@ using Nextended.Core.Contracts;
 namespace Nextended.Core.Tests
 {
 	[TestClass]
-	public class RangeTests
+	public class RangeOfTests
 	{
 		[TestMethod]
 		public void RangeOf_Constructor_WithStartAndEnd_CreatesRange()
@@ -163,29 +163,19 @@ namespace Nextended.Core.Tests
 				ex => ex.ParamName == "other");
 		}
 
-		[TestMethod]
-		public void RangeOf_AreAdjacent_WithoutFunction_ThrowsException()
-		{
-			var range1 = new RangeOf<int>(1, 10);
-			var range2 = new RangeOf<int>(11, 20);
-			
-			ExceptionAssert.Throws<InvalidOperationException>(
-				() => range1.AreAdjacent(range1, range2),
-				ex => ex.Message.Contains("No function to check adjacency"));
-		}
 
 		[TestMethod]
 		public void RangeOf_AreAdjacent_WithFunction_Works()
 		{
-			Func<IRange<int>, IRange<int>, bool> areAdjacent = (first, second) =>
-			{
-				return first.End + 1 == second.Start || second.End + 1 == first.Start;
-			};
-			
-			var range1 = new RangeOf<int>(1, 10, areAdjacent);
+            bool AreAdjacent(IRange<int> first, IRange<int> second, double d)
+            {
+                return first.End + 1 == second.Start || second.End + 1 == first.Start;
+            }
+
+            var range1 = new RangeOf<int>(1, 10, AreAdjacent);
 			var range2 = new RangeOf<int>(11, 20);
 			
-			Assert.IsTrue(range1.AreAdjacent(range1, range2));
+			Assert.IsTrue(range1.IsAdjacent(range2));
 		}
 
 		[TestMethod]
@@ -224,7 +214,7 @@ namespace Nextended.Core.Tests
 		[TestMethod]
 		public void RangeOf_Union_WithAdjacentFunction_Works()
 		{
-			Func<IRange<int>, IRange<int>, bool> areAdjacent = (first, second) =>
+			Func<IRange<int>, IRange<int>, double, bool> areAdjacent = (first, second, d) =>
 			{
 				return first.End + 1 == second.Start || second.End + 1 == first.Start;
 			};
