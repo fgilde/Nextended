@@ -12,11 +12,13 @@ namespace Nextended.Core.Extensions
 	public static class DateTimeExtensions
 	{
 
-        public static int MonthsBetween(this DateTime anchor, DateTime v)
-            => (v.Year - anchor.Year) * 12 + (v.Month - anchor.Month);
+//        public static int MonthsBetween(this DateTime anchor, DateTime v)
+//            => (v.Year - anchor.Year) * 12 + (v.Month - anchor.Month);
 
-        public static int MonthsBetween(this DateOnly anchor, DateOnly v)
-            => (v.Year - anchor.Year) * 12 + (v.Month - anchor.Month);
+//#if !NETSTANDARD
+//        public static int MonthsBetween(this DateOnly anchor, DateOnly v)
+//            => (v.Year - anchor.Year) * 12 + (v.Month - anchor.Month);
+//#endif
 
         public static bool Between(this DateTime dateTime, DateTime startDate, DateTime endDate)
         {
