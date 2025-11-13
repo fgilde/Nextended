@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Nextended.Core.Types;
 using Nextended.Core.Contracts;
@@ -8,7 +9,59 @@ namespace Nextended.Core.Tests
 	[TestClass]
 	public class RangeOfTests
 	{
-		[TestMethod]
+
+		
+
+        [TestMethod]
+        public void EnumerationTest()
+        {
+            var range = new RangeOf<int>(1, 10);
+
+            var l = range.Length;
+            RangeLength<int> step = 1;
+
+            var fullList = range.Enumerate(new RangeLength<int>(1)).ToList();
+            var list = range.Enumerate(new RangeLength<int>(3)).ToList();
+			
+			Assert.AreEqual(10, fullList.Count);
+			Assert.AreEqual(4, list.Count);
+			Assert.IsTrue(list.SequenceEqual([1, 4, 7, 10]));
+        }
+
+
+        [TestMethod]
+        public void EnumerationTest_DateTime()
+        {
+            var start = new DateTime(2025, 1, 1);
+            var end = new DateTime(2025, 12, 31);
+            var range = new RangeOf<DateTime>(start, end);
+
+            var midYear = new DateTime(2025, 6, 15);
+            Assert.IsTrue(range.Contains(midYear));
+
+            var nextYear = new DateTime(2026, 1, 1);
+            Assert.IsFalse(range.Contains(nextYear));
+
+			var dayList = range.Enumerate(new RangeLength<DateTime>(TimeSpan.FromDays(1).Ticks))
+                .ToList();
+
+			Assert.AreEqual(365, dayList.Count);
+			Assert.IsTrue(dayList.SequenceEqual(Enumerable.Range(1, 365).Select(d => new DateTime(2025, 1, 1).AddDays(d - 1))));
+
+            var monthList = range.Enumerate(new RangeLength<DateTime>(TimeSpan.FromDays(31).Ticks))
+                .ToList();
+
+			Assert.AreEqual(12, monthList.Count);
+			
+			var somewhereInBetween = new DateTime(2025, 5, 15);
+			Assert.IsTrue(range.Contains(somewhereInBetween));
+			Assert.IsFalse(monthList.Contains(somewhereInBetween));
+        }
+
+
+
+
+        [TestMethod]
 		public void RangeOf_Constructor_WithStartAndEnd_CreatesRange()
 		{
 			var range = new RangeOf<int>(1, 10);

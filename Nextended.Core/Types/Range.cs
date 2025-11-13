@@ -2,12 +2,15 @@
 using Nextended.Core.Extensions;
 using Nextended.Core.Types.Ranges.Math;
 using System;
+using System.Collections.Generic;
+using System.Diagnostics;
 
 namespace Nextended.Core.Types;
 
 /// <summary>
 /// Implementation of a range in a struct.
 /// </summary>
+[DebuggerDisplay("{Start} to {End}")]
 public readonly struct RangeOf<T> : IRange<T> where T : IComparable<T>
 {
     /// <inheritdoc />
@@ -139,4 +142,18 @@ public readonly struct RangeOf<T> : IRange<T> where T : IComparable<T>
     {
         return $"[{Start} - {End}]";
     }
+
+    public IEnumerable<T> Enumerate(bool includeEnd = true) => Enumerate(new RangeLength<T>(M.Difference(Start, End)), includeEnd);
+    public IEnumerable<T> Enumerate(RangeLength<T> step, bool includeEnd = true)
+    {
+        var current = Start;
+        var cmpEnd = includeEnd ? 0 : -1;
+
+        while (current.CompareTo(End) <= cmpEnd)
+        {
+            yield return current;
+            current = step.AddTo(current);
+        }
+    }
+
 }

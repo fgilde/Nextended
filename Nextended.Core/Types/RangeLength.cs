@@ -3,13 +3,25 @@ using Nextended.Core.Types.Ranges.Math;
 
 namespace Nextended.Core.Types;
 
-public readonly struct RangeLength<T>(double delta, IRangeMath<T>? math = null)
-    : IEquatable<RangeLength<T>>, IComparable<RangeLength<T>>
+public readonly struct RangeLength<T> : IEquatable<RangeLength<T>>, IComparable<RangeLength<T>>
     where T : IComparable<T>
 {
-    private readonly IRangeMath<T> _math = math ?? RangeMathFactory.For<T>();
+    private readonly IRangeMath<T> _math;
 
-    public double Delta { get; } = delta;
+    public RangeLength(double delta, IRangeMath<T>? math = null)
+    {
+        _math = math ?? RangeMathFactory.For<T>();
+        Delta = delta;
+    }
+
+    public RangeLength(T delta, IRangeMath<T>? math = null)
+    {
+        _math = math ?? RangeMathFactory.For<T>();
+        Delta = _math.ToDouble(delta);
+    }
+
+
+    public double Delta { get; }
 
     public T AddTo(T value) => _math.Add(value, Delta);
     public T SubtractFrom(T value) => _math.Add(value, -Delta);
@@ -25,6 +37,8 @@ public readonly struct RangeLength<T>(double delta, IRangeMath<T>? math = null)
 
     public static RangeLength<T> operator /(RangeLength<T> a, double divisor)
         => new(a.Delta / divisor, a._math);
+
+    public static implicit operator RangeLength<T>(T value) => new(value);
 
     // IEquatable<RangeLength<T>>
     public bool Equals(RangeLength<T> other) => Delta.Equals(other.Delta);

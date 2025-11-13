@@ -1,15 +1,17 @@
-﻿using System;
+﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Newtonsoft.Json;
+using Nextended.Core.Extensions;
+using Nextended.Core.Helper;
+using Nextended.Core.Tests.classes;
+using Nextended.Core.TypeConverters;
+using Nextended.Core.Types;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Xml.Serialization;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Newtonsoft.Json;
-using Nextended.Core.Types;
-using Nextended.Core.Extensions;
-using Nextended.Core.Helper;
-using Nextended.Core.Tests.classes;
+using YamlDotNet.Core.Tokens;
 
 namespace Nextended.Core.Tests
 {
@@ -30,6 +32,33 @@ namespace Nextended.Core.Tests
     [TestClass]
     public class ClassMappingTests
     {
+
+        [TestMethod]
+        public void ToDoubleTests()
+        {
+            ClassMappingSettings setts2 = ClassMappingSettings.Default.AddAllLoadedTypeConverters();
+            
+            var dateTime = new DateTime(2022, 12, 24, 10, 10, 10);
+           
+
+            double ticks = dateTime.MapTo<double>(setts2);
+
+            Assert.IsTrue(ticks == dateTime.Ticks);
+
+            var timeSpan = new TimeSpan(1, 2, 3, 4, 5);
+            ticks = timeSpan.MapTo<double>(setts2);
+            Assert.IsTrue(ticks == timeSpan.Ticks);
+
+            var dateOnly = new DateOnly(2022, 12, 24);
+            ticks = dateOnly.MapTo<double>(setts2);
+            Assert.IsTrue(ticks == dateOnly.DayNumber);
+
+            var timeOnly = new TimeOnly(10, 33, 12);
+            ticks = timeOnly.MapTo<double>(setts2);
+            Assert.IsTrue(ticks == timeOnly.ToTimeSpan().Ticks);
+
+        }
+
 
         [TestMethod]
         public void MoneyPropTest()

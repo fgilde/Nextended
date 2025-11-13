@@ -389,9 +389,9 @@ namespace Nextended.Core.Helper
         /// <summary>
         /// Fügt alle möglichen Converter der liste der zu benutzenden Konverter hinzu
         /// </summary>
-        public ClassMappingSettings AddAllLoadedTypeConverters()
+        public ClassMappingSettings AddAllLoadedTypeConverters(params Assembly[] assemblies)
         {
-            foreach (TypeConverter converter in RetrieveLoadedAssembliesTypeConverters())
+            foreach (TypeConverter converter in RetrieveLoadedAssembliesTypeConverters(assemblies))
                 TypeConverters.Add(converter);
             return this;
         }
@@ -400,10 +400,16 @@ namespace Nextended.Core.Helper
         /// Liefert Alle TypeConverter
         /// </summary>
         /// <returns></returns>
-        public IList<TypeConverter> RetrieveLoadedAssembliesTypeConverters()
+        public IList<TypeConverter> RetrieveLoadedAssembliesTypeConverters(params Assembly[] assemblies)
         {
-            var assemblies = AppDomain.CurrentDomain.GetAssemblies().Where(assembly => assembly.GetName().Version > new Version(0, 0, 0, 0)).ToList();
-            assemblies.Add(typeof(BooleanConverter).Assembly);
+
+            if (!assemblies.Any())
+            {
+                assemblies = AppDomain.CurrentDomain.GetAssemblies().Where(assembly => assembly.GetName().Version > new Version(0, 0, 0, 0))
+                    .Concat([typeof(BooleanConverter).Assembly, Assembly.GetCallingAssembly(), Assembly.GetExecutingAssembly()])
+                    .Distinct()
+                    .ToArray();
+            }
 
             foreach (Assembly assembly in assemblies)
             {
