@@ -55,10 +55,7 @@
   <!-- ─────────────  Alles aus bin\* in analyzers/dotnet/cs packen  ───────────── -->
   <ItemGroup>
     <None Include="$(OutputPath)\*.dll"
-          Pack="true"
-          PackagePath="analyzers/dotnet/cs"
-          Visible="false"/>
-    <None Include="$(OutputPath)\*.pdb"
+          Exclude="$(OutputPath)System*.dll;$(OutputPath)Microsoft*.dll;$(OutputPath)mscorlib.dll;$(OutputPath)netstandard.dll"
           Pack="true"
           PackagePath="analyzers/dotnet/cs"
           Visible="false"/>
