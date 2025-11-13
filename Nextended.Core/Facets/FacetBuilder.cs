@@ -32,7 +32,6 @@ public sealed class FacetBuilder(FacetBuilderOptions? options = null,
 
 
     public IFacetBuilder WithLocalizationFunc(Func<string, Type?, string> localizerFn) => this.SetProperties(b => b._localizerFn = localizerFn);
-
     public IFacetBuilder WithOptions(FacetBuilderOptions options) => this.SetProperties(b => b._options = options);
 
     public async Task<List<FacetGroup>> BuildAsync<T>(IQueryable<T> alreadyFilteredQuery, CancellationToken ct = default)

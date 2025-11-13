@@ -1,6 +1,7 @@
-﻿using System;
-using Nextended.Core.Contracts;
+﻿using Nextended.Core.Contracts;
+using Nextended.Core.Extensions;
 using Nextended.Core.Types.Ranges.Math;
+using System;
 
 namespace Nextended.Core.Types;
 
@@ -18,16 +19,14 @@ public readonly struct RangeOf<T> : IRange<T> where T : IComparable<T>
     private readonly Func<IRange<T>, IRange<T>, double, bool>? _areAdjacentFncFunc;
     private static readonly IRangeMath<T> M = RangeMathFactory.For<T>();
 
-    public RangeLength<T> Length => new(M.Difference(Start, End), M);
+
+    public RangeLength<T> Length => new(M.Span(this), M);
 
     public static RangeOf<T> operator +(RangeOf<T> range, RangeLength<T> len)
         => new(len.AddTo(range.Start), len.AddTo(range.End));
 
     public static RangeOf<T> operator -(RangeOf<T> range, RangeLength<T> len)
         => new(len.SubtractFrom(range.Start), len.SubtractFrom(range.End));
-
-    //public static RangeLength<T> operator -(RangeOf<T> a, RangeOf<T> b)
-    //    => new(M.Difference(a.Start, b.Start), M);
 
     public static RangeLength<T> operator -(RangeOf<T> a, RangeOf<T> b)
         => new(M.Difference(b.Start, a.Start), M);
@@ -38,7 +37,7 @@ public readonly struct RangeOf<T> : IRange<T> where T : IComparable<T>
             throw new InvalidOperationException("Ranges are disjoint; cannot union.");
         return (RangeOf<T>)a.Union(b);
     }
-
+    
 
     /// <summary>
     /// Constructor

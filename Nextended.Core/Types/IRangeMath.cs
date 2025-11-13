@@ -20,6 +20,12 @@ public static class RangeMath<T> where T : IComparable<T>
     public static double ToDouble(T v) => M.ToDouble(v);
     public static T FromDouble(double d) => M.FromDouble(d);
     public static double Delta(IRange<T> r) => M.Difference(r.Start, r.End);
+
+    /// <summary>
+    /// Nicht-negative Spannweite eines Ranges (|Difference|).
+    /// </summary>
+    public static double Span(IRange<T> r) => Math.Abs(M.Difference(r.Start, r.End));
+
     public static T AddDelta(T v, double d) => M.Add(v, d);
 
     public static T Clamp(T v, IRange<T> bounds) => M.Clamp(v, bounds);

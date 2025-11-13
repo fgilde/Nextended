@@ -16,7 +16,6 @@ public static class RangeMathExtensions
     }
 
     public static T Lerp<T>(this IRangeMath<T> math, IRange<T> size, double pct) where T : IComparable<T>
-
         => math.FromDouble(math.ToDouble(size.Start) + (math.ToDouble(size.End) - math.ToDouble(size.Start)) * RangeMath<T>.Clamp(pct, 0, 1));
 
     public static T Clamp<T>(this IRangeMath<T> math, T v, IRange<T> bounds) where T : IComparable<T>
@@ -29,11 +28,16 @@ public static class RangeMathExtensions
         return v;
     }
 
+    /// <summary>
+    /// Nicht-negative Spannweite eines Ranges; delegiert auf RangeMath&lt;T&gt;.Span.
+    /// </summary>
+    public static double Span<T>(this IRangeMath<T> math, IRange<T> r) where T : IComparable<T>
+        => RangeMath<T>.Span(r);
+
     public static T SnapToStep<T>(this IRangeMath<T> math, T v, IRange<T> size, RangeLength<T> step, SnapPolicy policy = SnapPolicy.Nearest) where T : IComparable<T>
     {
         var stepLen = Math.Abs(step.Delta);
         if (stepLen <= 0) return v;
-
 
         var from = math.ToDouble(size.Start);
         var dv = math.ToDouble(v) - from;
@@ -49,13 +53,20 @@ public static class RangeMathExtensions
         return math.Clamp(math.FromDouble(snapped), size);
     }
 
-    public static T AddSteps<T>(this IRangeMath<T> math, T v, RangeLength<T> step, int steps) where T : IComparable<T> => math.Add(v, step.Delta * steps);
+    public static T AddSteps<T>(this IRangeMath<T> math, T v, RangeLength<T> step, int steps) where T : IComparable<T>
+        => math.Add(v, step.Delta * steps);
 
-    public static double Span<T>(this IRangeMath<T> math, IRange<T> r) where T : IComparable<T> => Math.Abs(math.Difference(r.Start, r.End));
+    public static double Span<T>(this IRangeMath<T> math, IRange<T> r, bool absolute) where T : IComparable<T>
+        => absolute ? RangeMath<T>.Span(r) : math.Difference(r.Start, r.End);
+
+    public static double Span<T>(this IRangeMath<T> math, IRange<T> r, SnapPolicy policy) where T : IComparable<T>
+        => math.Span(r);
+
+    public static double Span<T>(this IRange<T> r, IRangeMath<T> math) where T : IComparable<T>
+        => math.Span(r);
 
     public static IRange<T> Normalize<T>(this IRange<T> r) where T : IComparable<T>
         => (r.Start.CompareTo(r.End) <= 0) ? r : new SimpleRange<T>(r.End, r.Start);
-
 
     public static IRange<T> SnapRange<T>(this IRangeMath<T> math, IRange<T> r, IRange<T> size, RangeLength<T> step) where T : IComparable<T>
     {
