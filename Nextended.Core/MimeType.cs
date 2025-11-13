@@ -11,7 +11,7 @@ namespace Nextended.Core;
 /// <summary>
 /// Provides MIME type mappings and utilities for file extensions and content types
 /// </summary>
-public static class MimeType
+public static partial class MimeType
 {
     private static readonly string _defaultExtension = "bin";
     private static readonly string _defaultMimeType = "application/octet-stream";
@@ -1010,26 +1010,13 @@ public static class MimeType
         ["tar.gz"] = "application/tar+gzip"
     });
 
-    /// <summary>
-    /// MIME type for CSV files
-    /// </summary>
-    public const string Csv = "text/csv";
     
     /// <summary>
     /// MIME type for OpenXML spreadsheet files
     /// </summary>
     public const string OpenXml = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
     
-    /// <summary>
-    /// MIME type for Excel files
-    /// </summary>
-    public const string Xls = "application/vnd.ms-excel";
     
-    /// <summary>
-    /// MIME type for PDF files
-    /// </summary>
-    public const string Pdf = "application/pdf";
-
     /// <summary>
     /// Gets all MIME type mappings
     /// </summary>
@@ -1209,7 +1196,7 @@ public static class MimeType
     public static void AddOrUpdate(string mime, string extension) 
         => _mimeTypeMap.Value[extension] = mime;
 
-    private static bool IsValidUrl(string s) => Uri.TryCreate(s, UriKind.Absolute, out var uriResult) && (uriResult.Scheme == Uri.UriSchemeHttp || uriResult.Scheme == Uri.UriSchemeHttps);
+    private static bool IsValidUrl(string s) => System.Uri.TryCreate(s, UriKind.Absolute, out var uriResult) && (uriResult.Scheme == System.Uri.UriSchemeHttp || uriResult.Scheme == System.Uri.UriSchemeHttps);
 
     /// <summary>
     /// Reads the MIME type from the specified URL asynchronously
