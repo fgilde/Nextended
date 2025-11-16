@@ -1,3 +1,8 @@
+/// <summary>
+/// --- AUTO GENERATED CODE (16.11.2025 17:12:44) ---
+/// --- MyUserDto.g.cs ---
+/// </summary>
+
 using System;
 using CodeGenSample.Entities;
 namespace MyGenerated.Code.Test {

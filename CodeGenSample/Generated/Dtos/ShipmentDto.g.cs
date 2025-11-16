@@ -1,3 +1,8 @@
+/// <summary>
+/// --- AUTO GENERATED CODE (16.11.2025 17:12:44) ---
+/// --- ShipmentDto.g.cs ---
+/// </summary>
+
 using System;
 namespace MyGenerated.Code.Test {
 	#region Dto class for Shipment

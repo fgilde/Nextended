@@ -1,4 +1,8 @@
-using Nextended.Core.Extensions;using System;
+using Nextended.Core.Extensions;/// <summary>
+/// --- AUTO GENERATED CODE (16.11.2025 17:12:44) ---
+/// </summary>
+
+using System;
 namespace MyGenerated.Code.Test {
 	public static partial class MappingExtensions
 	{

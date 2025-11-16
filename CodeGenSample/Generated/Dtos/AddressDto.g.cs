@@ -1,3 +1,8 @@
+/// <summary>
+/// --- AUTO GENERATED CODE (16.11.2025 17:12:44) ---
+/// --- AddressDto.g.cs ---
+/// </summary>
+
 using System;
 using System.Runtime.InteropServices;
 namespace MyGeneration {

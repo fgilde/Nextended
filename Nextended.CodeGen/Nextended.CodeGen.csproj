@@ -41,6 +41,7 @@
     <PackageReference Include="Nextended.Core" Version="$(UsedCorePackageVersion)" GeneratePathProperty="true" />
     <!-- Rest nur intern -->
     <PackageReference Include="ClosedXML" Version="0.105.0" PrivateAssets="all" />
+    <PackageReference Include="ColorCode.HTML" Version="2.0.15" PrivateAssets="all" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" PrivateAssets="all" />
     <PackageReference Include="DocumentFormat.OpenXml" Version="3.1.1" PrivateAssets="all" />
     <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" Version="8.0.0" PrivateAssets="all" />
