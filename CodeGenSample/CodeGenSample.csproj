@@ -13,7 +13,7 @@
     <PackageReference Include="Nextended.Core" Version="$(UsedCorePackageVersion)" PrivateAssets="all" GeneratePathProperty="true" /> 
 
     <ProjectReference Include="..\Nextended.CodeGen\Nextended.CodeGen.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="true" />
-    <!--<PackageReference Include="Nextended.CodeGen" Version="9.0.19"  />-->    
+    <!--<PackageReference Include="Nextended.CodeGen" Version="10.0.1"  />-->    
   </ItemGroup>
 
   <ItemGroup>

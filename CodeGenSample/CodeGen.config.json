@@ -1,7 +1,7 @@
 ﻿{
   "DtoGeneration": {
     // Notice:: The whole DtoGeneration section is optional and can also be overridden if set on the Attributes.
-    "DisableGeneration":  false, 
+    "DisableGeneration": false,
     "DeepProperties": true,
     "ComIdClassName": "ComGuids",
     "ModelType": "Class",
@@ -20,7 +20,7 @@
     "Usings": null,
     "CreateRegions": true,
     "CreateComments": true,
-    "CreateFileHeaders": false,
+    "CreateFileHeaders": true,
     "GeneratePartial": true,
     "Namespace": "MyGenerated.Code.Test",
     "Suffix": "Wanda",
@@ -42,7 +42,7 @@
     }
   ],
   "ExcelGenerations": [
-    { 
+    {
       "ModelType": "RecordStruct",
       "SourceFile": "/Sources/scac_codes.xlsx",
       "SheetName": null,
@@ -67,5 +67,20 @@
       "OutputPath": "./Generated/Excel/" // Output path for the generated file, if its null or unset the files will added to generation source
 
     }
+  ],
+
+  "CodeToDocs": [ 
+    {
+      "DisableGeneration": false,
+      "InputFolder": "./Entities",
+      "OutputPath": "./Generated/HtmlDocs/",      
+      "FileIncludePattern": "*.cs",
+      "SourceExportTypes": [
+        "PlainText",
+        "Markdown",
+        "Html"
+      ]
+    }
   ]
+
 }

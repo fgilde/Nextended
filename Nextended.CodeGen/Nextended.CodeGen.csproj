@@ -31,34 +31,32 @@
 
   <!-- ─────────────  Build‑Time‑Pakete  ───────────── -->
   <ItemGroup>
-    <PackageReference Include="Microsoft.CodeAnalysis.CSharp"    Version="4.12.0" PrivateAssets="all"/>
-    <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="3.11.0" PrivateAssets="all"
-                      IncludeAssets="runtime;build;native;contentfiles;analyzers;buildtransitive"/>
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.12.0" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="3.11.0" PrivateAssets="all" IncludeAssets="runtime;build;native;contentfiles;analyzers;buildtransitive" />
   </ItemGroup>
 
   <!-- ─────────────  Laufzeit‑Dependencies (Generator‑intern)  ───────────── -->
   <ItemGroup>
     <!-- Öffentliche Attribute + Hilfs‑API -->
-    <PackageReference Include="Nextended.Core"       Version="$(UsedCorePackageVersion)" GeneratePathProperty="true"/>
+    <PackageReference Include="Nextended.Core" Version="$(UsedCorePackageVersion)" GeneratePathProperty="true" />
     <!-- Rest nur intern -->
-    <PackageReference Include="ClosedXML"           Version="0.105.0" PrivateAssets="all"/>
-    <PackageReference Include="Newtonsoft.Json"     Version="13.0.3"  PrivateAssets="all"/>
-    <PackageReference Include="DocumentFormat.OpenXml" Version="3.1.1" PrivateAssets="all"/>
-    <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" Version="8.0.0" PrivateAssets="all"/>
+    <PackageReference Include="ClosedXML" Version="0.105.0" PrivateAssets="all" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" PrivateAssets="all" />
+    <PackageReference Include="DocumentFormat.OpenXml" Version="3.1.1" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" Version="8.0.0" PrivateAssets="all" />
   </ItemGroup>
 
   <!-- ─────────────  Zusatzdateien fürs NuGet  ───────────── -->
   <ItemGroup>
-    <None Include="README.md" Pack="true" PackagePath="README.md"/>
+    <None Include="README.md" Pack="true" PackagePath="README.md" />
   </ItemGroup>
 
   <!-- ─────────────  Alles aus bin\* in analyzers/dotnet/cs packen  ───────────── -->
   <ItemGroup>
-    <None Include="$(OutputPath)\*.dll"
-          Exclude="$(OutputPath)System*.dll;$(OutputPath)Microsoft*.dll;$(OutputPath)mscorlib.dll;$(OutputPath)netstandard.dll"
-          Pack="true"
-          PackagePath="analyzers/dotnet/cs"
-          Visible="false"/>
+    <None Include="$(OutputPath)\*.dll" Exclude="$(OutputPath)System*.dll;$(OutputPath)Microsoft*.dll;$(OutputPath)mscorlib.dll;$(OutputPath)netstandard.dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Generators\CodeToText\" />
   </ItemGroup>
 
   <Target Name="UpdateGuid" BeforeTargets="BeforeBuild">
