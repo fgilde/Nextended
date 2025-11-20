@@ -3,15 +3,12 @@ using Newtonsoft.Json;
 using Nextended.Core.Extensions;
 using Nextended.Core.Helper;
 using Nextended.Core.Tests.classes;
-using Nextended.Core.TypeConverters;
 using Nextended.Core.Types;
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Xml.Serialization;
-using YamlDotNet.Core.Tokens;
 
 namespace Nextended.Core.Tests
 {
@@ -32,6 +29,7 @@ namespace Nextended.Core.Tests
     [TestClass]
     public class ClassMappingTests
     {
+
 
         [TestMethod]
         public void ToDoubleTests()
