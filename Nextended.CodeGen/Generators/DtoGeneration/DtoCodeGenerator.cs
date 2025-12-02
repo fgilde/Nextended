@@ -436,8 +436,8 @@ public class DtoCodeGenerator
                 sb.AppendLine("\t\t}");
 
                 // === AssignTo: DTO -> Net ===
-                sb.AppendLine($"\t\tstatic partial void BeforeAssignTo{genericParams}({comTypeNs}{dtoTypeName}{genericParams} src, {netTypeName} dest) {genericConstr}");
-                sb.AppendLine($"\t\tstatic partial void AfterAssignTo{genericParams}({comTypeNs}{dtoTypeName}{genericParams} src, {netTypeName} dest) {genericConstr}");
+                sb.AppendLine($"\t\tstatic partial void BeforeAssignTo{genericParams}({comTypeNs}{dtoTypeName}{genericParams} src, {netTypeName} dest) {genericConstr};");
+                sb.AppendLine($"\t\tstatic partial void AfterAssignTo{genericParams}({comTypeNs}{dtoTypeName}{genericParams} src, {netTypeName} dest) {genericConstr};");
                 sb.AppendLine($"\t\t{autoGenAttr.ClassModifier.ToCSharpKeyword()} static void AssignTo{genericParams}(this {comTypeNs}{dtoTypeName}{genericParams} src, {netTypeName} dest) {genericConstr}");
                 sb.AppendLine("\t\t{");
                 sb.AppendLine("\t\t\tif (src == null || dest == null) return;");
