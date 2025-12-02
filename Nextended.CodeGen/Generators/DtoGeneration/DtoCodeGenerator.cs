@@ -388,8 +388,8 @@ public class DtoCodeGenerator
                     StringComparer.Ordinal);
 
                 // === AssignTo: Net -> DTO ===
-                sb.AppendLine($"\t\tstatic partial void BeforeAssignTo{genericParams}({netTypeName} src, {comTypeNs}{dtoTypeName}{genericParams} dest) {genericConstr}");
-                sb.AppendLine($"\t\tstatic partial void AfterAssignTo{genericParams}({netTypeName} src, {comTypeNs}{dtoTypeName}{genericParams} dest) {genericConstr}");
+                sb.AppendLine($"\t\tstatic partial void BeforeAssignTo{genericParams}({netTypeName} src, {comTypeNs}{dtoTypeName}{genericParams} dest) {genericConstr};");
+                sb.AppendLine($"\t\tstatic partial void AfterAssignTo{genericParams}({netTypeName} src, {comTypeNs}{dtoTypeName}{genericParams} dest) {genericConstr};");
                 sb.AppendLine($"\t\t{autoGenAttr.ClassModifier.ToCSharpKeyword()} static void AssignTo{genericParams}(this {netTypeName} src, {comTypeNs}{dtoTypeName}{genericParams} dest) {genericConstr}");
                 sb.AppendLine("\t\t{");
                 sb.AppendLine("\t\t\tif (src == null || dest == null) return;");
