@@ -12,8 +12,8 @@
   <ItemGroup>
     <PackageReference Include="Nextended.Core" Version="$(UsedCorePackageVersion)" PrivateAssets="all" GeneratePathProperty="true" /> 
 
-    <ProjectReference Include="..\Nextended.CodeGen\Nextended.CodeGen.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="true" />
-    <!--<PackageReference Include="Nextended.CodeGen" Version="10.0.1"  />-->    
+    <!--<ProjectReference Include="..\Nextended.CodeGen\Nextended.CodeGen.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="true" />-->
+    <PackageReference Include="Nextended.CodeGen" Version="10.0.4-prev-4" /> 
   </ItemGroup>
 
   <ItemGroup>

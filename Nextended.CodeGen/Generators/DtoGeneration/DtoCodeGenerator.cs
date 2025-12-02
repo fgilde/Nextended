@@ -388,9 +388,12 @@ public class DtoCodeGenerator
                     StringComparer.Ordinal);
 
                 // === AssignTo: Net -> DTO ===
+                sb.AppendLine($"\t\tstatic partial void BeforeAssignTo{genericParams}({netTypeName} src, {comTypeNs}{dtoTypeName}{genericParams} dest) {genericConstr};");
+                sb.AppendLine($"\t\tstatic partial void AfterAssignTo{genericParams}({netTypeName} src, {comTypeNs}{dtoTypeName}{genericParams} dest) {genericConstr};");
                 sb.AppendLine($"\t\t{autoGenAttr.ClassModifier.ToCSharpKeyword()} static void AssignTo{genericParams}(this {netTypeName} src, {comTypeNs}{dtoTypeName}{genericParams} dest) {genericConstr}");
                 sb.AppendLine("\t\t{");
                 sb.AppendLine("\t\t\tif (src == null || dest == null) return;");
+                sb.AppendLine("\t\t\tBeforeAssignTo" + genericParams + "(src, dest);");
 
                 // Basismapping (Net -> DTO) via Base.AssignTo<...>(...)
                 if (baseType != null && dtoTypeDict.TryGetValue(baseType.ToDisplayString(), out var baseTypeSymbol))
@@ -429,12 +432,16 @@ public class DtoCodeGenerator
                     classMapperUsed = classMapperUsed || m.ClassMapperUsed;
                     sb.AppendLine(m.Result.Replace("result.", "dest."));
                 }
+                sb.AppendLine("\t\t\tAfterAssignTo" + genericParams + "(src, dest);");
                 sb.AppendLine("\t\t}");
 
                 // === AssignTo: DTO -> Net ===
+                sb.AppendLine($"\t\tstatic partial void BeforeAssignTo{genericParams}({comTypeNs}{dtoTypeName}{genericParams} src, {netTypeName} dest) {genericConstr};");
+                sb.AppendLine($"\t\tstatic partial void AfterAssignTo{genericParams}({comTypeNs}{dtoTypeName}{genericParams} src, {netTypeName} dest) {genericConstr};");
                 sb.AppendLine($"\t\t{autoGenAttr.ClassModifier.ToCSharpKeyword()} static void AssignTo{genericParams}(this {comTypeNs}{dtoTypeName}{genericParams} src, {netTypeName} dest) {genericConstr}");
                 sb.AppendLine("\t\t{");
                 sb.AppendLine("\t\t\tif (src == null || dest == null) return;");
+                sb.AppendLine("\t\t\tBeforeAssignTo" + genericParams + "(src, dest);");
 
                 // Basismapping (DTO -> Net) via Base.AssignTo<...>(...)
                 if (baseType != null && dtoTypeDict.TryGetValue(baseType.ToDisplayString(), out var baseTypeSymbol2))
@@ -473,6 +480,7 @@ public class DtoCodeGenerator
                     classMapperUsed = classMapperUsed || m.ClassMapperUsed;
                     sb.AppendLine(m.Result.Replace("result.", "dest."));
                 }
+                sb.AppendLine("\t\t\tAfterAssignTo" + genericParams + "(src, dest);");
                 sb.AppendLine("\t\t}");
 
                 // === ToDto / ToNet ===
