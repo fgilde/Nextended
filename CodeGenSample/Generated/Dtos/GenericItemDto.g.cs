@@ -1,5 +1,5 @@
 /// <summary>
-/// --- AUTO GENERATED CODE (12.12.2025 14:15:37) ---
+/// --- AUTO GENERATED CODE (12.12.2025 14:17:58) ---
 /// --- GenericItemDto.g.cs ---
 /// </summary>
 
