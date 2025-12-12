@@ -1,8 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.Diagnostics;
+using System;
 using System.IO;
-using System.Linq;
-using Microsoft.CodeAnalysis;
 
 namespace Nextended.CodeGen.Helper
 {
@@ -10,7 +9,7 @@ namespace Nextended.CodeGen.Helper
     {
         public delegate bool OptionsTryGetFunc(string key, out string value);
 
-        private string originFilePath;
+        private readonly string originFilePath;
         private readonly string fallBackRootNamespace;
         private readonly OptionsTryGetFunc optionsTryGetFunc;
 
@@ -19,7 +18,21 @@ namespace Nextended.CodeGen.Helper
         { }
 
         public NamespaceResolver(string originFilePath, GeneratorExecutionContext context)
-            : this(originFilePath, context.Compilation.AssemblyName, context.AnalyzerConfigOptions.GlobalOptions.TryGetValue)
+            : this(originFilePath,
+                context.Compilation.AssemblyName ?? string.Empty,
+                context.AnalyzerConfigOptions.GlobalOptions.TryGetValue)
+        { }
+
+        public NamespaceResolver(AdditionalText file, Compilation compilation, AnalyzerConfigOptionsProvider optionsProvider)
+            : this(file.Path,
+                compilation.AssemblyName ?? string.Empty,
+                optionsProvider.GlobalOptions.TryGetValue)
+        { }
+
+        public NamespaceResolver(string originFilePath, Compilation compilation, AnalyzerConfigOptionsProvider optionsProvider)
+            : this(originFilePath,
+                compilation.AssemblyName ?? string.Empty,
+                optionsProvider.GlobalOptions.TryGetValue)
         { }
 
         public NamespaceResolver(string originFilePath, string fallBackRootNamespace, OptionsTryGetFunc optionsGetterFunc)
@@ -32,7 +45,7 @@ namespace Nextended.CodeGen.Helper
         public string Resolve()
         {
             var result = ExecuteResolve();
-            if (result.EndsWith("."))
+            if (result.EndsWith(".", StringComparison.Ordinal))
                 result = result.Substring(0, result.Length - 1);
             return result;
         }
@@ -45,7 +58,7 @@ namespace Nextended.CodeGen.Helper
             if (this.optionsTryGetFunc("build_property.projectdir", out var projectDir))
             {
                 var fromPath = EnsurePathEndsWithDirectorySeparator(projectDir);
-                var toPath = EnsurePathEndsWithDirectorySeparator(Path.GetDirectoryName(this.originFilePath));
+                var toPath = EnsurePathEndsWithDirectorySeparator(Path.GetDirectoryName(this.originFilePath) ?? projectDir);
                 var relativPath = GetRelativePath(fromPath, toPath);
 
                 return $"{rootNamespace}.{relativPath.Replace(Path.DirectorySeparatorChar, '.')}";
@@ -56,7 +69,7 @@ namespace Nextended.CodeGen.Helper
 
         public static string GetRelativePath(string fromPath, string toPath)
         {
-            var relativeUri = new Uri(fromPath).MakeRelativeUri(new(toPath));
+            var relativeUri = new Uri(fromPath).MakeRelativeUri(new Uri(toPath));
             return Uri.UnescapeDataString(relativeUri.ToString())
                 .Replace(Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar);
         }
@@ -69,8 +82,8 @@ namespace Nextended.CodeGen.Helper
             bool isAbsolute =
                 Path.IsPathRooted(path)
                 && (Path.GetFullPath(path) == path
-                    || (Path.DirectorySeparatorChar == '/' && path.StartsWith("/"))
-                    || (Path.DirectorySeparatorChar == '\\' && path.Contains(":")));
+                    || (Path.DirectorySeparatorChar == '/' && path.StartsWith("/", StringComparison.Ordinal))
+                    || (Path.DirectorySeparatorChar == '\\' && path.Contains(":", StringComparison.Ordinal)));
 
             if (isAbsolute)
                 return Path.GetFullPath(path);
@@ -86,7 +99,7 @@ namespace Nextended.CodeGen.Helper
             string normalizedPath = path.TrimStart(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
             string combinedPath = Path.Combine(basePath, normalizedPath);
             string result = Path.GetFullPath(combinedPath);
-            // Ergebnis immer Unix-kompatibel machen (mit forward slashes)
+
             return result.Replace(Path.DirectorySeparatorChar, '/');
         }
 

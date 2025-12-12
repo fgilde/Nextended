@@ -43,6 +43,11 @@ namespace Nextended.Core.Attributes
         public bool GenerateMapping { get; set; }
 
         /// <summary>
+        /// If this is true partials methods are generated that can be overwritten to do custom assignments
+        /// </summary>
+        public bool GenerateBeforeAndAfterAssignPartialsInMapping { get; set; }
+
+        /// <summary>
         /// Gets or sets the name of the generated mapping method.
         /// </summary>
         public string? ToDtoMethodName { get; set; }

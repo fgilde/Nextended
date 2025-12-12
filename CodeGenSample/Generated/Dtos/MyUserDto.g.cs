@@ -1,5 +1,5 @@
 /// <summary>
-/// --- AUTO GENERATED CODE (16.11.2025 17:22:27) ---
+/// --- AUTO GENERATED CODE (12.12.2025 14:13:11) ---
 /// --- MyUserDto.g.cs ---
 /// </summary>
 
