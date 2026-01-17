@@ -1,5 +1,5 @@
 /// <summary>
-/// --- AUTO GENERATED CODE (12.12.2025 14:17:58) ---
+/// --- AUTO GENERATED CODE (17.01.2026 23:55:55) ---
 /// --- DimensionDto.g.cs ---
 /// </summary>
 
