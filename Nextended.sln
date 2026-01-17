@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 17
-VisualStudioVersion = 17.0.31912.275
+# Visual Studio Version 18
+VisualStudioVersion = 18.2.11408.102 d18.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Nextended.Core", "Nextended.Core\Nextended.Core.csproj", "{46F7F151-695E-4870-BF38-34C29D6CCB87}"
 EndProject
@@ -37,6 +37,8 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nextended.CodeGen", "Nextended.CodeGen\Nextended.CodeGen.csproj", "{BAB29403-7984-466E-BA0E-63DE43F00F14}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CodeGenSample", "CodeGenSample\CodeGenSample.csproj", "{F47E52BF-1D98-4AB6-A322-A39A7E2B441B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nextended.Aspire.Hosting.Supabase", "Nextended.Aspire.Hosting.Supabase\Nextended.Aspire.Hosting.Supabase.csproj", "{FD26CF8C-FDD5-4A7F-B8F6-B9A623360787}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -88,6 +90,10 @@ Global
 		{F47E52BF-1D98-4AB6-A322-A39A7E2B441B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F47E52BF-1D98-4AB6-A322-A39A7E2B441B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F47E52BF-1D98-4AB6-A322-A39A7E2B441B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FD26CF8C-FDD5-4A7F-B8F6-B9A623360787}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FD26CF8C-FDD5-4A7F-B8F6-B9A623360787}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FD26CF8C-FDD5-4A7F-B8F6-B9A623360787}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FD26CF8C-FDD5-4A7F-B8F6-B9A623360787}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

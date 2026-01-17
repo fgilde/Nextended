@@ -13,9 +13,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Aspire.Hosting.AppHost" Version="13.0.2" />
-    <!--<PackageReference Include="Aspire.Hosting.NodeJs" Version="9.5.2" />-->
-
+    <PackageReference Include="Aspire.Hosting.AppHost" Version="13.1.0" />
     <ProjectReference Include="..\Nextended.Core\Nextended.Core.csproj" />
   </ItemGroup>
 

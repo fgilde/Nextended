@@ -1,7 +1,7 @@
 <Project>
   <PropertyGroup>
     <UsedCorePackageVersion>10.0.4</UsedCorePackageVersion>
-    <PackageVersion>10.0.4</PackageVersion>
+    <PackageVersion>10.0.5</PackageVersion>
   </PropertyGroup>
 
 
