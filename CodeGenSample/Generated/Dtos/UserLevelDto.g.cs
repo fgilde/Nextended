@@ -1,8 +1,3 @@
-/// <summary>
-/// --- AUTO GENERATED CODE (17.01.2026 23:55:55) ---
-/// --- UserLevelDto.g.cs ---
-/// </summary>
-
 using System;
 using System.Runtime.InteropServices;
 namespace ENUMS {

@@ -1,8 +1,3 @@
-/// <summary>
-/// --- AUTO GENERATED CODE (17.01.2026 23:55:55) ---
-/// --- SuperUnitDto.g.cs ---
-/// </summary>
-
 using System;
 namespace MyGenerated.Code.Test {
 	#region Dto class for SuperUnit
