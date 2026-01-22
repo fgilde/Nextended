@@ -328,22 +328,27 @@ $$;
     /// Adds a "Clear All Data" command to the Kong container in the Aspire dashboard.
     /// This stops all Supabase containers and deletes all data for a fresh start.
     /// </summary>
-    public static IResourceBuilder<SupabaseStackResource> WithClearCommand(this IResourceBuilder<SupabaseStackResource> builder)
+     public static IResourceBuilder<SupabaseStackResource> WithClearCommand(this IResourceBuilder<SupabaseStackResource> builder)
     {
         var containerPrefix = builder.Resource.Name;
         var infraPath = builder.Resource.InitSqlPath != null
             ? Path.GetDirectoryName(Path.GetDirectoryName(builder.Resource.InitSqlPath))
             : null;
-        
-            builder.WithCommand(
-                name: "clear-supabase",
-                displayName: "Clear All Supabase Data",
-                executeCommand: async context =>
-                {
-                    Console.WriteLine("[Supabase Clear] Deleting all data...");
+        CommandOptions options = new()
+        {
+            IconName = "Delete",
+            IconVariant = IconVariant.Filled,
+            UpdateState = context => ResourceCommandState.Enabled
+        };
+        builder.WithCommand(
+            name: "clear-supabase",
+            displayName: "Clear All Supabase Data",
+            executeCommand: _ =>
+            {
+                Console.WriteLine("[Supabase Clear] Deleting all data...");
 
-                    var containerNames = new[]
-                    {
+                var containerNames = new[]
+                {
                         $"{containerPrefix}-db",
                         $"{containerPrefix}-auth",
                         $"{containerPrefix}-rest",
@@ -353,50 +358,48 @@ $$;
                         $"{containerPrefix}-studio",
                         $"{containerPrefix}-edge",
                         $"{containerPrefix}-init"
-                    };
+                };
 
-                    foreach (var container in containerNames)
+                foreach (var container in containerNames)
+                {
+                    try
                     {
-                        try
+                        var process = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
                         {
-                            var process = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
-                            {
-                                FileName = "docker",
-                                Arguments = $"rm -f {container}",
-                                RedirectStandardOutput = true,
-                                RedirectStandardError = true,
-                                UseShellExecute = false,
-                                CreateNoWindow = true
-                            });
-                            process?.WaitForExit(10000);
-                            Console.WriteLine($"[Supabase Clear] Container removed: {container}");
-                        }
-                        catch (Exception ex)
-                        {
-                            Console.WriteLine($"[Supabase Clear] WARNING: {container} - {ex.Message}");
-                        }
+                            FileName = "docker",
+                            Arguments = $"rm -f {container}",
+                            RedirectStandardOutput = true,
+                            RedirectStandardError = true,
+                            UseShellExecute = false,
+                            CreateNoWindow = true
+                        });
+                        process?.WaitForExit(10000);
+                        Console.WriteLine($"[Supabase Clear] Container removed: {container}");
                     }
-
-                    if (!string.IsNullOrEmpty(infraPath) && Directory.Exists(infraPath))
+                    catch (Exception ex)
                     {
-                        try
-                        {
-                            Directory.Delete(infraPath, recursive: true);
-                            Console.WriteLine($"[Supabase Clear] Directory deleted: {infraPath}");
-                        }
-                        catch (Exception ex)
-                        {
-                            Console.WriteLine($"[Supabase Clear] WARNING: {ex.Message}");
-                        }
+                        Console.WriteLine($"[Supabase Clear] WARNING: {container} - {ex.Message}");
                     }
+                }
 
-                    Console.WriteLine("[Supabase Clear] Cleanup completed. Please restart Aspire.");
-                    return CommandResults.Success();
-                },
-                updateState: context => ResourceCommandState.Enabled,
-                iconName: "Delete",
-                iconVariant: IconVariant.Filled);
-        
+                if (!string.IsNullOrEmpty(infraPath) && Directory.Exists(infraPath))
+                {
+                    try
+                    {
+                        Directory.Delete(infraPath, recursive: true);
+                        Console.WriteLine($"[Supabase Clear] Directory deleted: {infraPath}");
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"[Supabase Clear] WARNING: {ex.Message}");
+                    }
+                }
+
+                Console.WriteLine("[Supabase Clear] Cleanup completed. Please restart Aspire.");
+                return Task.FromResult(new ExecuteCommandResult() { Success = true});
+            }, options
+            );
+
         return builder;
     }
 

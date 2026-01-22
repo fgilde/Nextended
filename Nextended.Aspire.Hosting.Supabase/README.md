@@ -459,6 +459,3 @@ builder.Build().Run();
 
 ---
 
-## License
-
-This Supabase Aspire integration is part of the MandateManager project.

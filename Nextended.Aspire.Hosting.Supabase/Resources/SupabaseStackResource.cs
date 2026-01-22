@@ -1,5 +1,6 @@
 using Aspire.Hosting;
 using Aspire.Hosting.ApplicationModel;
+using Nextended.Aspire.Hosting.Supabase.Config;
 
 namespace Nextended.Aspire.Hosting.Supabase.Resources;
 
@@ -13,7 +14,7 @@ public record RegisteredUser(string Email, string Password, string DisplayName);
 /// This resource IS the Studio Dashboard container and serves as the visual parent
 /// for all other Supabase containers in the Aspire dashboard.
 /// </summary>
-public sealed class SupabaseStackResource : ContainerResource, IResourceWithConnectionString
+public sealed class SupabaseStackResource : ContainerResource, IResourceWithConnectionString, ISupabaseReferenceInfo
 {
     /// <summary>
     /// Creates a new instance of the SupabaseStackResource.
@@ -133,6 +134,9 @@ public sealed class SupabaseStackResource : ContainerResource, IResourceWithConn
     internal bool SyncData { get; set; } = false;
 
     // --- Computed Properties ---
+
+    public string ProjectRefId => SyncFromProjectRef ?? "";
+    public string ServiceKey => AnonKey;
 
     /// <summary>
     /// Gets the Supabase API URL (Kong endpoint).

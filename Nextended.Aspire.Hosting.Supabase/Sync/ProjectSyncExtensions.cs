@@ -1,5 +1,6 @@
 using Aspire.Hosting.ApplicationModel;
 using Nextended.Aspire.Hosting.Supabase.Builders;
+using Nextended.Aspire.Hosting.Supabase.Config;
 using Nextended.Aspire.Hosting.Supabase.Resources;
 
 namespace Nextended.Aspire.Hosting.Supabase.Sync;
@@ -9,6 +10,14 @@ namespace Nextended.Aspire.Hosting.Supabase.Sync;
 /// </summary>
 public static class ProjectSyncExtensions
 {
+
+    public static IResourceBuilder<SupabaseStackResource> WithProjectSync(
+        this IResourceBuilder<SupabaseStackResource> builder, ISupabaseFullSyncInfo info, SyncOptions options = SyncOptions.All)
+    {
+        return builder.WithProjectSync(info.ProjectRefId, info.ServiceKey, options, info.DbPassword,
+            info.ManagementToken);
+    }
+
     /// <summary>
     /// Enables synchronization from an online Supabase project.
     /// </summary>
