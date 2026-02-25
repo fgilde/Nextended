@@ -91,13 +91,28 @@ GRANT ALL ON DATABASE postgres TO supabase_admin;
 CREATE SCHEMA IF NOT EXISTS auth AUTHORIZATION supabase_auth_admin;
 CREATE SCHEMA IF NOT EXISTS storage AUTHORIZATION supabase_storage_admin;
 CREATE SCHEMA IF NOT EXISTS extensions AUTHORIZATION supabase_admin;
+CREATE SCHEMA IF NOT EXISTS _realtime AUTHORIZATION supabase_admin;
 CREATE SCHEMA IF NOT EXISTS graphql_public;
 
--- 4. Extensions installieren
+-- 4. PostgreSQL Konfiguration anpassen
+-- Supabase Realtime benötigt viele DB-Verbindungen für CDC (Change Data Capture).
+-- Default max_connections=100 ist zu wenig. ALTER SYSTEM wirkt nach dem nächsten Restart.
+ALTER SYSTEM SET max_connections = 200;
+
+-- 5. Realtime Publication erstellen (benötigt für postgres_changes)
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_publication WHERE pubname = 'supabase_realtime') THEN
+    CREATE PUBLICATION supabase_realtime;
+  END IF;
+END
+$$;
+
+-- 6. Extensions installieren
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp" SCHEMA extensions;
 CREATE EXTENSION IF NOT EXISTS pgcrypto SCHEMA extensions;
 
--- 5. Grants für public Schema
+-- 6. Grants für public Schema
 GRANT USAGE ON SCHEMA public TO anon, authenticated, service_role;
 GRANT ALL ON SCHEMA public TO supabase_admin, supabase_auth_admin, supabase_storage_admin;
 GRANT CREATE ON SCHEMA public TO supabase_auth_admin, supabase_storage_admin;
@@ -109,11 +124,11 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO anon, authentic
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO anon, authenticated, service_role;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON FUNCTIONS TO anon, authenticated, service_role;
 
--- 6. Grants für extensions Schema
+-- 7. Grants für extensions Schema
 GRANT USAGE ON SCHEMA extensions TO anon, authenticated, service_role, supabase_admin;
 GRANT ALL ON ALL FUNCTIONS IN SCHEMA extensions TO anon, authenticated, service_role;
 
--- 7. Auth Enums erstellen
+-- 8. Auth Enums erstellen
 DO $$
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_type t JOIN pg_namespace n ON n.oid = t.typnamespace WHERE n.nspname='auth' AND t.typname='factor_type') THEN
@@ -341,20 +356,92 @@ $$;
     #region Post-Init SQL
 
     /// <summary>
-    /// Writes the post-initialization SQL script that runs after GoTrue starts.
-    /// Creates triggers for new users and fills in profiles for existing users.
+    /// Writes the post-initialization SQL script that runs after database starts.
+    /// NOTE: Password updates are now handled by the DB container's wrapper script.
+    /// This script only creates optional triggers if the function exists.
     /// </summary>
-    public static void WritePostInitSql(string path)
+    public static void WritePostInitSql(string path, string password)
     {
-        var sql = """
+        // Password updates and schema creation for existing databases
+        var pw = EscapeSqlLiteral(password);
+        var sql = $"""
 -- ============================================
--- POST-INIT: User-Erstellung und Profile
+-- POST-INIT: Schema Setup & Trigger Creation
 -- ============================================
 
--- Kurz warten damit GoTrue die Tabellen erstellen kann
+-- Kurz warten damit Datenbank vollständig bereit ist
 SELECT pg_sleep(2);
 
--- Trigger erstellen (auth.users existiert jetzt)
+-- Ensure _realtime schema exists (needed by Supabase Realtime)
+CREATE SCHEMA IF NOT EXISTS _realtime AUTHORIZATION supabase_admin;
+
+-- Ensure realtime schema exists (needed by Realtime tenant migrations)
+CREATE SCHEMA IF NOT EXISTS realtime AUTHORIZATION supabase_admin;
+
+-- Increase max_connections for Supabase Realtime CDC (takes effect after next restart)
+ALTER SYSTEM SET max_connections = 200;
+
+-- Ensure supabase_realtime publication exists (needed for postgres_changes)
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_publication WHERE pubname = 'supabase_realtime') THEN
+    CREATE PUBLICATION supabase_realtime;
+  END IF;
+END
+$$;
+
+-- Ensure supabase_admin password matches expected value (for existing databases
+-- where the init SQL didn't run because the data directory already existed)
+ALTER ROLE supabase_admin WITH PASSWORD '{pw}';
+
+-- Create/Update handle_new_user function (needed for publish mode where 00_init.sql doesn't run)
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER SET search_path = public, extensions
+AS $$
+BEGIN
+    -- Profil erstellen (mit Exception-Handling)
+    BEGIN
+        IF EXISTS (SELECT FROM pg_tables WHERE schemaname = 'public' AND tablename = 'profiles') THEN
+            IF NOT EXISTS (SELECT 1 FROM public.profiles WHERE user_id = NEW.id) THEN
+                INSERT INTO public.profiles (user_id, email, display_name, is_disabled, created_at, updated_at)
+                VALUES (
+                    NEW.id,
+                    NEW.email,
+                    COALESCE(NEW.raw_user_meta_data->>'display_name', NEW.email),
+                    false,
+                    NOW(),
+                    NOW()
+                );
+            END IF;
+        END IF;
+    EXCEPTION WHEN OTHERS THEN
+        RAISE WARNING '[handle_new_user] Profil-Erstellung fehlgeschlagen für %: %', NEW.email, SQLERRM;
+    END;
+
+    -- Admin-Rolle erstellen (mit Exception-Handling)
+    BEGIN
+        IF EXISTS (SELECT FROM pg_tables WHERE schemaname = 'public' AND tablename = 'user_roles') THEN
+            IF NOT EXISTS (SELECT 1 FROM public.user_roles WHERE user_id = NEW.id) THEN
+                INSERT INTO public.user_roles (user_id, role, created_at)
+                VALUES (
+                    NEW.id,
+                    'admin',
+                    NOW()
+                );
+            END IF;
+        END IF;
+    EXCEPTION WHEN OTHERS THEN
+        RAISE WARNING '[handle_new_user] Rollen-Erstellung fehlgeschlagen für %: %', NEW.email, SQLERRM;
+    END;
+
+    -- IMMER NEW zurückgeben, damit User-Erstellung NICHT blockiert wird
+    RETURN NEW;
+END;
+$$;
+
+-- Trigger erstellen
 DO $$
 BEGIN
     IF EXISTS (SELECT FROM pg_tables WHERE schemaname = 'auth' AND tablename = 'users') THEN
@@ -472,7 +559,7 @@ echo "[Post-Init] Warte 10 Sekunden für GoTrue Migrationen..."
 sleep 10
 
 echo "[Post-Init] Führe Basis-SQL aus..."
-psql -h $DB_HOST -U postgres -d postgres -f /scripts/post_init.sql
+psql -h $DB_HOST -U postgres -d postgres -v new_password="$PGPASSWORD" -f /scripts/post_init.sql
 
 # Migrations ausführen falls vorhanden (muss NACH GoTrue laufen wegen auth.users)
 if [ -f /scripts/migrations.sql ]; then
@@ -583,11 +670,51 @@ $$;
     #region Kong Configuration
 
     /// <summary>
-    /// Writes the Kong API Gateway configuration YAML file.
+    /// Writes the Kong API Gateway configuration YAML file for local development.
+    /// Uses direct container names that work in Docker networking.
     /// </summary>
-    public static void WriteKongConfig(string path, string anonKey, string serviceKey, string containerPrefix, int goTruePort, int postRestPort, int storagePort, int metaPort, int edgeRuntimePort)
+    public static void WriteKongConfig(string path, string anonKey, string serviceKey, string containerPrefix, int goTruePort, int postRestPort, int storagePort, int metaPort, int edgeRuntimePort, int realtimePort)
     {
-        var yaml = $"""
+        // For local development, use container names directly
+        WriteKongConfigWithUrls(path, anonKey, serviceKey,
+            $"http://{containerPrefix}-auth:{goTruePort}",
+            $"http://{containerPrefix}-rest:{postRestPort}",
+            $"http://{containerPrefix}-storage:{storagePort}",
+            $"http://{containerPrefix}-meta:{metaPort}",
+            $"http://{containerPrefix}-edge:{edgeRuntimePort}",
+            $"http://realtime-dev.{containerPrefix}-realtime:{realtimePort}");
+    }
+
+    /// <summary>
+    /// Writes the Kong API Gateway configuration YAML file with environment variable placeholders.
+    /// Used for Azure Container Apps deployment where URLs are resolved at runtime.
+    /// </summary>
+    public static string GetKongConfigTemplateForPublish(string anonKey, string serviceKey)
+    {
+        // Use environment variable placeholders that will be replaced by envsubst in the init container
+        return GetKongConfigYaml(anonKey, serviceKey,
+            "${AUTH_URL}",
+            "${REST_URL}",
+            "${STORAGE_URL}",
+            "${META_URL}",
+            "${EDGE_URL}",
+            "${REALTIME_URL}");
+    }
+
+    /// <summary>
+    /// Writes the Kong configuration with specific service URLs.
+    /// </summary>
+    public static void WriteKongConfigWithUrls(string path, string anonKey, string serviceKey,
+        string authUrl, string restUrl, string storageUrl, string metaUrl, string edgeUrl, string realtimeUrl)
+    {
+        var yaml = GetKongConfigYaml(anonKey, serviceKey, authUrl, restUrl, storageUrl, metaUrl, edgeUrl, realtimeUrl);
+        File.WriteAllText(path, yaml);
+    }
+
+    private static string GetKongConfigYaml(string anonKey, string serviceKey,
+        string authUrl, string restUrl, string storageUrl, string metaUrl, string edgeUrl, string realtimeUrl)
+    {
+        return $"""
 _format_version: '2.1'
 _transform: true
 
@@ -607,7 +734,7 @@ acls:
 
 services:
   - name: auth-v1-open
-    url: http://{containerPrefix}-auth:{goTruePort}/verify
+    url: {authUrl}/verify
     routes:
       - name: auth-v1-open
         strip_path: true
@@ -617,7 +744,7 @@ services:
       - name: cors
 
   - name: auth-v1-open-callback
-    url: http://{containerPrefix}-auth:{goTruePort}/callback
+    url: {authUrl}/callback
     routes:
       - name: auth-v1-open-callback
         strip_path: true
@@ -627,7 +754,7 @@ services:
       - name: cors
 
   - name: auth-v1-open-authorize
-    url: http://{containerPrefix}-auth:{goTruePort}/authorize
+    url: {authUrl}/authorize
     routes:
       - name: auth-v1-open-authorize
         strip_path: true
@@ -637,7 +764,7 @@ services:
       - name: cors
 
   - name: auth-v1
-    url: http://{containerPrefix}-auth:{goTruePort}
+    url: {authUrl}
     routes:
       - name: auth-v1
         strip_path: true
@@ -656,7 +783,7 @@ services:
             - anon
 
   - name: rest-v1
-    url: http://{containerPrefix}-rest:{postRestPort}
+    url: {restUrl}
     routes:
       - name: rest-v1
         strip_path: true
@@ -675,7 +802,7 @@ services:
             - anon
 
   - name: storage-v1
-    url: http://{containerPrefix}-storage:{storagePort}
+    url: {storageUrl}
     routes:
       - name: storage-v1
         strip_path: true
@@ -694,7 +821,7 @@ services:
             - anon
 
   - name: meta
-    url: http://{containerPrefix}-meta:{metaPort}
+    url: {metaUrl}
     routes:
       - name: meta
         strip_path: true
@@ -710,8 +837,64 @@ services:
           allow:
             - admin
 
+  - name: realtime-v1-ws
+    _comment: "Realtime: /realtime/v1/* -> ws://realtime:4000/socket/*"
+    url: {realtimeUrl}/socket
+    routes:
+      - name: realtime-v1-ws
+        strip_path: true
+        paths:
+          - /realtime/v1/
+    plugins:
+      - name: cors
+      - name: key-auth
+        config:
+          hide_credentials: false
+      - name: acl
+        config:
+          hide_groups_header: true
+          allow:
+            - admin
+            - anon
+      - name: request-transformer
+        config:
+          remove:
+            headers:
+              - cookie
+          replace:
+            headers:
+              - "Host: realtime-dev.supabase-realtime"
+
+  - name: realtime-v1-rest
+    _comment: "Realtime REST API: /realtime/v1/api/* -> http://realtime:4000/api/*"
+    url: {realtimeUrl}/api
+    routes:
+      - name: realtime-v1-rest
+        strip_path: true
+        paths:
+          - /realtime/v1/api
+    plugins:
+      - name: cors
+      - name: key-auth
+        config:
+          hide_credentials: false
+      - name: acl
+        config:
+          hide_groups_header: true
+          allow:
+            - admin
+            - anon
+      - name: request-transformer
+        config:
+          remove:
+            headers:
+              - cookie
+          replace:
+            headers:
+              - "Host: realtime-dev.supabase-realtime"
+
   - name: functions-v1
-    url: http://{containerPrefix}-edge:{edgeRuntimePort}
+    url: {edgeUrl}
     routes:
       - name: functions-v1
         strip_path: false
@@ -729,7 +912,6 @@ services:
             - admin
             - anon
 """;
-        File.WriteAllText(path, yaml);
     }
 
     #endregion

@@ -18,7 +18,7 @@ public class ExcelStructureGenerator : ISourceSubGenerator
             var op = cfg.OutputPath;
             var path = NamespaceResolver.GetAbsolutePath(cfg.SourceFile, context.AdditionalFile.Path);
 
-            if (!File.Exists(path) || ! new[]{".xlsx", ".xls"}.Contains(Path.GetExtension(path), StringComparer.OrdinalIgnoreCase))
+            if (!File.Exists(path) || ! new[]{".xlsx", ".xls", ".csv"}.Contains(Path.GetExtension(path), StringComparer.OrdinalIgnoreCase))
                 continue;
 
             using var wb = new ClosedXML.Excel.XLWorkbook(path);

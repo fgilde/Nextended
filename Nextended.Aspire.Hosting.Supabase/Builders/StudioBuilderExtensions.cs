@@ -6,10 +6,19 @@ namespace Nextended.Aspire.Hosting.Supabase.Builders;
 
 /// <summary>
 /// Provides extension methods for configuring the Supabase Studio Dashboard.
-/// Note: The SupabaseStackResource IS the Studio container.
+/// Note: The SupabaseStackResource IS the Studio container, so these methods configure the stack directly.
 /// </summary>
 public static class StudioBuilderExtensions
 {
+    #region Direct Stack Methods (Aspire-Standard Pattern)
+
+    // Note: WithStudioPort, WithOrganizationName, WithProjectName are already direct methods
+    // on the stack, so they follow the Aspire standard pattern.
+
+    #endregion
+
+    #region Legacy ConfigureStudio (Obsolete)
+
     /// <summary>
     /// Configures the Studio Dashboard settings.
     /// Since the SupabaseStackResource IS the Studio container, this configures the stack itself.
@@ -24,6 +33,10 @@ public static class StudioBuilderExtensions
         configure(builder);
         return builder;
     }
+
+    #endregion
+
+    #region Studio Configuration Methods
 
     /// <summary>
     /// Sets the external Studio port.
@@ -57,4 +70,6 @@ public static class StudioBuilderExtensions
         builder.WithEnvironment("DEFAULT_PROJECT_NAME", name);
         return builder;
     }
+
+    #endregion
 }

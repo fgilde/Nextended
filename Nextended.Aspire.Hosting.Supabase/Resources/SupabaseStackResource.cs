@@ -74,14 +74,25 @@ public sealed class SupabaseStackResource : ContainerResource, IResourceWithConn
     public IResourceBuilder<SupabaseMetaResource>? Meta { get; internal set; }
 
     /// <summary>
+    /// Gets the Realtime container resource.
+    /// </summary>
+    public IResourceBuilder<SupabaseRealtimeResource>? Realtime { get; internal set; }
+
+    /// <summary>
     /// Gets the Edge Runtime container resource for Edge Functions.
     /// </summary>
     public IResourceBuilder<SupabaseEdgeRuntimeResource>? EdgeRuntime { get; internal set; }
+
+    /// <summary>
+    /// Gets the Init container resource (used in publish mode for post-init SQL).
+    /// </summary>
+    internal IResourceBuilder<ContainerResource>? InitContainer { get; set; }
 
     // --- Connection String ---
 
     /// <summary>
     /// Gets the connection string expression for the Supabase API (Kong endpoint URL).
+    /// Uses Aspire's endpoint reference for proper service discovery in both local and deployed environments.
     /// </summary>
     public ReferenceExpression ConnectionStringExpression
     {
@@ -90,7 +101,9 @@ public sealed class SupabaseStackResource : ContainerResource, IResourceWithConn
             if (Kong == null)
                 throw new InvalidOperationException("Kong not configured. Ensure AddSupabase() has been called.");
 
-            return ReferenceExpression.Create($"http://localhost:{Kong.Resource.ExternalPort.ToString()}");
+            // Use the endpoint reference in a ReferenceExpression  
+            var kongEndpoint = Kong.GetEndpoint("http");
+            return ReferenceExpression.Create($"{kongEndpoint}");
         }
     }
 
@@ -133,6 +146,28 @@ public sealed class SupabaseStackResource : ContainerResource, IResourceWithConn
     internal bool SyncSchema { get; set; } = true;
     internal bool SyncData { get; set; } = false;
 
+    // --- Azure Publish Mode Configuration ---
+
+    /// <summary>
+    /// Base64-encoded init SQL for Azure deployment.
+    /// </summary>
+    internal string? InitSqlBase64 { get; set; }
+
+    /// <summary>
+    /// Base64-encoded Kong config YAML for Azure deployment.
+    /// </summary>
+    internal string? KongConfigBase64 { get; set; }
+
+    /// <summary>
+    /// Base64-encoded post-init SQL for Azure deployment.
+    /// </summary>
+    internal string? PostInitSqlBase64 { get; set; }
+
+    /// <summary>
+    /// Path to the scripts directory.
+    /// </summary>
+    internal string? ScriptsDir { get; set; }
+
     // --- Computed Properties ---
 
     public string ProjectRefId => SyncFromProjectRef ?? "";
@@ -140,19 +175,33 @@ public sealed class SupabaseStackResource : ContainerResource, IResourceWithConn
 
     /// <summary>
     /// Gets the Supabase API URL (Kong endpoint).
+    /// For programmatic access, prefer using ConnectionStringExpression for dynamic resolution.
     /// </summary>
-    public string GetApiUrl() =>
-        Kong != null
-            ? $"http://localhost:{Kong.Resource.ExternalPort}"
-            : throw new InvalidOperationException("Kong not configured");
+    public string GetApiUrl()
+    {
+        if (Kong == null)
+            throw new InvalidOperationException("Kong not configured");
+        
+        // For local development display purposes - actual connection should use ConnectionStringExpression
+        return Kong.Resource.ExternalPort > 0 
+            ? $"http://localhost:{Kong.Resource.ExternalPort}" 
+            : "http://<dynamically-assigned>";
+    }
 
     /// <summary>
     /// Gets the Studio Dashboard URL (this resource IS the Studio).
+    /// For programmatic access, prefer using the resource endpoint.
     /// </summary>
-    public string GetStudioUrl() =>
-        StackBuilder != null
-            ? $"http://localhost:{StudioPort}"
-            : throw new InvalidOperationException("Stack not configured");
+    public string GetStudioUrl()
+    {
+        if (StackBuilder == null)
+            throw new InvalidOperationException("Stack not configured");
+        
+        // For local development display purposes
+        return StudioPort > 0 
+            ? $"http://localhost:{StudioPort}" 
+            : "http://<dynamically-assigned>";
+    }
 
     /// <summary>
     /// Gets the PostgreSQL connection string for external tools.

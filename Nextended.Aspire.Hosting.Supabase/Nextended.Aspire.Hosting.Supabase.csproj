@@ -21,6 +21,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Nextended.Aspire\Nextended.Aspire.csproj" />
+    <PackageReference Include="supabase-csharp" Version="0.16.2" />
   </ItemGroup>
 
 </Project>

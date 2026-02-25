@@ -2,6 +2,7 @@ using Aspire.Hosting;
 using Aspire.Hosting.ApplicationModel;
 using Nextended.Aspire.Hosting.Supabase.Helpers;
 using Nextended.Aspire.Hosting.Supabase.Resources;
+using static Nextended.Aspire.Hosting.Supabase.Helpers.SupabaseLogger;
 
 namespace Nextended.Aspire.Hosting.Supabase.Builders;
 
@@ -23,16 +24,16 @@ public static class SupabaseStackExtensions
     {
         if (!Directory.Exists(functionsPath))
         {
-            Console.WriteLine($"[Supabase] WARNING: Edge Functions directory not found: {functionsPath}");
+            LogWarning($"Edge Functions directory not found: {functionsPath}");
             return builder;
         }
 
         var stack = builder.Resource;
         var appBuilder = stack.AppBuilder;
 
-        if (appBuilder == null)
+        if (appBuilder is null)
         {
-            Console.WriteLine("[Supabase] ERROR: AppBuilder not available. Was AddSupabase() called?");
+            LogError("AppBuilder not available. Was AddSupabase() called?");
             return builder;
         }
 
@@ -45,22 +46,23 @@ public static class SupabaseStackExtensions
 
         if (functionDirs.Count == 0)
         {
-            Console.WriteLine($"[Supabase] WARNING: No Edge Functions with index.ts found in: {functionsPath}");
+            LogWarning($"No Edge Functions with index.ts found in: {functionsPath}");
             return builder;
         }
 
-        Console.WriteLine($"[Supabase] Edge Functions found: {string.Join(", ", functionDirs)}");
+        LogInformation($"Edge Functions found: {string.Join(", ", functionDirs)}");
 
         stack.EdgeFunctionsPath = functionsPath;
         var containerPrefix = stack.Name;
 
-        // Create Edge Runtime container
-        const int PostgresPort = 5432;
-        const int KongPort = 8000;
-        const int EdgeRuntimePort = 9000;
-
         var dbPassword = stack.Database!.Resource.Password;
-        var edgeDbUrl = $"postgresql://postgres:{dbPassword}@{containerPrefix}-db:{PostgresPort}/postgres";
+
+        // Get database endpoint for dynamic service discovery (works in ACA and locally)
+        var dbEndpoint = stack.Database.GetEndpoint("tcp");
+
+        // Build database URL using Aspire's dynamic endpoint resolution
+        var edgeDbUrl = ReferenceExpression.Create(
+            $"postgresql://postgres:{dbPassword}@{dbEndpoint.Property(EndpointProperty.Host)}:{dbEndpoint.Property(EndpointProperty.Port)}/postgres");
 
         // Generate router file for multi-function support
         var infraRoot = stack.InfraRootDir ?? Path.Combine(appBuilder.AppHostDirectory, "..", "infra", "supabase");
@@ -69,9 +71,10 @@ public static class SupabaseStackExtensions
 
         var mainTsPath = Path.Combine(edgeDir, "main.ts");
         EdgeFunctionRouter.GenerateRouter(mainTsPath, functionDirs);
-        Console.WriteLine($"[Supabase] Edge Router generated: {mainTsPath}");
+        LogInformation($"Edge Router generated: {mainTsPath}");
 
         // Create the Edge Runtime container with typed resource
+        const int EdgeRuntimePort = 9000;
         var edgeResource = new SupabaseEdgeRuntimeResource($"{containerPrefix}-edge")
         {
             Port = EdgeRuntimePort,
@@ -80,27 +83,86 @@ public static class SupabaseStackExtensions
         };
         edgeResource.FunctionNames.AddRange(functionDirs);
 
-        stack.EdgeRuntime = appBuilder.AddResource(edgeResource)
+        var isPublishMode = appBuilder.ExecutionContext.IsPublishMode;
+
+        // Build Kong URL using Aspire's endpoint reference
+        var edgeSupabaseUrl = stack.Kong!.GetEndpoint("http");
+
+        // Base configuration for Edge Runtime
+        var edgeBuilder = appBuilder.AddResource(edgeResource)
             .WithImage("denoland/deno", "alpine-2.1.4")
             .WithContainerName($"{containerPrefix}-edge")
-            .WithEnvironment("SUPABASE_URL", $"http://{containerPrefix}-kong:{KongPort.ToString()}")
+            .WithEnvironment("SUPABASE_URL", edgeSupabaseUrl)
             .WithEnvironment("SUPABASE_ANON_KEY", stack.AnonKey)
             .WithEnvironment("SUPABASE_SERVICE_ROLE_KEY", stack.ServiceRoleKey)
             .WithEnvironment("SUPABASE_DB_URL", edgeDbUrl)
             .WithEnvironment("JWT_SECRET", stack.JwtSecret)
             .WithEnvironment("DENO_DIR", "/tmp/deno")
             .WithEnvironment("EDGE_RUNTIME_PORT", EdgeRuntimePort.ToString())
-            .WithBindMount(edgeDir, "/home/deno/main", isReadOnly: true)
-            .WithBindMount(functionsPath, "/home/deno/functions", isReadOnly: true)
-            .WithHttpEndpoint(targetPort: EdgeRuntimePort, name: "http")
-            .WithArgs("run", "--allow-all", "--unstable-worker-options", "/home/deno/main/main.ts")
+            .WithEndpoint(targetPort: EdgeRuntimePort, name: "http", scheme: "http", isExternal: false)
             .WaitFor(stack.Database!)
             .WaitFor(stack.Kong!);
+
+        if (isPublishMode)
+        {
+            // In Azure Container Apps:
+            // Init containers are separate Container Apps - they CANNOT share volumes!
+            // Solution: Pass function code as environment variables and write them at container startup
+            // The Deno container will write the files before starting the runtime
+
+            var edgeMountPath = "/home/deno";
+
+            // Read main.ts content
+            var mainTsContent = File.ReadAllText(mainTsPath);
+            var mainTsBase64 = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(mainTsContent));
+
+            // Build the setup command that writes all files and then starts Deno
+            var setupCommands = new List<string>
+            {
+                $"mkdir -p {edgeMountPath}/main {edgeMountPath}/functions",
+                $"echo $MAIN_TS_BASE64 | base64 -d > {edgeMountPath}/main/main.ts"
+            };
+
+            // Read all function files and add to environment variables
+            foreach (var funcName in functionDirs)
+            {
+                var funcIndexPath = Path.Combine(functionsPath, funcName, "index.ts");
+                if (File.Exists(funcIndexPath))
+                {
+                    var funcContent = File.ReadAllText(funcIndexPath);
+                    var funcBase64 = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(funcContent));
+                    var envVarName = $"FUNC_{funcName.ToUpperInvariant().Replace("-", "_")}_BASE64";
+
+                    edgeBuilder.WithEnvironment(envVarName, funcBase64);
+                    setupCommands.Add($"mkdir -p {edgeMountPath}/functions/{funcName} && echo ${envVarName} | base64 -d > {edgeMountPath}/functions/{funcName}/index.ts");
+                }
+            }
+
+            setupCommands.Add($"echo 'Edge functions ready:' && find {edgeMountPath} -name '*.ts'");
+            setupCommands.Add($"exec deno run --allow-all --unstable-worker-options {edgeMountPath}/main/main.ts");
+
+            var startupCommand = string.Join(" && ", setupCommands);
+
+            // Use /bin/sh to run a startup script that writes files and then starts Deno
+            edgeBuilder
+                .WithEnvironment("MAIN_TS_BASE64", mainTsBase64)
+                .WithEntrypoint("/bin/sh")
+                .WithArgs("-c", startupCommand);
+        }
+        else
+        {
+            // Local development: Use bind mounts and standard Deno command
+            edgeBuilder
+                .WithBindMount(edgeDir, "/home/deno/main", isReadOnly: true)
+                .WithBindMount(functionsPath, "/home/deno/functions", isReadOnly: true)
+                .WithArgs("run", "--allow-all", "--unstable-worker-options", "/home/deno/main/main.ts");
+        }
+        stack.EdgeRuntime = edgeBuilder;
 
         // Set parent relationship to the stack (which IS the Studio)
         stack.EdgeRuntime.WithParentRelationship(stack);
 
-        Console.WriteLine($"[Supabase] Edge Runtime container created with {functionDirs.Count} functions");
+        LogInformation($"Edge Runtime container created with {functionDirs.Count} functions");
         return builder;
     }
 
@@ -120,15 +182,15 @@ public static class SupabaseStackExtensions
     {
         if (!Directory.Exists(migrationsPath))
         {
-            Console.WriteLine($"[Supabase] WARNING: Migrations directory not found: {migrationsPath}");
+            LogWarning($"Migrations directory not found: {migrationsPath}");
             return builder;
         }
 
         var stack = builder.Resource;
 
-        if (stack.InitSqlPath == null)
+        if (stack.InitSqlPath is null)
         {
-            Console.WriteLine("[Supabase] ERROR: InitSqlPath not set. Was AddSupabase() called?");
+            LogError("InitSqlPath not set. Was AddSupabase() called?");
             return builder;
         }
 
@@ -139,11 +201,11 @@ public static class SupabaseStackExtensions
 
         if (sqlFiles.Count == 0)
         {
-            Console.WriteLine($"[Supabase] No migrations found in: {migrationsPath}");
+            LogInformation($"No migrations found in: {migrationsPath}");
             return builder;
         }
 
-        Console.WriteLine($"[Supabase] {sqlFiles.Count} migrations found");
+        LogInformation($"{sqlFiles.Count} migrations found");
 
         // Create combined migrations file
         var combinedSql = new System.Text.StringBuilder();
@@ -183,11 +245,11 @@ public static class SupabaseStackExtensions
                 var content = File.ReadAllText(sqlFile);
                 combinedSql.AppendLine(content);
                 combinedSql.AppendLine();
-                Console.WriteLine($"[Supabase]   + {fileName}");
+                LogInformation($"  + {fileName}");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[Supabase] WARNING: Could not read {fileName}: {ex.Message}");
+                LogWarning($"Could not read {fileName}: {ex.Message}");
             }
         }
 
@@ -201,7 +263,13 @@ public static class SupabaseStackExtensions
         var migrationsOutputPath = Path.Combine(scriptsDir, "migrations.sql");
         File.WriteAllText(migrationsOutputPath, combinedSql.ToString());
 
-        Console.WriteLine($"[Supabase] Migrations written to: {migrationsOutputPath}");
+        // For publish mode: Update PostInitSqlBase64 to include migrations
+        if (stack.AppBuilder?.ExecutionContext.IsPublishMode == true)
+        {
+            UpdatePostInitSqlBase64(stack);
+        }
+
+        LogInformation($"Migrations written to: {migrationsOutputPath}");
         return builder;
     }
 
@@ -230,16 +298,23 @@ public static class SupabaseStackExtensions
             ? Path.Combine(Path.GetDirectoryName(builder.Resource.InitSqlPath)!, "scripts")
             : null;
 
-        if (scriptsDir != null)
+        if (scriptsDir is not null)
         {
             Directory.CreateDirectory(scriptsDir);
             var userSqlPath = Path.Combine(scriptsDir, "users.sql");
             AppendUserSql(userSqlPath, user);
-            Console.WriteLine($"[Supabase] User registered: {email} -> {userSqlPath}");
+
+            // For publish mode: Update PostInitSqlBase64 to include new user
+            if (builder.Resource.AppBuilder?.ExecutionContext.IsPublishMode == true)
+            {
+                UpdatePostInitSqlBase64(builder.Resource);
+            }
+
+            LogInformation($"User registered: {email} -> {userSqlPath}");
         }
         else
         {
-            Console.WriteLine($"[Supabase] WARNING: InitSqlPath is null, user SQL cannot be created!");
+            LogWarning("InitSqlPath is null, user SQL cannot be created!");
         }
 
         return builder;
@@ -345,7 +420,7 @@ $$;
             displayName: "Clear All Supabase Data",
             executeCommand: _ =>
             {
-                Console.WriteLine("[Supabase Clear] Deleting all data...");
+                LogInformation("Deleting all data...");
 
                 var containerNames = new[]
                 {
@@ -353,6 +428,7 @@ $$;
                         $"{containerPrefix}-auth",
                         $"{containerPrefix}-rest",
                         $"{containerPrefix}-storage",
+                        $"realtime-dev.{containerPrefix}-realtime",
                         $"{containerPrefix}-kong",
                         $"{containerPrefix}-meta",
                         $"{containerPrefix}-studio",
@@ -374,11 +450,11 @@ $$;
                             CreateNoWindow = true
                         });
                         process?.WaitForExit(10000);
-                        Console.WriteLine($"[Supabase Clear] Container removed: {container}");
+                        LogInformation($"Container removed: {container}");
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine($"[Supabase Clear] WARNING: {container} - {ex.Message}");
+                        LogWarning($"{container} - {ex.Message}");
                     }
                 }
 
@@ -387,15 +463,15 @@ $$;
                     try
                     {
                         Directory.Delete(infraPath, recursive: true);
-                        Console.WriteLine($"[Supabase Clear] Directory deleted: {infraPath}");
+                        LogInformation($"Directory deleted: {infraPath}");
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine($"[Supabase Clear] WARNING: {ex.Message}");
+                        LogWarning(ex.Message);
                     }
                 }
 
-                Console.WriteLine("[Supabase Clear] Cleanup completed. Please restart Aspire.");
+                LogInformation("Cleanup completed. Please restart Aspire.");
                 return Task.FromResult(new ExecuteCommandResult() { Success = true});
             }, options
             );
@@ -496,6 +572,96 @@ $$;
     {
         builder.Resource.ServiceRoleKey = serviceRoleKey;
         return builder;
+    }
+
+    #endregion
+
+    #region Internal Helpers
+
+    /// <summary>
+    /// Updates the PostInitSqlBase64 by combining all SQL files from the scripts and init directories.
+    /// Called after WithMigrations(), WithRegisteredUser(), or WithProjectSync() to ensure all SQL is included.
+    /// </summary>
+    internal static void UpdatePostInitSqlBase64(SupabaseStackResource stack)
+    {
+        if (stack.InitSqlPath is null) return;
+
+        var initDir = stack.InitSqlPath;
+        var scriptsDir = Path.Combine(Path.GetDirectoryName(initDir)!, "scripts");
+
+        var combinedSql = new System.Text.StringBuilder();
+
+        // Append synced schema SQL if exists (from WithProjectSync)
+        // This must come FIRST as it creates tables that migrations might reference
+        var syncSqlPath = Path.Combine(initDir, "01_sync_schema.sql");
+        if (File.Exists(syncSqlPath))
+        {
+            var syncSql = File.ReadAllText(syncSqlPath);
+            if (syncSql.Length < 200000) // 200KB limit for synced schema
+            {
+                combinedSql.AppendLine("-- Synced Schema from Remote Project");
+                combinedSql.AppendLine(syncSql);
+                combinedSql.AppendLine();
+            }
+            else
+            {
+                LogWarning("01_sync_schema.sql is too large for Azure deployment. Synced schema will not be applied.");
+            }
+        }
+
+        // Read base post_init.sql (triggers and profiles)
+        if (Directory.Exists(scriptsDir))
+        {
+            var postInitSqlPath = Path.Combine(scriptsDir, "post_init.sql");
+            if (File.Exists(postInitSqlPath))
+            {
+                combinedSql.AppendLine("-- Post Init (Triggers)");
+                combinedSql.AppendLine(File.ReadAllText(postInitSqlPath));
+                combinedSql.AppendLine();
+            }
+
+            // Append migrations.sql if exists
+            var migrationsSqlPath = Path.Combine(scriptsDir, "migrations.sql");
+            if (File.Exists(migrationsSqlPath))
+            {
+                var migrationsSql = File.ReadAllText(migrationsSqlPath);
+                if (migrationsSql.Length < 100000) // 100KB limit for migrations
+                {
+                    combinedSql.AppendLine("-- Migrations");
+                    combinedSql.AppendLine(migrationsSql);
+                    combinedSql.AppendLine();
+                }
+                else
+                {
+                    LogWarning("migrations.sql is too large for Azure deployment. Migrations will not run automatically.");
+                }
+            }
+
+            // Append users.sql if exists
+            var usersSqlPath = Path.Combine(scriptsDir, "users.sql");
+            if (File.Exists(usersSqlPath))
+            {
+                var usersSql = File.ReadAllText(usersSqlPath);
+                if (usersSql.Length < 50000) // 50KB limit for users
+                {
+                    combinedSql.AppendLine("-- Users");
+                    combinedSql.AppendLine(usersSql);
+                    combinedSql.AppendLine();
+                }
+                else
+                {
+                    LogWarning("users.sql is too large for Azure deployment. Users will not be created automatically.");
+                }
+            }
+        }
+
+        // Update the base64 content
+        stack.PostInitSqlBase64 = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(combinedSql.ToString()));
+
+        // Also update the init container environment variable if it exists
+        stack.InitContainer?.WithEnvironment("POST_INIT_SQL_BASE64", stack.PostInitSqlBase64);
+
+        LogInformation("PostInitSqlBase64 updated for publish mode");
     }
 
     #endregion

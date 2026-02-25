@@ -1,7 +1,9 @@
 using Aspire.Hosting.ApplicationModel;
 using Nextended.Aspire.Hosting.Supabase.Builders;
 using Nextended.Aspire.Hosting.Supabase.Config;
+using Nextended.Aspire.Hosting.Supabase.Helpers;
 using Nextended.Aspire.Hosting.Supabase.Resources;
+using static Nextended.Aspire.Hosting.Supabase.Helpers.SupabaseLogger;
 
 namespace Nextended.Aspire.Hosting.Supabase.Sync;
 
@@ -38,24 +40,24 @@ public static class ProjectSyncExtensions
         // Validate parameters
         if (string.IsNullOrWhiteSpace(projectRef))
         {
-            Console.WriteLine("[Supabase Sync] SKIPPED: projectRef is empty or null.");
+            LogSyncWarning("SKIPPED: projectRef is empty or null.");
             return builder;
         }
 
         if (string.IsNullOrWhiteSpace(serviceKey))
         {
-            Console.WriteLine("[Supabase Sync] SKIPPED: serviceKey is empty or null.");
+            LogSyncWarning("SKIPPED: serviceKey is empty or null.");
             return builder;
         }
 
         // Check if key is in JWT format (not CLI format)
         if (!serviceKey.StartsWith("eyJ"))
         {
-            Console.WriteLine("[Supabase Sync] ERROR: serviceKey has wrong format!");
-            Console.WriteLine("                Expected: JWT format (starts with 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...')");
-            Console.WriteLine("                Found: '" + serviceKey.Substring(0, Math.Min(20, serviceKey.Length)) + "...'");
-            Console.WriteLine("                Note: Use the 'service_role' key from Dashboard → Project Settings → API");
-            Console.WriteLine("                      NOT the 'sb_secret_...' key - that's only for the Supabase CLI!");
+            LogSyncError("serviceKey has wrong format!");
+            LogSyncInfo("Expected: JWT format (starts with 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...')");
+            LogSyncInfo($"Found: '{serviceKey.Substring(0, Math.Min(20, serviceKey.Length))}...'");
+            LogSyncInfo("Note: Use the 'service_role' key from Dashboard → Project Settings → API");
+            LogSyncInfo("      NOT the 'sb_secret_...' key - that's only for the Supabase CLI!");
             return builder;
         }
 
@@ -69,17 +71,17 @@ public static class ProjectSyncExtensions
 
         if (needsDbPassword && string.IsNullOrWhiteSpace(dbPassword))
         {
-            Console.WriteLine("[Supabase Sync] WARNING: For complete schema sync (Policies, Functions, Triggers, Views) the DB password is required!");
-            Console.WriteLine("                Note: Dashboard → Project Settings → Database → Database password");
-            Console.WriteLine("                The sync options Policies/Functions/Triggers/Types/Views/Indexes will be skipped.");
+            LogSyncWarning("For complete schema sync (Policies, Functions, Triggers, Views) the DB password is required!");
+            LogSyncInfo("Note: Dashboard → Project Settings → Database → Database password");
+            LogSyncInfo("The sync options Policies/Functions/Triggers/Types/Views/Indexes will be skipped.");
         }
 
         // Warn if Edge Functions sync requires management API token
         if (options.HasFlag(SyncOptions.EdgeFunctions) && string.IsNullOrWhiteSpace(managementApiToken))
         {
-            Console.WriteLine("[Supabase Sync] WARNING: For Edge Functions sync a Management API token is required!");
-            Console.WriteLine("                Note: Dashboard → Account → Access Tokens → Generate new token");
-            Console.WriteLine("                The sync option EdgeFunctions will be skipped.");
+            LogSyncWarning("For Edge Functions sync a Management API token is required!");
+            LogSyncInfo("Note: Dashboard → Account → Access Tokens → Generate new token");
+            LogSyncInfo("The sync option EdgeFunctions will be skipped.");
         }
 
         // Store configuration
@@ -91,7 +93,7 @@ public static class ProjectSyncExtensions
         // Perform sync now - the init directory should exist from AddSupabase
         if (string.IsNullOrEmpty(builder.Resource.InitSqlPath))
         {
-            Console.WriteLine("[Supabase Sync] ERROR: InitSqlPath not set. Was AddSupabase() called?");
+            LogSyncError("InitSqlPath not set. Was AddSupabase() called?");
             return builder;
         }
 
@@ -120,13 +122,19 @@ public static class ProjectSyncExtensions
                 Directory.Exists(edgeFunctionsPath) &&
                 Directory.GetDirectories(edgeFunctionsPath).Length > 0)
             {
-                Console.WriteLine($"[Supabase Sync] Enabling synchronized Edge Functions from: {edgeFunctionsPath}");
+                LogSyncInfo($"Enabling synchronized Edge Functions from: {edgeFunctionsPath}");
                 builder.WithEdgeFunctions(edgeFunctionsPath);
+            }
+
+            // For publish mode: Update PostInitSqlBase64 to include synced schema
+            if (builder.Resource.AppBuilder?.ExecutionContext.IsPublishMode == true)
+            {
+                SupabaseStackExtensions.UpdatePostInitSqlBase64(builder.Resource);
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[Supabase Sync] ERROR: {ex.Message}");
+            LogSyncError(ex.Message);
         }
 
         return builder;

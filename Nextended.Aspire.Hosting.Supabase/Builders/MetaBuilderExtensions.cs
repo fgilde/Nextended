@@ -9,6 +9,31 @@ namespace Nextended.Aspire.Hosting.Supabase.Builders;
 /// </summary>
 public static class MetaBuilderExtensions
 {
+    #region Direct Stack Methods (Aspire-Standard Pattern)
+
+    /// <summary>
+    /// Sets the internal Postgres-Meta port.
+    /// </summary>
+    /// <param name="builder">The Supabase stack resource builder.</param>
+    /// <param name="port">The port number.</param>
+    /// <returns>The Supabase stack resource builder for chaining.</returns>
+    public static IResourceBuilder<SupabaseStackResource> WithMetaPort(
+        this IResourceBuilder<SupabaseStackResource> builder,
+        int port)
+    {
+        var stack = builder.Resource;
+        if (stack.Meta is null)
+            throw new InvalidOperationException("Meta not configured. Ensure AddSupabase() has been called.");
+
+        stack.Meta.Resource.Port = port;
+        stack.Meta.WithEnvironment("PG_META_PORT", port.ToString());
+        return builder;
+    }
+
+    #endregion
+
+    #region Legacy ConfigureMeta (Obsolete)
+
     /// <summary>
     /// Configures the Postgres-Meta settings.
     /// </summary>
@@ -20,12 +45,16 @@ public static class MetaBuilderExtensions
         Action<IResourceBuilder<SupabaseMetaResource>> configure)
     {
         var stack = builder.Resource;
-        if (stack.Meta == null)
+        if (stack.Meta is null)
             throw new InvalidOperationException("Meta not configured. Ensure AddSupabase() has been called.");
 
         configure(stack.Meta);
         return builder;
     }
+
+    #endregion
+
+    #region Sub-Resource Methods (for use with ConfigureMeta)
 
     /// <summary>
     /// Sets the internal Postgres-Meta port.
@@ -38,4 +67,6 @@ public static class MetaBuilderExtensions
         builder.WithEnvironment("PG_META_PORT", port.ToString());
         return builder;
     }
+
+    #endregion
 }

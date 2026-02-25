@@ -1,6 +1,7 @@
 using System.Text;
 using System.Text.Json;
 using Nextended.Aspire.Hosting.Supabase.Helpers;
+using static Nextended.Aspire.Hosting.Supabase.Helpers.SupabaseLogger;
 
 namespace Nextended.Aspire.Hosting.Supabase.Sync;
 
@@ -22,8 +23,8 @@ internal static class SyncService
         string? managementApiToken = null,
         string? edgeFunctionsPath = null)
     {
-        Console.WriteLine($"[Supabase Sync] Synchronizing from project: {projectRef}");
-        Console.WriteLine($"[Supabase Sync] Options: {options}");
+        LogSyncInfo($" Synchronizing from project: {projectRef}");
+        LogSyncInfo($" Options: {options}");
 
         var baseUrl = $"https://{projectRef}.supabase.co";
         using var httpClient = new HttpClient();
@@ -59,7 +60,7 @@ internal static class SyncService
         {
             if (!schemaCreated)
             {
-                Console.WriteLine("[Supabase Sync] WARNING: Data sync skipped - schema was not created!");
+                LogSyncInfo("WARNING: Data sync skipped - schema was not created!");
             }
             else
             {
@@ -102,20 +103,20 @@ internal static class SyncService
 
         var syncSqlPath = Path.Combine(initPath, "01_sync_schema.sql");
         await File.WriteAllTextAsync(syncSqlPath, sqlBuilder.ToString());
-        Console.WriteLine($"[Supabase Sync] Sync saved to: {syncSqlPath}");
+        LogSyncInfo($" Sync saved to: {syncSqlPath}");
     }
 
     private static async Task<bool> SyncSchema(HttpClient httpClient, string baseUrl, StringBuilder sqlBuilder)
     {
         try
         {
-            Console.WriteLine("[Supabase Sync] Loading OpenAPI specification for schema...");
+            LogSyncInfo("Loading OpenAPI specification for schema...");
             var openApiResponse = await httpClient.GetStringAsync($"{baseUrl}/rest/v1/");
             var openApi = JsonSerializer.Deserialize<JsonElement>(openApiResponse);
 
             if (!openApi.TryGetProperty("definitions", out var definitions))
             {
-                Console.WriteLine("[Supabase Sync] No table definitions found.");
+                LogSyncInfo("No table definitions found.");
                 return false;
             }
 
@@ -130,7 +131,7 @@ internal static class SyncService
 
                 if (tableName.StartsWith("_") || tableName == "rpc") continue;
 
-                Console.WriteLine($"[Supabase Sync] Synchronizing table: public.{tableName}");
+                LogSyncInfo($" Synchronizing table: public.{tableName}");
 
                 if (!tableSchema.TryGetProperty("properties", out var properties))
                     continue;
@@ -180,17 +181,17 @@ internal static class SyncService
 
             if (customTypes.Count > 0)
             {
-                Console.WriteLine($"[Supabase Sync] WARNING: {customTypes.Count} custom types were replaced with TEXT:");
+                LogSyncWarning($"{customTypes.Count} custom types were replaced with TEXT:");
                 foreach (var ct in customTypes)
-                    Console.WriteLine($"  - {ct}");
+                    LogSyncInfo($"  - {ct}");
             }
 
-            Console.WriteLine("[Supabase Sync] Schema sync completed.");
+            LogSyncInfo("Schema sync completed.");
             return true;
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[Supabase Sync] Error during schema sync: {ex.Message}");
+            LogSyncError($"Error during schema sync: {ex.Message}");
             sqlBuilder.AppendLine($"-- Error during schema sync: {ex.Message}");
             return false;
         }
@@ -200,7 +201,7 @@ internal static class SyncService
     {
         try
         {
-            Console.WriteLine("[Supabase Sync] Loading data...");
+            LogSyncInfo("Loading data...");
 
             var openApiResponse = await httpClient.GetStringAsync($"{baseUrl}/rest/v1/");
             var openApi = JsonSerializer.Deserialize<JsonElement>(openApiResponse);
@@ -226,7 +227,7 @@ internal static class SyncService
 
                         if (rows.ValueKind == JsonValueKind.Array && rows.GetArrayLength() > 0)
                         {
-                            Console.WriteLine($"[Supabase Sync] Synchronizing {rows.GetArrayLength()} rows from: {tableName}");
+                            LogSyncInfo($" Synchronizing {rows.GetArrayLength()} rows from: {tableName}");
                             sqlBuilder.AppendLine($"-- Data for: {tableName}");
 
                             foreach (var row in rows.EnumerateArray())
@@ -252,11 +253,11 @@ internal static class SyncService
                 }
             }
 
-            Console.WriteLine("[Supabase Sync] Data sync completed.");
+            LogSyncInfo("Data sync completed.");
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[Supabase Sync] Error during data sync: {ex.Message}");
+            LogSyncError($"Error during data sync: {ex.Message}");
             sqlBuilder.AppendLine($"-- Error during data sync: {ex.Message}");
         }
     }
@@ -273,7 +274,7 @@ internal static class SyncService
 
         try
         {
-            Console.WriteLine("[Supabase Sync] Loading storage data...");
+            LogSyncInfo("Loading storage data...");
 
             using var client = new HttpClient();
             client.DefaultRequestHeaders.Add("apikey", serviceKey);
@@ -284,7 +285,7 @@ internal static class SyncService
 
             if (buckets.ValueKind != JsonValueKind.Array)
             {
-                Console.WriteLine("[Supabase Sync] No buckets found.");
+                LogSyncInfo("No buckets found.");
                 return ("", "");
             }
 
@@ -296,10 +297,10 @@ internal static class SyncService
                     var name = bucket.GetProperty("name").GetString();
                     var isPublic = bucket.TryGetProperty("public", out var pub) && pub.GetBoolean();
 
-                    Console.WriteLine($"[Supabase Sync] Storage bucket: {name} (public: {isPublic})");
+                    LogSyncInfo($" Storage bucket: {name} (public: {isPublic})");
                     bucketsSqlBuilder.AppendLine($"INSERT INTO storage.buckets (id, name, public, created_at, updated_at) VALUES ('{SupabaseSqlGenerator.EscapeSqlString(id!)}', '{SupabaseSqlGenerator.EscapeSqlString(name!)}', {isPublic.ToString().ToLower()}, NOW(), NOW()) ON CONFLICT (id) DO NOTHING;");
                 }
-                Console.WriteLine("[Supabase Sync] Storage bucket sync completed.");
+                LogSyncInfo("Storage bucket sync completed.");
             }
 
             if (syncFiles && !string.IsNullOrEmpty(storagePath))
@@ -320,22 +321,22 @@ internal static class SyncService
                         objectsSqlBuilder.Append(objectsSql);
 
                         if (filesDownloaded > 0)
-                            Console.WriteLine($"[Supabase Sync] {filesDownloaded} files downloaded from bucket '{bucketId}'.");
+                            LogSyncInfo($" {filesDownloaded} files downloaded from bucket '{bucketId}'.");
                         else
-                            Console.WriteLine($"[Supabase Sync] Bucket '{bucketId}' is empty or not accessible.");
+                            LogSyncInfo($" Bucket '{bucketId}' is empty or not accessible.");
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine($"[Supabase Sync] Error with bucket '{bucketId}': {ex.Message}");
+                        LogSyncError($"Error with bucket '{bucketId}': {ex.Message}");
                     }
                 }
 
-                Console.WriteLine($"[Supabase Sync] Storage files sync completed. {totalFiles} files total.");
+                LogSyncInfo($" Storage files sync completed. {totalFiles} files total.");
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[Supabase Sync] Error during storage sync: {ex.Message}");
+            LogSyncError($"Error during storage sync: {ex.Message}");
         }
 
         return (bucketsSqlBuilder.ToString(), objectsSqlBuilder.ToString());
@@ -366,7 +367,7 @@ internal static class SyncService
             if (!listResponse.IsSuccessStatusCode)
             {
                 var errorContent = await listResponse.Content.ReadAsStringAsync();
-                Console.WriteLine($"[Supabase Sync] Error listing {bucketId}/{prefix}: {listResponse.StatusCode} - {errorContent}");
+                LogSyncError($"Error listing {bucketId}/{prefix}: {listResponse.StatusCode} - {errorContent}");
                 return (0, "");
             }
 
@@ -430,19 +431,19 @@ internal static class SyncService
                         }
                         else
                         {
-                            Console.WriteLine($"[Supabase Sync] Error downloading {bucketId}/{fullPath}: {downloadResponse.StatusCode}");
+                            LogSyncError($"Error downloading {bucketId}/{fullPath}: {downloadResponse.StatusCode}");
                         }
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine($"[Supabase Sync] Error downloading {bucketId}/{fileName}: {ex.Message}");
+                        LogSyncError($"Error downloading {bucketId}/{fileName}: {ex.Message}");
                     }
                 }
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[Supabase Sync] Error listing {bucketId}/{prefix}: {ex.Message}");
+            LogSyncError($"Error listing {bucketId}/{prefix}: {ex.Message}");
         }
 
         return (fileCount, sqlBuilder.ToString());
@@ -450,15 +451,15 @@ internal static class SyncService
 
     private static async Task SyncWithPgDump(string initPath, string projectRef, string dbPassword, SyncOptions options, StringBuilder sqlBuilder)
     {
-        Console.WriteLine("[Supabase Sync] Starting pg_dump for complete schema sync...");
+        LogSyncInfo("Starting pg_dump for complete schema sync...");
 
         var connectionString = $"postgresql://postgres.{projectRef}:{Uri.EscapeDataString(dbPassword)}@aws-0-eu-central-1.pooler.supabase.com:6543/postgres";
 
         var pgDumpPath = FindPgDump();
         if (string.IsNullOrEmpty(pgDumpPath))
         {
-            Console.WriteLine("[Supabase Sync] WARNING: pg_dump not found. Skipping complete schema sync.");
-            Console.WriteLine("                Install PostgreSQL client tools for complete sync.");
+            LogSyncWarning("pg_dump not found. Skipping complete schema sync.");
+            LogSyncInfo("Install PostgreSQL client tools for complete sync.");
             return;
         }
 
@@ -489,12 +490,12 @@ internal static class SyncService
                 Environment = { ["PGPASSWORD"] = dbPassword }
             };
 
-            Console.WriteLine($"[Supabase Sync] Executing: {pgDumpPath}");
+            LogSyncInfo($" Executing: {pgDumpPath}");
 
             using var process = System.Diagnostics.Process.Start(startInfo);
             if (process == null)
             {
-                Console.WriteLine("[Supabase Sync] ERROR: pg_dump could not be started.");
+                LogSyncInfo("ERROR: pg_dump could not be started.");
                 return;
             }
 
@@ -505,7 +506,7 @@ internal static class SyncService
 
             if (process.ExitCode != 0)
             {
-                Console.WriteLine($"[Supabase Sync] pg_dump error (Exit {process.ExitCode}): {errors}");
+                LogSyncError($"pg_dump error (Exit {process.ExitCode}): {errors}");
                 return;
             }
 
@@ -545,12 +546,12 @@ END;
 $$;
 ");
 
-                Console.WriteLine("[Supabase Sync] pg_dump schema sync completed.");
+                LogSyncInfo("pg_dump schema sync completed.");
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[Supabase Sync] pg_dump error: {ex.Message}");
+            LogSyncError($"pg_dump error: {ex.Message}");
         }
     }
 
@@ -601,7 +602,7 @@ $$;
 
     private static async Task SyncEdgeFunctions(string projectRef, string managementApiToken, string edgeFunctionsPath)
     {
-        Console.WriteLine("[Supabase Sync] Starting Edge Functions sync...");
+        LogSyncInfo("Starting Edge Functions sync...");
 
         try
         {
@@ -614,13 +615,13 @@ $$;
             if (!response.IsSuccessStatusCode)
             {
                 var errorContent = await response.Content.ReadAsStringAsync();
-                Console.WriteLine($"[Supabase Sync] Error fetching Edge Functions: {response.StatusCode}");
-                Console.WriteLine($"                {errorContent}");
+                LogSyncError($"Error fetching Edge Functions: {response.StatusCode}");
+                LogSyncInfo(errorContent);
 
                 if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
                 {
-                    Console.WriteLine("                Note: The Management API token is invalid or expired.");
-                    Console.WriteLine("                Create a new token at: Dashboard → Account → Access Tokens");
+                    LogSyncInfo("Note: The Management API token is invalid or expired.");
+                    LogSyncInfo("Create a new token at: Dashboard → Account → Access Tokens");
                 }
 
                 return;
@@ -631,7 +632,7 @@ $$;
 
             if (functions.ValueKind != JsonValueKind.Array || functions.GetArrayLength() == 0)
             {
-                Console.WriteLine("[Supabase Sync] No Edge Functions found in project.");
+                LogSyncInfo("No Edge Functions found in project.");
                 return;
             }
 
@@ -647,7 +648,7 @@ $$;
                 if (string.IsNullOrEmpty(slug))
                     continue;
 
-                Console.WriteLine($"[Supabase Sync] Edge Function: {name} ({slug}) - Status: {status}");
+                LogSyncInfo($" Edge Function: {name} ({slug}) - Status: {status}");
 
                 var functionDir = Path.Combine(edgeFunctionsPath, slug);
                 Directory.CreateDirectory(functionDir);
@@ -666,13 +667,13 @@ $$;
                     if (bodyBytes.Length > 5 &&
                         bodyBytes[0] == 'E' && bodyBytes[1] == 'S' && bodyBytes[2] == 'Z' && bodyBytes[3] == 'I' && bodyBytes[4] == 'P')
                     {
-                        Console.WriteLine($"[Supabase Sync]   → ESZIP bundle detected (compiled, not usable as source)");
+                        LogSyncInfo($"   → ESZIP bundle detected (compiled, not usable as source)");
                     }
                     else if (bodyText.Contains("import") || bodyText.Contains("export") || bodyText.Contains("Deno.serve") || bodyText.Contains("serve("))
                     {
                         functionCode = bodyText;
                         useSourceCode = true;
-                        Console.WriteLine($"[Supabase Sync]   → Source code downloaded");
+                        LogSyncInfo($"   → Source code downloaded");
                     }
                 }
 
@@ -700,7 +701,7 @@ $$;
                         "    { status: 501, headers: { \"Content-Type\": \"application/json\" } }\n" +
                         "  );\n" +
                         "});\n";
-                    Console.WriteLine($"[Supabase Sync]   → Placeholder created (copy source code manually!)");
+                    LogSyncInfo($"   → Placeholder created (copy source code manually!)");
                 }
 
                 var indexPath = Path.Combine(functionDir, "index.ts");
@@ -711,14 +712,14 @@ $$;
 
             if (syncedCount > 0)
             {
-                Console.WriteLine($"[Supabase Sync] {syncedCount} Edge Function(s) synchronized to: {edgeFunctionsPath}");
-                Console.WriteLine("[Supabase Sync] NOTE: Check the synchronized functions for completeness.");
-                Console.WriteLine("                If the source code is missing, copy it manually from the dashboard.");
+                LogSyncInfo($"{syncedCount} Edge Function(s) synchronized to: {edgeFunctionsPath}");
+                LogSyncInfo("NOTE: Check the synchronized functions for completeness.");
+                LogSyncInfo("If the source code is missing, copy it manually from the dashboard.");
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[Supabase Sync] Error during Edge Functions sync: {ex.Message}");
+            LogSyncError($"Error during Edge Functions sync: {ex.Message}");
         }
     }
 
