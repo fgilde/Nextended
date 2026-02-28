@@ -229,4 +229,4 @@ For comprehensive documentation, examples, and API reference, see:
 
 ## License
 
-This project is licensed under the MIT License.
+This project is licensed under the GPL License.

@@ -81,4 +81,4 @@ Contributions are welcome! If you have suggestions or find any issues, please op
 
 ## License
 
-This project is licensed under the MIT License.
+This project is licensed under the GPL License.
