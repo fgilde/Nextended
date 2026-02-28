@@ -12,6 +12,7 @@ using System.Reflection;
 using System.Reflection.Emit;
 using System.Runtime.CompilerServices;
 using System.Text;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Nextended.Core.Extensions;
 using PropertyAttributes = System.Reflection.PropertyAttributes;
@@ -243,7 +244,7 @@ namespace Nextended.Core.Helper
                 case JTokenType.Raw: return typeof(string);
                 case JTokenType.Object:
                     var objectToken = token.Value<JObject>();
-                    var structureKey = objectToken.ToString(Newtonsoft.Json.Formatting.None);
+                    var structureKey = JsonConvert.SerializeObject(objectToken, Newtonsoft.Json.Formatting.None);
 
                     if (cacheTypes && _typeCache.TryGetValue(structureKey, out var forToken))
                         return forToken;
