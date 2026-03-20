@@ -13,27 +13,15 @@ namespace Nextended.Core.Facets;
 /// </summary>
 public interface IFacetBuilder
 {
-    /// <summary>
-    /// Builds facet groups from an already filtered query.
-    /// </summary>
-    /// <typeparam name="T">The entity type.</typeparam>
-    /// <param name="alreadyFilteredQuery">The query with filters already applied.</param>
-    /// <param name="ct">Cancellation token.</param>
-    /// <returns>A list of facet groups with computed counts and options.</returns>
-    Task<List<FacetGroup>> BuildAsync<T>(IQueryable<T> alreadyFilteredQuery, CancellationToken ct = default);
+    Task<List<FacetGroup>> BuildAsync<T>(IQueryable<T> alreadyFilteredQuery, CancellationToken ct = default) where T : class;
 
-    /// <summary>
-    /// Builds facet groups from a base query and applied facets.
-    /// </summary>
-    /// <typeparam name="T">The entity type.</typeparam>
-    /// <param name="baseQuery">The base unfiltered query.</param>
-    /// <param name="applied">The list of already applied facets.</param>
-    /// <param name="ct">Cancellation token.</param>
-    /// <returns>A list of facet groups with computed counts and options.</returns>
+    Task<List<FacetGroup>> BuildAsync<T>(IQueryable<T> baseQuery, IReadOnlyList<AppliedFacet> applied, CancellationToken ct = default) where T : class;// where T: IGuidEntity;
+
     Task<List<FacetGroup>> BuildAsync<T>(
-        IQueryable<T> baseQuery,
+        Func<IServiceProvider, Task<IQueryable<T>>> baseQueryFactory,
         IReadOnlyList<AppliedFacet> applied,
-        CancellationToken ct = default);
+        CancellationToken ct = default) where T : class;
+
 
     /// <summary>
     /// Configures the facet builder with custom options.
@@ -48,5 +36,6 @@ public interface IFacetBuilder
     /// <param name="localizerFn">The localization function.</param>
     /// <returns>The facet builder instance for method chaining.</returns>
     IFacetBuilder WithLocalizationFunc(Func<string, Type?, string> localizerFn);
+
 
 }

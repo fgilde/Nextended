@@ -12,6 +12,11 @@ public class ActionScope: IDisposable
         actionIn();
     }
 
+    public ActionScope(Action actionOut)
+    {
+        this.actionOut = actionOut;
+    }
+
     public void Dispose()
     {
         actionOut();

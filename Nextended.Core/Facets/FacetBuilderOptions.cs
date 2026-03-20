@@ -34,4 +34,16 @@ public sealed class FacetBuilderOptions
     public bool BuildLiterals { get; set; } = false;
 
     public bool IsDisjunctiveBuild => DisjunctiveFacets || DisjunctiveByGroupOperator;
+
+    /// <summary>
+    /// Computes range preset counts in parallel (one DB scope per group).
+    /// Only effective when using the factory-overload of BuildAsync.
+    /// </summary>
+    public bool ParallelizeRanges { get; set; } = false;
+
+    /// <summary>
+    /// Maximum concurrent DB connections when ParallelizeRanges is true.
+    /// Default: 4.
+    /// </summary>
+    public int MaxDbParallelism { get; set; } = 4;
 }

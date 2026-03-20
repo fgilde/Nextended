@@ -7,6 +7,7 @@ using Microsoft.OData.Edm;
 using Nextended.Core.Facets;
 using Nextended.Web.OData;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Threading;
@@ -24,19 +25,19 @@ public abstract class GenericODataController<T> : ODataController where T : clas
     protected abstract IQueryable<T> Queryable();
 
    
+
     [EnableQuery]
     public virtual async Task<IQueryable<T>> Get(CancellationToken ct = default)
     {
         var res = Queryable();
-        if (ShouldBuildFacets())
-        {
-            await AddFacetResponseAsync(res, ct);
-        }
+        res = res.ApplyODataSearch(Request.ODataQueryOptions<T>(Get<IEdmModel>()).Search);
+        await TryBuildFacets(ct);
         return res;
     }
 
+
     [EnableQuery]
-    public virtual SingleResult<T> Get([FromODataUri] Guid key)
+    public virtual Task<SingleResult<T>> Get([FromODataUri] Guid key)
     {
         var param = Expression.Parameter(typeof(T), "e");
         var idProp = Expression.Property(param, IdPropertyName);
@@ -44,17 +45,51 @@ public abstract class GenericODataController<T> : ODataController where T : clas
         var lambda = Expression.Lambda<Func<T, bool>>(body, param);
 
         var query = Queryable().Where(lambda);
-        return SingleResult.Create(query);
+        return Task.FromResult(SingleResult.Create(query));
     }
 
-    protected virtual async Task AddFacetResponseAsync(IQueryable<T> queryable, CancellationToken ct)
+    
+    private async Task AddFacetResponseAsync(CancellationToken ct)
     {
         var facetBuilderOptions = GetFacetBuilderOptions();
-        var facets = await Get<IFacetBuilder>().WithOptions(facetBuilderOptions)
-            .BuildAsync(facetBuilderOptions.IsDisjunctiveBuild ? queryable.ApplyODataFilter(Request.ODataQueryOptions<T>(Get<IEdmModel>())) : queryable, ct);
+
+        var facetBuilder = Get<IFacetBuilder>()
+            .WithOptions(facetBuilderOptions);
+
+        List<FacetGroup> facets;
+
+        if (facetBuilderOptions.IsDisjunctiveBuild)
+        {
+            Func<IServiceProvider, Task<IQueryable<T>>> queryFactory = sp =>
+            {
+                try
+                {
+                    return Task.FromResult(Queryable().ApplyODataFilter(Request.ODataQueryOptions<T>(Get<IEdmModel>())));
+                }
+                catch (Exception exception)
+                {
+                    return Task.FromException<IQueryable<T>>(exception);
+                }
+            };
+            facets = await facetBuilder.BuildAsync(queryFactory, [], ct);
+        }
+        else
+        {
+            var queryable = Queryable();
+            facets = await facetBuilder.BuildAsync(queryable, ct);
+        }
+
         HttpContext.Items[FacetResourceSetSerializer.FacetsAnnotationName] = facets;
     }
 
+    protected async Task TryBuildFacets(CancellationToken ct = default)
+    {
+        if (ShouldBuildFacets())
+        {
+            await AddFacetResponseAsync(ct);
+        }
+    }
+    
     protected virtual bool ShouldBuildFacets()
     {
         return Request.Headers["Prefer"].Any(h => h?.Contains("odata.include-annotations=\"*\"", StringComparison.InvariantCultureIgnoreCase) == true

@@ -7,6 +7,8 @@ using Microsoft.AspNetCore.OData.Query;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OData.Edm;
 using Microsoft.OData.UriParser;
+using Nextended.Core.Contracts;
+using Nextended.EF;
 
 namespace Nextended.Web.OData;
 
@@ -25,6 +27,7 @@ public static class ODataExtensions
         settings ??= DefaultODataQuerySettings;
 
         return query
+              .ApplyODataSearch(options.Search, settings)
               .ApplyODataFilter(options.Filter, settings)
               .ApplyODataOrderBy(options.OrderBy, settings)
               .ApplyODataSkip(options.Skip, settings)
@@ -32,6 +35,13 @@ public static class ODataExtensions
     }
 
     private static ODataQuerySettings DefaultODataQuerySettings => new() { HandleNullPropagation = HandleNullPropagationOption.False };
+
+    public static IQueryable<T>? ApplyODataSearch<T>(this IQueryable<T>? query, SearchQueryOption? option, ODataQuerySettings? settings = null) where T : class
+    {
+        return query != null && !string.IsNullOrWhiteSpace(option?.RawValue)
+            ? query.WhereContains(option.RawValue, ISearchable<T>.GetSearchProperties())
+            : query;
+    }
 
     public static IQueryable<T>? ApplyODataFilter<T>(this IQueryable<T>? query, FilterQueryOption? option, ODataQuerySettings? settings = null) where T : class
         => option != null ? (IQueryable<T>)option.ApplyTo(query, settings ?? DefaultODataQuerySettings) : query;
