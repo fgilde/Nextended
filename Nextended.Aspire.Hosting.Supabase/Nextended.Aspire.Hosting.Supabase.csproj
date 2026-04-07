@@ -21,6 +21,9 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Nextended.Aspire\Nextended.Aspire.csproj" />
+    <PackageReference Include="Aspire.Hosting.Azure.AppContainers" Version="$(AspireVersion)" />
+    <PackageReference Include="Aspire.Hosting.Azure.Storage" Version="$(AspireVersion)" />
+    <PackageReference Include="Aspire.Hosting.Docker" Version="$(AspireVersion)" />
     <PackageReference Include="supabase-csharp" Version="0.16.2" />
   </ItemGroup>
 

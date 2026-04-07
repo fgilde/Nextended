@@ -149,11 +149,6 @@ public sealed class SupabaseStackResource : ContainerResource, IResourceWithConn
     // --- Azure Publish Mode Configuration ---
 
     /// <summary>
-    /// Base64-encoded init SQL for Azure deployment.
-    /// </summary>
-    internal string? InitSqlBase64 { get; set; }
-
-    /// <summary>
     /// Base64-encoded Kong config YAML for Azure deployment.
     /// </summary>
     internal string? KongConfigBase64 { get; set; }
@@ -167,6 +162,14 @@ public sealed class SupabaseStackResource : ContainerResource, IResourceWithConn
     /// Path to the scripts directory.
     /// </summary>
     internal string? ScriptsDir { get; set; }
+
+    // --- Dashboard Login ---
+
+    /// <summary>Dashboard login username (null = no login required).</summary>
+    internal string? DashboardUsername { get; set; }
+
+    /// <summary>Dashboard login password.</summary>
+    internal string? DashboardPassword { get; set; }
 
     // --- Computed Properties ---
 

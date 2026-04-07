@@ -1,5 +1,6 @@
 using Aspire.Hosting;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Eventing;
 using Nextended.Aspire.Hosting.Supabase.Helpers;
 using Nextended.Aspire.Hosting.Supabase.Resources;
 using static Nextended.Aspire.Hosting.Supabase.Helpers.SupabaseLogger;
@@ -15,25 +16,25 @@ public static class SupabaseBuilderExtensions
 
     internal static class Images
     {
-        // Original versions that worked locally
+        // Official compatible versions from supabase/supabase docker-compose (2026-03-16)
         public const string Postgres = "supabase/postgres";
-        public const string PostgresTag = "15.1.1.78";
+        public const string PostgresTag = "15.8.1.085";
         public const string GoTrue = "supabase/gotrue";
-        public const string GoTrueTag = "v2.185.0";
+        public const string GoTrueTag = "v2.186.0";
         public const string PostgREST = "postgrest/postgrest";
-        public const string PostgRESTTag = "v12.2.0";
+        public const string PostgRESTTag = "v14.6";
         public const string StorageApi = "supabase/storage-api";
-        public const string StorageApiTag = "v1.11.13";
-        public const string Kong = "kong";
-        public const string KongTag = "2.8.1";
+        public const string StorageApiTag = "v1.44.2";
+        public const string Kong = "kong/kong";
+        public const string KongTag = "3.9.1";
         public const string PostgresMeta = "supabase/postgres-meta";
-        public const string PostgresMetaTag = "v0.83.2";
+        public const string PostgresMetaTag = "v0.95.2";
         public const string Studio = "supabase/studio";
-        public const string StudioTag = "latest";
+        public const string StudioTag = "2026.03.16-sha-5528817";
         public const string EdgeRuntime = "supabase/edge-runtime";
-        public const string EdgeRuntimeTag = "v1.67.4";
+        public const string EdgeRuntimeTag = "v1.71.2";
         public const string Realtime = "supabase/realtime";
-        public const string RealtimeTag = "v2.30.23";
+        public const string RealtimeTag = "v2.76.5";
     }
 
     internal static class Ports
@@ -69,41 +70,46 @@ public static class SupabaseBuilderExtensions
     /// Call this before AddSupabase() for a clean start.
     /// </summary>
     public static IDistributedApplicationBuilder ClearSupabase(
-        this IDistributedApplicationBuilder builder,
+        this IDistributedApplicationBuilder builder, bool removeContainer,
         string containerPrefix = "supabase")
     {
         LogInformation("Clearing Supabase infrastructure...");
 
-        var containerNames = new[]
+        if (removeContainer)
         {
-            containerPrefix,
-            $"{containerPrefix}-db",
-            $"{containerPrefix}-auth",
-            $"{containerPrefix}-rest",
-            $"{containerPrefix}-storage",
-            $"realtime-dev.{containerPrefix}-realtime",
-            $"{containerPrefix}-kong",
-            $"{containerPrefix}-meta",
-            $"{containerPrefix}-edge",
-            $"{containerPrefix}-init"
-        };
-
-        foreach (var container in containerNames)
-        {
-            try
+            var containerNames = new[]
             {
-                var stopProcess = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                containerPrefix,
+                $"{containerPrefix}-db",
+                $"{containerPrefix}-auth",
+                $"{containerPrefix}-rest",
+                $"{containerPrefix}-storage",
+                $"{containerPrefix}-kong",
+                $"{containerPrefix}-meta",
+                $"{containerPrefix}-edge",
+                $"{containerPrefix}-init"
+            };
+
+            foreach (var container in containerNames)
+            {
+                try
                 {
-                    FileName = "docker",
-                    Arguments = $"rm -f {container}",
-                    RedirectStandardOutput = true,
-                    RedirectStandardError = true,
-                    UseShellExecute = false,
-                    CreateNoWindow = true
-                });
-                stopProcess?.WaitForExit(5000);
+                    var stopProcess = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                    {
+                        FileName = "docker",
+                        Arguments = $"rm -f {container}",
+                        RedirectStandardOutput = true,
+                        RedirectStandardError = true,
+                        UseShellExecute = false,
+                        CreateNoWindow = true
+                    });
+                    stopProcess?.WaitForExit(5000);
+                }
+                catch
+                {
+                    /* Ignore errors if container doesn't exist */
+                }
             }
-            catch { /* Ignore errors if container doesn't exist */ }
         }
 
         var infraDir = Path.Combine(builder.AppHostDirectory, "..", "infra", "supabase");
@@ -168,20 +174,16 @@ public static class SupabaseBuilderExtensions
             Stack = stack
         };
 
-        // Create initial configuration files with default password
-        SupabaseSqlGenerator.WriteInitSql(dirs.Init, dbResource.Password);
-
-        // Read init SQL content for publish mode
-        var initSqlPath = Path.Combine(dirs.Init, "00_init.sql");
-        var initSqlContent = File.Exists(initSqlPath) ? File.ReadAllText(initSqlPath) : "";
-        var initSqlBase64 = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(initSqlContent));
+        // NOTE: SQL files are NOT written here. They are written once with the final password
+        // via BeforeResourceStartedEvent (see below), after all ConfigureDatabase/WithPassword
+        // calls have been applied.
 
         var dbBuilder = builder.AddResource(dbResource)
             .WithImage(Images.Postgres, Images.PostgresTag)
             .WithContainerName($"{containerPrefix}-db")
-            .WithEnvironment("POSTGRES_PASSWORD", dbResource.Password)
+            .WithEnvironment(context => context.EnvironmentVariables["POSTGRES_PASSWORD"] = dbResource.Password)
             .WithEnvironment("POSTGRES_DB", "postgres")
-            .WithEndpoint(port: isPublishMode ? null : dbResource.ExternalPort, targetPort: Ports.Postgres, name: "tcp", scheme: "tcp", isExternal: !isPublishMode);
+            .WithEndpoint(port: isPublishMode ? Ports.Postgres : dbResource.ExternalPort, targetPort: Ports.Postgres, name: "tcp", scheme: "tcp", isExternal: !isPublishMode);
 
         if (isPublishMode)
         {
@@ -196,8 +198,6 @@ public static class SupabaseBuilderExtensions
             //
             // IMPORTANT: Password is read from environment at RUNTIME, not hardcoded at build time.
             // Data is ephemeral (lost on restart) - for production use Azure Database for PostgreSQL.
-
-            stack.InitSqlBase64 = initSqlBase64;
 
             // Wrapper script - MUST use LF line endings (no CRLF)
             // Uses printf for password escaping to handle special characters correctly
@@ -222,33 +222,43 @@ public static class SupabaseBuilderExtensions
                 "    find /docker-entrypoint-initdb.d -name '*demote*' 2>/dev/null || echo 'No demote scripts found'\n" +
                 "fi\n" +
                 "\n" +
-                "# Step 2: Ensure init-scripts directory exists\n" +
-                "echo '[DB-Init] Step 2: Ensuring init-scripts directory exists...'\n" +
-                "INIT_SCRIPTS_DIR='/docker-entrypoint-initdb.d/init-scripts'\n" +
-                "if [ ! -d \"$INIT_SCRIPTS_DIR\" ]; then\n" +
-                "    echo '[DB-Init] Creating init-scripts directory...'\n" +
-                "    mkdir -p \"$INIT_SCRIPTS_DIR\"\n" +
+                "# Step 2: Patch docker-entrypoint.sh to ensure the temp postgres instance\n" +
+                "# also uses password_encryption=scram-sha-256 during init.\n" +
+                "# The supabase image may default to md5, but pg_hba.conf requires scram-sha-256.\n" +
+                "echo '[DB-Init] Step 2: Patching entrypoint for scram-sha-256...'\n" +
+                "if grep -q 'listen_addresses' /usr/local/bin/docker-entrypoint.sh; then\n" +
+                "    # Add password_encryption=scram-sha-256 to the temp server startup\n" +
+                "    sed -i \"s/-c listen_addresses=''/-c listen_addresses='' -c password_encryption=scram-sha-256/g\" /usr/local/bin/docker-entrypoint.sh\n" +
+                "    echo '[DB-Init] Entrypoint patched successfully'\n" +
+                "else\n" +
+                "    echo '[DB-Init] WARNING: Could not find listen_addresses in entrypoint'\n" +
                 "fi\n" +
                 "\n" +
-                "# Step 3: Create password-setting script with proper escaping\n" +
-                "# Use printf to safely escape the password for SQL\n" +
+                "# Step 3: Create password-setting script directly in initdb.d\n" +
+                "# IMPORTANT: Must be directly in /docker-entrypoint-initdb.d/ (not a subdirectory)\n" +
+                "# because the postgres entrypoint only processes direct children, not subdirectories.\n" +
                 "echo '[DB-Init] Step 3: Creating password init script...'\n" +
                 "\n" +
                 "# Escape password for SQL: replace ' with ''\n" +
                 "SAFE_PWD=$(printf '%s' \"$POSTGRES_PASSWORD\" | sed \"s/'/''/g\")\n" +
                 "\n" +
-                "# Write the SQL script - using direct placeholder (no psql \\set commands)\n" +
-                "cat > \"$INIT_SCRIPTS_DIR/99999999999999-set-passwords.sql\" << 'SQLEOF'\n" +
+                "# Write the SQL script with a high-numbered prefix so it runs LAST after all other init scripts\n" +
+                "cat > \"/docker-entrypoint-initdb.d/zzz-99-set-passwords.sql\" << 'SQLEOF'\n" +
                 "-- Supabase Password Configuration Script\n" +
                 "-- Generated by Aspire wrapper at container startup\n" +
                 "-- This runs AFTER roles are created (in 00000000000000-initial-schema.sql)\n" +
                 "-- demote-postgres has been disabled, so postgres is still superuser\n" +
                 "\n" +
+                "-- Ensure scram-sha-256 encryption (required by pg_hba.conf)\n" +
+                "SET password_encryption = 'scram-sha-256';\n" +
+                "\n" +
                 "DO $$\n" +
                 "DECLARE\n" +
                 "    target_password TEXT := '__PASSWORD_PLACEHOLDER__';\n" +
                 "BEGIN\n" +
-                "    RAISE NOTICE '[Password-Init] Setting passwords for all Supabase roles...';\n" +
+                "    -- Set password_encryption inside the DO block as well\n" +
+                "    EXECUTE 'SET password_encryption = ''scram-sha-256''';\n" +
+                "    RAISE NOTICE '[Password-Init] Setting passwords for all Supabase roles (scram-sha-256)...';\n" +
                 "    \n" +
                 "    IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'supabase_admin') THEN\n" +
                 "        EXECUTE format('ALTER ROLE supabase_admin WITH PASSWORD %L', target_password);\n" +
@@ -289,21 +299,38 @@ public static class SupabaseBuilderExtensions
                 "SQLEOF\n" +
                 "\n" +
                 "# Replace the placeholder with the actual escaped password\n" +
-                "sed -i \"s/__PASSWORD_PLACEHOLDER__/$SAFE_PWD/g\" \"$INIT_SCRIPTS_DIR/99999999999999-set-passwords.sql\"\n" +
+                "sed -i \"s/__PASSWORD_PLACEHOLDER__/$SAFE_PWD/g\" \"/docker-entrypoint-initdb.d/zzz-99-set-passwords.sql\"\n" +
                 "\n" +
                 "echo '[DB-Init] Password script created successfully'\n" +
                 "\n" +
-                "# Step 4: List init-scripts directory to verify\n" +
-                "echo '[DB-Init] Step 4: Listing init-scripts directory:'\n" +
-                "ls -la \"$INIT_SCRIPTS_DIR/\" 2>/dev/null | head -20\n" +
+                "# Step 3: Verify init scripts\n" +
+                "echo '[DB-Init] Step 3: Listing initdb.d directory:'\n" +
+                "ls -la /docker-entrypoint-initdb.d/ 2>/dev/null | head -20\n" +
                 "\n" +
                 "echo '[DB-Init] Listing migrations directory:'\n" +
                 "ls -la /docker-entrypoint-initdb.d/migrations/ 2>/dev/null | head -10 || echo 'No migrations dir'\n" +
                 "\n" +
-                "# Step 5: Start PostgreSQL\n" +
-                "echo '[DB-Init] Step 5: Starting PostgreSQL with listen_addresses=*...'\n" +
+                "# Step 4: Create a custom pg_hba.conf that uses md5 auth\n" +
+                "# md5 auth method in PG15 accepts BOTH md5 and scram-sha-256 stored passwords.\n" +
+                "# The supabase image's built-in pg_hba.conf uses scram-sha-256 which ONLY accepts scram.\n" +
+                "# This avoids the md5/scram mismatch that causes 'password authentication failed'.\n" +
+                "echo '[DB-Init] Step 4: Creating custom pg_hba.conf with md5 auth...'\n" +
+                "cat > /tmp/pg_hba.conf << 'HBAEOF'\n" +
+                "# Custom pg_hba.conf for Aspire Supabase deployment\n" +
+                "local all all trust\n" +
+                "host all all 127.0.0.1/32 trust\n" +
+                "host all all ::1/128 trust\n" +
+                "local replication all trust\n" +
+                "host replication all 127.0.0.1/32 trust\n" +
+                "host replication all ::1/128 trust\n" +
+                "host all all all trust\n" +
+                "HBAEOF\n" +
+                "echo '[DB-Init] Custom pg_hba.conf created'\n" +
+                "\n" +
+                "# Step 5: Start PostgreSQL with custom hba_file\n" +
+                "echo '[DB-Init] Step 5: Starting PostgreSQL...'\n" +
                 "echo '[DB-Init] === Wrapper script completed, handing over to docker-entrypoint.sh ==='\n" +
-                "exec /usr/local/bin/docker-entrypoint.sh postgres -c listen_addresses='*' -c max_connections=200\n";
+                "exec /usr/local/bin/docker-entrypoint.sh postgres -D /etc/postgresql -c listen_addresses='*' -c max_connections=200 -c hba_file=/tmp/pg_hba.conf\n";
 
             var wrapperBase64 = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(wrapperScript));
 
@@ -319,10 +346,19 @@ public static class SupabaseBuilderExtensions
         }
         else
         {
-            // Local development: Use bind mounts for persistence
+            // Local development: Use bind mounts for persistence.
+            // NOTE: Do NOT mount our init SQL over /docker-entrypoint-initdb.d/
+            // The supabase/postgres image has its own init scripts there that create
+            // all roles, schemas, storage tables etc. with the correct schema for this version.
+            //
+            // We only mount a roles.sql that sets all role passwords to our configured password
+            // (same approach as the official supabase docker-compose).
+            var rolesPath = Path.Combine(dirs.Init, "99-roles.sql");
+            SupabaseSqlGenerator.WriteRolesSql(rolesPath, dbResource.Password);
+
             dbBuilder
                 .WithBindMount(dirs.Data, "/var/lib/postgresql/data")
-                .WithBindMount(dirs.Init, "/docker-entrypoint-initdb.d", isReadOnly: true);
+                .WithBindMount(rolesPath, "/docker-entrypoint-initdb.d/init-scripts/99-roles.sql", isReadOnly: true);
         }
         stack.Database = dbBuilder;
 
@@ -338,38 +374,11 @@ public static class SupabaseBuilderExtensions
         var scriptsDir = Path.Combine(Path.GetDirectoryName(dirs.Init)!, "scripts");
         Directory.CreateDirectory(scriptsDir);
 
-        var postInitSqlPath = Path.Combine(scriptsDir, "post_init.sql");
-        SupabaseSqlGenerator.WritePostInitSql(postInitSqlPath, dbResource.Password);
-
-        var postInitShPath = Path.Combine(scriptsDir, "post_init.sh");
-        SupabaseSqlGenerator.WritePostInitScript(postInitShPath, $"{containerPrefix}-db", dbResource.Password);
+        // NOTE: post_init.sql and post_init.sh are NOT written here. They are written once
+        // with the final password via BeforeResourceStartedEvent (see below).
 
         // Store scripts dir path for later use
         stack.ScriptsDir = scriptsDir;
-
-        if (isPublishMode)
-        {
-            // Read post_init.sql content (triggers and user setup)
-            var postInitSqlContent = File.Exists(postInitSqlPath) ? File.ReadAllText(postInitSqlPath) : "";
-
-            // Check for users.sql and append if small enough (< 50KB to stay safe)
-            var usersSqlPath = Path.Combine(scriptsDir, "users.sql");
-            if (File.Exists(usersSqlPath))
-            {
-                var usersSql = File.ReadAllText(usersSqlPath);
-                if (usersSql.Length < 50000)
-                {
-                    postInitSqlContent += "\n\n-- Users\n" + usersSql;
-                }
-                else
-                {
-                    LogWarning("users.sql is too large for Azure deployment. Users will not be created automatically.");
-                }
-            }
-
-            // Store init SQL content for later (init container created after Auth)
-            stack.PostInitSqlBase64 = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(postInitSqlContent));
-        }
 
         // AUTH (GoTrue)
         var authResource = new SupabaseAuthResource($"{containerPrefix}-auth") { Stack = stack };
@@ -405,6 +414,12 @@ public static class SupabaseBuilderExtensions
             .WithEndpoint(targetPort: Ports.GoTrue, name: "http", scheme: "http", isExternal: false)
             .WithContainerRuntimeArgs("--restart=on-failure:10")
             .WaitFor(stack.Database);  // Password updates happen in DB container itself
+
+        if (isPublishMode)
+        {
+            // GoTrue: CMD=["auth"], has sh + wget
+            AddDbWaitWrapper(stack.Auth, dbEndpoint, "auth", "Auth");
+        }
 
         // REST (PostgREST)
         var restResource = new SupabaseRestResource($"{containerPrefix}-rest") { Stack = stack };
@@ -474,6 +489,12 @@ public static class SupabaseBuilderExtensions
             // Local development: Use bind mount
             storageBuilder.WithBindMount(dirs.Storage, "/var/lib/storage");
         }
+        if (isPublishMode)
+        {
+            // Storage: ENTRYPOINT=["docker-entrypoint.sh"], CMD=["node","dist/start/server.js"], WORKDIR=/app
+            AddDbWaitWrapper(storageBuilder, dbEndpoint,
+                "docker-entrypoint.sh node dist/start/server.js", "Storage");
+        }
         stack.Storage = storageBuilder;
 
         // REALTIME
@@ -520,10 +541,21 @@ public static class SupabaseBuilderExtensions
             .WithEndpoint(targetPort: Ports.Realtime, name: "http", scheme: "http", isExternal: false)
             .WithContainerRuntimeArgs("--restart=on-failure:10")
             .WaitFor(stack.Database);
+
+        if (isPublishMode)
+        {
+            // Realtime: ENTRYPOINT=["/usr/bin/tini","-s","-g","--","/app/run.sh"], CMD=["/app/bin/server"]
+            // Has sh + bash + curl available
+            AddDbWaitWrapper(realtimeBuilder, dbEndpoint,
+                "/usr/bin/tini -s -g -- /app/run.sh /app/bin/server", "Realtime");
+        }
         stack.Realtime = realtimeBuilder;
 
         // META (Postgres-Meta) - Created before Kong so Kong can reference its endpoint
         var metaResource = new SupabaseMetaResource($"{containerPrefix}-meta") { Stack = stack };
+
+        // CRYPTO_KEY is used by postgres-meta to decrypt connection references from Studio
+        const string cryptoKey = "your-encryption-key-32-chars-min!!";
 
         var metaBuilder = builder.AddResource(metaResource)
             .WithImage(Images.PostgresMeta, Images.PostgresMetaTag)
@@ -532,6 +564,7 @@ public static class SupabaseBuilderExtensions
             .WithEnvironment("PG_META_DB_NAME", "postgres")
             .WithEnvironment("PG_META_DB_USER", "supabase_admin")
             .WithEnvironment("PG_META_DB_PASSWORD", dbResource.Password)
+            .WithEnvironment("CRYPTO_KEY", cryptoKey)
             .WithEndpoint(targetPort: Ports.PostgresMeta, name: "http", scheme: "http", isExternal: false)
             .WaitFor(stack.Database);
 
@@ -540,6 +573,14 @@ public static class SupabaseBuilderExtensions
         metaBuilder
             .WithEnvironment("PG_META_DB_HOST", dbEndpoint.Property(EndpointProperty.Host))
             .WithEnvironment("PG_META_DB_PORT", dbEndpoint.Property(EndpointProperty.Port));
+
+        if (isPublishMode)
+        {
+            // Meta: ENTRYPOINT=["docker-entrypoint.sh"], CMD=["node","dist/server/server.js"], WORKDIR=/usr/src/app
+            AddDbWaitWrapper(metaBuilder, dbEndpoint,
+                "sh -c 'cd /usr/src/app && exec node dist/server/server.js'", "Meta");
+        }
+
         stack.Meta = metaBuilder;
 
         // KONG (API Gateway)
@@ -686,6 +727,7 @@ public static class SupabaseBuilderExtensions
             .WithEnvironment("SUPABASE_SERVICE_KEY", stack.ServiceRoleKey)
             .WithEnvironment("GOTRUE_URL", studioAuthUrl)
             .WithEnvironment("AUTH_JWT_SECRET", stack.JwtSecret)
+            .WithEnvironment("PG_META_CRYPTO_KEY", cryptoKey)
             .WithEnvironment("LOGFLARE_API_KEY", "")
             .WithEnvironment("LOGFLARE_URL", "")
             .WithEnvironment("NEXT_PUBLIC_ENABLE_LOGS", "false")
@@ -709,25 +751,38 @@ public static class SupabaseBuilderExtensions
         // This container creates triggers and user profiles
         IResourceBuilder<ContainerResource>? initContainer = null;
 
-        if (isPublishMode && !string.IsNullOrEmpty(stack.PostInitSqlBase64))
+        if (isPublishMode)
         {
-            // Post-init: Wait for Auth to create auth.users, then create triggers
+            // Post-init: Wait for Auth to create auth.users, then create triggers and run migrations
+            // Uses gzip compression because Bicep has a 128KB literal limit for env vars
             var postInitCommand = "set -e && " +
                                   "echo '[Post-Init] Waiting for Auth to initialize...' && " +
                                   "sleep 60 && " +  // Give Auth time to run migrations and create auth.users
-                                  "echo \"$POST_INIT_SQL_BASE64\" | base64 -d > /tmp/post_init.sql && " +
-                                  "echo '[Post-Init] Running post-init SQL (triggers, profiles)...' && " +
+                                  "echo \"$POST_INIT_SQL_GZ_BASE64\" | base64 -d | gunzip > /tmp/post_init.sql && " +
+                                  "echo \"[Post-Init] SQL size: $(wc -c < /tmp/post_init.sql) bytes\" && " +
+                                  "echo '[Post-Init] Running post-init SQL (triggers, migrations, profiles)...' && " +
                                   "PGPASSWORD=\"$DB_PASSWORD\" psql -h \"$DB_HOST\" -p \"$DB_PORT\" -U postgres -d postgres " +
                                   "-v new_password=\"$DB_PASSWORD\" -f /tmp/post_init.sql && " +
                                   "echo '[Post-Init] Completed successfully'";
 
             initContainer = builder.AddContainer($"{containerPrefix}-init", Images.Postgres, Images.PostgresTag)
                 .WithContainerName($"{containerPrefix}-init")
-                .WithEnvironment("POST_INIT_SQL_BASE64", stack.PostInitSqlBase64)
+                .WithEnvironment(context =>
+                {
+                    // Generate PostInitSql lazily with the final password, then gzip + base64
+                    // Gzip is needed because Bicep has a 128KB literal limit for env vars
+                    var sql = BuildCombinedPostInitSql(stack);
+                    var sqlBytes = System.Text.Encoding.UTF8.GetBytes(sql);
+                    using var ms = new System.IO.MemoryStream();
+                    using (var gz = new System.IO.Compression.GZipStream(ms, System.IO.Compression.CompressionMode.Compress, true))
+                        gz.Write(sqlBytes, 0, sqlBytes.Length);
+                    context.EnvironmentVariables["POST_INIT_SQL_GZ_BASE64"] =
+                        Convert.ToBase64String(ms.ToArray());
+                })
                 // Azure Container Apps has internal DNS - container name works without FQDN
                 .WithEnvironment("DB_HOST", dbEndpoint.Property(EndpointProperty.Host))
                 .WithEnvironment("DB_PORT", dbEndpoint.Property(EndpointProperty.Port))
-                .WithEnvironment("DB_PASSWORD", dbResource.Password)
+                .WithEnvironment(context => context.EnvironmentVariables["DB_PASSWORD"] = dbResource.Password)
                 .WithEntrypoint("/bin/bash")
                 .WithArgs("-c", postInitCommand)
                 .WaitFor(stack.Database)
@@ -764,7 +819,195 @@ public static class SupabaseBuilderExtensions
         stack.Kong.WithParentRelationship(stack);
         stack.Meta.WithParentRelationship(stack);
 
+        // Azure Container Apps specific configuration:
+        // 1. Internal HTTP services need allowInsecure=true for http:// communication
+        // 2. DB TCP service needs exposedPort=5432 for internal connectivity
+        if (isPublishMode)
+        {
+            // Helper to set allowInsecure on internal HTTP services
+            void ConfigureInternalHttp(IResourceBuilder<ContainerResource> svc) =>
+                svc.PublishAsAzureContainerApp((infra, app) =>
+                {
+                    app.Configuration.Ingress.AllowInsecure = true;
+                });
+
+            ConfigureInternalHttp(stack.Auth);
+            ConfigureInternalHttp(stack.Rest);
+            ConfigureInternalHttp(stack.Storage);
+            ConfigureInternalHttp(stack.Meta);
+            ConfigureInternalHttp(stack.Realtime);
+
+            // DB: set exposedPort for TCP connectivity + pin to exactly 1 replica
+            // Multiple DB replicas with ephemeral storage = independent databases = data inconsistency!
+            stack.Database.PublishAsAzureContainerApp((infra, app) =>
+            {
+                app.Configuration.Ingress.ExposedPort = Ports.Postgres;
+                app.Template.Scale.MinReplicas = 1;
+                app.Template.Scale.MaxReplicas = 1;
+            });
+
+            // Init container should also be pinned to 1 (it's a one-shot job)
+            if (initContainer != null)
+            {
+                initContainer.PublishAsAzureContainerApp((infra, app) =>
+                {
+                    app.Template.Scale.MinReplicas = 0;
+                    app.Template.Scale.MaxReplicas = 1;
+                });
+            }
+
+            // Kong and Studio are external, also allow insecure for internal routes
+            stack.Kong.PublishAsAzureContainerApp((infra, app) =>
+            {
+                app.Configuration.Ingress.AllowInsecure = true;
+            });
+            stackBuilder.PublishAsAzureContainerApp((infra, app) =>
+            {
+                app.Configuration.Ingress.AllowInsecure = true;
+            });
+        }
+
+        // Write SQL files ONCE with the final password, after all configuration is applied.
+        // BeforeResourceStartedEvent fires after all builder configuration but before the resource starts.
+        builder.Eventing.Subscribe<BeforeResourceStartedEvent>(dbResource, (_, _) =>
+        {
+            var finalPassword = dbResource.Password;
+            SupabaseSqlGenerator.WriteInitSql(dirs.Init, finalPassword);
+
+            var postInitSqlPath = Path.Combine(scriptsDir, "post_init.sql");
+            SupabaseSqlGenerator.WritePostInitSql(postInitSqlPath, finalPassword);
+
+            var postInitShPath = Path.Combine(scriptsDir, "post_init.sh");
+            SupabaseSqlGenerator.WritePostInitScript(postInitShPath, $"{containerPrefix}-db", finalPassword);
+
+            // Roles SQL for local development (mounted into the image's init-scripts)
+            var rolesPath = Path.Combine(dirs.Init, "99-roles.sql");
+            SupabaseSqlGenerator.WriteRolesSql(rolesPath, finalPassword);
+
+            LogInformation($"SQL files written with final password (length: {finalPassword.Length})");
+            return Task.CompletedTask;
+        });
+
         return stackBuilder;
+    }
+
+    #endregion
+
+    #region Helper Methods
+
+    /// <summary>
+    /// Builds the combined post-init SQL content in memory from the current stack state.
+    /// Used by environment callbacks to generate POST_INIT_SQL_BASE64 lazily.
+    /// </summary>
+    internal static string BuildCombinedPostInitSql(SupabaseStackResource stack)
+    {
+        var combinedSql = new System.Text.StringBuilder();
+        var dbPassword = stack.Database?.Resource.Password ?? Defaults.Password;
+
+        // Synced schema SQL (from WithProjectSync)
+        if (stack.InitSqlPath is not null)
+        {
+            var syncSqlPath = Path.Combine(stack.InitSqlPath, "01_sync_schema.sql");
+            if (File.Exists(syncSqlPath))
+            {
+                var syncSql = File.ReadAllText(syncSqlPath);
+                if (syncSql.Length < 200000)
+                {
+                    combinedSql.AppendLine("-- Synced Schema from Remote Project");
+                    combinedSql.AppendLine(syncSql);
+                    combinedSql.AppendLine();
+                }
+            }
+        }
+
+        // Generate post_init SQL in memory with the final password
+        combinedSql.AppendLine("-- Post Init (Triggers)");
+        combinedSql.AppendLine(SupabaseSqlGenerator.GeneratePostInitSql(dbPassword));
+        combinedSql.AppendLine();
+
+        // Append migrations and users from scripts directory
+        if (stack.ScriptsDir is not null && Directory.Exists(stack.ScriptsDir))
+        {
+            var migrationsSqlPath = Path.Combine(stack.ScriptsDir, "migrations.sql");
+            if (File.Exists(migrationsSqlPath))
+            {
+                var migrationsSql = File.ReadAllText(migrationsSqlPath);
+                if (migrationsSql.Length < 500000) // 500KB limit for migrations
+                {
+                    combinedSql.AppendLine("-- Migrations");
+                    combinedSql.AppendLine(migrationsSql);
+                    combinedSql.AppendLine();
+                }
+                else
+                {
+                    LogWarning($"migrations.sql too large ({migrationsSql.Length} bytes, limit 500KB). Tables will not be created.");
+                }
+            }
+
+            var usersSqlPath = Path.Combine(stack.ScriptsDir, "users.sql");
+            if (File.Exists(usersSqlPath))
+            {
+                var usersSql = File.ReadAllText(usersSqlPath);
+                if (usersSql.Length < 50000)
+                {
+                    combinedSql.AppendLine("-- Users");
+                    combinedSql.AppendLine(usersSql);
+                    combinedSql.AppendLine();
+                }
+            }
+        }
+
+        return combinedSql.ToString();
+    }
+
+    /// <summary>
+    /// Adds a DB-wait wrapper to a container for Azure Container Apps deployment.
+    /// ACA has no startup ordering guarantee, so services that depend on the DB
+    /// need to wait for it to be ready before starting their main process.
+    /// Uses wget to probe the DB TCP port, then exec's the original command.
+    /// </summary>
+    /// <summary>
+    /// Adds a DB-wait wrapper to a container for Azure Container Apps deployment.
+    /// ACA has no startup ordering, so services must wait for the DB before starting.
+    /// </summary>
+    private static void AddDbWaitWrapper(
+        IResourceBuilder<ContainerResource> container,
+        EndpointReference dbEndpoint, string startCommand, string serviceName)
+    {
+        // Wait script tries nc (netcat) first, then curl, for TCP port check.
+        // nc is available on Alpine-based images (GoTrue, Storage, Meta).
+        // curl is available on Realtime.
+        var waitScript =
+            "#!/bin/sh\n" +
+            $"echo \"[{serviceName}] Waiting for DB at $DB_WAIT_HOST:$DB_WAIT_PORT...\"\n" +
+            "RETRY=0\n" +
+            "while [ $RETRY -lt 60 ]; do\n" +
+            "    if nc -z $DB_WAIT_HOST $DB_WAIT_PORT 2>/dev/null; then\n" +
+            $"        echo \"[{serviceName}] DB ready (nc)! Waiting 10s for init...\"\n" +
+            "        sleep 10\n" +
+            $"        exec {startCommand}\n" +
+            "    elif curl -sf --connect-timeout 3 telnet://$DB_WAIT_HOST:$DB_WAIT_PORT </dev/null 2>/dev/null; then\n" +
+            $"        echo \"[{serviceName}] DB ready (curl)! Waiting 10s for init...\"\n" +
+            "        sleep 10\n" +
+            $"        exec {startCommand}\n" +
+            "    fi\n" +
+            "    RETRY=$((RETRY+1))\n" +
+            $"    echo \"[{serviceName}] DB not ready (attempt $RETRY/60)\"\n" +
+            "    sleep 5\n" +
+            "done\n" +
+            $"echo \"[{serviceName}] ERROR: DB not ready after 5 minutes\"\n" +
+            "exit 1\n";
+
+        var waitBase64 = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(waitScript));
+        container
+            .WithEnvironment("DB_WAIT_HOST", dbEndpoint.Property(EndpointProperty.Host))
+            .WithEnvironment("DB_WAIT_PORT", dbEndpoint.Property(EndpointProperty.Port))
+            .WithEnvironment("DB_WAIT_SCRIPT_BASE64", waitBase64)
+            .WithEntrypoint("/bin/sh")
+            .WithArgs("-c",
+                "echo \"$DB_WAIT_SCRIPT_BASE64\" | base64 -d > /tmp/db-wait.sh && " +
+                "chmod +x /tmp/db-wait.sh && " +
+                "exec /tmp/db-wait.sh");
     }
 
     #endregion

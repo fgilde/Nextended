@@ -22,14 +22,14 @@ internal static class SupabaseSqlGenerator
     #region Init SQL
 
     /// <summary>
-    /// Writes the main initialization SQL script for Supabase.
+    /// Generates the main initialization SQL script for Supabase as a string.
     /// Creates roles, schemas, extensions, storage tables, and triggers.
     /// </summary>
-    public static void WriteInitSql(string initDir, string password)
+    public static string GenerateInitSql(string password)
     {
         var pw = EscapeSqlLiteral(password);
 
-        var sql = $"""
+        return $"""
 -- ============================================
 -- SUPABASE INITIALIZATION SCRIPT
 -- ============================================
@@ -84,7 +84,11 @@ GRANT anon, authenticated, service_role TO authenticator;
 GRANT anon, authenticated, service_role TO supabase_storage_admin;
 GRANT supabase_auth_admin TO supabase_admin;
 GRANT supabase_storage_admin TO supabase_admin;
-GRANT supabase_auth_admin TO postgres;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'postgres') THEN
+    EXECUTE 'GRANT supabase_auth_admin TO postgres';
+  END IF;
+END $$;
 GRANT ALL ON DATABASE postgres TO supabase_admin;
 
 -- 3. Schemata erstellen
@@ -156,7 +160,12 @@ ALTER TYPE auth.code_challenge_method OWNER TO supabase_auth_admin;
 ALTER TYPE auth.one_time_token_type OWNER TO supabase_auth_admin;
 
 -- 8. Grants für auth Schema (GoTrue erstellt Tabellen selbst via Migrationen)
-GRANT USAGE ON SCHEMA auth TO supabase_auth_admin, supabase_admin, service_role, postgres;
+GRANT USAGE ON SCHEMA auth TO supabase_auth_admin, supabase_admin, service_role;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'postgres') THEN
+    EXECUTE 'GRANT USAGE ON SCHEMA auth TO postgres';
+  END IF;
+END $$;
 GRANT ALL ON ALL TABLES IN SCHEMA auth TO supabase_auth_admin, supabase_admin;
 GRANT ALL ON ALL SEQUENCES IN SCHEMA auth TO supabase_auth_admin, supabase_admin;
 
@@ -168,72 +177,10 @@ GRANT ALL ON ALL SEQUENCES IN SCHEMA storage TO supabase_storage_admin, supabase
 ALTER DEFAULT PRIVILEGES IN SCHEMA storage GRANT ALL ON TABLES TO service_role;
 ALTER DEFAULT PRIVILEGES IN SCHEMA storage GRANT ALL ON SEQUENCES TO service_role;
 
--- 10. Storage Tabellen erstellen
-CREATE TABLE IF NOT EXISTS storage.buckets (
-    id text NOT NULL PRIMARY KEY,
-    name text NOT NULL UNIQUE,
-    owner uuid,
-    created_at timestamptz DEFAULT NOW() NOT NULL,
-    updated_at timestamptz DEFAULT NOW() NOT NULL,
-    public boolean DEFAULT false,
-    avif_autodetection boolean DEFAULT false,
-    file_size_limit bigint,
-    allowed_mime_types text[],
-    owner_id text
-);
-ALTER TABLE storage.buckets OWNER TO supabase_storage_admin;
-
-CREATE TABLE IF NOT EXISTS storage.objects (
-    id uuid DEFAULT extensions.uuid_generate_v4() NOT NULL PRIMARY KEY,
-    bucket_id text REFERENCES storage.buckets(id),
-    name text,
-    owner uuid,
-    created_at timestamptz DEFAULT NOW(),
-    updated_at timestamptz DEFAULT NOW(),
-    last_accessed_at timestamptz DEFAULT NOW(),
-    metadata jsonb,
-    path_tokens text[] GENERATED ALWAYS AS (string_to_array(name, '/')) STORED,
-    version text,
-    owner_id text
-);
-ALTER TABLE storage.objects OWNER TO supabase_storage_admin;
-
-CREATE TABLE IF NOT EXISTS storage.s3_multipart_uploads (
-    id text NOT NULL PRIMARY KEY,
-    in_progress_size bigint DEFAULT 0 NOT NULL,
-    upload_signature text NOT NULL,
-    bucket_id text NOT NULL REFERENCES storage.buckets(id),
-    key text NOT NULL,
-    version text NOT NULL,
-    owner_id text,
-    created_at timestamptz DEFAULT NOW() NOT NULL
-);
-ALTER TABLE storage.s3_multipart_uploads OWNER TO supabase_storage_admin;
-
-CREATE TABLE IF NOT EXISTS storage.s3_multipart_uploads_parts (
-    id uuid DEFAULT extensions.uuid_generate_v4() NOT NULL PRIMARY KEY,
-    upload_id text NOT NULL REFERENCES storage.s3_multipart_uploads(id) ON DELETE CASCADE,
-    size bigint DEFAULT 0 NOT NULL,
-    part_number integer NOT NULL,
-    bucket_id text NOT NULL REFERENCES storage.buckets(id),
-    key text NOT NULL,
-    etag text NOT NULL,
-    owner_id text,
-    version text NOT NULL,
-    created_at timestamptz DEFAULT NOW() NOT NULL
-);
-ALTER TABLE storage.s3_multipart_uploads_parts OWNER TO supabase_storage_admin;
-
-CREATE TABLE IF NOT EXISTS storage.migrations (
-    id integer NOT NULL PRIMARY KEY,
-    name varchar(100) NOT NULL UNIQUE,
-    hash varchar(40) NOT NULL,
-    executed_at timestamp DEFAULT CURRENT_TIMESTAMP
-);
-ALTER TABLE storage.migrations OWNER TO supabase_storage_admin;
-
-CREATE INDEX IF NOT EXISTS objects_bucket_id_name_idx ON storage.objects (bucket_id, name);
-CREATE INDEX IF NOT EXISTS objects_owner_idx ON storage.objects (owner);
+-- 10. Storage Tabellen
+-- NOTE: Storage tables are NOT created here. The storage-api container runs its own
+-- migrations at startup which create and update the tables with the correct schema.
+-- Creating tables here would cause schema mismatches with newer storage-api versions.
 
 -- 11. RLS für Storage aktivieren
 ALTER TABLE storage.buckets ENABLE ROW LEVEL SECURITY;
@@ -348,7 +295,14 @@ BEGIN
 END;
 $$;
 """;
-        File.WriteAllText(Path.Combine(initDir, "00_init.sql"), sql);
+    }
+
+    /// <summary>
+    /// Writes the main initialization SQL script for Supabase to disk.
+    /// </summary>
+    public static void WriteInitSql(string initDir, string password)
+    {
+        File.WriteAllText(Path.Combine(initDir, "00_init.sql"), GenerateInitSql(password));
     }
 
     #endregion
@@ -356,15 +310,13 @@ $$;
     #region Post-Init SQL
 
     /// <summary>
-    /// Writes the post-initialization SQL script that runs after database starts.
-    /// NOTE: Password updates are now handled by the DB container's wrapper script.
-    /// This script only creates optional triggers if the function exists.
+    /// Generates the post-initialization SQL script as a string.
     /// </summary>
-    public static void WritePostInitSql(string path, string password)
+    public static string GeneratePostInitSql(string password)
     {
-        // Password updates and schema creation for existing databases
         var pw = EscapeSqlLiteral(password);
-        var sql = $"""
+
+        return $"""
 -- ============================================
 -- POST-INIT: Schema Setup & Trigger Creation
 -- ============================================
@@ -521,7 +473,14 @@ $$;
 
 SELECT 'Post-Init abgeschlossen' as status;
 """;
-        File.WriteAllText(path, sql);
+    }
+
+    /// <summary>
+    /// Writes the post-initialization SQL script to disk.
+    /// </summary>
+    public static void WritePostInitSql(string path, string password)
+    {
+        File.WriteAllText(path, GeneratePostInitSql(password));
     }
 
     #endregion
@@ -529,12 +488,11 @@ SELECT 'Post-Init abgeschlossen' as status;
     #region Post-Init Shell Script
 
     /// <summary>
-    /// Writes the post-initialization shell script that waits for the database
-    /// and executes post_init.sql, migrations.sql, and users.sql.
+    /// Generates the post-initialization shell script as a string.
     /// </summary>
-    public static void WritePostInitScript(string path, string dbHost, string password)
+    public static string GeneratePostInitScript(string dbHost, string password)
     {
-        var script = $"""
+        return $"""
 #!/bin/bash
 # Post-Init Script mit Retry-Logik
 
@@ -580,7 +538,14 @@ fi
 
 echo "[Post-Init] Erfolgreich abgeschlossen"
 """;
-        File.WriteAllText(path, script.Replace("\r\n", "\n")); // Unix line endings
+    }
+
+    /// <summary>
+    /// Writes the post-initialization shell script to disk.
+    /// </summary>
+    public static void WritePostInitScript(string path, string dbHost, string password)
+    {
+        File.WriteAllText(path, GeneratePostInitScript(dbHost, password).Replace("\r\n", "\n"));
     }
 
     #endregion
@@ -663,6 +628,39 @@ $$;
 
 """;
         File.AppendAllText(path, sql);
+    }
+
+    #endregion
+
+    #region Roles SQL
+
+    /// <summary>
+    /// Writes a SQL script that sets all Supabase role passwords to the given password.
+    /// This is mounted into /docker-entrypoint-initdb.d/init-scripts/ and runs after
+    /// the image's own init scripts have created the roles.
+    /// Same approach as the official supabase docker-compose roles.sql.
+    /// </summary>
+    public static void WriteRolesSql(string path, string password)
+    {
+        var pw = EscapeSqlLiteral(password);
+        var sql = $"""
+-- Set all Supabase role passwords (generated by Aspire)
+-- Uses psql variable substitution like the official roles.sql
+ALTER USER authenticator WITH PASSWORD '{pw}';
+ALTER USER supabase_auth_admin WITH PASSWORD '{pw}';
+ALTER USER supabase_storage_admin WITH PASSWORD '{pw}';
+ALTER USER supabase_admin WITH PASSWORD '{pw}';
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'pgbouncer') THEN
+    EXECUTE format('ALTER USER pgbouncer WITH PASSWORD %L', '{pw}');
+  END IF;
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'supabase_functions_admin') THEN
+    EXECUTE format('ALTER USER supabase_functions_admin WITH PASSWORD %L', '{pw}');
+  END IF;
+END $$;
+""";
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        File.WriteAllText(path, sql);
     }
 
     #endregion

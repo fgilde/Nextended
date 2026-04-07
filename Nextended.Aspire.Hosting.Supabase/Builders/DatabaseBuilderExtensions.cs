@@ -64,24 +64,11 @@ public static class DatabaseBuilderExtensions
         // Init container (for publish mode) - update password via environment variable
         stack.InitContainer?.WithEnvironment("DB_PASSWORD", password);
 
-        // Re-generate SQL files with the new password
-        if (!string.IsNullOrEmpty(stack.InitSqlPath))
-        {
-            // Update 00_init.sql with new password
-            SupabaseSqlGenerator.WriteInitSql(stack.InitSqlPath, password);
+        // NOTE: SQL files are NOT written here. They are written once with the final password
+        // via BeforeResourceStartedEvent in AddSupabase(), which fires after all configuration
+        // (including this WithPassword call) is applied.
 
-            // Update post_init.sh with new password (only for local development)
-            var scriptsDir = Path.Combine(Path.GetDirectoryName(stack.InitSqlPath)!, "scripts");
-            var postInitShPath = Path.Combine(scriptsDir, "post_init.sh");
-            if (Directory.Exists(scriptsDir))
-            {
-                // Note: This script uses hardcoded hostname for local development only
-                // In ACA, the init container uses environment variables for dynamic resolution
-                SupabaseSqlGenerator.WritePostInitScript(postInitShPath, $"{containerPrefix}-db", password);
-            }
-
-            LogInformation("Database password updated in all containers and SQL files");
-        }
+        LogInformation("Database password updated in all containers");
 
         return builder;
     }
@@ -176,24 +163,11 @@ public static class DatabaseBuilderExtensions
         // Init container (for publish mode) - update password via environment variable
         stack.InitContainer?.WithEnvironment("DB_PASSWORD", password);
 
-        // Re-generate SQL files with the new password
-        if (!string.IsNullOrEmpty(stack.InitSqlPath))
-        {
-            // Update 00_init.sql with new password
-            SupabaseSqlGenerator.WriteInitSql(stack.InitSqlPath, password);
+        // NOTE: SQL files are NOT written here. They are written once with the final password
+        // via BeforeResourceStartedEvent in AddSupabase(), which fires after all configuration
+        // (including this WithPassword call) is applied.
 
-            // Update post_init.sh with new password (only for local development)
-            var scriptsDir = Path.Combine(Path.GetDirectoryName(stack.InitSqlPath)!, "scripts");
-            var postInitShPath = Path.Combine(scriptsDir, "post_init.sh");
-            if (Directory.Exists(scriptsDir))
-            {
-                // Note: This script uses hardcoded hostname for local development only
-                // In ACA, the init container uses environment variables for dynamic resolution
-                SupabaseSqlGenerator.WritePostInitScript(postInitShPath, $"{containerPrefix}-db", password);
-            }
-
-            LogInformation("Database password updated in all containers and SQL files");
-        }
+        LogInformation("Database password updated in all containers");
 
         return builder;
     }

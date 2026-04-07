@@ -14,6 +14,7 @@ A complete Supabase stack integration for .NET Aspire, providing local developme
 - [Dashboard Commands](#dashboard-commands)
 - [Accessing Resources](#accessing-resources)
 - [Environment Variables for Frontend](#environment-variables-for-frontend)
+- [Deployment](#deployment)
 
 ---
 
@@ -38,7 +39,8 @@ This starts a fully functional Supabase stack with:
 - Studio Dashboard (port 54323)
 - Postgres Meta
 
-All services use sensible defaults and are ready for local development.
+All services use sensible defaults and are ready for local development and deployment for azure container apps.
+
 
 ---
 
@@ -369,6 +371,20 @@ var frontend = builder.AddJavaScriptApp("frontend", "../frontend", "dev")
     .WithEnvironment("VITE_SUPABASE_URL", supabase.Resource.Kong!.GetEndpoint("http"))
     .WithEnvironment("VITE_SUPABASE_PUBLISHABLE_KEY", supabase.Resource.AnonKey);
 ```
+
+---
+
+## Deployment
+
+For easy azure container apps deployment you can use azd:
+
+```bash
+azd init
+azd up
+```
+
+Or for a JavaScript/TypeScript app:
+
 
 ---
 

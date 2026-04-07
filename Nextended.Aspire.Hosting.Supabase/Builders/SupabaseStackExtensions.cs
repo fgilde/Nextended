@@ -112,7 +112,7 @@ public static class SupabaseStackExtensions
 
             var edgeMountPath = "/home/deno";
 
-            // Read main.ts content
+            // Read main.ts content (small, no compression needed)
             var mainTsContent = File.ReadAllText(mainTsPath);
             var mainTsBase64 = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(mainTsContent));
 
@@ -123,18 +123,22 @@ public static class SupabaseStackExtensions
                 $"echo $MAIN_TS_BASE64 | base64 -d > {edgeMountPath}/main/main.ts"
             };
 
-            // Read all function files and add to environment variables
+            // Read all function files, gzip+base64 encode, and add as environment variables.
+            // Gzip is needed because Bicep has a 128KB literal limit per env var.
             foreach (var funcName in functionDirs)
             {
                 var funcIndexPath = Path.Combine(functionsPath, funcName, "index.ts");
                 if (File.Exists(funcIndexPath))
                 {
-                    var funcContent = File.ReadAllText(funcIndexPath);
-                    var funcBase64 = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(funcContent));
-                    var envVarName = $"FUNC_{funcName.ToUpperInvariant().Replace("-", "_")}_BASE64";
+                    var funcBytes = System.Text.Encoding.UTF8.GetBytes(File.ReadAllText(funcIndexPath));
+                    using var ms = new System.IO.MemoryStream();
+                    using (var gz = new System.IO.Compression.GZipStream(ms, System.IO.Compression.CompressionMode.Compress, true))
+                        gz.Write(funcBytes, 0, funcBytes.Length);
+                    var funcGzBase64 = Convert.ToBase64String(ms.ToArray());
+                    var envVarName = $"FUNC_{funcName.ToUpperInvariant().Replace("-", "_")}_GZ_B64";
 
-                    edgeBuilder.WithEnvironment(envVarName, funcBase64);
-                    setupCommands.Add($"mkdir -p {edgeMountPath}/functions/{funcName} && echo ${envVarName} | base64 -d > {edgeMountPath}/functions/{funcName}/index.ts");
+                    edgeBuilder.WithEnvironment(envVarName, funcGzBase64);
+                    setupCommands.Add($"mkdir -p {edgeMountPath}/functions/{funcName} && echo ${envVarName} | base64 -d | gunzip > {edgeMountPath}/functions/{funcName}/index.ts");
                 }
             }
 
@@ -158,6 +162,15 @@ public static class SupabaseStackExtensions
                 .WithArgs("run", "--allow-all", "--unstable-worker-options", "/home/deno/main/main.ts");
         }
         stack.EdgeRuntime = edgeBuilder;
+
+        // Azure Container Apps: set allowInsecure for internal HTTP communication
+        if (appBuilder.ExecutionContext.IsPublishMode)
+        {
+            edgeBuilder.PublishAsAzureContainerApp((infra, app) =>
+            {
+                app.Configuration.Ingress.AllowInsecure = true;
+            });
+        }
 
         // Set parent relationship to the stack (which IS the Studio)
         stack.EdgeRuntime.WithParentRelationship(stack);
@@ -420,59 +433,10 @@ $$;
             displayName: "Clear All Supabase Data",
             executeCommand: _ =>
             {
-                LogInformation("Deleting all data...");
-
-                var containerNames = new[]
-                {
-                        $"{containerPrefix}-db",
-                        $"{containerPrefix}-auth",
-                        $"{containerPrefix}-rest",
-                        $"{containerPrefix}-storage",
-                        $"realtime-dev.{containerPrefix}-realtime",
-                        $"{containerPrefix}-kong",
-                        $"{containerPrefix}-meta",
-                        $"{containerPrefix}-studio",
-                        $"{containerPrefix}-edge",
-                        $"{containerPrefix}-init"
-                };
-
-                foreach (var container in containerNames)
-                {
-                    try
-                    {
-                        var process = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
-                        {
-                            FileName = "docker",
-                            Arguments = $"rm -f {container}",
-                            RedirectStandardOutput = true,
-                            RedirectStandardError = true,
-                            UseShellExecute = false,
-                            CreateNoWindow = true
-                        });
-                        process?.WaitForExit(10000);
-                        LogInformation($"Container removed: {container}");
-                    }
-                    catch (Exception ex)
-                    {
-                        LogWarning($"{container} - {ex.Message}");
-                    }
-                }
-
-                if (!string.IsNullOrEmpty(infraPath) && Directory.Exists(infraPath))
-                {
-                    try
-                    {
-                        Directory.Delete(infraPath, recursive: true);
-                        LogInformation($"Directory deleted: {infraPath}");
-                    }
-                    catch (Exception ex)
-                    {
-                        LogWarning(ex.Message);
-                    }
-                }
+                builder.ApplicationBuilder.ClearSupabase(true, containerPrefix);
 
                 LogInformation("Cleanup completed. Please restart Aspire.");
-                return Task.FromResult(new ExecuteCommandResult() { Success = true});
+                return Task.FromResult(new ExecuteCommandResult { Success = true });
             }, options
             );
 
@@ -579,89 +543,16 @@ $$;
     #region Internal Helpers
 
     /// <summary>
-    /// Updates the PostInitSqlBase64 by combining all SQL files from the scripts and init directories.
-    /// Called after WithMigrations(), WithRegisteredUser(), or WithProjectSync() to ensure all SQL is included.
+    /// Updates the PostInitSqlBase64 cache by building the combined SQL in memory.
+    /// Called after WithMigrations(), WithRegisteredUser(), or WithProjectSync().
+    /// NOTE: The init container uses an environment callback that calls BuildCombinedPostInitSql()
+    /// at resolution time, so the cache is only for informational purposes.
     /// </summary>
     internal static void UpdatePostInitSqlBase64(SupabaseStackResource stack)
     {
-        if (stack.InitSqlPath is null) return;
-
-        var initDir = stack.InitSqlPath;
-        var scriptsDir = Path.Combine(Path.GetDirectoryName(initDir)!, "scripts");
-
-        var combinedSql = new System.Text.StringBuilder();
-
-        // Append synced schema SQL if exists (from WithProjectSync)
-        // This must come FIRST as it creates tables that migrations might reference
-        var syncSqlPath = Path.Combine(initDir, "01_sync_schema.sql");
-        if (File.Exists(syncSqlPath))
-        {
-            var syncSql = File.ReadAllText(syncSqlPath);
-            if (syncSql.Length < 200000) // 200KB limit for synced schema
-            {
-                combinedSql.AppendLine("-- Synced Schema from Remote Project");
-                combinedSql.AppendLine(syncSql);
-                combinedSql.AppendLine();
-            }
-            else
-            {
-                LogWarning("01_sync_schema.sql is too large for Azure deployment. Synced schema will not be applied.");
-            }
-        }
-
-        // Read base post_init.sql (triggers and profiles)
-        if (Directory.Exists(scriptsDir))
-        {
-            var postInitSqlPath = Path.Combine(scriptsDir, "post_init.sql");
-            if (File.Exists(postInitSqlPath))
-            {
-                combinedSql.AppendLine("-- Post Init (Triggers)");
-                combinedSql.AppendLine(File.ReadAllText(postInitSqlPath));
-                combinedSql.AppendLine();
-            }
-
-            // Append migrations.sql if exists
-            var migrationsSqlPath = Path.Combine(scriptsDir, "migrations.sql");
-            if (File.Exists(migrationsSqlPath))
-            {
-                var migrationsSql = File.ReadAllText(migrationsSqlPath);
-                if (migrationsSql.Length < 100000) // 100KB limit for migrations
-                {
-                    combinedSql.AppendLine("-- Migrations");
-                    combinedSql.AppendLine(migrationsSql);
-                    combinedSql.AppendLine();
-                }
-                else
-                {
-                    LogWarning("migrations.sql is too large for Azure deployment. Migrations will not run automatically.");
-                }
-            }
-
-            // Append users.sql if exists
-            var usersSqlPath = Path.Combine(scriptsDir, "users.sql");
-            if (File.Exists(usersSqlPath))
-            {
-                var usersSql = File.ReadAllText(usersSqlPath);
-                if (usersSql.Length < 50000) // 50KB limit for users
-                {
-                    combinedSql.AppendLine("-- Users");
-                    combinedSql.AppendLine(usersSql);
-                    combinedSql.AppendLine();
-                }
-                else
-                {
-                    LogWarning("users.sql is too large for Azure deployment. Users will not be created automatically.");
-                }
-            }
-        }
-
-        // Update the base64 content
-        stack.PostInitSqlBase64 = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(combinedSql.ToString()));
-
-        // Also update the init container environment variable if it exists
-        stack.InitContainer?.WithEnvironment("POST_INIT_SQL_BASE64", stack.PostInitSqlBase64);
-
-        LogInformation("PostInitSqlBase64 updated for publish mode");
+        var sql = SupabaseBuilderExtensions.BuildCombinedPostInitSql(stack);
+        stack.PostInitSqlBase64 = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(sql));
+        LogInformation("PostInitSqlBase64 cache updated");
     }
 
     #endregion
