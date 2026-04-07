@@ -675,7 +675,6 @@ public static class SupabaseBuilderExtensions
                 .WithArgs("-c",
                     "set -e && " +
                     "echo '[Kong Init] Starting configuration...' && " +
-                    "mkdir -p /home/kong && " +
                     "echo '[Kong Init] Decoding config template...' && " +
                     "echo \"$KONG_CONFIG_TEMPLATE_BASE64\" | base64 -d > /tmp/kong.yml.template && " +
                     "echo '[Kong Init] Substituting URLs using sed...' && " +
@@ -685,12 +684,12 @@ public static class SupabaseBuilderExtensions
                         "-e \"s|\\${META_URL}|$META_URL|g\" " +
                         "-e \"s|\\${EDGE_URL}|$EDGE_URL|g\" " +
                         "-e \"s|\\${REALTIME_URL}|$REALTIME_URL|g\" " +
-                        "/tmp/kong.yml.template > /home/kong/kong.yml && " +
+                        "/tmp/kong.yml.template > /tmp/kong.yml && " +
                     "echo '[Kong Init] Config created. URLs:' && " +
                     "echo \"AUTH=$AUTH_URL REST=$REST_URL STORAGE=$STORAGE_URL META=$META_URL REALTIME=$REALTIME_URL\" && " +
                     "echo '[Kong Init] Starting Kong...' && " +
-                    "export KONG_DECLARATIVE_CONFIG=/home/kong/kong.yml && " +
-                    "exec /docker-entrypoint.sh kong docker-start");
+                    "export KONG_DECLARATIVE_CONFIG=/tmp/kong.yml && " +
+                    "exec /entrypoint.sh kong docker-start");
         }
         else
         {
