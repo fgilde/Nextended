@@ -706,7 +706,7 @@ public static class SupabaseBuilderExtensions
 
         // STUDIO - Configure the stack resource itself as the Studio container
         stack.StudioPort = Defaults.ExternalStudioPort;
-        
+
         // Build URLs using Aspire's endpoint references for HTTP services
         var studioMetaUrl = stack.Meta.GetEndpoint("http");
         var studioKongUrl = stack.Kong.GetEndpoint("http");
@@ -974,9 +974,10 @@ public static class SupabaseBuilderExtensions
         IResourceBuilder<ContainerResource> container,
         EndpointReference dbEndpoint, string startCommand, string serviceName)
     {
-        // Wait script tries nc (netcat) first, then curl, for TCP port check.
-        // nc is available on Alpine-based images (GoTrue, Storage, Meta).
-        // curl is available on Realtime.
+        // Wait script tries multiple tools for TCP port check:
+        // 1. nc (netcat) - available on Alpine-based images (GoTrue, Storage)
+        // 2. node - available on Node.js images (Meta)
+        // 3. curl - available on some images (Realtime)
         var waitScript =
             "#!/bin/sh\n" +
             $"echo \"[{serviceName}] Waiting for DB at $DB_WAIT_HOST:$DB_WAIT_PORT...\"\n" +
@@ -984,6 +985,10 @@ public static class SupabaseBuilderExtensions
             "while [ $RETRY -lt 60 ]; do\n" +
             "    if nc -z $DB_WAIT_HOST $DB_WAIT_PORT 2>/dev/null; then\n" +
             $"        echo \"[{serviceName}] DB ready (nc)! Waiting 10s for init...\"\n" +
+            "        sleep 10\n" +
+            $"        exec {startCommand}\n" +
+            "    elif node -e \"const s=require('net').connect({host:process.env.DB_WAIT_HOST,port:process.env.DB_WAIT_PORT},()=>{s.end();process.exit(0)});s.on('error',()=>process.exit(1));setTimeout(()=>process.exit(1),3000)\" 2>/dev/null; then\n" +
+            $"        echo \"[{serviceName}] DB ready (node)! Waiting 10s for init...\"\n" +
             "        sleep 10\n" +
             $"        exec {startCommand}\n" +
             "    elif curl -sf --connect-timeout 3 telnet://$DB_WAIT_HOST:$DB_WAIT_PORT </dev/null 2>/dev/null; then\n" +
