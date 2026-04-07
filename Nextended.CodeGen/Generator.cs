@@ -15,7 +15,7 @@ namespace Nextended.CodeGen
     [Generator]
     public sealed class MainGenerator : IIncrementalGenerator
     {
-        public static readonly Guid BuildId = new("168c581f-f945-4ff7-9f1f-437dd093a11c");
+        public static readonly Guid BuildId = new("0ee1c142-1a5d-497f-bea5-5c61829b73a1");
 
         private bool attachDebugger = false;
         private bool generationEnabled = true;
@@ -197,6 +197,7 @@ namespace Nextended.CodeGen
         }
     }
 }
+
 
 
 
