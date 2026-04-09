@@ -1,8 +1,8 @@
 <Project>
   <PropertyGroup>
-    <UsedCorePackageVersion>10.1.1</UsedCorePackageVersion>
-    <PackageVersion>10.1.2</PackageVersion>
-    <AspireVersion>13.2.1</AspireVersion>
+    <UsedCorePackageVersion>10.1.2</UsedCorePackageVersion>
+    <PackageVersion>10.1.3</PackageVersion>
+    <AspireVersion>13.2.2</AspireVersion>
   </PropertyGroup>
 
 
