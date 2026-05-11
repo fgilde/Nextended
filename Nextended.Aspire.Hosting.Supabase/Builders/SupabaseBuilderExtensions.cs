@@ -705,7 +705,7 @@ public static class SupabaseBuilderExtensions
 
         // STUDIO - Configure the stack resource itself as the Studio container
         stack.StudioPort = Defaults.ExternalStudioPort;
-
+        
         // Build URLs using Aspire's endpoint references for HTTP services
         var studioMetaUrl = stack.Meta.GetEndpoint("http");
         var studioKongUrl = stack.Kong.GetEndpoint("http");
@@ -760,7 +760,10 @@ public static class SupabaseBuilderExtensions
                                   "echo \"$POST_INIT_SQL_GZ_BASE64\" | base64 -d | gunzip > /tmp/post_init.sql && " +
                                   "echo \"[Post-Init] SQL size: $(wc -c < /tmp/post_init.sql) bytes\" && " +
                                   "echo '[Post-Init] Running post-init SQL (triggers, migrations, profiles)...' && " +
-                                  "PGPASSWORD=\"$DB_PASSWORD\" psql -h \"$DB_HOST\" -p \"$DB_PORT\" -U postgres -d postgres " +
+                                  // Connect as supabase_admin (superuser); postgres is not a member
+                                  // of supabase_admin in the supabase/postgres image, which causes
+                                  // CREATE SCHEMA ... AUTHORIZATION supabase_admin to fail silently.
+                                  "PGPASSWORD=\"$DB_PASSWORD\" psql -h \"$DB_HOST\" -p \"$DB_PORT\" -U supabase_admin -d postgres " +
                                   "-v new_password=\"$DB_PASSWORD\" -f /tmp/post_init.sql && " +
                                   "echo '[Post-Init] Completed successfully'";
 

@@ -64,6 +64,10 @@ public static class DatabaseBuilderExtensions
         // Init container (for publish mode) - update password via environment variable
         stack.InitContainer?.WithEnvironment("DB_PASSWORD", password);
 
+        // Realtime container - critical: without this, realtime fails to connect and all
+        // postgres_changes subscriptions silently never fire.
+        stack.Realtime?.WithEnvironment("DB_PASSWORD", password);
+
         // NOTE: SQL files are NOT written here. They are written once with the final password
         // via BeforeResourceStartedEvent in AddSupabase(), which fires after all configuration
         // (including this WithPassword call) is applied.
@@ -162,6 +166,10 @@ public static class DatabaseBuilderExtensions
 
         // Init container (for publish mode) - update password via environment variable
         stack.InitContainer?.WithEnvironment("DB_PASSWORD", password);
+
+        // Realtime container - critical: without this, realtime fails to connect and all
+        // postgres_changes subscriptions silently never fire.
+        stack.Realtime?.WithEnvironment("DB_PASSWORD", password);
 
         // NOTE: SQL files are NOT written here. They are written once with the final password
         // via BeforeResourceStartedEvent in AddSupabase(), which fires after all configuration
