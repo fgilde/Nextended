@@ -366,6 +366,12 @@ namespace Nextended.Core.Extensions
                || t == typeof(DateTimeOffset)
                || t == typeof(TimeSpan)
                || t == typeof(Guid)
+               || t == typeof(Uri)
+#if !NETSTANDARD2_0
+               || t == typeof(DateOnly)
+               || t == typeof(TimeOnly)
+#endif
                || (Nullable.GetUnderlyingType(t) is Type inner && IsScalar(inner));
+
     }
 }
