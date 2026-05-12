@@ -1,0 +1,12 @@
+{
+  "profiles": {
+    "Nextended.ResponseFilters.AspNetCore": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      },
+      "applicationUrl": "https://localhost:52973;http://localhost:52974"
+    }
+  }
+}

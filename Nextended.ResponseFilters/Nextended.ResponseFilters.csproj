@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="..\Shared.props" />
+
+  <PropertyGroup>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <IsPackable>true</IsPackable>
+    <PackReadMe>false</PackReadMe>
+
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <Description>Fluent, attribute-aware response filtering pipeline for redacting, masking or transforming object graphs before serialization (e.g. permission-aware property nulling). Provider-agnostic core — adapters for ASP.NET Core ship separately.</Description>
+    <PackageTags>ResponseFilter, Pipeline, Redact, Mask, Permission, Fluent, Reflection, ObjectGraph</PackageTags>
+  </PropertyGroup>
+
+  <!--
+    Microsoft.Extensions.DependencyInjection.Abstractions comes transitively via Nextended.Core (10.0.5).
+    Microsoft.Extensions.Logging.Abstractions is added explicitly so the pipeline can log without forcing
+    consumers onto a specific logging stack.
+  -->
+  <ItemGroup>
+    <ProjectReference Include="..\Nextended.Core\Nextended.Core.csproj" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="$(MsVersion)" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="README.md" />
+  </ItemGroup>
+
+</Project>

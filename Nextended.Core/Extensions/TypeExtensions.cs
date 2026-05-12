@@ -367,7 +367,7 @@ namespace Nextended.Core.Extensions
                || t == typeof(TimeSpan)
                || t == typeof(Guid)
                || t == typeof(Uri)
-#if !NETSTANDARD2_0
+#if !NETSTANDARD
                || t == typeof(DateOnly)
                || t == typeof(TimeOnly)
 #endif

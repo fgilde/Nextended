@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <Import Project="..\Shared.props" />
+
+  <PropertyGroup>
+    <TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
+    <OutputType>Library</OutputType>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <IsPackable>true</IsPackable>
+    <PackReadMe>false</PackReadMe>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <Description>ASP.NET Core adapter for Nextended.ResponseFilters. Wires the filter pipeline into the MVC pipeline as a global IAsyncResultFilter, mutating ObjectResult.Value before serialization.</Description>
+    <PackageTags>ResponseFilter, AspNetCore, MVC, ResultFilter, Redact, Mask, Permission</PackageTags>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Nextended.ResponseFilters\Nextended.ResponseFilters.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="README.md" />
+  </ItemGroup>
+</Project>
