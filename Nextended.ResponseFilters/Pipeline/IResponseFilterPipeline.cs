@@ -1,5 +1,3 @@
-using System.Threading.Tasks;
-
 namespace Nextended.ResponseFilters.Pipeline;
 
 /// <summary>

@@ -55,14 +55,8 @@ public sealed class ResponseFilterPipeline(
     /// For top-level enumerables (<c>List&lt;T&gt;</c>, <c>T[]</c>), use the element type for the
     /// reachability check — the collection itself never carries filterable properties.
     /// </summary>
-    private static Type GetEffectiveTypeForReachability(object root, Type rootType)
-    {
-        if (root is IEnumerable and not string)
-        {
-            return TypeGraphInspector.UnwrapEnumerable(rootType);
-        }
-        return rootType;
-    }
+    private static Type GetEffectiveTypeForReachability(object root, Type rootType) =>
+        root is IEnumerable and not string ? TypeGraphInspector.UnwrapEnumerable(rootType) : rootType;
 
     private async ValueTask VisitAsync(object? value, HashSet<object> visited, IResponseFilterContext context)
     {
