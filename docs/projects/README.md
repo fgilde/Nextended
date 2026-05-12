@@ -90,6 +90,21 @@ This document provides an overview of all projects in the Nextended solution.
 
 ---
 
+## ASP.NET Core Add-ons
+
+### [Nextended.ResponseFilters](responsefilters.md)
+**Description**: Fluent, attribute-aware pipeline that mutates response DTOs (redact, mask, hash, round, truncate, transform, filter collections) before serialization.
+
+**Key Features**:
+- `ResponseFilter<T>` base class with FluentValidation-style rule builders (`Nullify`, `Mask`, `Hash`, `Round`, `Truncate`, `RemoveItems`, `Take`, `Apply`, …)
+- Full predicate matrix (sync/async, no-arg/ctx-aware/instance-aware)
+- Compiled property accessors, type-graph cache, cycle detection
+- ASP.NET Core adapter ships as `Nextended.ResponseFilters.AspNetCore`
+
+**NuGet**: [Nextended.ResponseFilters](https://www.nuget.org/packages/Nextended.ResponseFilters/), [Nextended.ResponseFilters.AspNetCore](https://www.nuget.org/packages/Nextended.ResponseFilters.AspNetCore/)
+
+---
+
 ## Specialized Libraries
 
 ### [Nextended.Imaging](imaging.md)
@@ -131,6 +146,20 @@ This document provides an overview of all projects in the Nextended solution.
 
 ---
 
+### [Nextended.Aspire.Hosting.Supabase](aspire-supabase.md)
+**Description**: Full Supabase stack as a single Aspire resource — Postgres, GoTrue, PostgREST, Storage, Kong, Studio, Edge Functions.
+
+**Key Features**:
+- One-line `AddSupabase("supabase")` spins up the complete stack
+- Per-sub-resource fluent configuration (`ConfigureDatabase`, `ConfigureAuth`, …)
+- Schema/data/storage/edge-function sync from remote Supabase projects
+- Local SQL migrations, pre-registered dev users, dashboard "Clear All Data" command
+- Azure Container Apps deployment via `azd`
+
+**NuGet**: [Nextended.Aspire.Hosting.Supabase](https://www.nuget.org/packages/Nextended.Aspire.Hosting.Supabase/)
+
+---
+
 ### [Nextended.AutoDto](autodto.md)
 **Description**: Automatic DTO generation support library.
 
@@ -146,15 +175,18 @@ This document provides an overview of all projects in the Nextended solution.
 
 | Project | Target | Platform | Dependencies |
 |---------|--------|----------|--------------|
-| Nextended.Core | .NET Standard 2.0+, .NET 8/9 | Cross-platform | None |
-| Nextended.Cache | .NET 8/9 | Cross-platform | Core |
-| Nextended.EF | .NET 8/9 | Cross-platform | Core, EF Core |
-| Nextended.Blazor | .NET 8/9 | Browser | Core, Blazor |
-| Nextended.UI | .NET 8/9 | Windows | Core, WPF |
-| Nextended.Web | .NET 8/9 | Cross-platform | Core, EF, ASP.NET |
-| Nextended.Imaging | .NET 8/9 | Cross-platform | Core, Cache |
+| Nextended.Core | .NET Standard 2.0+, .NET 8/9/10 | Cross-platform | None |
+| Nextended.Cache | .NET 8/9/10 | Cross-platform | Core |
+| Nextended.EF | .NET 8/9/10 | Cross-platform | Core, EF Core |
+| Nextended.Blazor | .NET 8/9/10 | Browser | Core, Blazor |
+| Nextended.UI | .NET 8/9/10 | Windows | Core, WPF |
+| Nextended.Web | .NET 8/9/10 | Cross-platform | Core, EF, ASP.NET |
+| Nextended.ResponseFilters | .NET 8/9/10 | Cross-platform | Core |
+| Nextended.ResponseFilters.AspNetCore | .NET 8/9/10 | Cross-platform | ResponseFilters, ASP.NET |
+| Nextended.Imaging | .NET 8/9/10 | Cross-platform | Core, Cache |
 | Nextended.CodeGen | .NET Standard 2.0 | Build-time | Roslyn |
-| Nextended.Aspire | .NET 8/9 | Cross-platform | Aspire |
+| Nextended.Aspire | .NET 8/9/10 | Cross-platform | Aspire |
+| Nextended.Aspire.Hosting.Supabase | .NET 8/9/10 | Cross-platform | Aspire |
 | Nextended.AutoDto | .NET Standard 2.0 | Build-time | Roslyn |
 
 ## Installation

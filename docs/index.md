@@ -33,11 +33,16 @@ The Nextended suite consists of multiple specialized packages, each serving a sp
 - **[Nextended.UI](projects/ui.md)** - WPF and Windows Forms utilities
 - **[Nextended.Web](projects/web.md)** - ASP.NET Core and web application helpers
 
+### ASP.NET Core add-ons
+
+- **[Nextended.ResponseFilters](projects/responsefilters.md)** - Fluent, attribute-aware pipeline for redacting, masking and transforming response DTOs before serialization (incl. ASP.NET Core adapter)
+
 ### Specialized Libraries
 
 - **[Nextended.Imaging](projects/imaging.md)** - Image processing and manipulation utilities
 - **[Nextended.CodeGen](projects/codegen.md)** - Source code generation tools (attributes, JSON/Excel to classes, DTO generation)
 - **[Nextended.Aspire](projects/aspire.md)** - .NET Aspire framework extensions for distributed applications
+- **[Nextended.Aspire.Hosting.Supabase](projects/aspire-supabase.md)** - Complete Supabase stack (Postgres, Auth, REST, Storage, Studio, Edge Functions) as an Aspire resource
 - **[Nextended.AutoDto](projects/autodto.md)** - Automatic DTO generation utilities
 
 ## 🚀 Quick Start

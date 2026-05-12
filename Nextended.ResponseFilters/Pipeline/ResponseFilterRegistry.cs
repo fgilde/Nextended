@@ -73,4 +73,7 @@ public sealed class ResponseFilterTypeMap
         implTypes = Array.Empty<Type>();
         return false;
     }
+
+    /// <summary>All registered target types (snapshot — safe to enumerate).</summary>
+    public IEnumerable<Type> TargetTypes => _map.Keys;
 }

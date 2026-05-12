@@ -4,6 +4,7 @@ using System.Linq;
 using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Options;
 using Nextended.ResponseFilters.Pipeline;
 
 namespace Nextended.ResponseFilters.Extensions;
@@ -18,15 +19,20 @@ public static class ServiceCollectionExtensions
     /// <param name="services">The service collection.</param>
     /// <param name="assemblies">Assemblies to scan. If none are provided, the calling assembly is used.</param>
     /// <param name="lifetime">Lifetime for discovered filters. Default: <see cref="ServiceLifetime.Scoped"/>.</param>
+    /// <param name="configure">Optional callback to configure <see cref="ResponseFilterOptions"/> — exception
+    /// behaviour, response-type opt-outs, reachability shortcuts. Can be combined across multiple
+    /// <c>AddResponseFilters</c> calls (last write wins).</param>
     public static IServiceCollection AddResponseFilters(
         this IServiceCollection services,
         Assembly[]? assemblies = null,
-        ServiceLifetime lifetime = ServiceLifetime.Scoped)
+        ServiceLifetime lifetime = ServiceLifetime.Scoped,
+        Action<ResponseFilterOptions>? configure = null)
     {
         if (services is null) throw new ArgumentNullException(nameof(services));
-        assemblies ??= new[] { Assembly.GetCallingAssembly() };
+        assemblies ??= [Assembly.GetCallingAssembly()];
 
         var typeMap = services.GetOrAddTypeMap();
+        var reachability = services.GetOrAddReachabilityCache();
         services.AddCoreServices();
 
         foreach (var asm in assemblies)
@@ -37,6 +43,14 @@ public static class ServiceCollectionExtensions
                 services.TryAddEnumerableLifetime(filterImpl, lifetime);
                 services.TryAddLifetime(filterImpl, lifetime);
             }
+        }
+
+        // Synchronize the reachability cache with the final set of target types
+        reachability.SetTargetTypes(typeMap.TargetTypes);
+
+        if (configure is not null)
+        {
+            services.Configure(configure);
         }
 
         return services;
@@ -51,6 +65,7 @@ public static class ServiceCollectionExtensions
         where TFilter : class, IResponseFilter
     {
         var typeMap = services.GetOrAddTypeMap();
+        var reachability = services.GetOrAddReachabilityCache();
         services.AddCoreServices();
 
         var targetType = ResolveTargetType(typeof(TFilter))
@@ -59,27 +74,35 @@ public static class ServiceCollectionExtensions
 
         typeMap.Add(targetType, typeof(TFilter));
         services.TryAddLifetime(typeof(TFilter), lifetime);
+        reachability.SetTargetTypes(typeMap.TargetTypes);
         return services;
     }
 
     private static void AddCoreServices(this IServiceCollection services)
     {
+        services.AddOptions<ResponseFilterOptions>();
         services.TryAddScoped<IResponseFilterRegistry, ResponseFilterRegistry>();
         services.TryAddScoped<IResponseFilterPipeline, ResponseFilterPipeline>();
     }
 
     private static ResponseFilterTypeMap GetOrAddTypeMap(this IServiceCollection services)
+        => services.GetOrAddSingletonInstance(() => new ResponseFilterTypeMap());
+
+    private static TypeReachabilityCache GetOrAddReachabilityCache(this IServiceCollection services)
+        => services.GetOrAddSingletonInstance(() => new TypeReachabilityCache());
+
+    private static T GetOrAddSingletonInstance<T>(this IServiceCollection services, Func<T> factory) where T : class
     {
         var existing = services.FirstOrDefault(d =>
-            d.ServiceType == typeof(ResponseFilterTypeMap) && d.ImplementationInstance is ResponseFilterTypeMap);
-        if (existing?.ImplementationInstance is ResponseFilterTypeMap map)
+            d.ServiceType == typeof(T) && d.ImplementationInstance is T);
+        if (existing?.ImplementationInstance is T instance)
         {
-            return map;
+            return instance;
         }
 
-        // Build it eagerly so the registration phase can populate it.
-        var created = new ResponseFilterTypeMap();
-        services.RemoveAll<ResponseFilterTypeMap>();
+        // Build eagerly so the registration phase can populate it.
+        var created = factory();
+        services.RemoveAll<T>();
         services.AddSingleton(created);
         return created;
     }

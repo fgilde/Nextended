@@ -295,6 +295,7 @@ public class ViewModel : NotificationObject
 - .NET Standard 2.1
 - .NET 8.0
 - .NET 9.0
+- .NET 10.0
 
 ## Dependencies
 

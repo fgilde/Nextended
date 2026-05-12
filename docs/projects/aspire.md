@@ -299,6 +299,7 @@ var api = builder.AddProject<Projects.Api>("api")
 
 - .NET 8.0
 - .NET 9.0
+- .NET 10.0
 
 ## Dependencies
 

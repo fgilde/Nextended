@@ -17,15 +17,32 @@ public static class ServiceCollectionExtensions
     /// <param name="services">The service collection.</param>
     /// <param name="assemblies">Assemblies to scan. If none are provided, the calling assembly is used.</param>
     /// <param name="lifetime">Lifetime for discovered filters.</param>
+    /// <param name="configure">
+    /// Optional callback to configure <see cref="ResponseFilterOptions"/> — for example to switch from
+    /// the default <see cref="FilterExceptionBehavior.Rethrow"/> to
+    /// <see cref="FilterExceptionBehavior.LogAndContinue"/>, or to opt specific response types out
+    /// of the pipeline entirely.
+    /// </param>
+    /// <example>
+    /// <code>
+    /// builder.Services.AddNextendedResponseFilters(
+    ///     assemblies: new[] { typeof(MyFilter).Assembly },
+    ///     configure: opts =>
+    ///     {
+    ///         opts.ExceptionBehavior = FilterExceptionBehavior.LogAndContinue;
+    ///         opts.SkipResponseType = t => t.Namespace?.StartsWith("Volo.Abp") == true;
+    ///     });
+    /// </code>
+    /// </example>
     public static IServiceCollection AddNextendedResponseFilters(
         this IServiceCollection services,
         Assembly[]? assemblies = null,
-        ServiceLifetime lifetime = ServiceLifetime.Scoped)
+        ServiceLifetime lifetime = ServiceLifetime.Scoped,
+        Action<ResponseFilterOptions>? configure = null)
     {
         if (services is null) throw new ArgumentNullException(nameof(services));
-        assemblies ??= new[] { Assembly.GetCallingAssembly() };
-
-        services.AddResponseFilters(assemblies, lifetime);
+        
+        services.AddResponseFilters(assemblies, lifetime, configure);
         services.AddTransient<ResponseFilterResultFilter>();
         services.Configure<MvcOptions>(options =>
         {

@@ -45,13 +45,16 @@ internal static class TypeGraphInspector
             var accessor = PropertyAccessor.For(prop);
             if (accessor.Getter is null) continue;
 
-            props.Add(new NavigableProperty(accessor, prop.PropertyType.IsEnumerableOrArray()));
+            props.Add(new NavigableProperty(accessor, prop.PropertyType.IsEnumerableOrArray(), memberType));
         }
 
         return props.ToArray();
     }
 
-    private static Type UnwrapEnumerable(Type type)
+    /// <summary>
+    /// Element type for enumerables (e.g. <c>List&lt;T&gt;</c> → <c>T</c>); otherwise the type itself.
+    /// </summary>
+    internal static Type UnwrapEnumerable(Type type)
     {
         if (type == typeof(string))
         {
@@ -66,5 +69,5 @@ internal static class TypeGraphInspector
         return enumerable?.GetGenericArguments()[0] ?? type;
     }
 
-    internal readonly record struct NavigableProperty(PropertyAccessor Accessor, bool IsEnumerable);
+    internal readonly record struct NavigableProperty(PropertyAccessor Accessor, bool IsEnumerable, Type MemberType);
 }

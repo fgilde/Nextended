@@ -450,6 +450,7 @@ public partial class App : Application
 
 - .NET 8.0 (Windows)
 - .NET 9.0 (Windows)
+- .NET 10.0 (Windows)
 
 ## Platform Support
 

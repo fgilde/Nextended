@@ -1,46 +1,67 @@
-using System;
 using System.Collections;
-using System.Collections.Generic;
-using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace Nextended.ResponseFilters.Pipeline;
 
 /// <summary>
-/// Default pipeline. Walks the graph depth-first using the static
-/// <see cref="TypeGraphInspector"/> cache, dispatches matching filters per visited node, and
-/// guards against cycles with <see cref="ReferenceEqualityComparer"/>.
+/// Default pipeline. Walks the response graph depth-first, dispatches matching filters per visited
+/// node, and (by default) lets exceptions propagate so domain errors reach the host's exception
+/// handler unchanged. Cycle-safe via <see cref="ReferenceEqualityComparer"/>.
 /// </summary>
 /// <remarks>
-/// All exceptions thrown inside filter execution are caught and logged. The pipeline never
-/// propagates failures up to the HTTP layer — a misbehaving filter MUST NOT take down a request.
+/// <para>
+/// Configure behaviour at registration time via <see cref="ResponseFilterOptions"/> — including:
+/// </para>
+/// <list type="bullet">
+///   <item><see cref="ResponseFilterOptions.ExceptionBehavior"/> — Rethrow (default) or LogAndContinue.</item>
+///   <item><see cref="ResponseFilterOptions.SkipUnaffectedResponses"/> — skip responses whose type graph contains no registered target type.</item>
+///   <item><see cref="ResponseFilterOptions.SkipResponseType"/> — custom opt-out predicate on the root type.</item>
+/// </list>
+/// <para><see cref="OperationCanceledException"/> always propagates, regardless of behaviour.</para>
 /// </remarks>
-public sealed class ResponseFilterPipeline : IResponseFilterPipeline
+public sealed class ResponseFilterPipeline(
+    IResponseFilterRegistry registry,
+    TypeReachabilityCache reachability,
+    IOptions<ResponseFilterOptions> options,
+    ILogger<ResponseFilterPipeline>? logger = null)
+    : IResponseFilterPipeline
 {
-    private readonly IResponseFilterRegistry _registry;
-    private readonly ILogger<ResponseFilterPipeline>? _logger;
-
-    public ResponseFilterPipeline(IResponseFilterRegistry registry, ILogger<ResponseFilterPipeline>? logger = null)
-    {
-        _registry = registry;
-        _logger = logger;
-    }
+    private readonly ResponseFilterOptions _options = options.Value;
 
     public async ValueTask ProcessAsync(object? root, IResponseFilterContext context)
     {
         if (root is null) return;
 
+        var rootType = root.GetType();
+
+        // 1) Custom opt-out predicate
+        if (_options.SkipResponseType is not null && _options.SkipResponseType(rootType))
+        {
+            return;
+        }
+
+        // 2) Reachability fast-path: nothing in the type graph matches any registered filter
+        if (_options.SkipUnaffectedResponses && !reachability.MayBeAffected(GetEffectiveTypeForReachability(root, rootType)))
+        {
+            return;
+        }
+
         var visited = new HashSet<object>(ReferenceEqualityComparer.Instance);
-        try
+        await VisitAsync(root, visited, context).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// For top-level enumerables (<c>List&lt;T&gt;</c>, <c>T[]</c>), use the element type for the
+    /// reachability check — the collection itself never carries filterable properties.
+    /// </summary>
+    private static Type GetEffectiveTypeForReachability(object root, Type rootType)
+    {
+        if (root is IEnumerable and not string)
         {
-            await VisitAsync(root, visited, context).ConfigureAwait(false);
+            return TypeGraphInspector.UnwrapEnumerable(rootType);
         }
-        catch (Exception ex)
-        {
-            _logger?.LogError(ex,
-                "ResponseFilterPipeline failed on root type {RootType}. Response returned unsanitized.",
-                root.GetType().FullName);
-        }
+        return rootType;
     }
 
     private async ValueTask VisitAsync(object? value, HashSet<object> visited, IResponseFilterContext context)
@@ -50,10 +71,11 @@ public sealed class ResponseFilterPipeline : IResponseFilterPipeline
             return;
         }
 
-        if (value is IEnumerable enumerable && value is not string)
+        if (value is IEnumerable enumerable and not string)
         {
             foreach (var item in enumerable)
             {
+                context.CancellationToken.ThrowIfCancellationRequested();
                 await VisitAsync(item, visited, context).ConfigureAwait(false);
             }
             return;
@@ -61,40 +83,40 @@ public sealed class ResponseFilterPipeline : IResponseFilterPipeline
 
         var type = value.GetType();
 
-        // 1) Apply all filters registered for this exact type
-        if (_registry.HasFilters(type))
+        // Apply filters registered for the exact type
+        if (registry.HasFilters(type))
         {
-            foreach (var filter in _registry.GetFilters(type))
+            foreach (var filter in registry.GetFilters(type))
             {
                 try
                 {
                     await filter.ApplyAsync(value, context).ConfigureAwait(false);
                 }
-                catch (Exception ex)
+                catch (OperationCanceledException)
                 {
-                    _logger?.LogWarning(ex,
-                        "Filter {Filter} failed on {Type}; remaining filters continue.",
+                    // Always propagate so request aborts and host shutdown work as expected.
+                    throw;
+                }
+                catch (Exception ex) when (_options.ExceptionBehavior == FilterExceptionBehavior.LogAndContinue)
+                {
+                    logger?.LogWarning(ex,
+                        "Filter {Filter} threw on {Type}; continuing because ExceptionBehavior = LogAndContinue.",
                         filter.GetType().FullName, type.FullName);
                 }
+                // ExceptionBehavior.Rethrow → the catch above doesn't match, exception bubbles up.
             }
         }
 
-        // 2) Recurse into navigable properties
+        // Recurse into navigable properties
         foreach (var nav in TypeGraphInspector.GetNavigableProperties(type))
         {
-            object? childValue;
-            try
+            // Skip subtrees that cannot contain a filtered type — saves a getter call and child walks.
+            if (_options.SkipUnaffectedResponses && !reachability.MayBeAffected(nav.MemberType))
             {
-                childValue = nav.Accessor.GetValue(value);
-            }
-            catch (Exception ex)
-            {
-                _logger?.LogWarning(ex,
-                    "Failed to read {Type}.{Property} during graph walk; skipping.",
-                    type.FullName, nav.Accessor.Property.Name);
                 continue;
             }
 
+            var childValue = nav.Accessor.GetValue(value);
             if (childValue is null) continue;
 
             if (nav.IsEnumerable)
