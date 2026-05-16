@@ -1,4 +1,6 @@
 using System;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Http;
 
 namespace Nextended.ResponseFilters;
 
@@ -35,6 +37,26 @@ public sealed class ResponseFilterOptions
     /// </code>
     /// </example>
     public Func<Type, bool>? SkipResponseType { get; set; }
+
+    /// <summary>
+    /// Optional per-request gate. When set, the pipeline only runs the registered
+    /// filters for requests where the predicate returns <c>true</c>. Use it to
+    /// scope filtering to specific paths, query params, headers, or response types.
+    /// </summary>
+    /// <remarks>
+    /// Evaluated by the ASP.NET Core adapter (<c>ResponseFilterResultFilter</c>) before any
+    /// graph walk. When <c>null</c> (default) behaviour is identical to the previous "always
+    /// handle" pipeline. The predicate is only invoked when the response is an
+    /// <see cref="Microsoft.AspNetCore.Mvc.ObjectResult"/> with a non-null value, so the
+    /// <see cref="Type"/> parameter is always the runtime CLR type of that value.
+    /// </remarks>
+    /// <example>
+    /// <code>
+    /// options.ShouldHandle = (request, type) =&gt;
+    ///     Task.FromResult(request.Path.StartsWithSegments("/api/app"));
+    /// </code>
+    /// </example>
+    public Func<HttpRequest, Type, Task<bool>>? ShouldHandle { get; set; }
 }
 
 /// <summary>How <see cref="ResponseFilterOptions.ExceptionBehavior"/> shapes the pipeline's response to thrown filter rules.</summary>

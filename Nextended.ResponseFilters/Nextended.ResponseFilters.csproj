@@ -25,7 +25,27 @@
     <ProjectReference Include="..\Nextended.Core\Nextended.Core.csproj" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="$(MsVersion)" />
     <PackageReference Include="Microsoft.Extensions.Options" Version="$(MsVersion)" />
+    <!--
+      HttpRequest is exposed on ResponseFilterOptions.ShouldHandle so consumers can scope the
+      pipeline per request (path/query/headers). The abstraction is part of the shared framework
+      (Microsoft.AspNetCore.App) on net8+ and adds no extra runtime cost in hosted apps.
+    -->
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
+
+  <!--
+    When packing this project we ship its Nextended.Core dependency pinned to the last published
+    feed version ($(UsedCorePackageVersion)) rather than the in-tree project version. This keeps
+    the resulting nupkg installable against nuget.org without requiring a matching Nextended.Core
+    pre-release in the local feed.
+  -->
+  <!--<Target Name="PinNextendedCoreDependency" AfterTargets="_GetProjectReferenceVersions">
+    <ItemGroup>
+      <_ProjectReferencesWithVersions Condition="'%(_ProjectReferencesWithVersions.Filename)' == 'Nextended.Core'">
+        <ProjectVersion>$(UsedCorePackageVersion)</ProjectVersion>
+      </_ProjectReferencesWithVersions>
+    </ItemGroup>
+  </Target>-->
   <ItemGroup>
     <None Include="README.md" Pack="true" PackagePath="README.md" />
   </ItemGroup>

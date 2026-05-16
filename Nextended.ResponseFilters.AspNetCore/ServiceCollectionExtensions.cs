@@ -31,6 +31,9 @@ public static class ServiceCollectionExtensions
     ///     {
     ///         opts.ExceptionBehavior = FilterExceptionBehavior.LogAndContinue;
     ///         opts.SkipResponseType = t => t.Namespace?.StartsWith("Volo.Abp") == true;
+    ///         // Per-request gate — only run the pipeline for /api/app/* responses.
+    ///         opts.ShouldHandle = (request, type) =>
+    ///             Task.FromResult(request.Path.StartsWithSegments("/api/app"));
     ///     });
     /// </code>
     /// </example>
