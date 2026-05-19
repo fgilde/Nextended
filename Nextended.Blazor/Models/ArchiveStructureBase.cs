@@ -35,9 +35,9 @@ public class ArchiveStructureBase<T> : Hierarchical<T> where T : ArchiveStructur
     
     public IArchivedBrowserFile BrowserFile { get; set; }
 
-    public async Task<byte[]> ToArchiveBytesAsync()
+    public async Task<byte[]> ToArchiveBytesAsync(CancellationToken cancellationToken = default)
     {
-        var archive = await ToArchiveAsync();
+        var archive = await ToArchiveAsync(cancellationToken);
         await using (archive.Stream)
         {
             using var zipArchive = archive.Archive;
@@ -45,7 +45,7 @@ public class ArchiveStructureBase<T> : Hierarchical<T> where T : ArchiveStructur
         }
     }
 
-    private async Task<(MemoryStream Stream, ZipArchive Archive)> ToArchiveAsync()
+    private async Task<(MemoryStream Stream, ZipArchive Archive)> ToArchiveAsync(CancellationToken cancellationToken = default)
     {
         var ms = new MemoryStream();
         using ZipArchive archive = new ZipArchive(ms, ZipArchiveMode.Create, true);
@@ -57,7 +57,7 @@ public class ArchiveStructureBase<T> : Hierarchical<T> where T : ArchiveStructur
         {
             var entry = archive.CreateEntry(file.FullName.Substring(path.Length), CompressionLevel.Optimal);
             await using var stream = entry.Open();
-            await stream.WriteAsync(file.FileBytes);
+            await stream.WriteAsync(file.FileBytes, cancellationToken);
         }
 
         return (ms, archive);

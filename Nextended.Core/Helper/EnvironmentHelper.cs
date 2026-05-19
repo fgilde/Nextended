@@ -2,20 +2,23 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Nextended.Core.Helper
 {
 	public static class EnvironmentHelper
 	{
-		public static async Task<Dictionary<string, string>> SetEnvironmentVariablesIfNotExistsAsync(IDictionary<string, string> vars, 
-			EnvironmentVariableTarget target = EnvironmentVariableTarget.Process)
+		public static async Task<Dictionary<string, string>> SetEnvironmentVariablesIfNotExistsAsync(IDictionary<string, string> vars,
+			EnvironmentVariableTarget target = EnvironmentVariableTarget.Process,
+			CancellationToken cancellationToken = default)
 		{
 			return await Task.Run(() =>
 			{
 				var res = new Dictionary<string, string>();
 				foreach (var var in vars)
 				{
+					cancellationToken.ThrowIfCancellationRequested();
 					var current = Environment.GetEnvironmentVariable(var.Key);
 					if (string.IsNullOrEmpty(current))
 					{
@@ -24,23 +27,24 @@ namespace Nextended.Core.Helper
 					}
 				}
 				return res;
-			});			
+			}, cancellationToken);
 		}
 
 		public static async Task<Dictionary<string, string>> SetEnvironmentVariablesIfNotExistsAsync(string key, string value,
-			EnvironmentVariableTarget target = EnvironmentVariableTarget.Process)
+			EnvironmentVariableTarget target = EnvironmentVariableTarget.Process,
+			CancellationToken cancellationToken = default)
 		{
 			return await Task.Run(() =>
 			{
-				var res = new Dictionary<string, string>();				
+				var res = new Dictionary<string, string>();
 					var current = Environment.GetEnvironmentVariable(key);
 					if (string.IsNullOrEmpty(current))
 					{
 						res.Add(key, value);
 						SetEnvironmentVariableWithValueReplace(key, value, target);
-					}				
+					}
 				return res;
-			});
+			}, cancellationToken);
 		}
 
 		public static void SetEnvironmentVariables(IDictionary<string, string> vars, EnvironmentVariableTarget target = EnvironmentVariableTarget.Process)
@@ -66,9 +70,10 @@ namespace Nextended.Core.Helper
 		}
 
 		public static async Task SetEnvironmentVariableWithValueReplaceAsync(string key, string value,
-			EnvironmentVariableTarget target = EnvironmentVariableTarget.Process)
+			EnvironmentVariableTarget target = EnvironmentVariableTarget.Process,
+			CancellationToken cancellationToken = default)
 		{
-			await Task.Run(() => SetEnvironmentVariableWithValueReplace(key, value, target));
+			await Task.Run(() => SetEnvironmentVariableWithValueReplace(key, value, target), cancellationToken);
 		}
 
 		public static void SetEnvironmentVariableWithValueReplace(string key, string value, EnvironmentVariableTarget target = EnvironmentVariableTarget.Process )
@@ -78,20 +83,26 @@ namespace Nextended.Core.Helper
 		}
 
 		public static async Task RemoveVariablesAsync(IDictionary<string, string> dict,
-			EnvironmentVariableTarget target = EnvironmentVariableTarget.Process)
+			EnvironmentVariableTarget target = EnvironmentVariableTarget.Process,
+			CancellationToken cancellationToken = default)
 		{
 			if (dict != null && dict.Any())
-				await RemoveVariablesAsync(dict.Keys, target);
+				await RemoveVariablesAsync(dict.Keys, target, cancellationToken);
 		}
 
-		public static async Task RemoveVariablesAsync(ICollection<string> keys, EnvironmentVariableTarget target = EnvironmentVariableTarget.Process)
-		{			
+		public static async Task RemoveVariablesAsync(ICollection<string> keys,
+			EnvironmentVariableTarget target = EnvironmentVariableTarget.Process,
+			CancellationToken cancellationToken = default)
+		{
 			//await Task.WhenAll(keys.Select(k => Task.Run(() => Environment.SetEnvironmentVariable(k, null, target))));
 			await Task.Run(() =>
 			{
 				foreach (var key in keys)
+				{
+					cancellationToken.ThrowIfCancellationRequested();
 					Environment.SetEnvironmentVariable(key, null, target);
-			});
+				}
+			}, cancellationToken);
 		}
 	}
 

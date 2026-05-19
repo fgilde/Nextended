@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Nextended.Core
@@ -12,12 +13,13 @@ namespace Nextended.Core
         /// Asynchronously waits until the specified expression returns true
         /// </summary>
         /// <param name="expression">The expression to evaluate</param>
+        /// <param name="cancellationToken">Token to cancel the wait.</param>
         /// <returns>A task representing the asynchronous operation</returns>
-        public static async Task WaitForTrueAsync(this Func<bool> expression)
+        public static async Task WaitForTrueAsync(this Func<bool> expression, CancellationToken cancellationToken = default)
         {
             while (!expression())
             {
-                await Task.Delay(TimeSpan.FromMilliseconds(20));
+                await Task.Delay(TimeSpan.FromMilliseconds(20), cancellationToken);
             }
         }
 
@@ -26,13 +28,14 @@ namespace Nextended.Core
         /// </summary>
         /// <typeparam name="T">The type of the result</typeparam>
         /// <param name="expression">The expression to evaluate</param>
+        /// <param name="cancellationToken">Token to cancel the wait.</param>
         /// <returns>A task representing the asynchronous operation with the result</returns>
-        public static async Task<T> WaitForResultAsync<T>(this Func<T> expression)
+        public static async Task<T> WaitForResultAsync<T>(this Func<T> expression, CancellationToken cancellationToken = default)
         {
             T result = expression();
             while (result == null)
             {
-                await Task.Delay(TimeSpan.FromMilliseconds(20));
+                await Task.Delay(TimeSpan.FromMilliseconds(20), cancellationToken);
                 result = expression();
             }
             return result;

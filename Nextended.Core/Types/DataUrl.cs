@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Net.Mime;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Nextended.Core.Types;
@@ -93,9 +94,9 @@ public class DataUrl
         return match?.Success ?? false;
     }
 
-    public static Task<string> GetDataUrlAsync(byte[] bytes, string mimeType = "application/octet-stream")
+    public static Task<string> GetDataUrlAsync(byte[] bytes, string mimeType = "application/octet-stream", CancellationToken ct = default)
     {
-        return Task.Run(() => GetDataUrl(bytes, mimeType));
+        return Task.Run(() => GetDataUrl(bytes, mimeType), ct);
     }
 
     public static string GetDataUrl(byte[] bytes, string mimeType = "application/octet-stream")

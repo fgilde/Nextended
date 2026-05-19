@@ -4,6 +4,7 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using Nextended.Core.Extensions;
 
@@ -78,9 +79,9 @@ public class JsStringBuilder
 	/// <returns>
 	///     A string that represents the current object.
 	/// </returns>
-	public Task<string> ToJsonAsync()
+	public Task<string> ToJsonAsync(CancellationToken cancellationToken = default)
 	{
-		return Task.Run(() => ToString());
+		return Task.Run(() => ToString(), cancellationToken);
 	}
 
 	/// <summary>

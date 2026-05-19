@@ -55,9 +55,9 @@ namespace Nextended.Core.Extensions
         }
 
         public static Task<DirectoryInfo> CopyToAsync(this DirectoryInfo directoryInfo, DirectoryInfo destination,
-            bool overwriteExisting = false)
+            bool overwriteExisting = false, CancellationToken cancellationToken = default)
         {
-            return Task.Run(() => CopyTo(directoryInfo, destination, overwriteExisting));
+            return Task.Run(() => CopyTo(directoryInfo, destination, overwriteExisting), cancellationToken);
         }
 
         public static DirectoryInfo CopyTo(this DirectoryInfo directoryInfo, DirectoryInfo destinationFolder, bool overwriteExisting)
@@ -66,9 +66,9 @@ namespace Nextended.Core.Extensions
         }
 
         public static Task<DirectoryInfo> CopyToAsync(this DirectoryInfo directoryInfo, string destinationFolder,
-            bool overwriteExisting = false)
+            bool overwriteExisting = false, CancellationToken cancellationToken = default)
         {
-            return Task.Run(() => CopyTo(directoryInfo, destinationFolder, overwriteExisting));
+            return Task.Run(() => CopyTo(directoryInfo, destinationFolder, overwriteExisting), cancellationToken);
         }
 
         public static DirectoryInfo CopyTo(this DirectoryInfo directoryInfo, string destinationFolder, bool overwriteExisting = false)

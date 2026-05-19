@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Mime;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Primitives;
@@ -30,6 +31,12 @@ namespace Nextended.Web.Extensions
             await DownloadDataAsync(controller, dataContent);
         }
 
+        public static async Task DownloadDataAsync(this ControllerBase controller, Stream dataContent, string mimeType, string fileName, bool inlineFile, int httpStatusCode, CancellationToken cancellationToken, params (string key, StringValues value)[] additionalHeaders)
+        {
+            SetFileDownloadHeaders(controller, mimeType, fileName, inlineFile, httpStatusCode, additionalHeaders);
+            await DownloadDataAsync(controller, dataContent, cancellationToken);
+        }
+
         /// <summary>
         /// Serves data as a asynchronous Stream to the client after setting the required Headers
         /// </summary>
@@ -52,9 +59,9 @@ namespace Nextended.Web.Extensions
             await writeResponseDataAction(controller.Response.Body);
         }
 
-        public static async Task DownloadDataAsync(this ControllerBase controller, Stream dataContent)
+        public static async Task DownloadDataAsync(this ControllerBase controller, Stream dataContent, CancellationToken cancellationToken = default)
         {
-            await dataContent.CopyToAsync(controller.Response.Body);
+            await dataContent.CopyToAsync(controller.Response.Body, cancellationToken);
         }
 
         private static void SetFileDownloadHeaders(ControllerBase controller, string mimeType, string fileName, bool inlineFile, int statusCode, (string key, StringValues value)[] additionalHeaders)

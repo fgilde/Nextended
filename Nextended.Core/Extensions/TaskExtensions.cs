@@ -29,7 +29,7 @@ namespace Nextended.Core.Extensions
             return RetryOnException<T, Exception>(task, retryCount, retryDelay);
         }
 
-        public static async Task<T> RetryOnException<T, TException>(this Task<T> task, int retryCount, TimeSpan retryDelay)
+        public static async Task<T> RetryOnException<T, TException>(this Task<T> task, int retryCount, TimeSpan retryDelay, CancellationToken cancellationToken = default)
             where TException : Exception
         {
             Exception exception = null;
@@ -44,8 +44,8 @@ namespace Nextended.Core.Extensions
                 {
                     exception = e;
 
-                    if (i < retryCount - 1) 
-                        await Task.Delay(retryDelay);
+                    if (i < retryCount - 1)
+                        await Task.Delay(retryDelay, cancellationToken);
                     else
                         throw;
                 }
@@ -63,9 +63,9 @@ namespace Nextended.Core.Extensions
         /// <typeparam name="TResult"></typeparam>
         /// <returns></returns>
         /// <exception cref="TimeoutException"></exception>
-        public static async Task<TResult> TimeoutAfter<TResult>(this Task<TResult> task, TimeSpan timeout)
+        public static async Task<TResult> TimeoutAfter<TResult>(this Task<TResult> task, TimeSpan timeout, CancellationToken cancellationToken = default)
         {
-            using var timeoutCancellationTokenSource = new CancellationTokenSource();
+            using var timeoutCancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             var completedTask = await Task.WhenAny(task, Task.Delay(timeout, timeoutCancellationTokenSource.Token));
             if (completedTask == task)
             {
@@ -85,9 +85,9 @@ namespace Nextended.Core.Extensions
         /// <param name="onTimeoutReached">The function to execute if the time limit is reached</param>
         /// <typeparam name="TResult"></typeparam>
         /// <returns></returns>
-        public static async Task<TResult> TimeoutAfter<TResult>(this Task<TResult> task, TimeSpan timeout, Func<TResult> onTimeoutReached)
+        public static async Task<TResult> TimeoutAfter<TResult>(this Task<TResult> task, TimeSpan timeout, Func<TResult> onTimeoutReached, CancellationToken cancellationToken = default)
         {
-            using var timeoutCancellationTokenSource = new CancellationTokenSource();
+            using var timeoutCancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             var completedTask = await Task.WhenAny(task, Task.Delay(timeout, timeoutCancellationTokenSource.Token));
             if (completedTask == task)
             {

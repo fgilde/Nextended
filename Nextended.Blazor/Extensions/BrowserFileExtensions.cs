@@ -9,10 +9,10 @@ namespace Nextended.Blazor.Extensions;
 
 public static class BrowserFileExtensions
 {
-    public static async Task DownloadFileAsync(this IBrowserFile browserFile, IJSRuntime jsRuntime)
+    public static async Task DownloadFileAsync(this IBrowserFile browserFile, IJSRuntime jsRuntime, CancellationToken ct = default)
     {
-        var url = await DataUrl.GetDataUrlAsync(await browserFile.GetBytesAsync(), browserFile.ContentType);
-        await jsRuntime.InvokeVoidAsync("eval", GetJsDownloadCode(url, browserFile.Name, browserFile.ContentType));
+        var url = await DataUrl.GetDataUrlAsync(await browserFile.GetBytesAsync(cancellationToken: ct), browserFile.ContentType, ct);
+        await jsRuntime.InvokeVoidAsync("eval", ct, GetJsDownloadCode(url, browserFile.Name, browserFile.ContentType));
     }
 
     private static string GetJsDownloadCode(string url, string fileName, string mimeType) =>
@@ -32,9 +32,9 @@ public static class BrowserFileExtensions
     public static string GetContentType(this IBrowserFile file) 
         => string.IsNullOrWhiteSpace(file.ContentType) ? MimeType.GetMimeType(file.Name) : file.ContentType;
 
-    public static async Task<string> GetDataUrlAsync(this IBrowserFile file)
+    public static async Task<string> GetDataUrlAsync(this IBrowserFile file, CancellationToken ct = default)
     {
-        return await DataUrl.GetDataUrlAsync(await file.GetBytesAsync(), file.ContentType);
+        return await DataUrl.GetDataUrlAsync(await file.GetBytesAsync(cancellationToken: ct), file.ContentType, ct);
     }
 
     public static async Task<byte[]> GetBytesAsync(this IBrowserFile file, CancellationToken cancellationToken = default)

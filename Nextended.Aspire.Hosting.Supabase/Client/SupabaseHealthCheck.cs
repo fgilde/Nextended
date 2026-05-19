@@ -25,6 +25,7 @@ internal sealed class SupabaseHealthCheck : IHealthCheck
     {
         try
         {
+            cancellationToken.ThrowIfCancellationRequested();
             // Simple health check: Supabase client is initialized if we got here
             // A more robust check would query a known endpoint
             return await Task.FromResult(

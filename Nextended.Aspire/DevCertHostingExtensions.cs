@@ -28,7 +28,7 @@ public static class DevCertHostingExtensions
 
                 // Export the ASP.NET Core HTTPS development certificate & private key to files and configure the resource to use them via
                 // the specified environment variables.
-                var (exported, certPath, certKeyPath) = await TryExportDevCertificateAsync(builder.ApplicationBuilder, logger);
+                var (exported, certPath, certKeyPath) = await TryExportDevCertificateAsync(builder.ApplicationBuilder, logger, ct);
 
                 if (!exported)
                 {
@@ -71,7 +71,7 @@ public static class DevCertHostingExtensions
         return builder;
     }
 
-    private static async Task<(bool, string CertFilePath, string CertKeyFilPath)> TryExportDevCertificateAsync(IDistributedApplicationBuilder builder, ILogger logger)
+    private static async Task<(bool, string CertFilePath, string CertKeyFilPath)> TryExportDevCertificateAsync(IDistributedApplicationBuilder builder, ILogger logger, CancellationToken cancellationToken = default)
     {
         // Exports the ASP.NET Core HTTPS development certificate & private key to PEM files using 'dotnet dev-certs https' to a temporary
         // directory and returns the path.
@@ -132,8 +132,8 @@ public static class DevCertHostingExtensions
             {
                 if (exportProcess.Start())
                 {
-                    stdOutTask = ConsumeOutput(exportProcess.StandardOutput, msg => logger.LogInformation("> {StandardOutput}", msg));
-                    stdErrTask = ConsumeOutput(exportProcess.StandardError, msg => logger.LogError("! {ErrorOutput}", msg));
+                    stdOutTask = ConsumeOutput(exportProcess.StandardOutput, msg => logger.LogInformation("> {StandardOutput}", msg), cancellationToken);
+                    stdErrTask = ConsumeOutput(exportProcess.StandardError, msg => logger.LogError("! {ErrorOutput}", msg), cancellationToken);
                 }
             }
             catch (Exception ex)
@@ -171,12 +171,12 @@ public static class DevCertHostingExtensions
             await Task.WhenAll(stdOutTask ?? Task.CompletedTask, stdErrTask ?? Task.CompletedTask);
         }
 
-        static async Task ConsumeOutput(TextReader reader, Action<string> callback)
+        static async Task ConsumeOutput(TextReader reader, Action<string> callback, CancellationToken cancellationToken)
         {
             char[] buffer = new char[256];
             int charsRead;
 
-            while ((charsRead = await reader.ReadAsync(buffer, 0, buffer.Length)) > 0)
+            while ((charsRead = await reader.ReadAsync(buffer, cancellationToken)) > 0)
             {
                 callback(new string(buffer, 0, charsRead));
             }

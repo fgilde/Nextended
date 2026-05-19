@@ -2,6 +2,7 @@
 using System.IO;
 using System.Net.Http.Headers;
 using System.Net.Http;
+using System.Threading;
 using System.Threading.Tasks;
 using System;
 
@@ -9,24 +10,24 @@ namespace Nextended.Core.Extensions;
 
 public static class HttpClientExtensions
 {
-    public static async Task<Stream> GetStreamInTaskChunksAsync(this HttpClient httpClient, string url, int taskCount)
+    public static async Task<Stream> GetStreamInTaskChunksAsync(this HttpClient httpClient, string url, int taskCount, CancellationToken cancellationToken = default)
     {
         if (taskCount <= 0)
             throw new ArgumentOutOfRangeException(nameof(taskCount), "Task count must be greater than zero.");
 
         var headRequest = new HttpRequestMessage(HttpMethod.Head, url);
-        var headResponse = await httpClient.SendAsync(headRequest, HttpCompletionOption.ResponseHeadersRead);
+        var headResponse = await httpClient.SendAsync(headRequest, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
         long totalChunkSizeInBytes = headResponse.Content.Headers.ContentLength ?? throw new InvalidOperationException("Cannot determine file size."); ;
         long chunkSizePerTask = totalChunkSizeInBytes / taskCount;
 
-        return await httpClient.GetStreamInChunksAsync(url, chunkSizePerTask);
+        return await httpClient.GetStreamInChunksAsync(url, chunkSizePerTask, cancellationToken);
     }
 
 
-    public static async Task<Stream> GetStreamInChunksAsync(this HttpClient httpClient, string url, long chunkSizeInBytes)
+    public static async Task<Stream> GetStreamInChunksAsync(this HttpClient httpClient, string url, long chunkSizeInBytes, CancellationToken cancellationToken = default)
     {
         var headRequest = new HttpRequestMessage(HttpMethod.Head, url);
-        var headResponse = await httpClient.SendAsync(headRequest, HttpCompletionOption.ResponseHeadersRead);
+        var headResponse = await httpClient.SendAsync(headRequest, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
 
         bool supportsChunks = headResponse.Headers.AcceptRanges.Contains("bytes");
         long totalFileSize = headResponse.Content.Headers.ContentLength ?? throw new InvalidOperationException("Cannot determine file size.");
@@ -45,16 +46,19 @@ public static class HttpClientExtensions
 
                 var chunkStream = new MemoryStream();
                 chunkStreams.Add(chunkStream);
-                downloadTasks.Add(DownloadChunkAsync(httpClient, url, chunkStream, start, end));
+                downloadTasks.Add(DownloadChunkAsync(httpClient, url, chunkStream, start, end, cancellationToken));
             }
             await Task.WhenAll(downloadTasks);
         }
         else
         {
-            using var contentStream = await httpClient.GetStreamAsync(url);
+            using var getRequest = new HttpRequestMessage(HttpMethod.Get, url);
+            using var getResponse = await httpClient.SendAsync(getRequest, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+            getResponse.EnsureSuccessStatusCode();
+            using var contentStream = await getResponse.Content.ReadAsStreamAsync();
             int bytesRead;
             var buffer = new byte[chunkSizeInBytes];
-            while ((bytesRead = await contentStream.ReadAsync(buffer, 0, buffer.Length)) > 0)
+            while ((bytesRead = await contentStream.ReadAsync(buffer, 0, buffer.Length, cancellationToken)) > 0)
             {
                 var chunkStream = new MemoryStream();
                 chunkStream.Write(buffer, 0, bytesRead);
@@ -66,16 +70,16 @@ public static class HttpClientExtensions
         return new CompositeStream(chunkStreams);
     }
 
-    private static async Task DownloadChunkAsync(HttpClient httpClient, string url, MemoryStream chunkStream, long start, long end)
+    private static async Task DownloadChunkAsync(HttpClient httpClient, string url, MemoryStream chunkStream, long start, long end, CancellationToken cancellationToken = default)
     {
         var request = new HttpRequestMessage(HttpMethod.Get, url);
         request.Headers.Range = new RangeHeaderValue(start, end);
 
-        using var response = await httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
+        using var response = await httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
         response.EnsureSuccessStatusCode();
 
         using var contentStream = await response.Content.ReadAsStreamAsync();
-        await contentStream.CopyToAsync(chunkStream);
+        await contentStream.CopyToAsync(chunkStream, 81920, cancellationToken);
         chunkStream.Seek(0, SeekOrigin.Begin);
     }
 

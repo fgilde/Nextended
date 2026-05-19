@@ -7,6 +7,7 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Runtime.Caching;
+using System.Threading;
 using System.Threading.Tasks;
 using Nextended.Cache.Extensions;
 
@@ -354,9 +355,9 @@ namespace Nextended.Imaging
         }
 
         public static Task<Image> FromFileAsync(string imageFileFullPath, string size = null, string color = null,
-            string oldColor = null)
+            string oldColor = null, CancellationToken cancellationToken = default)
         {
-            return Task.Run(() => FromFile(imageFileFullPath, size, color, oldColor));
+            return Task.Run(() => FromFile(imageFileFullPath, size, color, oldColor), cancellationToken);
         }
 
         public static Image FromFile(string path, string size = null, string color = null, string oldColor = null)
