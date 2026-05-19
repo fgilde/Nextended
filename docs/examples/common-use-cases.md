@@ -330,7 +330,7 @@ public class UserService
 
 ## Entity Framework Queries
 
-### Search Operations
+### Multi-Property Substring Search
 
 ```csharp
 using Nextended.EF;
@@ -339,10 +339,23 @@ using Microsoft.EntityFrameworkCore;
 public async Task<List<Product>> SearchProductsAsync(string searchTerm)
 {
     return await _context.Products
-        .AlternateQueryMatch(searchTerm)  // Searches across all text properties
+        .WhereContains(searchTerm, p => p.Name, p => p.Sku, p => p.Description)
         .Where(p => p.IsActive)
         .OrderBy(p => p.Name)
         .ToListAsync();
+}
+```
+
+### Match by Primary Key from a String
+
+```csharp
+using Nextended.EF;
+
+public Task<Customer?> FindByAnyIdAsync(string key)
+{
+    // Resolves the entity's PK from the model and tries to coerce `key`
+    // to string / Guid / int as appropriate.
+    return _context.Customers.WhereKeyMatches(_context, key).FirstOrDefaultAsync();
 }
 ```
 
@@ -353,14 +366,27 @@ using Nextended.EF;
 
 public async Task<User> GetOrCreateUserAsync(string email)
 {
-    return await _context.Users.FindOrCreateAsync(
+    // GetOrAddAsync adds without saving; GetOrCreateAsync also calls SaveChangesAsync.
+    return await _context.GetOrCreateAsync(
+        _context.Users,
         u => u.Email == email,
-        () => new User 
-        { 
-            Email = email, 
-            CreatedDate = DateTime.Now 
-        }
-    );
+        () => new User { Email = email, CreatedDate = DateTime.Now });
+}
+```
+
+### Paged, Sorted, Conditional Query
+
+```csharp
+using Nextended.EF;
+
+public Task<PagedResult<Customer>> ListAsync(CustomerFilter f, CancellationToken ct)
+{
+    return _context.Customers
+        .WhereIf(!string.IsNullOrWhiteSpace(f.Term), c => c.Name.Contains(f.Term!))
+        .IncludeIf(f.WithAddress, c => c.Address)
+        .AsNoTrackingIf(f.ReadOnly)
+        .OrderByMember(f.SortBy ?? nameof(Customer.Id), f.Descending)
+        .ToPagedResultAsync(f.PageIndex, f.PageSize, ct);
 }
 ```
 

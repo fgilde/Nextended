@@ -41,9 +41,13 @@ This document provides an overview of all projects in the Nextended solution.
 **Description**: Entity Framework Core extensions for enhanced database operations.
 
 **Key Features**:
-- Advanced query matching
-- DbSet extensions
-- Query optimization utilities
+- Graph loading (`LoadGraphAsync`, `IncludeAll`, `MultiInclude`)
+- Declarative, reusable include definitions (`IncludeDefinitionFor<T>`, attribute-driven, composable, glob/regex filters)
+- Query helpers: `WhereContains`, `WhereKeyMatches`, `WhereBetween`, `WhereIn`, `WhereIf`, `ExistsAsync`
+- Paging & dynamic sorting: `Page`, `ToPagedResultAsync`, `OrderByMember(s)`, `PagedResult<T>`
+- Conditional includes/tracking: `IncludeIf`, `AsTrackingIf`, `AsNoTrackingIf`
+- DbContext helpers: PK inspection, `DetachAll`, `GetOrAddAsync` / `GetOrCreateAsync`
+- Bulk ops: `BulkInsertAsync`, `BulkDeleteWhereAsync`, `UpsertAsync` / `UpsertRangeAsync` (with InMemory fallback)
 
 **NuGet**: [Nextended.EF](https://www.nuget.org/packages/Nextended.EF/)
 

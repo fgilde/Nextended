@@ -26,6 +26,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Nextended.Core\Nextended.Core.csproj" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="$(MsVersion)" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="$(MsVersion)" />
   </ItemGroup>
 
 

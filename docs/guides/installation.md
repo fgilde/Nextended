@@ -194,10 +194,15 @@ public class ApplicationDbContext : DbContext
     public DbSet<User> Users { get; set; }
 }
 
-// Use extensions
+// Multi-property substring search
 var users = await dbContext.Users
-    .AlternateQueryMatch(searchTerm)
+    .WhereContains(searchTerm, u => u.Name, u => u.Email)
     .ToListAsync();
+
+// Paged + dynamically sorted result with metadata
+var page = await dbContext.Users
+    .OrderByMember("name")
+    .ToPagedResultAsync(pageIndex: 0, pageSize: 25);
 ```
 
 ## Code Generation Setup

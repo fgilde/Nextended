@@ -87,9 +87,14 @@ Code generation packages (CodeGen, AutoDto) use Roslyn source generators for:
 **Purpose**: Entity Framework Core extensions and utilities.
 
 **Key Components**:
-- `AlternateQueryMatchExtensions` - Advanced query matching
-- `DbSetExtensions` - Enhanced DbSet operations
-- Query optimization helpers
+- `DbSetExtensions` — graph loading (`LoadGraphAsync`), `IncludeAll`, `MultiInclude`
+- `IncludeDetailsExtensions` — applies `IIncludePathDefinition` to queries
+- `AlternateQueryMatchExtensions` — `WhereKeyMatches` with PK auto-detection
+- `QueryableExtensions` — multi-property `WhereContains`
+- `PagingSortingExtensions` — `WhereIf`, `Page`, `ToPagedResultAsync`, `OrderByMember(s)`, `PagedResult<T>`
+- `QueryComfortExtensions` — `WhereBetween`, `WhereIn`, `IncludeIf`, `AsTrackingIf` / `AsNoTrackingIf`, `ExistsAsync`
+- `DbContextExtensions` — `FindEntityType<T>`, primary-key inspection, `DetachAll`, `GetOrAddAsync` / `GetOrCreateAsync`
+- `BulkExtensions` — `BulkInsertAsync`, `BulkDeleteWhereAsync`, `UpsertAsync` / `UpsertRangeAsync` (with InMemory fallback)
 
 **Dependencies**: `Nextended.Core`, `Microsoft.EntityFrameworkCore`
 
