@@ -1,6 +1,7 @@
 using Aspire.Hosting;
 using Aspire.Hosting.ApplicationModel;
 using Nextended.Aspire.Hosting.Supabase.Config;
+using Nextended.Aspire.Hosting.Supabase.Helpers;
 
 namespace Nextended.Aspire.Hosting.Supabase.Resources;
 
@@ -157,6 +158,14 @@ public sealed class SupabaseStackResource : ContainerResource, IResourceWithConn
     /// Base64-encoded post-init SQL for Azure deployment.
     /// </summary>
     internal string? PostInitSqlBase64 { get; set; }
+
+    /// <summary>
+    /// Optional Kong OpenTelemetry tracing config. When set, Kong's declarative
+    /// YAML gets a global <c>plugins:</c> block with the <c>opentelemetry</c>
+    /// plugin — every API request through the gateway emits a span. Configured
+    /// via <c>WithKongOpenTelemetry(...)</c> on the stack builder.
+    /// </summary>
+    internal SupabaseSqlGenerator.KongTracingConfig? KongTracing { get; set; }
 
     /// <summary>
     /// Path to the scripts directory.

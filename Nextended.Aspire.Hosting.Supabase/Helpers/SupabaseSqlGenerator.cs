@@ -677,7 +677,7 @@ END $$;
     /// Writes the Kong API Gateway configuration YAML file for local development.
     /// Uses direct container names that work in Docker networking.
     /// </summary>
-    public static void WriteKongConfig(string path, string anonKey, string serviceKey, string containerPrefix, int goTruePort, int postRestPort, int storagePort, int metaPort, int edgeRuntimePort, int realtimePort)
+    public static void WriteKongConfig(string path, string anonKey, string serviceKey, string containerPrefix, int goTruePort, int postRestPort, int storagePort, int metaPort, int edgeRuntimePort, int realtimePort, KongTracingConfig? tracing = null)
     {
         // For local development, use container names directly
         WriteKongConfigWithUrls(path, anonKey, serviceKey,
@@ -686,14 +686,15 @@ END $$;
             $"http://{containerPrefix}-storage:{storagePort}",
             $"http://{containerPrefix}-meta:{metaPort}",
             $"http://{containerPrefix}-edge:{edgeRuntimePort}",
-            $"http://realtime-dev.{containerPrefix}-realtime:{realtimePort}");
+            $"http://realtime-dev.{containerPrefix}-realtime:{realtimePort}",
+            tracing);
     }
 
     /// <summary>
     /// Writes the Kong API Gateway configuration YAML file with environment variable placeholders.
     /// Used for Azure Container Apps deployment where URLs are resolved at runtime.
     /// </summary>
-    public static string GetKongConfigTemplateForPublish(string anonKey, string serviceKey)
+    public static string GetKongConfigTemplateForPublish(string anonKey, string serviceKey, KongTracingConfig? tracing = null)
     {
         // Use environment variable placeholders that will be replaced by envsubst in the init container
         return GetKongConfigYaml(anonKey, serviceKey,
@@ -702,26 +703,91 @@ END $$;
             "${STORAGE_URL}",
             "${META_URL}",
             "${EDGE_URL}",
-            "${REALTIME_URL}");
+            "${REALTIME_URL}",
+            tracing);
     }
 
     /// <summary>
     /// Writes the Kong configuration with specific service URLs.
     /// </summary>
     public static void WriteKongConfigWithUrls(string path, string anonKey, string serviceKey,
-        string authUrl, string restUrl, string storageUrl, string metaUrl, string edgeUrl, string realtimeUrl)
+        string authUrl, string restUrl, string storageUrl, string metaUrl, string edgeUrl, string realtimeUrl,
+        KongTracingConfig? tracing = null)
     {
-        var yaml = GetKongConfigYaml(anonKey, serviceKey, authUrl, restUrl, storageUrl, metaUrl, edgeUrl, realtimeUrl);
+        var yaml = GetKongConfigYaml(anonKey, serviceKey, authUrl, restUrl, storageUrl, metaUrl, edgeUrl, realtimeUrl, tracing);
         File.WriteAllText(path, yaml);
     }
 
+    /// <summary>
+    /// Tracing config for Kong's built-in opentelemetry plugin. When passed to
+    /// <see cref="WriteKongConfig"/>, a global <c>plugins</c> block is added to the
+    /// declarative YAML that traces EVERY route through Kong — no per-route config
+    /// needed, no instrumentation in downstream services required.
+    /// </summary>
+    /// <param name="TracesEndpoint">Full URL the OTLP/HTTP receiver listens on, including <c>/v1/traces</c>. Example: <c>http://monitoring-otel-collector:4318/v1/traces</c>.</param>
+    /// <param name="SamplingRate">0.0 (off) — 1.0 (every request). Use 1.0 for dev, lower for prod.</param>
+    /// <param name="ServiceName">Value put into the <c>service.name</c> resource attribute. Distinguishes Kong from other emitters in the trace UI.</param>
+    /// <param name="HeaderType">Propagation header format. <c>w3c</c> (recommended), <c>b3</c>, <c>jaeger</c>, etc.</param>
+    public sealed record KongTracingConfig(
+        string TracesEndpoint,
+        double SamplingRate = 1.0,
+        string ServiceName = "supabase-kong",
+        string HeaderType = "w3c");
+
     private static string GetKongConfigYaml(string anonKey, string serviceKey,
-        string authUrl, string restUrl, string storageUrl, string metaUrl, string edgeUrl, string realtimeUrl)
+        string authUrl, string restUrl, string storageUrl, string metaUrl, string edgeUrl, string realtimeUrl,
+        KongTracingConfig? tracing = null)
     {
+        // Optional global opentelemetry plugin block. Kong's declarative DB-less
+        // config treats top-level `plugins:` as global — applies to every route in
+        // every service without having to duplicate the config per-route.
+        //
+        // Notes on the schema:
+        //   * `traces_endpoint` is the field name in Kong 3.5+. Older Kongs used
+        //     `endpoint`; we don't support those here.
+        //   * `propagation` replaces the deprecated `header_type`. Without it,
+        //     Kong 3.9 still loads the plugin but won't propagate trace context,
+        //     and in some cases silently skips emitting spans entirely.
+        //   * `connect_timeout` is set explicitly so a DNS/connect failure to the
+        //     collector shows up in Kong's error log instead of being swallowed.
+        // Format sampling_rate as a proper decimal (Kong sometimes mishandles bare
+        // integers in float fields). Use "0.0##" so 1.0 → "1.0" and 0.5 → "0.5".
+        var samplingRateStr = tracing?.SamplingRate.ToString(
+            "0.0##", System.Globalization.CultureInfo.InvariantCulture) ?? "1.0";
+
+        var tracingBlock = tracing is null ? "" : $"""
+
+            plugins:
+              - name: opentelemetry
+                config:
+                  traces_endpoint: {tracing.TracesEndpoint}
+                  propagation:
+                    extract:
+                      - {tracing.HeaderType}
+                    inject:
+                      - preserve
+                    clear: []
+                    default_format: {tracing.HeaderType}
+                  sampling_rate: {samplingRateStr}
+                  # `queue.*` is the modern way to control batching since Kong 3.3.
+                  # The deprecated batch_span_count / batch_flush_delay are silently
+                  # ignored (despite the deprecation warning at startup), so leaving
+                  # them here just means defaults apply — 200 spans / 3s.
+                  queue:
+                    max_batch_size: 50
+                    max_coalescing_delay: 2
+                  connect_timeout: 1000
+                  send_timeout: 5000
+                  read_timeout: 5000
+                  resource_attributes:
+                    service.name: {tracing.ServiceName}
+
+            """;
+
         return $"""
 _format_version: '2.1'
 _transform: true
-
+{tracingBlock}
 consumers:
   - username: anon
     keyauth_credentials:

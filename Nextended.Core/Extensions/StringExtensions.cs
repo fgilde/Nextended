@@ -195,11 +195,6 @@ namespace Nextended.Core.Extensions
             return !input.IsNullOrEmpty();
         }
 
-        public static string Copy(this string input)
-        {
-            return input == null ? null : string.Copy(input);
-        }
-
         public static string FormatWith(this string format, params object[] args)
         {
             return string.Format(format, args);
