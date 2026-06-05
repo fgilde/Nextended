@@ -36,6 +36,20 @@ public static partial class DistributedApplicationBuilderExtensions
         return builder.AddProject<TProject>(name, launchProfileName);
     }
 
+    public static IResourceBuilder<T> WithActionIf<T>(
+        this IResourceBuilder<T> builder,
+        Func<bool> condition,
+        Func<IResourceBuilder<T>, IResourceBuilder<T>> action
+    )
+        where T : IResource => builder.WithActionIf(condition(), action);
+
+    public static IResourceBuilder<T> WithActionIf<T>(
+        this IResourceBuilder<T> builder,
+        bool condition,
+        Func<IResourceBuilder<T>, IResourceBuilder<T>> action
+    )
+        where T : IResource => condition ? action(builder) : builder;
+
     private static string EscapeProjectname(string projectName)
     {
         var name = PascalCaseRegex()
@@ -77,6 +91,26 @@ public static partial class DistributedApplicationBuilderExtensions
         return builder.WaitForIf(dependency is { Resource: IResourceWithParent }, dependency!);
     }
 
+    public static IResourceBuilder<T> WaitForIf<T>(
+        this IResourceBuilder<T> builder,
+        bool condition,
+        params IResourceBuilder<IResource>?[] resources
+    )
+        where T : IResourceWithWaitSupport
+    {
+        if (condition)
+        {
+            foreach (IResourceBuilder<IResource>? resourceBuilder in resources)
+            {
+                if (resourceBuilder != null)
+                {
+                    builder.WaitFor(resourceBuilder);
+                }
+            }
+        }
+        return builder;
+    }
+
     public static IResourceBuilder<T> WaitForIf<T>(this IResourceBuilder<T> builder, bool condition, IResourceBuilder<IResource> dependency) where T : IResourceWithWaitSupport
     {
         return condition? builder.WaitFor(dependency) : builder;
@@ -85,6 +119,26 @@ public static partial class DistributedApplicationBuilderExtensions
     public static IResourceBuilder<T> WaitForCompletionIf<T>(this IResourceBuilder<T> builder, IResourceBuilder<IResource>? dependency) where T : IResourceWithWaitSupport
     {
         return builder.WaitForCompletionIf(dependency is not null, dependency!);
+    }
+
+    public static IResourceBuilder<T> WaitForCompletionIf<T>(
+        this IResourceBuilder<T> builder,
+        bool condition,
+        params IResourceBuilder<IResource>?[] resources
+    )
+        where T : IResourceWithWaitSupport
+    {
+        if (condition)
+        {
+            foreach (IResourceBuilder<IResource>? resourceBuilder in resources)
+            {
+                if (resourceBuilder != null)
+                {
+                    builder.WaitForCompletion(resourceBuilder);
+                }
+            }
+        }
+        return builder;
     }
 
     /// <summary>

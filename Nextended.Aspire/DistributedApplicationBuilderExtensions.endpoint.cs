@@ -218,7 +218,7 @@ public static partial class DistributedApplicationBuilderExtensions
                 if (target == null)
                     continue;
                 var buildDeploymentDomain = deploymentUriResolverFunc(target);
-                if (string.IsNullOrEmpty(buildDeploymentDomain))
+                if (!string.IsNullOrEmpty(buildDeploymentDomain))
                 {
                     builder.WithEnvironment($"{cfgName}__{i++}", buildDeploymentDomain);
                 }
@@ -265,7 +265,7 @@ public static partial class DistributedApplicationBuilderExtensions
         if (builder.ApplicationBuilder.ExecutionContext.IsPublishMode && deploymentUriResolverFunc != null)
         {
             var buildDeploymentDomain = deploymentUriResolverFunc(target);
-            if (string.IsNullOrEmpty(buildDeploymentDomain))
+            if (!string.IsNullOrEmpty(buildDeploymentDomain))
             {
                 builder.WithEnvironment(environmentVariable, buildDeploymentDomain);
                 return builder;
@@ -356,13 +356,10 @@ public static partial class DistributedApplicationBuilderExtensions
         }
 
         Uri uri = new Uri(host);
-        string[] parts = uri.Host.Split('.');
 
-        if (parts.Length >= 2)
-        {
-            return parts[^2] + "." + parts[^1];
-        }
-
+        // Return the full host (including any subdomains). Trimming to the last two labels
+        // would drop environment subdomains (e.g. "test.example.dev" -> "example.dev") and
+        // also break multi-label public suffixes (e.g. "foo.co.uk" -> "co.uk").
         return uri.Host;
     }
 
