@@ -69,7 +69,7 @@ var n8n = builder.AddN8n("n8n")
 
 ## Queue Mode (Redis + Workers)
 
-For scalable, production-like execution, enable queue mode. A Redis container is added as the
+For scalable, production-like execution, enable queue mode. A plain Redis container is added as the
 broker and one or more worker containers process executions. Queue mode requires the PostgreSQL
 backend.
 
@@ -82,18 +82,43 @@ var n8n2 = builder.AddN8n("n8n2")
     .WithWorkers(2);             // enables queue mode + 2 workers
 ```
 
+> A deliberately plain (non-TLS) Redis is used: Aspire's `AddRedis` enables TLS with a self-signed
+> certificate, which the n8n/ioredis client cannot consume out of the box.
+
+The Redis password defaults to a stable development value. Override it — ideally via an Aspire
+parameter, so the secret flows through user secrets locally and Key Vault on deployment:
+
+```csharp
+var redisPassword = builder.AddParameter("n8n-redis-password", secret: true);
+
+var n8n = builder.AddN8n("n8n")
+    .WithQueueMode(workers: 2, redisPassword: redisPassword);
+    // order-independent alternatives: .WithRedisPassword(redisPassword) / .WithRedisPassword("plain")
+```
+
 ---
 
 ## Security
 
+Everything is overridable; secrets accept either a plain string (simple) or an Aspire parameter
+(recommended — user secrets locally, Key Vault on deployment):
+
 ```csharp
+var encryptionKey = builder.AddParameter("n8n-encryption-key", secret: true);
+
 var n8n = builder.AddN8n("n8n")
-    .WithEncryptionKey("a-stable-32+-char-secret")   // keep stable across restarts!
-    .WithBasicAuth("admin", "supersecret");
+    .WithEncryptionKey(encryptionKey);          // or .WithEncryptionKey("a-stable-32+-char-secret")
 ```
 
 > The encryption key encrypts stored credentials. If it changes, existing credentials can no
 > longer be decrypted. A stable development default is used when none is set — always set your own.
+
+### A note on `WithBasicAuth`
+
+`WithBasicAuth(user, password)` sets the legacy `N8N_BASIC_AUTH_*` variables and only takes effect
+on n8n versions **< 1.0**. The modern default image uses the built-in **owner-account / user
+management** model, which is configured interactively on first launch — those variables are ignored
+there.
 
 ---
 

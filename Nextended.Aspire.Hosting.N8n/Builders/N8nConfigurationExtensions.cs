@@ -18,12 +18,31 @@ public static class N8nConfigurationExtensions
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(encryptionKey);
         builder.Resource.EncryptionKey = encryptionKey;
+        builder.Resource.EncryptionKeyParameter = null;
+        return builder;
+    }
+
+    /// <summary>
+    /// Sets the n8n encryption key from an Aspire parameter, so the secret flows through user
+    /// secrets locally and Key Vault on deployment. Keep the underlying value stable across restarts.
+    /// </summary>
+    public static IResourceBuilder<N8nResource> WithEncryptionKey(
+        this IResourceBuilder<N8nResource> builder, IResourceBuilder<ParameterResource> encryptionKey)
+    {
+        ArgumentNullException.ThrowIfNull(encryptionKey);
+        builder.Resource.EncryptionKeyParameter = encryptionKey.Resource;
         return builder;
     }
 
     /// <summary>
     /// Enables HTTP basic authentication for the n8n editor with the given credentials.
     /// </summary>
+    /// <remarks>
+    /// This sets the legacy <c>N8N_BASIC_AUTH_*</c> variables and only has an effect on n8n
+    /// versions &lt; 1.0. Modern n8n (the default image) uses the built-in owner-account / user
+    /// management model instead, which is set up interactively on first launch — these variables
+    /// are ignored there.
+    /// </remarks>
     public static IResourceBuilder<N8nResource> WithBasicAuth(
         this IResourceBuilder<N8nResource> builder, string user, string password)
     {

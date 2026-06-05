@@ -8,9 +8,13 @@ var builder = DistributedApplication.CreateBuilder(args);
 if (builder.ExecutionContext.IsPublishMode)
     builder.AddAzureContainerAppEnvironment("env");
 
+// Runs with zero configuration; everything below is optional and overridable.
+// Secrets can be passed as Aspire parameters (user secrets locally, Key Vault on deploy), e.g.:
+//   var redisPassword  = builder.AddParameter("n8n-redis-password",  secret: true);
+//   var encryptionKey  = builder.AddParameter("n8n-encryption-key", secret: true);
+//   ... .WithEncryptionKey(encryptionKey).WithQueueMode(workers: 1, redisPassword: redisPassword);
 var n8n = builder.AddN8n("n8n")
     .WithTimezone("Europe/Berlin")
-    .WithBasicAuth("admin", "n8n-dev-password")
     .WithQueueMode(workers: 1);
 
 builder.Build().Run();

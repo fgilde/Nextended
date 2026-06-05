@@ -79,14 +79,23 @@ var n8n = builder.AddN8n("n8n")
 
 | Method | Purpose |
 | --- | --- |
-| `WithEncryptionKey(key)` | Sets the credential encryption key (keep stable!) |
-| `WithBasicAuth(user, pw)` | Enables editor basic authentication |
+| `WithEncryptionKey(key)` / `WithEncryptionKey(parameter)` | Credential encryption key — string or Aspire parameter (keep stable!) |
+| `WithRedisPassword(pw)` / `WithRedisPassword(parameter)` | Queue-mode Redis password — string or Aspire parameter |
 | `WithTimezone(tz)` | Sets the scheduling/cron timezone |
 | `WithWebhookUrl(url)` | Public webhook base URL (behind a proxy) |
 | `WithEditorBaseUrl(url)` | Public editor base URL |
 | `WithImage(image, tag)` / `WithImageTag(tag)` | Override the container image |
 | `WithHostPort(port)` | Fixed editor host port (local development) |
 | `WithEnvironmentVariable(name, value)` | Set any raw n8n env var |
+| `WithBasicAuth(user, pw)` | Legacy basic auth — only n8n < 1.0 (see note below) |
+
+Secrets (encryption key, Redis password) accept either a plain string (simple) or an
+`IResourceBuilder<ParameterResource>` (recommended — user secrets locally, Key Vault on deploy).
+Everything has a sensible default, so the zero-config `AddN8n("n8n")` just works.
+
+> **`WithBasicAuth`**: sets the legacy `N8N_BASIC_AUTH_*` variables and only affects n8n < 1.0.
+> The modern default image uses the built-in owner-account / user-management model (configured
+> interactively on first launch); those variables are ignored there.
 
 ## Importing Workflows & Credentials
 

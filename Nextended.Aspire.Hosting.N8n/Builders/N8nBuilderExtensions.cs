@@ -131,7 +131,7 @@ public static class N8nBuilderExtensions
         env["N8N_HOST"] = isPublishMode
             ? resource.HttpEndpoint.Property(EndpointProperty.Host)
             : "localhost";
-        env["N8N_ENCRYPTION_KEY"] = resource.EncryptionKey;
+        env["N8N_ENCRYPTION_KEY"] = resource.EncryptionKeyValue;
         env["GENERIC_TIMEZONE"] = resource.Timezone;
         env["TZ"] = resource.Timezone;
 
@@ -192,8 +192,8 @@ public static class N8nBuilderExtensions
             env["EXECUTIONS_MODE"] = "queue";
             env["QUEUE_BULL_REDIS_HOST"] = redisEp.Property(EndpointProperty.Host);
             env["QUEUE_BULL_REDIS_PORT"] = redisEp.Property(EndpointProperty.Port);
-            if (!string.IsNullOrEmpty(resource.RedisPassword))
-                env["QUEUE_BULL_REDIS_PASSWORD"] = resource.RedisPassword;
+            if (resource.RedisPasswordValue is { } redisPwd)
+                env["QUEUE_BULL_REDIS_PASSWORD"] = redisPwd;
             env["QUEUE_HEALTH_CHECK_ACTIVE"] = "true";
         }
     }

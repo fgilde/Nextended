@@ -41,8 +41,15 @@ public sealed class N8nResource : ContainerResource, IResourceWithConnectionStri
     /// <summary>
     /// Gets the n8n encryption key used to encrypt stored credentials.
     /// MUST stay stable across restarts, otherwise existing credentials can no longer be decrypted.
+    /// Used when no <see cref="EncryptionKeyParameter"/> is configured.
     /// </summary>
     public string EncryptionKey { get; internal set; } = "n8n-insecure-dev-encryption-key-change-me";
+
+    /// <summary>
+    /// Gets the Aspire parameter supplying the encryption key (takes precedence over <see cref="EncryptionKey"/>).
+    /// When set, the secret flows through Aspire's parameter system (user secrets locally, Key Vault on deploy).
+    /// </summary>
+    internal ParameterResource? EncryptionKeyParameter { get; set; }
 
     /// <summary>Gets the basic-auth user (null = basic auth disabled).</summary>
     public string? BasicAuthUser { get; internal set; }
@@ -101,8 +108,18 @@ public sealed class N8nResource : ContainerResource, IResourceWithConnectionStri
     /// <summary>Gets the Redis container resource used for queue mode (null when queue mode is disabled).</summary>
     internal IResourceBuilder<ContainerResource>? Redis { get; set; }
 
-    /// <summary>Gets the password protecting the queue-mode Redis instance.</summary>
+    /// <summary>Gets the password protecting the queue-mode Redis instance (used when no <see cref="RedisPasswordParameter"/> is set).</summary>
     internal string? RedisPassword { get; set; }
+
+    /// <summary>Gets the Aspire parameter supplying the Redis password (takes precedence over <see cref="RedisPassword"/>).</summary>
+    internal ParameterResource? RedisPasswordParameter { get; set; }
+
+    /// <summary>Gets the effective Redis password value (parameter or string) for use as an environment/argument value.</summary>
+    internal object? RedisPasswordValue =>
+        (object?)RedisPasswordParameter ?? (string.IsNullOrEmpty(RedisPassword) ? null : RedisPassword);
+
+    /// <summary>Gets the effective encryption key value (parameter or string) for use as an environment value.</summary>
+    internal object EncryptionKeyValue => (object?)EncryptionKeyParameter ?? EncryptionKey;
 
     /// <summary>Gets the n8n worker container resources (queue mode).</summary>
     internal List<IResourceBuilder<N8nWorkerResource>> Workers { get; } = [];
