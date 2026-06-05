@@ -18,7 +18,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Nextended.ResponseFilters\Nextended.ResponseFilters.csproj" />
+    <ProjectReference Include="..\..\Nextended.ResponseFilters\Nextended.ResponseFilters.csproj" />
   </ItemGroup>
 
 </Project>

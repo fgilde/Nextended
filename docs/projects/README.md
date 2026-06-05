@@ -164,6 +164,20 @@ This document provides an overview of all projects in the Nextended solution.
 
 ---
 
+### [Nextended.Aspire.Hosting.N8n](aspire-n8n.md)
+**Description**: The [n8n](https://n8n.io) workflow-automation platform as a single Aspire resource — n8n, PostgreSQL backend, optional Redis + workers.
+
+**Key Features**:
+- One-line `AddN8n("n8n")` with an auto-created PostgreSQL backend and sensible self-hosting defaults
+- Bring your own database (`WithDatabase`) or use bundled SQLite (`WithSqlite`)
+- Queue mode with Redis and scalable worker containers (`WithQueueMode`)
+- Basic auth, encryption key, webhook/editor URLs, timezone, workflow/credential import
+- Lightweight `N8nApiClient` for services + Azure Container Apps deployment via `azd`
+
+**NuGet**: [Nextended.Aspire.Hosting.N8n](https://www.nuget.org/packages/Nextended.Aspire.Hosting.N8n/)
+
+---
+
 ### [Nextended.AutoDto](autodto.md)
 **Description**: Automatic DTO generation support library.
 
@@ -191,6 +205,7 @@ This document provides an overview of all projects in the Nextended solution.
 | Nextended.CodeGen | .NET Standard 2.0 | Build-time | Roslyn |
 | Nextended.Aspire | .NET 8/9/10 | Cross-platform | Aspire |
 | Nextended.Aspire.Hosting.Supabase | .NET 8/9/10 | Cross-platform | Aspire |
+| Nextended.Aspire.Hosting.N8n | .NET 8/9/10 | Cross-platform | Aspire, PostgreSQL, Redis |
 | Nextended.AutoDto | .NET Standard 2.0 | Build-time | Roslyn |
 
 ## Installation
