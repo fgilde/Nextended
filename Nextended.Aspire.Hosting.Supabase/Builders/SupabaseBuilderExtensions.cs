@@ -12,6 +12,51 @@ namespace Nextended.Aspire.Hosting.Supabase.Builders;
 /// </summary>
 public static class SupabaseBuilderExtensions
 {
+    /// <summary>
+    /// Optional name of a managedEnvironmentStorage (e.g. an NFS Azure Files share) to mount at
+    /// the storage container's backend path (/var/lib/storage) in publish mode, so uploaded
+    /// files persist across restarts/redeploys. This is a generic Supabase-storage concern —
+    /// the HOST app owns creating the actual storage resource and just sets this name here.
+    /// When null/empty, publish mode falls back to ephemeral container-local storage.
+    /// </summary>
+    public static string? PersistentStorageVolumeName { get; set; }
+
+    /// <summary>
+    /// Optional S3-compatible backend for the storage container (publish mode). When set, the
+    /// storage container runs with STORAGE_BACKEND=s3 against this endpoint instead of the local
+    /// FILE backend. This is a generic Supabase-storage concern: supabase-storage's FILE backend
+    /// needs a local POSIX disk WITH extended attributes, which Azure Files can't provide (SMB
+    /// rejects its open flags; NFS 4.1 has no xattr) — so a durable container-apps deploy needs an
+    /// S3-compatible store. The HOST app owns the S3 server (e.g. a bundled MinIO), its bucket and
+    /// credentials, and just points this at it. When null, the FILE backend is used (see
+    /// <see cref="PersistentStorageVolumeName"/> / local bind mount).
+    /// </summary>
+    public static SupabaseStorageS3Options? StorageS3Backend { get; set; }
+
+    /// <summary>
+    /// Configuration for an S3-compatible storage backend (see <see cref="StorageS3Backend"/>).
+    /// </summary>
+    public sealed class SupabaseStorageS3Options
+    {
+        /// <summary>S3 endpoint URL the storage container connects to (e.g. http://minio:9000).</summary>
+        public required ReferenceExpression Endpoint { get; init; }
+
+        /// <summary>The single S3 bucket that backs all Supabase storage buckets. Must already exist.</summary>
+        public required string Bucket { get; init; }
+
+        /// <summary>Access key id (consumed via the AWS SDK default credential chain).</summary>
+        public required string AccessKey { get; init; }
+
+        /// <summary>Secret access key (consumed via the AWS SDK default credential chain).</summary>
+        public required string SecretKey { get; init; }
+
+        /// <summary>Region passed to the S3 client. MinIO ignores it, but the SDK requires one.</summary>
+        public string Region { get; init; } = "us-east-1";
+
+        /// <summary>Use path-style addressing (required for MinIO and most non-AWS S3 servers).</summary>
+        public bool ForcePathStyle { get; init; } = true;
+    }
+
     #region Constants
 
     internal static class Images
@@ -447,6 +492,11 @@ public static class SupabaseBuilderExtensions
         // STORAGE
         var storageResource = new SupabaseStorageResource($"{containerPrefix}-storage") { Stack = stack };
 
+        // When an S3 backend is configured (publish), the storage container runs against it
+        // (STORAGE_BACKEND=s3) instead of the local FILE backend — which can't run durably on
+        // Azure Files (SMB open-flags / NFS-4.1 has no xattr).
+        var storageS3 = StorageS3Backend;
+
         // Build database URL using Aspire's endpoint references
         // Azure Container Apps has internal DNS - container names resolve automatically
         var storageDatabaseUrl = ReferenceExpression.Create(
@@ -462,12 +512,20 @@ public static class SupabaseBuilderExtensions
             .WithEnvironment("POSTGREST_URL", postgrestUrl)
             .WithEnvironment("PGRST_JWT_SECRET", stack.JwtSecret)
             .WithEnvironment("DATABASE_URL", storageDatabaseUrl)
-            .WithEnvironment("FILE_STORAGE_BACKEND_PATH", "/var/lib/storage")
-            .WithEnvironment("STORAGE_BACKEND", storageResource.Backend)
+            // In Azure we write to the container's local overlay FS (/tmp, world-writable,
+            // POSIX) instead of an Azure Files SMB mount — SMB rejects the storage backend's
+            // open flags with EINVAL and every upload 500s. Locally we keep the bind-mounted
+            // /var/lib/storage so dev uploads persist.
+            // Write to /var/lib/storage when a persistent volume is mounted there (publish:
+            // PersistentStorageVolumeName set; local: bind mount). Only the ephemeral Azure
+            // fallback (no persistent volume configured) writes to the container-local /tmp.
+            .WithEnvironment("FILE_STORAGE_BACKEND_PATH",
+                (isPublishMode && storageS3 == null && string.IsNullOrEmpty(PersistentStorageVolumeName)) ? "/tmp/storage" : "/var/lib/storage")
+            .WithEnvironment("STORAGE_BACKEND", storageS3 != null ? "s3" : storageResource.Backend)
             .WithEnvironment("FILE_SIZE_LIMIT", storageResource.FileSizeLimit.ToString())
             .WithEnvironment("TENANT_ID", "stub")
-            .WithEnvironment("REGION", isPublishMode ? "azure" : "local")
-            .WithEnvironment("GLOBAL_S3_BUCKET", "stub")
+            .WithEnvironment("REGION", storageS3 != null ? storageS3.Region : (isPublishMode ? "azure" : "local"))
+            .WithEnvironment("GLOBAL_S3_BUCKET", storageS3 != null ? storageS3.Bucket : "stub")
             .WithEnvironment("IS_MULTITENANT", "false")
             .WithEnvironment("ENABLE_IMAGE_TRANSFORMATION", storageResource.EnableImageTransformation ? "true" : "false")
             // Required for proxy path handling
@@ -477,12 +535,29 @@ public static class SupabaseBuilderExtensions
             .WaitFor(stack.Database)  // Password updates happen in DB container itself
             .WaitFor(stack.Rest);
 
+        if (storageS3 != null)
+        {
+            // S3 backend: endpoint + bucket + path-style, and AWS creds via the SDK's default
+            // credential chain (the s3 backend constructs its S3Client without explicit creds).
+            storageBuilder
+                .WithEnvironment("STORAGE_S3_BUCKET", storageS3.Bucket)
+                .WithEnvironment("STORAGE_S3_REGION", storageS3.Region)
+                .WithEnvironment("STORAGE_S3_FORCE_PATH_STYLE", storageS3.ForcePathStyle ? "true" : "false")
+                .WithEnvironment("STORAGE_S3_ENDPOINT", storageS3.Endpoint)
+                .WithEnvironment("AWS_ACCESS_KEY_ID", storageS3.AccessKey)
+                .WithEnvironment("AWS_SECRET_ACCESS_KEY", storageS3.SecretKey);
+        }
+
         if (isPublishMode)
         {
-            // In publish mode: Use separate volume for storage data (Azure Files in ACA)
-            // Use short volume name to avoid ARM naming collisions
-            var volPrefix = containerPrefix.Length > 8 ? containerPrefix[..8] : containerPrefix;
-            storageBuilder.WithVolume($"{volPrefix}store", "/var/lib/storage");
+            // Intentionally NO volume mount here. We previously mounted an Azure Files (SMB)
+            // volume at /var/lib/storage, but supabase-storage's file backend uses open flags
+            // (O_TMPFILE / atomic temp-file rename) that SMB/CIFS rejects with EINVAL
+            // ("name is invalid or options has an unsupported bit set") — so every upload 500'd.
+            // Instead the backend writes to /tmp/storage on the container's local overlay FS
+            // (set via FILE_STORAGE_BACKEND_PATH above), which is plain POSIX and just works.
+            // TRADE-OFF: uploaded files are EPHEMERAL (lost on container restart/redeploy).
+            // Durable object storage on ACA needs an S3-compatible backend — separate task.
         }
         else
         {
@@ -648,6 +723,9 @@ public static class SupabaseBuilderExtensions
             var restEndpoint = stack.Rest.GetEndpoint("http");
             var storageEndpoint = stack.Storage.GetEndpoint("http");
             var metaEndpoint = stack.Meta.GetEndpoint("http");
+            // Plain string (NOT a ReferenceExpression): realtime is reached over its TCP/L4
+            // ingress directly at <name>:4000 — see the REALTIME_URL note below.
+            var realtimeTcpUrl = $"http://{containerPrefix}-realtime:{Ports.Realtime}";
 
             // Custom entrypoint: decode config template, substitute URLs, write file, start Kong
             // Note: We use sed instead of envsubst to avoid needing to install gettext
@@ -658,8 +736,12 @@ public static class SupabaseBuilderExtensions
                 .WithEnvironment("REST_URL", restEndpoint)
                 .WithEnvironment("STORAGE_URL", storageEndpoint)
                 .WithEnvironment("META_URL", metaEndpoint)
-                // Realtime: Use endpoint reference (works in ACA internal DNS)
-                .WithEnvironment("REALTIME_URL", stack.Realtime!.GetEndpoint("http"));
+                // Realtime: dial the TCP (L4) ingress DIRECTLY at <name>:4000 over plain http.
+                // GetEndpoint("http") would resolve to "https://<fqdn>" (no port = 443), but
+                // realtime now uses a TCP ingress on exposedPort 4000 with no TLS/443 listener,
+                // so Kong got HTTP 502 (couldn't connect). Verified live: with this URL Kong
+                // reaches realtime and the WebSocket upgrades end-to-end (101 Switching Protocols).
+                .WithEnvironment("REALTIME_URL", realtimeTcpUrl);
 
             // Edge: Deferred because EdgeRuntime is created in WithEdgeFunctions() after AddSupabase()
             kongBuilder.WithEnvironment(context =>
@@ -757,7 +839,10 @@ public static class SupabaseBuilderExtensions
             var postInitCommand = "set -e && " +
                                   "echo '[Post-Init] Waiting for Auth to initialize...' && " +
                                   "sleep 60 && " +  // Give Auth time to run migrations and create auth.users
-                                  "echo \"$POST_INIT_SQL_GZ_BASE64\" | base64 -d | gunzip > /tmp/post_init.sql && " +
+                                  // Reassemble the base64 SQL from its chunks (see env callback below).
+                                  // ARM caps a single bicep string literal at 131072 chars, so the blob is
+                                  // split into POST_INIT_SQL_GZ_BASE64_0..N-1 and concatenated here.
+                                  "for ((i=0; i<${POST_INIT_SQL_GZ_PARTS:-1}; i++)); do var=\"POST_INIT_SQL_GZ_BASE64_$i\"; printf '%s' \"${!var}\"; done | base64 -d | gunzip > /tmp/post_init.sql && " +
                                   "echo \"[Post-Init] SQL size: $(wc -c < /tmp/post_init.sql) bytes\" && " +
                                   "echo '[Post-Init] Running post-init SQL (triggers, migrations, profiles)...' && " +
                                   // Connect as supabase_admin (superuser); postgres is not a member
@@ -778,8 +863,21 @@ public static class SupabaseBuilderExtensions
                     using var ms = new System.IO.MemoryStream();
                     using (var gz = new System.IO.Compression.GZipStream(ms, System.IO.Compression.CompressionMode.Compress, true))
                         gz.Write(sqlBytes, 0, sqlBytes.Length);
-                    context.EnvironmentVariables["POST_INIT_SQL_GZ_BASE64"] =
-                        Convert.ToBase64String(ms.ToArray());
+                    var b64 = Convert.ToBase64String(ms.ToArray());
+                    // ARM/Bicep caps a single string literal at 131072 chars. A single env var
+                    // with the whole base64 blob overflows once migrations grow (it just did:
+                    // 131904 > 131072). Split into <=100000-char chunks and reassemble them in
+                    // the entrypoint loop above — gives ~6MB of raw-SQL headroom.
+                    const int chunkSize = 100000;
+                    var parts = Math.Max(1, (b64.Length + chunkSize - 1) / chunkSize);
+                    for (int i = 0; i < parts; i++)
+                    {
+                        var start = i * chunkSize;
+                        var len = Math.Min(chunkSize, b64.Length - start);
+                        context.EnvironmentVariables[$"POST_INIT_SQL_GZ_BASE64_{i}"] =
+                            len > 0 ? b64.Substring(start, len) : "";
+                    }
+                    context.EnvironmentVariables["POST_INIT_SQL_GZ_PARTS"] = parts.ToString();
                 })
                 // Azure Container Apps has internal DNS - container name works without FQDN
                 .WithEnvironment("DB_HOST", dbEndpoint.Property(EndpointProperty.Host))
@@ -831,13 +929,65 @@ public static class SupabaseBuilderExtensions
                 svc.PublishAsAzureContainerApp((infra, app) =>
                 {
                     app.Configuration.Ingress.AllowInsecure = true;
+                    // Force HTTP/1.1 on the internal ingress (plain HTTP services).
+                    app.Configuration.Ingress.Transport =
+                        Azure.Provisioning.AppContainers.ContainerAppIngressTransportMethod.Http;
                 });
 
             ConfigureInternalHttp(stack.Auth);
             ConfigureInternalHttp(stack.Rest);
-            ConfigureInternalHttp(stack.Storage);
             ConfigureInternalHttp(stack.Meta);
-            ConfigureInternalHttp(stack.Realtime);
+
+            // STORAGE: same internal-HTTP config, but PIN TO A SINGLE REPLICA. The storage
+            // file backend keeps objects on the container's own filesystem, so more than one
+            // replica = split brain (an object uploaded to replica A is a 404 on replica B).
+            // With NFS-shared storage this could be relaxed, but for the local/ephemeral
+            // backend it must stay at exactly 1.
+            stack.Storage.PublishAsAzureContainerApp((infra, app) =>
+            {
+                app.Configuration.Ingress.AllowInsecure = true;
+                app.Configuration.Ingress.Transport =
+                    Azure.Provisioning.AppContainers.ContainerAppIngressTransportMethod.Http;
+                app.Template.Scale.MinReplicas = 1;
+                app.Template.Scale.MaxReplicas = 1;
+
+                // Persistent uploads: if the app provided a managedEnvironmentStorage name,
+                // mount it at the storage backend path so uploads survive restarts/redeploys.
+                // Generic: this just mounts a named NFS env-storage; the app owns its creation.
+                if (!string.IsNullOrEmpty(PersistentStorageVolumeName))
+                {
+                    const string volName = "supabase-storage-data";
+                    app.Template.Volumes.Add(new Azure.Provisioning.AppContainers.ContainerAppVolume
+                    {
+                        Name = volName,
+                        StorageType = Azure.Provisioning.AppContainers.ContainerAppStorageType.NfsAzureFile,
+                        StorageName = PersistentStorageVolumeName,
+                    });
+                    app.Template.Containers[0].Value.VolumeMounts.Add(
+                        new Azure.Provisioning.AppContainers.ContainerAppVolumeMount
+                        {
+                            VolumeName = volName,
+                            MountPath = "/var/lib/storage",
+                        });
+                }
+            });
+
+            // REALTIME needs a TCP (L4) internal ingress, NOT HTTP. The realtime WebSocket
+            // (browser -> Kong -> realtime) was dying on the Kong->realtime hop: ACA's HTTP
+            // internal ingress (Envoy) routes/rewrites by Host and mangles the WS upgrade, so
+            // the request never reached the realtime process (its log stayed silent on every
+            // connect). With TCP transport, Envoy does raw L4 pass-through: the WebSocket
+            // Upgrade AND the Host header `realtime-dev.supabase-realtime` (which realtime
+            // needs to resolve its tenant) arrive untouched — exactly like a direct
+            // docker-compose connection. Kong still reaches it at <name>:4000. This also
+            // sidesteps the HTTP startup-probe PortMismatch we saw (TCP probe on 4000).
+            stack.Realtime.PublishAsAzureContainerApp((infra, app) =>
+            {
+                app.Configuration.Ingress.Transport =
+                    Azure.Provisioning.AppContainers.ContainerAppIngressTransportMethod.Tcp;
+                app.Configuration.Ingress.TargetPort = Ports.Realtime;
+                app.Configuration.Ingress.ExposedPort = Ports.Realtime;
+            });
 
             // DB: set exposedPort for TCP connectivity + pin to exactly 1 replica
             // Multiple DB replicas with ephemeral storage = independent databases = data inconsistency!
@@ -862,6 +1012,12 @@ public static class SupabaseBuilderExtensions
             stack.Kong.PublishAsAzureContainerApp((infra, app) =>
             {
                 app.Configuration.Ingress.AllowInsecure = true;
+                // Force HTTP/1.1 on Kong's public ingress. Realtime uses WebSockets
+                // (/realtime/v1/websocket); the WS Upgrade only works over HTTP/1.1.
+                // If the ingress negotiates HTTP/2, plain REST still works but the WS
+                // handshake fails (browser "WebSocket connection failed" / CHANNEL_ERROR),
+                // which is exactly the live-progress breakage we saw in Azure.
+                app.Configuration.Ingress.Transport = Azure.Provisioning.AppContainers.ContainerAppIngressTransportMethod.Http;
             });
             stackBuilder.PublishAsAzureContainerApp((infra, app) =>
             {
@@ -934,7 +1090,15 @@ public static class SupabaseBuilderExtensions
             if (File.Exists(migrationsSqlPath))
             {
                 var migrationsSql = File.ReadAllText(migrationsSqlPath);
-                if (migrationsSql.Length < 500000) // 500KB limit for migrations
+                // Cap guards against the post_init env var (POST_INIT_SQL_GZ_BASE64) getting
+                // too large for ACA. The real constraint is the *gzipped + base64* size, not
+                // the raw text: these migrations are extremely repetitive (huge translation
+                // seeds) and compress ~10x, so ~470KB raw is only ~50KB on the wire. The raw
+                // cap is therefore conservative; 1MB raw still produces a small env var.
+                // If migrations ever grow past this, switch to file-based delivery (mount the
+                // SQL) instead of an env var rather than just bumping this number.
+                const int migrationsSizeCapBytes = 1_000_000;
+                if (migrationsSql.Length < migrationsSizeCapBytes)
                 {
                     combinedSql.AppendLine("-- Migrations");
                     combinedSql.AppendLine(migrationsSql);
@@ -942,7 +1106,7 @@ public static class SupabaseBuilderExtensions
                 }
                 else
                 {
-                    LogWarning($"migrations.sql too large ({migrationsSql.Length} bytes, limit 500KB). Tables will not be created.");
+                    LogWarning($"migrations.sql too large ({migrationsSql.Length} bytes, limit {migrationsSizeCapBytes}). Tables will not be created.");
                 }
             }
 

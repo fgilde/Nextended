@@ -234,66 +234,11 @@ DROP EVENT TRIGGER IF EXISTS api_restart;
 CREATE EVENT TRIGGER api_restart ON ddl_command_end
     EXECUTE FUNCTION extensions.notify_api_restart();
 
--- 14. Auto-Create Profile & Role Trigger für neue User
--- WICHTIG: Mit Exception-Handling damit User-Erstellung NIEMALS blockiert wird
-CREATE OR REPLACE FUNCTION public.handle_new_user()
-RETURNS TRIGGER
-LANGUAGE plpgsql
-SECURITY DEFINER SET search_path = public, extensions
-AS $$
-BEGIN
-    -- Profil erstellen (mit Exception-Handling)
-    BEGIN
-        IF EXISTS (SELECT FROM pg_tables WHERE schemaname = 'public' AND tablename = 'profiles') THEN
-            IF NOT EXISTS (SELECT 1 FROM public.profiles WHERE user_id = NEW.id) THEN
-                INSERT INTO public.profiles (user_id, email, display_name, is_disabled, created_at, updated_at)
-                VALUES (
-                    NEW.id,
-                    NEW.email,
-                    COALESCE(NEW.raw_user_meta_data->>'display_name', NEW.email),
-                    false,
-                    NOW(),
-                    NOW()
-                );
-            END IF;
-        END IF;
-    EXCEPTION WHEN OTHERS THEN
-        RAISE WARNING '[handle_new_user] Profil-Erstellung fehlgeschlagen für %: %', NEW.email, SQLERRM;
-    END;
-
-    -- Admin-Rolle erstellen (mit Exception-Handling)
-    BEGIN
-        IF EXISTS (SELECT FROM pg_tables WHERE schemaname = 'public' AND tablename = 'user_roles') THEN
-            IF NOT EXISTS (SELECT 1 FROM public.user_roles WHERE user_id = NEW.id) THEN
-                INSERT INTO public.user_roles (user_id, role, created_at)
-                VALUES (
-                    NEW.id,
-                    'admin',
-                    NOW()
-                );
-            END IF;
-        END IF;
-    EXCEPTION WHEN OTHERS THEN
-        RAISE WARNING '[handle_new_user] Rollen-Erstellung fehlgeschlagen für %: %', NEW.email, SQLERRM;
-    END;
-
-    -- IMMER NEW zurückgeben, damit User-Erstellung NICHT blockiert wird
-    RETURN NEW;
-END;
-$$;
-
--- Trigger erstellen (falls auth.users existiert)
-DO $$
-BEGIN
-    IF EXISTS (SELECT FROM pg_tables WHERE schemaname = 'auth' AND tablename = 'users') THEN
-        DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
-        CREATE TRIGGER on_auth_user_created
-            AFTER INSERT ON auth.users
-            FOR EACH ROW
-            EXECUTE FUNCTION public.handle_new_user();
-    END IF;
-END;
-$$;
+-- 14. (removed) handle_new_user() + on_auth_user_created trigger.
+-- These were APPLICATION schema (public.profiles / public.user_roles / role policy), not
+-- generic Supabase, so they were moved out of this generator. The app's migrations own the
+-- profiles table, the handle_new_user trigger function and the on_auth_user_created trigger,
+-- with the correct "first user = admin, everyone else = 'user'" logic.
 """;
     }
 
@@ -346,130 +291,13 @@ $$;
 -- where the init SQL didn't run because the data directory already existed)
 ALTER ROLE supabase_admin WITH PASSWORD '{pw}';
 
--- Create/Update handle_new_user function (needed for publish mode where 00_init.sql doesn't run)
-CREATE OR REPLACE FUNCTION public.handle_new_user()
-RETURNS TRIGGER
-LANGUAGE plpgsql
-SECURITY DEFINER SET search_path = public, extensions
-AS $$
-BEGIN
-    -- Profil erstellen (mit Exception-Handling)
-    BEGIN
-        IF EXISTS (SELECT FROM pg_tables WHERE schemaname = 'public' AND tablename = 'profiles') THEN
-            IF NOT EXISTS (SELECT 1 FROM public.profiles WHERE user_id = NEW.id) THEN
-                INSERT INTO public.profiles (user_id, email, display_name, is_disabled, created_at, updated_at)
-                VALUES (
-                    NEW.id,
-                    NEW.email,
-                    COALESCE(NEW.raw_user_meta_data->>'display_name', NEW.email),
-                    false,
-                    NOW(),
-                    NOW()
-                );
-            END IF;
-        END IF;
-    EXCEPTION WHEN OTHERS THEN
-        RAISE WARNING '[handle_new_user] Profil-Erstellung fehlgeschlagen für %: %', NEW.email, SQLERRM;
-    END;
-
-    -- Admin-Rolle erstellen (mit Exception-Handling)
-    BEGIN
-        IF EXISTS (SELECT FROM pg_tables WHERE schemaname = 'public' AND tablename = 'user_roles') THEN
-            IF NOT EXISTS (SELECT 1 FROM public.user_roles WHERE user_id = NEW.id) THEN
-                INSERT INTO public.user_roles (user_id, role, created_at)
-                VALUES (
-                    NEW.id,
-                    'admin',
-                    NOW()
-                );
-            END IF;
-        END IF;
-    EXCEPTION WHEN OTHERS THEN
-        RAISE WARNING '[handle_new_user] Rollen-Erstellung fehlgeschlagen für %: %', NEW.email, SQLERRM;
-    END;
-
-    -- IMMER NEW zurückgeben, damit User-Erstellung NICHT blockiert wird
-    RETURN NEW;
-END;
-$$;
-
--- Trigger erstellen
-DO $$
-BEGIN
-    IF EXISTS (SELECT FROM pg_tables WHERE schemaname = 'auth' AND tablename = 'users') THEN
-        IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'on_auth_user_created') THEN
-            CREATE TRIGGER on_auth_user_created
-                AFTER INSERT ON auth.users
-                FOR EACH ROW
-                EXECUTE FUNCTION public.handle_new_user();
-            RAISE NOTICE '[Post-Init] Trigger on_auth_user_created erstellt';
-        ELSE
-            RAISE NOTICE '[Post-Init] Trigger on_auth_user_created existiert bereits';
-        END IF;
-    ELSE
-        RAISE NOTICE '[Post-Init] auth.users existiert noch nicht';
-    END IF;
-END;
-$$;
-
--- Erstelle Profile für weitere existierende User ohne Profil (mit Exception-Handling)
-DO $$
-DECLARE
-    inserted_count integer;
-BEGIN
-    IF EXISTS (SELECT FROM pg_tables WHERE schemaname = 'public' AND tablename = 'profiles')
-       AND EXISTS (SELECT FROM pg_tables WHERE schemaname = 'auth' AND tablename = 'users')
-    THEN
-        BEGIN
-            INSERT INTO public.profiles (user_id, email, display_name, is_disabled, created_at, updated_at)
-            SELECT
-                u.id,
-                u.email,
-                COALESCE(u.raw_user_meta_data->>'display_name', u.email),
-                false,
-                NOW(),
-                NOW()
-            FROM auth.users u
-            WHERE NOT EXISTS (SELECT 1 FROM public.profiles p WHERE p.user_id = u.id);
-
-            GET DIAGNOSTICS inserted_count = ROW_COUNT;
-            IF inserted_count > 0 THEN
-                RAISE NOTICE '[Post-Init] % weitere Profile erstellt', inserted_count;
-            END IF;
-        EXCEPTION WHEN OTHERS THEN
-            RAISE WARNING '[Post-Init] Profil-Erstellung fehlgeschlagen: %', SQLERRM;
-        END;
-    END IF;
-END;
-$$;
-
--- Erstelle Admin-Rollen für User ohne Rolle (mit Exception-Handling)
-DO $$
-DECLARE
-    inserted_count integer;
-BEGIN
-    IF EXISTS (SELECT FROM pg_tables WHERE schemaname = 'public' AND tablename = 'user_roles')
-       AND EXISTS (SELECT FROM pg_tables WHERE schemaname = 'auth' AND tablename = 'users')
-    THEN
-        BEGIN
-            INSERT INTO public.user_roles (user_id, role, created_at)
-            SELECT
-                u.id,
-                'admin',
-                NOW()
-            FROM auth.users u
-            WHERE NOT EXISTS (SELECT 1 FROM public.user_roles r WHERE r.user_id = u.id);
-
-            GET DIAGNOSTICS inserted_count = ROW_COUNT;
-            IF inserted_count > 0 THEN
-                RAISE NOTICE '[Post-Init] % Admin-Rollen erstellt', inserted_count;
-            END IF;
-        EXCEPTION WHEN OTHERS THEN
-            RAISE WARNING '[Post-Init] Rollen-Erstellung fehlgeschlagen: %', SQLERRM;
-        END;
-    END IF;
-END;
-$$;
+-- NOTE: handle_new_user(), the on_auth_user_created trigger, and the profile/user_roles
+-- backfills that used to live here were APPLICATION schema — they reference public.profiles,
+-- public.user_roles and public.user_global_permissions and encode the app's role policy.
+-- That is NOT generic Supabase and must not live in this (soon-to-be-packaged) generator.
+-- The app's own migrations own them and define the correct "first user = admin, everyone
+-- else = 'user'" logic. Re-creating them here on every post_init clobbered that version and
+-- (via the 'admin' backfill) re-promoted any role-less user, so the whole block was removed.
 
 SELECT 'Post-Init abgeschlossen' as status;
 """;

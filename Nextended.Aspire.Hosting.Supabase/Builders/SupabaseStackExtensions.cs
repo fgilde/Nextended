@@ -247,11 +247,41 @@ public static class SupabaseStackExtensions
         combinedSql.AppendLine("$$;");
         combinedSql.AppendLine();
 
+        // ------------------------------------------------------------------
+        // RUN-ONCE MIGRATION TRACKING
+        // ------------------------------------------------------------------
+        // post_init runs this whole file via `psql -f` on EVERY post-init pass
+        // (cold start, container restart, every `azd deploy`/`azd up`). Without
+        // tracking, non-idempotent migrations re-run against a persistent DB and
+        // corrupt it (e.g. global schema_categories seeded with mandate_id = NULL
+        // duplicate because NULL is DISTINCT in UNIQUE(mandate_id, name); bare
+        // `ALTER PUBLICATION ... ADD TABLE` errors on the 2nd run). Locally this
+        // never shows because each `aspire run` starts a fresh DB = one pass.
+        //
+        // This makes the Aspire runner behave exactly like Supabase CLI / Lovable:
+        // each migration file is applied at most once. We use psql's \gset + \if
+        // meta-commands (NOT a wrapping DO block — that can't host raw DDL like
+        // CREATE POLICY / ALTER PUBLICATION and would collide with the migrations'
+        // own $$ dollar-quoting). The migration body runs as ordinary top-level
+        // statements between \if/\endif.
+        combinedSql.AppendLine("-- Run-once tracking table (mimics supabase_migrations.schema_migrations)");
+        combinedSql.AppendLine("CREATE TABLE IF NOT EXISTS public._aspire_applied_migrations (");
+        combinedSql.AppendLine("    filename   text PRIMARY KEY,");
+        combinedSql.AppendLine("    applied_at timestamptz NOT NULL DEFAULT now()");
+        combinedSql.AppendLine(");");
+        combinedSql.AppendLine();
+
         foreach (var sqlFile in sqlFiles)
         {
             var fileName = Path.GetFileName(sqlFile);
+            var sqlName = fileName.Replace("'", "''"); // single-quote safety for the SQL literal
             combinedSql.AppendLine($"-- Migration: {fileName}");
             combinedSql.AppendLine($"-- ----------------------------------------");
+            // Set :_run_mig = 'true' only if this file has not been applied yet, then
+            // gate the whole migration body on it. \gset must terminate the query (no ';').
+            combinedSql.AppendLine(
+                $"SELECT (NOT EXISTS (SELECT 1 FROM public._aspire_applied_migrations WHERE filename = '{sqlName}'))::text AS _run_mig \\gset");
+            combinedSql.AppendLine("\\if :_run_mig");
 
             try
             {
@@ -264,6 +294,13 @@ public static class SupabaseStackExtensions
             {
                 LogWarning($"Could not read {fileName}: {ex.Message}");
             }
+
+            // Mark applied (runs even if a statement above errored — psql continues on
+            // error in autocommit, so this prevents a partially-failed file from looping).
+            combinedSql.AppendLine(
+                $"INSERT INTO public._aspire_applied_migrations (filename) VALUES ('{sqlName}') ON CONFLICT (filename) DO NOTHING;");
+            combinedSql.AppendLine("\\endif");
+            combinedSql.AppendLine();
         }
 
         combinedSql.AppendLine("-- ============================================");
