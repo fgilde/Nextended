@@ -349,4 +349,10 @@ MigrationBackup/
 # Ionide (cross platform F# VS Code tools) working folder
 .ionide/
 /.claude/settings.local.json
-/Tests/TestProjects/infra/supabase
+
+# Aspire AppHost generated/runtime artifacts in TestProjects
+# - infra/: local runtime + seed staging data (n8n/supabase containers)
+# - *.module.bicep / aspire-manifest.json: regenerated on every publish / azd up
+/Tests/TestProjects/infra/
+/Tests/TestProjects/*/*.module.bicep
+/Tests/TestProjects/*/aspire-manifest.json
