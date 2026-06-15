@@ -97,17 +97,28 @@ Everything has a sensible default, so the zero-config `AddN8n("n8n")` just works
 > The modern default image uses the built-in owner-account / user-management model (configured
 > interactively on first launch); those variables are ignored there.
 
-## Importing Workflows & Credentials
+## Seeding Workflows & Credentials
 
-A one-shot init container imports JSON exports before the main instance starts (local development):
+A one-shot init container imports JSON exports before the main instance starts (local development).
+Seed workflows from files, raw JSON content, or a directory — all additive:
 
 ```csharp
 var n8n = builder.AddN8n("n8n")
-    .WithImportWorkflows(Path.Combine(builder.AppHostDirectory, "..", "n8n", "workflows"))
-    .WithImportCredentials(Path.Combine(builder.AppHostDirectory, "..", "n8n", "credentials"));
+    .WithWorkflows("workflows/order-sync.json", "workflows/cleanup.json")  // files
+    .WithWorkflowContents(myWorkflowJsonString)                            // raw JSON
+    .WithWorkflowsFromDirectory(Path.Combine(builder.AppHostDirectory, "workflows")) // a directory
+    .WithImportCredentials(Path.Combine(builder.AppHostDirectory, "credentials"));   // credentials dir
 ```
 
-(Use `n8n export:workflow --separate` / `n8n export:credentials --separate` to produce the files.)
+| Method | Seeds from |
+| --- | --- |
+| `WithWorkflows(params string[] files)` | individual workflow JSON files |
+| `WithWorkflowContents(params string[] json)` | raw workflow JSON strings |
+| `WithWorkflowsFromDirectory(dir)` / `WithImportWorkflows(dir)` | all `*.json` in a directory |
+| `WithImportCredentials(dir)` | credential JSON files in a directory |
+
+Each file/content must be a single-workflow export (as produced by `n8n export:workflow --separate`).
+Seeding uses local bind mounts and is skipped in publish mode.
 
 ## Accessing Resources
 

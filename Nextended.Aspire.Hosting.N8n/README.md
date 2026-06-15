@@ -137,19 +137,37 @@ ingress (`https`, proxy hops, secure cookies).
 
 ---
 
-## Importing Workflows & Credentials
+## Seeding Workflows & Credentials
 
-For local development and integration tests, import existing workflows/credentials on startup.
-A one-shot init container runs the n8n CLI import before the main instance starts.
+For local development and integration tests, seed n8n with workflows/credentials on startup.
+A one-shot init container runs the n8n CLI import before the main instance starts (and the main
+instance waits for it to finish).
+
+Seed workflows from files, from raw JSON content, or from a whole directory:
 
 ```csharp
 var n8n = builder.AddN8n("n8n")
-    .WithImportWorkflows(Path.Combine(builder.AppHostDirectory, "..", "n8n", "workflows"))
-    .WithImportCredentials(Path.Combine(builder.AppHostDirectory, "..", "n8n", "credentials"));
+    // individual workflow JSON files
+    .WithWorkflows("workflows/order-sync.json", "workflows/cleanup.json")
+    // raw JSON content (e.g. embedded resources / generated)
+    .WithWorkflowContents(myWorkflowJsonString)
+    // every *.json in a directory
+    .WithWorkflowsFromDirectory(Path.Combine(builder.AppHostDirectory, "workflows"));
 ```
 
-Each directory contains the JSON files exported via `n8n export:workflow --separate` /
-`n8n export:credentials --separate`. (Skipped in publish mode, which has no local bind mounts.)
+All variants are additive and collect into a single managed staging directory that is imported via
+`n8n import:workflow --separate`. Each file/content must be a workflow export (a single workflow
+JSON object, as produced by `n8n export:workflow --separate`).
+
+Credentials work the same way from a directory:
+
+```csharp
+var n8n = builder.AddN8n("n8n")
+    .WithImportCredentials(Path.Combine(builder.AppHostDirectory, "credentials"));
+```
+
+> Seeding uses local bind mounts and is skipped in publish mode. `WithImportWorkflows(dir)` remains
+> available as an alias for `WithWorkflowsFromDirectory(dir)`.
 
 ---
 

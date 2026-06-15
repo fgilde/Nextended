@@ -129,7 +129,7 @@ public sealed class N8nResource : ContainerResource, IResourceWithConnectionStri
 
     // --- Import (local development) ---
 
-    /// <summary>Host path to a directory of workflow JSON files imported on startup.</summary>
+    /// <summary>Host path to the (managed) staging directory of workflow JSON files imported on startup.</summary>
     internal string? ImportWorkflowsPath { get; set; }
 
     /// <summary>Host path to a directory of credential JSON files imported on startup.</summary>
@@ -137,4 +137,16 @@ public sealed class N8nResource : ContainerResource, IResourceWithConnectionStri
 
     /// <summary>The one-shot init container that imports workflows/credentials before n8n starts.</summary>
     internal IResourceBuilder<ContainerResource>? ImportContainer { get; set; }
+
+    /// <summary>Number of workflows seeded so far (used to generate unique staging file names).</summary>
+    internal int SeededWorkflowCount { get; set; }
+
+    /// <summary>True once the workflow staging directory has been cleared for this run.</summary>
+    internal bool WorkflowStagingCleared { get; set; }
+
+    /// <summary>True once the workflow staging directory has been bind-mounted into the import container.</summary>
+    internal bool WorkflowsMountAdded { get; set; }
+
+    /// <summary>True once the credentials directory has been bind-mounted into the import container.</summary>
+    internal bool CredentialsMountAdded { get; set; }
 }

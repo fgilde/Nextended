@@ -15,6 +15,8 @@ if (builder.ExecutionContext.IsPublishMode)
 //   ... .WithEncryptionKey(encryptionKey).WithQueueMode(workers: 1, redisPassword: redisPassword);
 var n8n = builder.AddN8n("n8n")
     .WithTimezone("Europe/Berlin")
-    .WithQueueMode(workers: 1);
+    .WithQueueMode(workers: 1)
+    // Seed n8n with example workflows on startup (local development).
+    .WithWorkflowsFromDirectory(Path.Combine(builder.AppHostDirectory, "workflows"));
 
 builder.Build().Run();
