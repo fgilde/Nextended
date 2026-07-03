@@ -22,10 +22,9 @@ public static class EdgeRuntimeBuilderExtensions
         int port)
     {
         var stack = builder.Resource;
-        if (stack.EdgeRuntime is null)
-            throw new InvalidOperationException("EdgeRuntime not configured. Ensure WithEdgeFunctions() has been called.");
+        EnsureEdgeRuntimeExists(builder);
 
-        stack.EdgeRuntime.Resource.Port = port;
+        stack.EdgeRuntime!.Resource.Port = port;
         stack.EdgeRuntime.WithEnvironment("EDGE_RUNTIME_PORT", port.ToString());
         return builder;
     }
@@ -43,10 +42,9 @@ public static class EdgeRuntimeBuilderExtensions
         string value)
     {
         var stack = builder.Resource;
-        if (stack.EdgeRuntime is null)
-            throw new InvalidOperationException("EdgeRuntime not configured. Ensure WithEdgeFunctions() has been called.");
+        EnsureEdgeRuntimeExists(builder);
 
-        stack.EdgeRuntime.WithEnvironment(name, value);
+        stack.EdgeRuntime!.WithEnvironment(name, value);
         return builder;
     }
 
@@ -65,14 +63,30 @@ public static class EdgeRuntimeBuilderExtensions
         Action<IResourceBuilder<SupabaseEdgeRuntimeResource>> configure)
     {
         var stack = builder.Resource;
-        if (stack.EdgeRuntime is null)
-            throw new InvalidOperationException("EdgeRuntime not configured. Ensure WithEdgeFunctions() has been called.");
+        EnsureEdgeRuntimeExists(builder);
 
-        configure(stack.EdgeRuntime);
+        configure(stack.EdgeRuntime!);
         return builder;
     }
 
     #endregion
+
+    /// <summary>
+    /// Lazily creates the Edge Runtime (without functions) when it has not been configured yet,
+    /// so edge configuration works even if WithEdgeFunctions() was never called.
+    /// </summary>
+    private static void EnsureEdgeRuntimeExists(IResourceBuilder<SupabaseStackResource> builder)
+    {
+        var stack = builder.Resource;
+        if (stack.EdgeRuntime is not null)
+            return;
+
+        builder.EnsureEdgeRuntime(stack.EdgeFunctionsPath);
+
+        if (stack.EdgeRuntime is null)
+            throw new InvalidOperationException(
+                "EdgeRuntime could not be created. Ensure AddSupabase() has been called before configuring the Edge Runtime.");
+    }
 
     #region Sub-Resource Methods (for use with ConfigureEdgeRuntime)
 

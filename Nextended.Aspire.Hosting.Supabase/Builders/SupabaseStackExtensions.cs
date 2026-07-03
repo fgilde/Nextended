@@ -14,21 +14,44 @@ public static class SupabaseStackExtensions
     #region Edge Functions
 
     /// <summary>
+    /// Configures and creates the Edge Runtime container without a local Edge Functions folder.
+    /// Kong routes /functions/v1/* to this runtime, so the stack behaves like a real Supabase
+    /// project (health endpoint, 404 for unknown functions) even when the frontend ships no
+    /// Edge Functions (e.g. TanStack Start server functions instead).
+    /// </summary>
+    /// <param name="builder">The resource builder.</param>
+    public static IResourceBuilder<SupabaseStackResource> WithEdgeFunctions(
+        this IResourceBuilder<SupabaseStackResource> builder)
+        => builder.EnsureEdgeRuntime(functionsPath: null);
+
+    /// <summary>
     /// Configures and creates the Edge Runtime container for Edge Functions.
+    /// The runtime is also created when the directory is missing or contains no functions,
+    /// so Kong's /functions/v1 route stays reachable and ConfigureEdgeRuntime() keeps working.
     /// </summary>
     /// <param name="builder">The resource builder.</param>
     /// <param name="functionsPath">The absolute path to the supabase/functions directory.</param>
     public static IResourceBuilder<SupabaseStackResource> WithEdgeFunctions(
         this IResourceBuilder<SupabaseStackResource> builder,
         string functionsPath)
+        => builder.EnsureEdgeRuntime(functionsPath);
+
+    /// <summary>
+    /// Creates the Edge Runtime container if it does not exist yet.
+    /// </summary>
+    internal static IResourceBuilder<SupabaseStackResource> EnsureEdgeRuntime(
+        this IResourceBuilder<SupabaseStackResource> builder,
+        string? functionsPath)
     {
-        if (!Directory.Exists(functionsPath))
+        var stack = builder.Resource;
+
+        if (stack.EdgeRuntime is not null)
         {
-            LogWarning($"Edge Functions directory not found: {functionsPath}");
+            if (functionsPath is not null)
+                LogWarning("Edge Runtime already configured. Additional WithEdgeFunctions() call is ignored.");
             return builder;
         }
 
-        var stack = builder.Resource;
         var appBuilder = stack.AppBuilder;
 
         if (appBuilder is null)
@@ -37,22 +60,26 @@ public static class SupabaseStackExtensions
             return builder;
         }
 
+        var hasFunctionsDir = functionsPath is not null && Directory.Exists(functionsPath);
+        if (functionsPath is not null && !hasFunctionsDir)
+            LogWarning($"Edge Functions directory not found: {functionsPath} - Edge Runtime starts without functions");
+
         // List available functions (only directories with index.ts)
-        var functionDirs = Directory.GetDirectories(functionsPath)
-            .Select(d => Path.GetFileName(d))
-            .Where(name => !name.StartsWith("_") && !name.StartsWith("."))
-            .Where(name => File.Exists(Path.Combine(functionsPath, name, "index.ts")))
-            .ToList();
+        var functionDirs = hasFunctionsDir
+            ? Directory.GetDirectories(functionsPath!)
+                .Select(d => Path.GetFileName(d))
+                .Where(name => !name.StartsWith("_") && !name.StartsWith("."))
+                .Where(name => File.Exists(Path.Combine(functionsPath!, name, "index.ts")))
+                .ToList()
+            : [];
 
-        if (functionDirs.Count == 0)
-        {
-            LogWarning($"No Edge Functions with index.ts found in: {functionsPath}");
-            return builder;
-        }
+        if (hasFunctionsDir && functionDirs.Count == 0)
+            LogWarning($"No Edge Functions with index.ts found in: {functionsPath} - Edge Runtime starts without functions");
+        else if (functionDirs.Count > 0)
+            LogInformation($"Edge Functions found: {string.Join(", ", functionDirs)}");
 
-        LogInformation($"Edge Functions found: {string.Join(", ", functionDirs)}");
-
-        stack.EdgeFunctionsPath = functionsPath;
+        if (hasFunctionsDir)
+            stack.EdgeFunctionsPath = functionsPath;
         var containerPrefix = stack.Name;
 
         var dbPassword = stack.Database!.Resource.Password;
@@ -127,7 +154,7 @@ public static class SupabaseStackExtensions
             // Gzip is needed because Bicep has a 128KB literal limit per env var.
             foreach (var funcName in functionDirs)
             {
-                var funcIndexPath = Path.Combine(functionsPath, funcName, "index.ts");
+                var funcIndexPath = Path.Combine(functionsPath!, funcName, "index.ts");
                 if (File.Exists(funcIndexPath))
                 {
                     var funcBytes = System.Text.Encoding.UTF8.GetBytes(File.ReadAllText(funcIndexPath));
@@ -156,10 +183,14 @@ public static class SupabaseStackExtensions
         else
         {
             // Local development: Use bind mounts and standard Deno command
-            edgeBuilder
-                .WithBindMount(edgeDir, "/home/deno/main", isReadOnly: true)
-                .WithBindMount(functionsPath, "/home/deno/functions", isReadOnly: true)
-                .WithArgs("run", "--allow-all", "--unstable-worker-options", "/home/deno/main/main.ts");
+            edgeBuilder.WithBindMount(edgeDir, "/home/deno/main", isReadOnly: true);
+
+            // Without a functions directory there is nothing to mount - the router
+            // never reads /home/deno/functions when its function list is empty.
+            if (hasFunctionsDir)
+                edgeBuilder.WithBindMount(functionsPath!, "/home/deno/functions", isReadOnly: true);
+
+            edgeBuilder.WithArgs("run", "--allow-all", "--unstable-worker-options", "/home/deno/main/main.ts");
         }
         stack.EdgeRuntime = edgeBuilder;
 
@@ -409,33 +440,57 @@ BEGIN
         RETURNING id INTO new_user_id;
 
         RAISE NOTICE '[Post-Init] User created: {email} (ID: %)', new_user_id;
-
-        -- Create profile (with exception handling)
-        BEGIN
-            IF EXISTS (SELECT FROM pg_tables WHERE schemaname = 'public' AND tablename = 'profiles') THEN
-                IF NOT EXISTS (SELECT 1 FROM public.profiles WHERE user_id = new_user_id) THEN
-                    INSERT INTO public.profiles (user_id, email, display_name, is_disabled, created_at, updated_at)
-                    VALUES (new_user_id, '{email}', '{displayName}', false, NOW(), NOW());
-                END IF;
-            END IF;
-        EXCEPTION WHEN OTHERS THEN
-            RAISE WARNING '[Post-Init] Profile creation failed for {email}: %', SQLERRM;
-        END;
-
-        -- Create admin role (with exception handling)
-        BEGIN
-            IF EXISTS (SELECT FROM pg_tables WHERE schemaname = 'public' AND tablename = 'user_roles') THEN
-                IF NOT EXISTS (SELECT 1 FROM public.user_roles WHERE user_id = new_user_id) THEN
-                    INSERT INTO public.user_roles (user_id, role, created_at)
-                    VALUES (new_user_id, 'admin', NOW());
-                END IF;
-            END IF;
-        EXCEPTION WHEN OTHERS THEN
-            RAISE WARNING '[Post-Init] Role creation failed for {email}: %', SQLERRM;
-        END;
     ELSE
         RAISE NOTICE '[Post-Init] User already exists: {email}';
     END IF;
+
+    -- Ensure the email identity exists (also heals users created by older versions).
+    -- GoTrue >= v2 rejects password logins with "Invalid login credentials" when the
+    -- user has no matching row in auth.identities.
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM auth.identities WHERE user_id = new_user_id AND provider = 'email') THEN
+            INSERT INTO auth.identities (
+                id, user_id, provider_id, provider, identity_data,
+                last_sign_in_at, created_at, updated_at
+            ) VALUES (
+                extensions.uuid_generate_v4(), new_user_id, new_user_id::text, 'email',
+                jsonb_build_object(
+                    'sub', new_user_id::text,
+                    'email', '{email}',
+                    'email_verified', true,
+                    'phone_verified', false
+                ),
+                NOW(), NOW(), NOW()
+            );
+            RAISE NOTICE '[Post-Init] Email identity created for: {email}';
+        END IF;
+    EXCEPTION WHEN OTHERS THEN
+        RAISE WARNING '[Post-Init] Identity creation failed for {email}: %', SQLERRM;
+    END;
+
+    -- Create profile (with exception handling)
+    BEGIN
+        IF EXISTS (SELECT FROM pg_tables WHERE schemaname = 'public' AND tablename = 'profiles') THEN
+            IF NOT EXISTS (SELECT 1 FROM public.profiles WHERE user_id = new_user_id) THEN
+                INSERT INTO public.profiles (user_id, email, display_name, is_disabled, created_at, updated_at)
+                VALUES (new_user_id, '{email}', '{displayName}', false, NOW(), NOW());
+            END IF;
+        END IF;
+    EXCEPTION WHEN OTHERS THEN
+        RAISE WARNING '[Post-Init] Profile creation failed for {email}: %', SQLERRM;
+    END;
+
+    -- Create admin role (with exception handling)
+    BEGIN
+        IF EXISTS (SELECT FROM pg_tables WHERE schemaname = 'public' AND tablename = 'user_roles') THEN
+            IF NOT EXISTS (SELECT 1 FROM public.user_roles WHERE user_id = new_user_id) THEN
+                INSERT INTO public.user_roles (user_id, role, created_at)
+                VALUES (new_user_id, 'admin', NOW());
+            END IF;
+        END IF;
+    EXCEPTION WHEN OTHERS THEN
+        RAISE WARNING '[Post-Init] Role creation failed for {email}: %', SQLERRM;
+    END;
 EXCEPTION WHEN OTHERS THEN
     RAISE WARNING '[Post-Init] User creation completely failed for {email}: %', SQLERRM;
 END;
