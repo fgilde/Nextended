@@ -136,8 +136,8 @@ public enum KnownHuggingFaceImageModel
     [Description("votepurchase/waiIllustriousSDXL_v150")]
     WaiIllustriousSDXL,
 
-    /// <summary>Pony Diffusion V6 XL — hugely popular anime/furry SDXL, uncensored (ungated mirror).</summary>
-    [Description("LyliaEngine/Pony_Diffusion_V6_XL")]
+    /// <summary>Pony Diffusion V6 XL (SPO, diffusers) — hugely popular anime/furry SDXL, uncensored.</summary>
+    [Description("John6666/pony-diffusion-v6-xl-sdxl-spo")]
     PonyDiffusionV6XL,
 
     /// <summary>DreamShaper XL v2 Turbo — fast SDXL turbo (few steps).</summary>
@@ -151,6 +151,42 @@ public enum KnownHuggingFaceImageModel
     /// <summary>Playground v2.5 — aesthetic-focused SDXL-class model.</summary>
     [Description("playgroundai/playground-v2.5-1024px-aesthetic")]
     PlaygroundV25,
+
+    /// <summary>Stable Diffusion XL base 1.0 — the reference SDXL model.</summary>
+    [Description("stabilityai/stable-diffusion-xl-base-1.0")]
+    SdxlBase,
+
+    /// <summary>DreamShaper 8 — extremely popular SD1.5 all-rounder.</summary>
+    [Description("Lykon/dreamshaper-8")]
+    DreamShaper8,
+
+    /// <summary>majicMIX realistic v7 — photoreal SD1.5 (portraits, Asian aesthetics).</summary>
+    [Description("digiplay/majicMIX_realistic_v7")]
+    MajicMixRealistic,
+
+    /// <summary>Juggernaut XL v9 — top-tier photorealistic SDXL.</summary>
+    [Description("RunDiffusion/Juggernaut-XL-v9")]
+    JuggernautXLv9,
+
+    /// <summary>epiCRealism XL v7 (Final Destination) — photorealistic SDXL.</summary>
+    [Description("misri/epicrealismXL_v7FinalDestination")]
+    EpicRealismXL,
+
+    /// <summary>epiCRealism (SD1.5) — beloved photoreal SD1.5 model.</summary>
+    [Description("emilianJR/epiCRealism")]
+    EpicRealism15,
+
+    /// <summary>Realistic Vision v5.1 — classic photoreal SD1.5.</summary>
+    [Description("stablediffusionapi/realistic-vision-v51")]
+    RealisticVision51,
+
+    /// <summary>Animagine XL 3.1 — high-quality anime SDXL (predecessor of 4.0).</summary>
+    [Description("cagliostrolab/animagine-xl-3.1")]
+    AnimagineXL31,
+
+    /// <summary>RealVisXL V5.0 Lightning — photoreal SDXL, ~6 steps (very fast).</summary>
+    [Description("SG161222/RealVisXL_V5.0_Lightning")]
+    RealVisXL5Lightning,
 }
 
 /// <summary>
@@ -194,7 +230,26 @@ public sealed class ImageModel
     public static int StepsOf(KnownHuggingFaceImageModel model) => model switch
     {
         KnownHuggingFaceImageModel.DreamShaperXLTurbo => 8,
+        KnownHuggingFaceImageModel.RealVisXL5Lightning => 6,
         _ => 25,
+    };
+
+    /// <summary>
+    /// Whether to load the fp16 file variant. This is per-repo: some repos ship ONLY
+    /// <c>*.fp16.safetensors</c> (need f16=true), others ONLY default-named weights (need
+    /// f16=false); the wrong setting fails with "variant=fp16, no such files" or
+    /// "necessary safetensors weights ... (variant=None)". Values verified against each
+    /// repo's unet folder. "BOTH"-repos use fp16 to save VRAM.
+    /// </summary>
+    public static bool F16Of(KnownHuggingFaceImageModel model) => model switch
+    {
+        KnownHuggingFaceImageModel.OmnigenXL => false,           // DEFAULT-only
+        KnownHuggingFaceImageModel.PonyDiffusionV6XL => false,   // DEFAULT-only
+        KnownHuggingFaceImageModel.AnimagineXL4 => false,        // DEFAULT-only
+        KnownHuggingFaceImageModel.AnimagineXL31 => false,       // DEFAULT-only
+        KnownHuggingFaceImageModel.EpicRealism15 => false,       // DEFAULT-only
+        KnownHuggingFaceImageModel.RealisticVision51 => false,   // DEFAULT-only
+        _ => true,                                               // FP16-only or BOTH
     };
 
     /// <summary>Resolves the gallery name of a <see cref="KnownImageModel"/> via its <see cref="DescriptionAttribute"/>.</summary>

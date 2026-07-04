@@ -151,7 +151,8 @@ public static class ImageGenerationBuilderExtensions
         => builder.AddHuggingFaceModel(
             name ?? known.ToString().ToLowerInvariant(),
             ImageModel.RepoOf(known),
-            steps: ImageModel.StepsOf(known));
+            steps: ImageModel.StepsOf(known),
+            f16: ImageModel.F16Of(known));
 
     /// <summary>
     /// Registers any HuggingFace-hosted diffusers model by repo id, e.g.
@@ -162,12 +163,14 @@ public static class ImageGenerationBuilderExtensions
     /// <param name="hfRepo">HuggingFace repo id in diffusers format (owner/repo).</param>
     /// <param name="pipelineType">diffusers pipeline; default fits SDXL-class models.</param>
     /// <param name="steps">Sampler steps (turbo models want ~6-8).</param>
+    /// <param name="f16">Load the fp16 file variant — only for repos that publish <c>*.fp16.safetensors</c>.</param>
     public static IResourceBuilder<ImageGenerationResource> AddHuggingFaceModel(
         this IResourceBuilder<ImageGenerationResource> builder,
         string name,
         string hfRepo,
         string pipelineType = "StableDiffusionXLPipeline",
-        int steps = 25)
+        int steps = 25,
+        bool f16 = false)
     {
         var resource = builder.Resource;
 
@@ -180,12 +183,15 @@ public static class ImageGenerationBuilderExtensions
         }
 
         var safeName = new string(name.Trim().ToLowerInvariant().Select(c => char.IsLetterOrDigit(c) || c is '-' or '_' or '.' ? c : '-').ToArray());
+        // f16 defaults OFF: setting it makes diffusers request the "fp16" file variant,
+        // which many HF repos don't ship (→ "variant=fp16, but no such modeling files").
+        // Loading the default variant works everywhere; enable f16 only for repos that
+        // actually publish fp16 weights. On GPU we still run on CUDA (diffusers.cuda).
         var yaml = $"""
             name: {safeName}
             backend: diffusers
-            f16: {(resource.GpuEnabled ? "true" : "false")}
             step: {steps}
-            parameters:
+            {(f16 ? "f16: true\n" : "")}parameters:
               model: {hfRepo}
             diffusers:
               cuda: {(resource.GpuEnabled ? "true" : "false")}
@@ -244,6 +250,97 @@ public static class ImageGenerationBuilderExtensions
             .WaitFor(builder)
             .WithParentRelationship(builder.Resource)
             .ExcludeFromManifest();
+
+        return builder;
+    }
+
+    /// <summary>
+    /// Reuses an EXISTING Open WebUI (e.g. the one added by the Ollama integration's
+    /// <c>WithOpenWebUI()</c>) and extends it with image generation against this service,
+    /// instead of spinning up a second Open WebUI. Pass the resource you already have,
+    /// e.g. <c>builder.Resources.OfType&lt;OpenWebUIResource&gt;().FirstOrDefault()</c>.
+    /// </summary>
+    public static IResourceBuilder<ImageGenerationResource> WithOpenWebUI(
+        this IResourceBuilder<ImageGenerationResource> builder,
+        IResourceWithEnvironment existingOpenWebUi)
+    {
+        AttachImageGeneration(builder.Resource, existingOpenWebUi);
+        return builder;
+    }
+
+    /// <summary>
+    /// Wires image generation into an already-present Open WebUI if one exists in the app
+    /// (matched by resource type), otherwise creates a new one. Handy when Ollama already
+    /// added an Open WebUI and you just want your image models to show up there too.
+    /// </summary>
+    public static IResourceBuilder<ImageGenerationResource> WithOpenWebUI(
+        this IResourceBuilder<ImageGenerationResource> builder,
+        bool useExistingIfFound,
+        int? hostPort = null,
+        string? name = null)
+    {
+        if (useExistingIfFound)
+        {
+            // Duck-typed lookup so this package needs no dependency on the Ollama integration.
+            var existing = builder.ApplicationBuilder.Resources
+                .OfType<IResourceWithEnvironment>()
+                .FirstOrDefault(r => r.GetType().Name == "OpenWebUIResource");
+            if (existing is not null)
+            {
+                AttachImageGeneration(builder.Resource, existing);
+                return builder;
+            }
+        }
+        return builder.WithOpenWebUI(hostPort, name);
+    }
+
+    /// <summary>Adds the image-generation env vars to any Open WebUI resource (deferred resolution).</summary>
+    private static void AttachImageGeneration(ImageGenerationResource imageGen, IResourceWithEnvironment webui)
+    {
+        var apiBase = ReferenceExpression.Create($"{imageGen.HttpEndpoint}/v1");
+        webui.Annotations.Add(new EnvironmentCallbackAnnotation(ctx =>
+        {
+            ctx.EnvironmentVariables["ENABLE_IMAGE_GENERATION"] = "True";
+            ctx.EnvironmentVariables["IMAGE_GENERATION_ENGINE"] = "openai";
+            ctx.EnvironmentVariables["IMAGES_OPENAI_API_BASE_URL"] = apiBase;
+            ctx.EnvironmentVariables["IMAGES_OPENAI_API_KEY"] = "sk-local";
+            ctx.EnvironmentVariables["IMAGE_GENERATION_MODEL"] = imageGen.DefaultModel;
+        }));
+    }
+
+    /// <summary>
+    /// Adds a standalone <see href="https://github.com/vladmandic/sdnext">SD.Next</see> image
+    /// studio (full txt2img/img2img UI, model &amp; LoRA management, Civitai/HuggingFace downloads) —
+    /// the practical UI for experimenting with (also NSFW) image models. Runs its own GPU
+    /// container with its own models (does not proxy through LocalAI); complementary to
+    /// the Open WebUI overloads. Dev-time only (excluded from the publish manifest).
+    /// </summary>
+    /// <param name="builder">The image generation resource builder (parent for grouping/GPU).</param>
+    /// <param name="hostPort">Fixed host port for the SD.Next UI (default random).</param>
+    /// <param name="image">Container image (default: <c>vladmandic/sdnext-cuda</c>; use a ROCm/IPEX image for other GPUs).</param>
+    /// <param name="tag">Image tag (default <c>latest</c>).</param>
+    /// <param name="name">Resource name (default <c>{name}-sdnext</c>).</param>
+    public static IResourceBuilder<ImageGenerationResource> WithSdNextUi(
+        this IResourceBuilder<ImageGenerationResource> builder,
+        int? hostPort = null,
+        string image = "vladmandic/sdnext-cuda",
+        string tag = "latest",
+        string? name = null)
+    {
+        var appBuilder = builder.ApplicationBuilder;
+        var uiName = name ?? $"{builder.Resource.Name}-sdnext";
+
+        var rb = appBuilder.AddResource(new SdNextResource(uiName))
+            .WithImage(image, tag)
+            .WithHttpEndpoint(port: hostPort, targetPort: 7860, name: "http")
+            .WithVolume($"{uiName}-models", "/mnt/models")   // Checkpoints, LoRAs, VAE …
+            .WithVolume($"{uiName}-data", "/mnt/data")        // Config, Outputs, Cache
+            .WithParentRelationship(builder.Resource)
+            .ExcludeFromManifest();
+
+        // GPU folgt der Konfiguration der Image-Gen-Resource (Default: NVIDIA).
+        if (builder.Resource.GpuEnabled)
+            rb.WithContainerRuntimeArgs("--gpus", "all");
 
         return builder;
     }

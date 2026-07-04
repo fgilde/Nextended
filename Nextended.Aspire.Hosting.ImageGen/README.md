@@ -83,7 +83,14 @@ Known HF models: `RealVisXL4`, `RealVisXL5`, `NsfwGenV2`, `NsfwGenAnime`, `NsfwV
 `OmnigenXL`, `OmnigenXLNsfw`, `WaiIllustriousSDXL`, `PonyDiffusionV6XL`,
 `DreamShaperXLTurbo` (8 steps), `AnimagineXL4`, `PlaygroundV25`.
 These run on LocalAI's python `diffusers` backend (first use downloads the backend + weights;
-SDXL-class models want ≥8 GB free VRAM).
+SDXL-class models want ≥8 GB free VRAM). The correct fp16 file-variant flag is set
+**automatically per known model** (repos ship either `*.fp16.safetensors` or default-named
+weights — the wrong flag fails to load). For custom repos via the string overload, pass
+`f16: true` only if the repo ships fp16-variant files.
+
+> **Changing/adding models on an existing stack:** LocalAI imports each model config into its
+> `/models` volume on first start and does **not** overwrite it later. After changing models
+> (or this package), drop the volume so configs re-import: `docker volume rm <name>-models`.
 
 > Note: LocalAI gallery names (used with `AddModel`) and HuggingFace repos (used with
 > `AddHuggingFaceModel`) are different namespaces. A gallery name like `nsfw-v1` does **not**
@@ -112,6 +119,32 @@ Behavior notes:
 
 ## UIs
 
-- **LocalAI WebUI** is built in — open the resource endpoint in the browser.
-- **Open WebUI**: `WithOpenWebUI()` adds a `ghcr.io/open-webui/open-webui` container wired for
-  image generation (and chat) against this service. Dev-time only (`ExcludeFromManifest`).
+- **LocalAI WebUI** is built in — open the resource endpoint in the browser (has a real
+  text-to-image tab, unlike Open WebUI's chat-centric flow).
+- **SD.Next** (recommended for image work): `WithSdNextUi()` adds a full
+  [SD.Next](https://github.com/vladmandic/sdnext) studio — proper txt2img/img2img UI, model &
+  LoRA management, Civitai/HuggingFace downloads. Runs its own GPU container with its own
+  models (independent of LocalAI). Default image `vladmandic/sdnext-cuda:latest`, UI on port 7860.
+- **Open WebUI**: `WithOpenWebUI()` adds a `ghcr.io/open-webui/open-webui` container. Overloads let
+  you reuse an existing Open WebUI (e.g. the one from the Ollama integration) instead of a second one:
+  ```csharp
+  var ollama = builder.AddOllama("ollama").WithOpenWebUI();  // Ollama's Open WebUI
+  var imagegen = builder.AddImageGeneration("imagegen").AddModel(KnownImageModel.Flux1Schnell)
+      .WithOpenWebUI(useExistingIfFound: true);              // reuse it, add image models
+  // or pass it explicitly:
+  var ui = builder.Resources.OfType<OpenWebUIResource>().FirstOrDefault();
+  if (ui is not null) imagegen.WithOpenWebUI(ui);
+  ```
+  Note Open WebUI's image generation is awkward — you chat with a *text* model and press the image
+  button; selecting an image model as a chat model yields `unimplemented` (it hits
+  `/v1/chat/completions`). Prefer SD.Next or the LocalAI WebUI for pure image generation.
+
+```csharp
+var imagegen = builder.AddImageGeneration("imagegen")
+    .WithDataVolume()
+    .AddHuggingFaceModel(KnownHuggingFaceImageModel.NsfwV1)
+    .WithSdNextUi()      // full image studio on :7860
+    .WithOpenWebUI();    // optional, chat-first
+```
+
+All UIs are dev-time only (`ExcludeFromManifest`).

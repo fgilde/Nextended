@@ -36,3 +36,6 @@ public sealed class ImageGenerationResource(string name) : ContainerResource(nam
 
 /// <summary>An Open WebUI container wired to an <see cref="ImageGenerationResource"/>.</summary>
 public sealed class ImageGenOpenWebUIResource(string name) : ContainerResource(name);
+
+/// <summary>A standalone SD.Next image-generation studio attached to the stack.</summary>
+public sealed class SdNextResource(string name) : ContainerResource(name);
