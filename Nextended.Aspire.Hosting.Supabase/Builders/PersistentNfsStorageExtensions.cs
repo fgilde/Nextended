@@ -53,7 +53,12 @@ public static class PersistentNfsStorageExtensions
             // 1) VNet + subnet delegated to the ACA managed environment. A Microsoft.Storage
             //    service endpoint lets us lock the NFS storage account to this subnet.
 
-            var vnet = new VirtualNetwork(vnetName);
+            // Bicep identifiers only allow [A-Za-z0-9_], but callers pass real Azure resource
+            // names like "promote-vnet". Normalize the identifier and set the Name explicitly.
+            var vnet = new VirtualNetwork(Azure.Provisioning.Infrastructure.NormalizeBicepIdentifier(vnetName))
+            {
+                Name = vnetName
+            };
             vnet.AddressSpace = new VirtualNetworkAddressSpace();
             vnet.AddressSpace.AddressPrefixes.Add("10.10.0.0/16");
             infra.Add(vnet);
@@ -97,7 +102,7 @@ public static class PersistentNfsStorageExtensions
             var fileService = new FileService("default") { Parent = storage };
             infra.Add(fileService);
 
-            var share = new StorageFileShare(shareName)
+            var share = new StorageFileShare(Azure.Provisioning.Infrastructure.NormalizeBicepIdentifier(shareName))
             {
                 Parent = fileService,
                 Name = shareName,
@@ -107,7 +112,7 @@ public static class PersistentNfsStorageExtensions
             infra.Add(share);
 
             // 3) managedEnvironmentStorage (NFS) on the ACA environment.
-            var envStorage = new ContainerAppManagedEnvironmentStorage(nfsEnvStorageName)
+            var envStorage = new ContainerAppManagedEnvironmentStorage(Azure.Provisioning.Infrastructure.NormalizeBicepIdentifier(nfsEnvStorageName))
             {
                 Parent = env,
                 Name = nfsEnvStorageName,
