@@ -143,6 +143,33 @@ public static class LocalAiBuilderExtensions
         return builder;
     }
 
+    // ---- AddModel convenience overloads ---------------------------------------------------------
+    // So you can call AddModel(...) for ANY curated Known* enum and overload resolution (by the
+    // enum's type) routes it to the right modality method — no need to remember AddTextToSpeechModel
+    // vs. AddVideoModel vs. AddHuggingFaceModel etc. (KnownImageModel already flows into
+    // AddModel(ImageModel) via its implicit conversion.)
+
+    /// <summary>Convenience: routes a curated HuggingFace image model to <c>AddHuggingFaceModel</c>.</summary>
+    public static IResourceBuilder<LocalAiResource> AddModel(this IResourceBuilder<LocalAiResource> builder, KnownHuggingFaceImageModel model) => builder.AddHuggingFaceModel(model);
+
+    /// <summary>Convenience: routes a chat / LLM (incl. vision) model to <c>AddTextModel</c>.</summary>
+    public static IResourceBuilder<LocalAiResource> AddModel(this IResourceBuilder<LocalAiResource> builder, KnownTextModel model) => builder.AddTextModel(model);
+
+    /// <summary>Convenience: routes an embedding model to <c>AddEmbeddingModel</c>.</summary>
+    public static IResourceBuilder<LocalAiResource> AddModel(this IResourceBuilder<LocalAiResource> builder, KnownEmbeddingModel model) => builder.AddEmbeddingModel(model);
+
+    /// <summary>Convenience: routes a text-to-speech model to <c>AddTextToSpeechModel</c>.</summary>
+    public static IResourceBuilder<LocalAiResource> AddModel(this IResourceBuilder<LocalAiResource> builder, KnownTextToSpeechModel model) => builder.AddTextToSpeechModel(model);
+
+    /// <summary>Convenience: routes a speech-to-text model to <c>AddSpeechToTextModel</c>.</summary>
+    public static IResourceBuilder<LocalAiResource> AddModel(this IResourceBuilder<LocalAiResource> builder, KnownSpeechToTextModel model) => builder.AddSpeechToTextModel(model);
+
+    /// <summary>Convenience: routes a video model to <c>AddVideoModel</c>.</summary>
+    public static IResourceBuilder<LocalAiResource> AddModel(this IResourceBuilder<LocalAiResource> builder, KnownVideoModel model) => builder.AddVideoModel(model);
+
+    /// <summary>Convenience: routes a sound / music model to <c>AddSoundModel</c>.</summary>
+    public static IResourceBuilder<LocalAiResource> AddModel(this IResourceBuilder<LocalAiResource> builder, KnownSoundModel model) => builder.AddSoundModel(model);
+
     /// <summary>
     /// Registers a text-to-speech model from the LocalAI gallery (served on
     /// <c>/v1/audio/speech</c>). The first TTS model added becomes the default injected as
@@ -389,7 +416,7 @@ public static class LocalAiBuilderExtensions
         this IResourceBuilder<LocalAiResource> builder,
         IResourceWithEnvironment existingOpenWebUi)
     {
-        AttachImageGeneration(builder.Resource, existingOpenWebUi);
+        AttachLocalAiToOpenWebUI(builder.Resource, existingOpenWebUi);
         return builder;
     }
 
@@ -412,19 +439,28 @@ public static class LocalAiBuilderExtensions
                 .FirstOrDefault(r => r.GetType().Name == "OpenWebUIResource");
             if (existing is not null)
             {
-                AttachImageGeneration(builder.Resource, existing);
+                AttachLocalAiToOpenWebUI(builder.Resource, existing);
                 return builder;
             }
         }
         return builder.WithOpenWebUI(hostPort, name);
     }
 
-    /// <summary>Adds the image-generation env vars to any Open WebUI resource (deferred resolution).</summary>
-    private static void AttachImageGeneration(LocalAiResource localAi, IResourceWithEnvironment webui)
+    /// <summary>
+    /// Wires LocalAI into an EXISTING Open WebUI: registers it as an OpenAI-compatible connection
+    /// (so its chat/LLM models show up alongside e.g. Ollama's — Ollama keeps working via its
+    /// separate <c>OLLAMA_*</c> connection) AND enables image generation against it. Deferred env.
+    /// </summary>
+    private static void AttachLocalAiToOpenWebUI(LocalAiResource localAi, IResourceWithEnvironment webui)
     {
         var apiBase = ReferenceExpression.Create($"{localAi.HttpEndpoint}/v1");
         webui.Annotations.Add(new EnvironmentCallbackAnnotation(ctx =>
         {
+            // Model list / chat: register LocalAI as an OpenAI-compatible backend — this is what makes
+            // our models appear in the reused WebUI (the previous version only wired image generation).
+            ctx.EnvironmentVariables["ENABLE_OPENAI_API"] = "True";
+            ctx.EnvironmentVariables["OPENAI_API_BASE_URL"] = apiBase;
+            ctx.EnvironmentVariables["OPENAI_API_KEY"] = "sk-local";
             ctx.EnvironmentVariables["ENABLE_IMAGE_GENERATION"] = "True";
             ctx.EnvironmentVariables["IMAGE_GENERATION_ENGINE"] = "openai";
             ctx.EnvironmentVariables["IMAGES_OPENAI_API_BASE_URL"] = apiBase;
@@ -445,12 +481,22 @@ public static class LocalAiBuilderExtensions
     /// <param name="image">Container image (default: <c>vladmandic/sdnext-cuda</c>; use a ROCm/IPEX image for other GPUs).</param>
     /// <param name="tag">Image tag (default <c>latest</c>).</param>
     /// <param name="name">Resource name (default <c>{name}-sdnext</c>).</param>
+    /// <param name="shareHfCacheWithLocalAi">
+    /// When <c>true</c>, mounts one shared HuggingFace-cache volume into BOTH this SD.Next container
+    /// and the LocalAI container and points <c>HF_HOME</c> at it — so any <b>HuggingFace / diffusers</b>
+    /// model downloaded by one is reused by the other (both resolve by repo id from the same cache, no
+    /// re-download; it also persists LocalAI's diffusers downloads). NOTE: this only covers HF/diffusers
+    /// models (e.g. the SDXL fine-tunes added via <see cref="AddHuggingFaceModel(IResourceBuilder{LocalAiResource}, KnownHuggingFaceImageModel, string?)"/>);
+    /// LocalAI's GGML/gallery-specific image formats cannot be shared with SD.Next (different layout),
+    /// and SD.Next still loads a shared model by its repo id (it won't auto-list them as local checkpoints).
+    /// </param>
     public static IResourceBuilder<LocalAiResource> WithSdNextUi(
         this IResourceBuilder<LocalAiResource> builder,
         int? hostPort = null,
         string image = "vladmandic/sdnext-cuda",
         string tag = "latest",
-        string? name = null)
+        string? name = null,
+        bool shareHfCacheWithLocalAi = false)
     {
         var appBuilder = builder.ApplicationBuilder;
         var uiName = name ?? $"{builder.Resource.Name}-sdnext";
@@ -466,6 +512,15 @@ public static class LocalAiBuilderExtensions
         // GPU follows the LocalAI resource's configuration (default: NVIDIA).
         if (builder.Resource.GpuEnabled)
             rb.WithContainerRuntimeArgs("--gpus", "all");
+
+        // Shared HuggingFace cache: one volume mounted in both containers with HF_HOME pointing at it,
+        // so HF/diffusers weights download once and are reused by both LocalAI and SD.Next.
+        if (shareHfCacheWithLocalAi)
+        {
+            var hfCacheVolume = $"{builder.Resource.Name}-hfcache";
+            builder.WithVolume(hfCacheVolume, "/hf-cache").WithEnvironment("HF_HOME", "/hf-cache");
+            rb.WithVolume(hfCacheVolume, "/hf-cache").WithEnvironment("HF_HOME", "/hf-cache");
+        }
 
         return builder;
     }
