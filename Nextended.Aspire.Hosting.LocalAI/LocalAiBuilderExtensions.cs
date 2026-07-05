@@ -1,10 +1,10 @@
 using Aspire.Hosting;
 using Aspire.Hosting.ApplicationModel;
 
-namespace Nextended.Aspire.Hosting.ImageGen;
+namespace Nextended.Aspire.Hosting.LocalAI;
 
-/// <summary>GPU vendor for the image generation container.</summary>
-public enum ImageGenGpu
+/// <summary>GPU vendor for the LocalAI container.</summary>
+public enum LocalAiGpu
 {
     /// <summary>CPU only (works everywhere, slow).</summary>
     None,
@@ -14,8 +14,8 @@ public enum ImageGenGpu
     Amd,
 }
 
-/// <summary>Options for <see cref="ImageGenerationBuilderExtensions.AddImageGeneration"/>.</summary>
-public sealed class ImageGenerationOptions
+/// <summary>Options for <see cref="LocalAiBuilderExtensions.AddLocalAI"/>.</summary>
+public sealed class LocalAiOptions
 {
     /// <summary>Container image (without tag). Default: <c>localai/localai</c>.</summary>
     public string Image { get; set; } = "localai/localai";
@@ -23,12 +23,12 @@ public sealed class ImageGenerationOptions
     /// <summary>
     /// Image tag. Default: the all-in-one NVIDIA CUDA 12 build which bundles a ready
     /// <c>stablediffusion</c> model. Use e.g. <c>latest-gpu-nvidia-cuda-12</c> for a slim
-    /// image that only loads what you <c>AddModel</c>.
+    /// image that only loads what you add via <c>AddModel</c>/<c>AddTextToSpeechModel</c>/….
     /// </summary>
     public string Tag { get; set; } = "latest-aio-gpu-nvidia-cuda-12";
 
-    /// <summary>GPU vendor. Default: <see cref="ImageGenGpu.Nvidia"/>.</summary>
-    public ImageGenGpu Gpu { get; set; } = ImageGenGpu.Nvidia;
+    /// <summary>GPU vendor. Default: <see cref="LocalAiGpu.Nvidia"/>.</summary>
+    public LocalAiGpu Gpu { get; set; } = LocalAiGpu.Nvidia;
 
     /// <summary>Fixed host port for the endpoint (random if null).</summary>
     public int? HostPort { get; set; }
@@ -36,7 +36,7 @@ public sealed class ImageGenerationOptions
     /// <summary>
     /// AIO profile (<c>cpu</c>, <c>gpu-8g</c>, <c>apple</c>). LocalAI's AIO images detect the GPU
     /// via <c>lspci</c>, which fails inside Docker Desktop/WSL2 even when <c>--gpus all</c> works —
-    /// so when <see cref="Gpu"/> is <see cref="ImageGenGpu.Nvidia"/> and an AIO tag is used,
+    /// so when <see cref="Gpu"/> is <see cref="LocalAiGpu.Nvidia"/> and an AIO tag is used,
     /// this defaults to <c>gpu-8g</c> to force GPU mode. Set explicitly to override.
     /// </summary>
     public string? AioProfile { get; set; }
@@ -49,44 +49,49 @@ public sealed class ImageGenerationOptions
 }
 
 /// <summary>
-/// Aspire hosting extension for a self-hosted, OpenAI-compatible image generation service —
-/// the text-to-image counterpart of <c>AddOllama</c>.
+/// Aspire hosting extension for a self-hosted, OpenAI-compatible multimodal AI service (LocalAI):
+/// image generation, text-to-speech, speech-to-text, video generation, chat and embeddings —
+/// the self-hosted counterpart of <c>AddOllama</c> for everything beyond text.
 /// </summary>
-public static class ImageGenerationBuilderExtensions
+public static class LocalAiBuilderExtensions
 {
     /// <summary>
-    /// Adds an OpenAI-compatible image generation container (LocalAI).
+    /// Adds a self-hosted, OpenAI-compatible multimodal AI container (LocalAI). One service serves
+    /// images (<c>/v1/images/generations</c>), speech (<c>/v1/audio/speech</c>), transcription
+    /// (<c>/v1/audio/transcriptions</c>), video (<c>/video</c>), chat and embeddings.
     /// </summary>
     /// <example>
     /// <code>
-    /// var imagegen = builder.AddImageGeneration("imagegen")
+    /// var ai = builder.AddLocalAI("localai")
     ///     .WithDataVolume()
     ///     .AddModel(KnownImageModel.Flux1Schnell)
+    ///     .AddTextToSpeechModel(KnownTextToSpeechModel.QwenTts)
+    ///     .AddSpeechToTextModel(KnownSpeechToTextModel.WhisperBase)
     ///     .WithOpenWebUI();
     ///
-    /// builder.AddProject&lt;Projects.Web&gt;("web").WithImageGeneration(imagegen);
+    /// builder.AddProject&lt;Projects.Web&gt;("web").WithLocalAI(ai);
     /// </code>
     /// </example>
-    public static IResourceBuilder<ImageGenerationResource> AddImageGeneration(
+    public static IResourceBuilder<LocalAiResource> AddLocalAI(
         this IDistributedApplicationBuilder builder,
         string name,
-        Action<ImageGenerationOptions>? configure = null)
+        Action<LocalAiOptions>? configure = null)
     {
-        var options = new ImageGenerationOptions();
+        var options = new LocalAiOptions();
         configure?.Invoke(options);
 
-        var resource = new ImageGenerationResource(name);
+        var resource = new LocalAiResource(name);
         var rb = builder.AddResource(resource)
             .WithImage(options.Image, options.Tag)
-            .WithHttpEndpoint(port: options.HostPort, targetPort: ImageGenerationResource.DefaultTargetPort, name: ImageGenerationResource.HttpEndpointName)
+            .WithHttpEndpoint(port: options.HostPort, targetPort: LocalAiResource.DefaultTargetPort, name: LocalAiResource.HttpEndpointName)
             .WithHttpHealthCheck("/readyz");
 
         switch (options.Gpu)
         {
-            case ImageGenGpu.Nvidia:
+            case LocalAiGpu.Nvidia:
                 rb.WithContainerRuntimeArgs("--gpus", "all");
                 break;
-            case ImageGenGpu.Amd:
+            case LocalAiGpu.Amd:
                 rb.WithContainerRuntimeArgs("--device", "/dev/kfd", "--device", "/dev/dri");
                 break;
         }
@@ -94,18 +99,18 @@ public static class ImageGenerationBuilderExtensions
         // AIO images detect the GPU via lspci, which does not see the WSL2/Docker-Desktop GPU.
         // Forcing the profile skips detection; the CUDA backends are selected by the image anyway.
         var isAio = options.Tag.Contains("-aio-", StringComparison.OrdinalIgnoreCase) || options.Tag.StartsWith("latest-aio", StringComparison.OrdinalIgnoreCase);
-        var profile = options.AioProfile ?? (isAio && options.Gpu == ImageGenGpu.Nvidia ? "gpu-8g" : null);
+        var profile = options.AioProfile ?? (isAio && options.Gpu == LocalAiGpu.Nvidia ? "gpu-8g" : null);
         if (profile is not null)
             rb.WithEnvironment("PROFILE", profile);
 
         if (!string.IsNullOrWhiteSpace(options.ApiKey))
             rb.WithEnvironment("API_KEY", options.ApiKey);
 
-        resource.GpuEnabled = options.Gpu != ImageGenGpu.None;
+        resource.GpuEnabled = options.Gpu != LocalAiGpu.None;
 
-        // Deferred: when models were added via AddModel/AddHuggingFaceModel, MODELS lists
-        // exactly those — this also overrides the AIO images' full default model set
-        // (embeddings, tts, vision, ...), so only what you asked for gets downloaded and loaded.
+        // Deferred: when models were added (image/tts/stt/video), MODELS lists exactly those —
+        // this also overrides the AIO images' full default model set (embeddings, tts, vision, ...),
+        // so only what you asked for gets downloaded and loaded.
         rb.WithEnvironment(context =>
         {
             if (resource.Models.Count > 0)
@@ -119,33 +124,91 @@ public static class ImageGenerationBuilderExtensions
     }
 
     /// <summary>
-    /// Registers a model to install from the LocalAI gallery on startup.
+    /// Registers a text-to-image model to install from the LocalAI gallery on startup.
     /// Accepts gallery names, huggingface/OCI URIs or config URLs — and implicitly
-    /// <see cref="KnownImageModel"/> values or plain strings. The first added model becomes
-    /// the default injected by <see cref="WithImageGeneration{T}"/>.
+    /// <see cref="KnownImageModel"/> values or plain strings. The first image model added becomes
+    /// the default injected as <c>IMAGE_MODEL</c> by <see cref="WithLocalAI{T}"/>.
     /// Adding models replaces the AIO images' bundled default set: only what you add is
     /// downloaded and loaded. Combine with <see cref="WithDataVolume"/> so downloads
     /// survive restarts.
     /// </summary>
-    public static IResourceBuilder<ImageGenerationResource> AddModel(
-        this IResourceBuilder<ImageGenerationResource> builder,
+    public static IResourceBuilder<LocalAiResource> AddModel(
+        this IResourceBuilder<LocalAiResource> builder,
         ImageModel model)
     {
-        builder.Resource.Models.Add(model);
+        builder.Resource.Models.Add(new RegisteredModel(model.Name, model.Reference, ModelModality.Image));
         return builder;
     }
 
     /// <summary>
-    /// Registers a HuggingFace-hosted diffusers model (e.g. SDXL fine-tunes like RealVisXL or
+    /// Registers a text-to-speech model from the LocalAI gallery (served on
+    /// <c>/v1/audio/speech</c>). The first TTS model added becomes the default injected as
+    /// <c>TTS_MODEL</c> by <see cref="WithLocalAI{T}"/>.
+    /// </summary>
+    public static IResourceBuilder<LocalAiResource> AddTextToSpeechModel(
+        this IResourceBuilder<LocalAiResource> builder,
+        KnownTextToSpeechModel model)
+        => builder.AddTextToSpeechModel(GalleryNames.Of(model));
+
+    /// <summary>Registers any TTS gallery model by its exact gallery name (served on <c>/v1/audio/speech</c>).</summary>
+    public static IResourceBuilder<LocalAiResource> AddTextToSpeechModel(
+        this IResourceBuilder<LocalAiResource> builder,
+        string galleryName)
+    {
+        builder.Resource.Models.Add(new RegisteredModel(galleryName, galleryName, ModelModality.TextToSpeech));
+        return builder;
+    }
+
+    /// <summary>
+    /// Registers a speech-to-text (whisper) model from the LocalAI gallery (served on
+    /// <c>/v1/audio/transcriptions</c>). The first STT model added becomes the default injected
+    /// as <c>STT_MODEL</c> by <see cref="WithLocalAI{T}"/>.
+    /// </summary>
+    public static IResourceBuilder<LocalAiResource> AddSpeechToTextModel(
+        this IResourceBuilder<LocalAiResource> builder,
+        KnownSpeechToTextModel model)
+        => builder.AddSpeechToTextModel(GalleryNames.Of(model));
+
+    /// <summary>Registers any STT gallery model by its exact gallery name (served on <c>/v1/audio/transcriptions</c>).</summary>
+    public static IResourceBuilder<LocalAiResource> AddSpeechToTextModel(
+        this IResourceBuilder<LocalAiResource> builder,
+        string galleryName)
+    {
+        builder.Resource.Models.Add(new RegisteredModel(galleryName, galleryName, ModelModality.SpeechToText));
+        return builder;
+    }
+
+    /// <summary>
+    /// Registers a text/image-to-video model from the LocalAI gallery (served on <c>POST /video</c>).
+    /// The first video model added becomes the default injected as <c>VIDEO_MODEL</c> by
+    /// <see cref="WithLocalAI{T}"/>. Video weights are large (many GB) and generation is slow —
+    /// combine with <see cref="WithDataVolume"/>.
+    /// </summary>
+    public static IResourceBuilder<LocalAiResource> AddVideoModel(
+        this IResourceBuilder<LocalAiResource> builder,
+        KnownVideoModel model)
+        => builder.AddVideoModel(GalleryNames.Of(model));
+
+    /// <summary>Registers any video gallery model by its exact gallery name (served on <c>POST /video</c>).</summary>
+    public static IResourceBuilder<LocalAiResource> AddVideoModel(
+        this IResourceBuilder<LocalAiResource> builder,
+        string galleryName)
+    {
+        builder.Resource.Models.Add(new RegisteredModel(galleryName, galleryName, ModelModality.Video));
+        return builder;
+    }
+
+    /// <summary>
+    /// Registers a HuggingFace-hosted diffusers image model (e.g. SDXL fine-tunes like RealVisXL or
     /// the UnfilteredAI NSFW models) that is not part of the LocalAI gallery. A model config
     /// yaml is generated and bind-mounted into the container; LocalAI downloads the weights
     /// from HuggingFace on startup. Combine with <see cref="WithDataVolume"/>.
     /// </summary>
-    /// <param name="builder">The image generation resource builder.</param>
+    /// <param name="builder">The LocalAI resource builder.</param>
     /// <param name="known">A curated, verified HF model.</param>
     /// <param name="name">Optional model id consumers use (defaults to a slug of the enum member).</param>
-    public static IResourceBuilder<ImageGenerationResource> AddHuggingFaceModel(
-        this IResourceBuilder<ImageGenerationResource> builder,
+    public static IResourceBuilder<LocalAiResource> AddHuggingFaceModel(
+        this IResourceBuilder<LocalAiResource> builder,
         KnownHuggingFaceImageModel known,
         string? name = null)
         => builder.AddHuggingFaceModel(
@@ -155,17 +218,17 @@ public static class ImageGenerationBuilderExtensions
             f16: ImageModel.F16Of(known));
 
     /// <summary>
-    /// Registers any HuggingFace-hosted diffusers model by repo id, e.g.
+    /// Registers any HuggingFace-hosted diffusers image model by repo id, e.g.
     /// <c>AddHuggingFaceModel("realvis", "SG161222/RealVisXL_V4.0")</c>.
     /// </summary>
-    /// <param name="builder">The image generation resource builder.</param>
+    /// <param name="builder">The LocalAI resource builder.</param>
     /// <param name="name">Model id consumers use (also shown in /v1/models).</param>
     /// <param name="hfRepo">HuggingFace repo id in diffusers format (owner/repo).</param>
     /// <param name="pipelineType">diffusers pipeline; default fits SDXL-class models.</param>
     /// <param name="steps">Sampler steps (turbo models want ~6-8).</param>
     /// <param name="f16">Load the fp16 file variant — only for repos that publish <c>*.fp16.safetensors</c>.</param>
-    public static IResourceBuilder<ImageGenerationResource> AddHuggingFaceModel(
-        this IResourceBuilder<ImageGenerationResource> builder,
+    public static IResourceBuilder<LocalAiResource> AddHuggingFaceModel(
+        this IResourceBuilder<LocalAiResource> builder,
         string name,
         string hfRepo,
         string pipelineType = "StableDiffusionXLPipeline",
@@ -177,7 +240,7 @@ public static class ImageGenerationBuilderExtensions
         if (resource.HfConfigDir is null)
         {
             resource.HfConfigDir = Path.Combine(
-                builder.ApplicationBuilder.AppHostDirectory, "obj", "imagegen", resource.Name);
+                builder.ApplicationBuilder.AppHostDirectory, "obj", "localai", resource.Name);
             Directory.CreateDirectory(resource.HfConfigDir);
             builder.WithBindMount(resource.HfConfigDir, "/hf-configs", isReadOnly: true);
         }
@@ -199,7 +262,7 @@ public static class ImageGenerationBuilderExtensions
             """;
         File.WriteAllText(Path.Combine(resource.HfConfigDir, $"{safeName}.yaml"), yaml);
 
-        resource.Models.Add(new ImageModel(safeName) { Reference = $"/hf-configs/{safeName}.yaml" });
+        resource.Models.Add(new RegisteredModel(safeName, $"/hf-configs/{safeName}.yaml", ModelModality.Image));
         return builder;
     }
 
@@ -208,8 +271,8 @@ public static class ImageGenerationBuilderExtensions
     /// (<c>{name}-models</c> at <c>/models</c>, <c>{name}-backends</c> at <c>/backends</c>),
     /// so restarts don't re-download gigabytes.
     /// </summary>
-    public static IResourceBuilder<ImageGenerationResource> WithDataVolume(
-        this IResourceBuilder<ImageGenerationResource> builder,
+    public static IResourceBuilder<LocalAiResource> WithDataVolume(
+        this IResourceBuilder<LocalAiResource> builder,
         string? volumeName = null)
     {
         var baseName = volumeName ?? builder.Resource.Name;
@@ -219,13 +282,13 @@ public static class ImageGenerationBuilderExtensions
     }
 
     /// <summary>
-    /// Adds an Open WebUI container wired to this image generation service
-    /// (image generation via the OpenAI-compatible endpoint; chat models served by the
-    /// same LocalAI instance also work). Dev-time only: excluded from the publish manifest.
+    /// Adds an Open WebUI container wired to this service for image generation via the
+    /// OpenAI-compatible endpoint (chat models served by the same LocalAI instance also work).
+    /// Dev-time only: excluded from the publish manifest.
     /// Note: LocalAI additionally ships its own WebUI on the service endpoint itself.
     /// </summary>
-    public static IResourceBuilder<ImageGenerationResource> WithOpenWebUI(
-        this IResourceBuilder<ImageGenerationResource> builder,
+    public static IResourceBuilder<LocalAiResource> WithOpenWebUI(
+        this IResourceBuilder<LocalAiResource> builder,
         int? hostPort = null,
         string? name = null)
     {
@@ -233,7 +296,7 @@ public static class ImageGenerationBuilderExtensions
         var uiName = name ?? $"{builder.Resource.Name}-webui";
         var apiBase = ReferenceExpression.Create($"{builder.Resource.HttpEndpoint}/v1");
 
-        appBuilder.AddResource(new ImageGenOpenWebUIResource(uiName))
+        appBuilder.AddResource(new LocalAiOpenWebUIResource(uiName))
             .WithImage("ghcr.io/open-webui/open-webui", "main")
             .WithHttpEndpoint(port: hostPort, targetPort: 8080, name: "http")
             .WithVolume($"{uiName}-data", "/app/backend/data")
@@ -260,8 +323,8 @@ public static class ImageGenerationBuilderExtensions
     /// instead of spinning up a second Open WebUI. Pass the resource you already have,
     /// e.g. <c>builder.Resources.OfType&lt;OpenWebUIResource&gt;().FirstOrDefault()</c>.
     /// </summary>
-    public static IResourceBuilder<ImageGenerationResource> WithOpenWebUI(
-        this IResourceBuilder<ImageGenerationResource> builder,
+    public static IResourceBuilder<LocalAiResource> WithOpenWebUI(
+        this IResourceBuilder<LocalAiResource> builder,
         IResourceWithEnvironment existingOpenWebUi)
     {
         AttachImageGeneration(builder.Resource, existingOpenWebUi);
@@ -273,8 +336,8 @@ public static class ImageGenerationBuilderExtensions
     /// (matched by resource type), otherwise creates a new one. Handy when Ollama already
     /// added an Open WebUI and you just want your image models to show up there too.
     /// </summary>
-    public static IResourceBuilder<ImageGenerationResource> WithOpenWebUI(
-        this IResourceBuilder<ImageGenerationResource> builder,
+    public static IResourceBuilder<LocalAiResource> WithOpenWebUI(
+        this IResourceBuilder<LocalAiResource> builder,
         bool useExistingIfFound,
         int? hostPort = null,
         string? name = null)
@@ -295,16 +358,16 @@ public static class ImageGenerationBuilderExtensions
     }
 
     /// <summary>Adds the image-generation env vars to any Open WebUI resource (deferred resolution).</summary>
-    private static void AttachImageGeneration(ImageGenerationResource imageGen, IResourceWithEnvironment webui)
+    private static void AttachImageGeneration(LocalAiResource localAi, IResourceWithEnvironment webui)
     {
-        var apiBase = ReferenceExpression.Create($"{imageGen.HttpEndpoint}/v1");
+        var apiBase = ReferenceExpression.Create($"{localAi.HttpEndpoint}/v1");
         webui.Annotations.Add(new EnvironmentCallbackAnnotation(ctx =>
         {
             ctx.EnvironmentVariables["ENABLE_IMAGE_GENERATION"] = "True";
             ctx.EnvironmentVariables["IMAGE_GENERATION_ENGINE"] = "openai";
             ctx.EnvironmentVariables["IMAGES_OPENAI_API_BASE_URL"] = apiBase;
             ctx.EnvironmentVariables["IMAGES_OPENAI_API_KEY"] = "sk-local";
-            ctx.EnvironmentVariables["IMAGE_GENERATION_MODEL"] = imageGen.DefaultModel;
+            ctx.EnvironmentVariables["IMAGE_GENERATION_MODEL"] = localAi.DefaultModel;
         }));
     }
 
@@ -315,13 +378,13 @@ public static class ImageGenerationBuilderExtensions
     /// container with its own models (does not proxy through LocalAI); complementary to
     /// the Open WebUI overloads. Dev-time only (excluded from the publish manifest).
     /// </summary>
-    /// <param name="builder">The image generation resource builder (parent for grouping/GPU).</param>
+    /// <param name="builder">The LocalAI resource builder (parent for grouping/GPU).</param>
     /// <param name="hostPort">Fixed host port for the SD.Next UI (default random).</param>
     /// <param name="image">Container image (default: <c>vladmandic/sdnext-cuda</c>; use a ROCm/IPEX image for other GPUs).</param>
     /// <param name="tag">Image tag (default <c>latest</c>).</param>
     /// <param name="name">Resource name (default <c>{name}-sdnext</c>).</param>
-    public static IResourceBuilder<ImageGenerationResource> WithSdNextUi(
-        this IResourceBuilder<ImageGenerationResource> builder,
+    public static IResourceBuilder<LocalAiResource> WithSdNextUi(
+        this IResourceBuilder<LocalAiResource> builder,
         int? hostPort = null,
         string image = "vladmandic/sdnext-cuda",
         string tag = "latest",
@@ -338,7 +401,7 @@ public static class ImageGenerationBuilderExtensions
             .WithParentRelationship(builder.Resource)
             .ExcludeFromManifest();
 
-        // GPU folgt der Konfiguration der Image-Gen-Resource (Default: NVIDIA).
+        // GPU follows the LocalAI resource's configuration (default: NVIDIA).
         if (builder.Resource.GpuEnabled)
             rb.WithContainerRuntimeArgs("--gpus", "all");
 
@@ -346,30 +409,48 @@ public static class ImageGenerationBuilderExtensions
     }
 
     /// <summary>
-    /// Wires a consumer (frontend/API) to the image generation service by injecting
-    /// <c>IMAGE_PROVIDER=openai-compatible</c>, <c>IMAGE_API_BASE</c>, <c>IMAGE_MODEL</c>
-    /// (and <c>IMAGE_API_KEY</c> when set).
+    /// Wires a consumer (frontend/API) to the LocalAI service. Injects one shared base URL plus
+    /// the default model per modality: <c>AI_API_BASE</c>, <c>IMAGE_MODEL</c> and — when a model
+    /// of that kind was added — <c>TTS_MODEL</c>, <c>STT_MODEL</c>, <c>VIDEO_MODEL</c>
+    /// (and <c>AI_API_KEY</c> when set). For backwards compatibility it also injects the
+    /// <c>IMAGE_PROVIDER</c>/<c>IMAGE_API_BASE</c> pair so existing image clients keep working.
     /// </summary>
     /// <param name="builder">The consuming resource.</param>
-    /// <param name="imageGen">The image generation resource.</param>
-    /// <param name="model">Model override; defaults to the service's default model.</param>
+    /// <param name="localAi">The LocalAI resource.</param>
+    /// <param name="imageModel">Image-model override; defaults to the service's default image model.</param>
     /// <param name="apiKey">API key override, when the backend was configured with one.</param>
-    public static IResourceBuilder<T> WithImageGeneration<T>(
+    public static IResourceBuilder<T> WithLocalAI<T>(
         this IResourceBuilder<T> builder,
-        IResourceBuilder<ImageGenerationResource> imageGen,
-        ImageModel? model = null,
+        IResourceBuilder<LocalAiResource> localAi,
+        ImageModel? imageModel = null,
         string? apiKey = null)
         where T : IResourceWithEnvironment
     {
+        var res = localAi.Resource;
         builder
-            .WithReference(imageGen.Resource.HttpEndpoint)
+            .WithReference(res.HttpEndpoint)
+            .WithEnvironment("AI_PROVIDER", "openai-compatible")
+            .WithEnvironment("AI_API_BASE", res.HttpEndpoint)
+            // Back-compat: keep the IMAGE_* pair so existing image clients need no changes.
             .WithEnvironment("IMAGE_PROVIDER", "openai-compatible")
-            .WithEnvironment("IMAGE_API_BASE", imageGen.Resource.HttpEndpoint)
-            // Deferred: resolves the default model at startup, regardless of call order.
-            .WithEnvironment(ctx => ctx.EnvironmentVariables["IMAGE_MODEL"] = model?.Name ?? imageGen.Resource.DefaultModel);
+            .WithEnvironment("IMAGE_API_BASE", res.HttpEndpoint)
+            // Deferred: resolves per-modality default models at startup, regardless of call order.
+            .WithEnvironment(ctx =>
+            {
+                ctx.EnvironmentVariables["IMAGE_MODEL"] = imageModel?.Name ?? res.DefaultModel;
+                var tts = res.DefaultModelFor(ModelModality.TextToSpeech);
+                if (tts is not null) ctx.EnvironmentVariables["TTS_MODEL"] = tts;
+                var stt = res.DefaultModelFor(ModelModality.SpeechToText);
+                if (stt is not null) ctx.EnvironmentVariables["STT_MODEL"] = stt;
+                var video = res.DefaultModelFor(ModelModality.Video);
+                if (video is not null) ctx.EnvironmentVariables["VIDEO_MODEL"] = video;
+            });
 
         if (!string.IsNullOrWhiteSpace(apiKey))
+        {
+            builder.WithEnvironment("AI_API_KEY", apiKey);
             builder.WithEnvironment("IMAGE_API_KEY", apiKey);
+        }
 
         return builder;
     }

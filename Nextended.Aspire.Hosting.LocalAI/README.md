@@ -1,54 +1,75 @@
-# Nextended.Aspire.Hosting.ImageGen
+# Nextended.Aspire.Hosting.LocalAI
 
-Self-hosted, **OpenAI-compatible image generation** (text-to-image) for .NET Aspire —
-the missing counterpart to `AddOllama`. Runs [LocalAI](https://github.com/mudler/LocalAI)
-as a container resource, exposes `POST /v1/images/generations`, supports NVIDIA/AMD GPUs,
-gallery model management and an optional Open WebUI.
+Self-hosted, **OpenAI-compatible multimodal AI** for .NET Aspire — the self-hosted counterpart
+to `AddOllama` for everything beyond text. Runs [LocalAI](https://github.com/mudler/LocalAI) as a
+single container resource that serves **image generation, text-to-speech, speech-to-text, video
+generation, chat and embeddings** on one endpoint, with NVIDIA/AMD GPU support, gallery model
+management and an optional Open WebUI.
 
 ```csharp
 var builder = DistributedApplication.CreateBuilder(args);
 
-var imagegen = builder.AddImageGeneration("imagegen")   // NVIDIA GPU + AIO image by default
-    .WithDataVolume()                                   // persist model downloads
-    .AddModel(KnownImageModel.Flux1Schnell)             // install from the LocalAI gallery
-    .AddModel("dreamshaper")                            // implicit string -> ImageModel
-    .WithOpenWebUI();                                   // dev-time UI (excluded from publish)
+var ai = builder.AddLocalAI("localai")                      // NVIDIA GPU + AIO image by default
+    .WithDataVolume()                                       // persist model downloads
+    .AddModel(KnownImageModel.Flux1Schnell)                 // image  -> /v1/images/generations
+    .AddTextToSpeechModel(KnownTextToSpeechModel.Kokoro)    // TTS    -> /v1/audio/speech
+    .AddSpeechToTextModel(KnownSpeechToTextModel.WhisperBase) // STT  -> /v1/audio/transcriptions
+    .WithOpenWebUI();                                       // dev-time UI (excluded from publish)
 
 builder.AddProject<Projects.Web>("web")
-    .WithImageGeneration(imagegen);                     // injects IMAGE_PROVIDER / IMAGE_API_BASE / IMAGE_MODEL
+    .WithLocalAI(ai);   // injects AI_API_BASE + IMAGE_MODEL / TTS_MODEL / STT_MODEL / VIDEO_MODEL
 ```
+
+> Formerly `Nextended.Aspire.Hosting.ImageGen` (image-only). The container was always a full
+> LocalAI server — this package now exposes the other modalities too. `AddLocalAI`/`WithLocalAI`
+> replace `AddImageGeneration`/`WithImageGeneration`.
 
 ## What the consumer gets
 
-`WithImageGeneration(...)` injects environment variables into the consuming resource:
+`WithLocalAI(...)` injects environment variables into the consuming resource. One base URL serves
+every modality; the default model per modality is injected only when you added one of that kind.
 
 | Variable | Value |
 |---|---|
-| `IMAGE_PROVIDER` | `openai-compatible` |
-| `IMAGE_API_BASE` | the service endpoint (call `{IMAGE_API_BASE}/v1/images/generations`) |
-| `IMAGE_MODEL` | the default model (first `AddModel`, else the AIO-bundled `stablediffusion`) |
-| `IMAGE_API_KEY` | only when configured |
+| `AI_PROVIDER` | `openai-compatible` |
+| `AI_API_BASE` | the service endpoint (all endpoints live under it) |
+| `IMAGE_MODEL` | default image model (first image `AddModel`, else the AIO-bundled `stablediffusion`) |
+| `TTS_MODEL` | default TTS model — only if an `AddTextToSpeechModel` was added |
+| `STT_MODEL` | default STT model — only if an `AddSpeechToTextModel` was added |
+| `VIDEO_MODEL` | default video model — only if an `AddVideoModel` was added |
+| `AI_API_KEY` | only when configured |
 
-Any OpenAI images client works unchanged:
+> Back-compat: `IMAGE_PROVIDER`, `IMAGE_API_BASE` (and `IMAGE_API_KEY`) are still injected too, so
+> existing image-only clients keep working after the rename with no code change.
 
-```http
-POST {IMAGE_API_BASE}/v1/images/generations
-{ "model": "flux.1-schnell", "prompt": "a lighthouse at dawn", "size": "1024x1024", "response_format": "b64_json" }
-```
+### Endpoints
 
-## Generating images from your app
+| Capability | Endpoint | Default-model env |
+|---|---|---|
+| Image generation | `POST /v1/images/generations` | `IMAGE_MODEL` |
+| Text-to-speech | `POST /v1/audio/speech` | `TTS_MODEL` |
+| Speech-to-text | `POST /v1/audio/transcriptions` | `STT_MODEL` |
+| Video generation | `POST /video` | `VIDEO_MODEL` |
+| Chat / vision | `POST /v1/chat/completions` | — |
+| Embeddings | `POST /v1/embeddings` | — |
 
-The endpoint speaks the **OpenAI Images API** (`POST /v1/images/generations`) and returns a
-base64 PNG. Read the three env vars `WithImageGeneration` injects and post a request — no SDK
-required. Prefer calling it **server-side**: if you set an `ApiKey`, it must never reach the
-browser, and LocalAI is meant to live on a trusted network, not be exposed publicly.
+All except `/video` are OpenAI-compatible, so any OpenAI client works unchanged. `/video` is
+LocalAI's own endpoint (there is no OpenAI video standard).
 
-**C# (from the consuming service):**
+## Generating from your app
+
+Prefer calling the service **server-side**: if you set an `ApiKey` it must never reach the browser,
+and LocalAI is meant to live on a trusted network, not be exposed publicly.
+
+### Images
+
+The endpoint speaks the **OpenAI Images API** and returns a base64 PNG.
 
 ```csharp
-var baseUrl = builder.Configuration["IMAGE_API_BASE"]!;   // injected, e.g. http://localhost:5069
-var model   = builder.Configuration["IMAGE_MODEL"]!;      // the default model
-var apiKey  = builder.Configuration["IMAGE_API_KEY"];     // only if you set o.ApiKey
+// C# (from the consuming service)
+var baseUrl = builder.Configuration["AI_API_BASE"]!;   // injected, e.g. http://localhost:5069
+var model   = builder.Configuration["IMAGE_MODEL"]!;
+var apiKey  = builder.Configuration["AI_API_KEY"];     // only if you set o.ApiKey
 
 using var http = new HttpClient();
 if (!string.IsNullOrEmpty(apiKey))
@@ -56,64 +77,97 @@ if (!string.IsNullOrEmpty(apiKey))
 
 var res = await http.PostAsJsonAsync($"{baseUrl}/v1/images/generations", new
 {
-    model,
-    prompt = "a lighthouse at dawn, cinematic",
-    size = "1024x1024",
-    n = 1,
-    response_format = "b64_json",
+    model, prompt = "a lighthouse at dawn, cinematic", size = "1024x1024", n = 1, response_format = "b64_json",
 });
 res.EnsureSuccessStatusCode();
-
 using var doc = JsonDocument.Parse(await res.Content.ReadAsStringAsync());
 var b64 = doc.RootElement.GetProperty("data")[0].GetProperty("b64_json").GetString();
 await File.WriteAllBytesAsync("out.png", Convert.FromBase64String(b64!));
 ```
 
-**TypeScript / JavaScript (Node, TanStack Start server fn, Next route handler, …):**
-
 ```ts
-// Keep this on the server — never ship IMAGE_API_KEY to the browser.
-const base   = process.env.IMAGE_API_BASE!;   // injected by WithImageGeneration
-const model  = process.env.IMAGE_MODEL!;
-const apiKey = process.env.IMAGE_API_KEY;      // optional
+// TypeScript / JavaScript (Node, TanStack Start server fn, Next route handler, …)
+// Keep this on the server — never ship AI_API_KEY to the browser.
+const base   = process.env.AI_API_BASE!;   // injected by WithLocalAI
+const apiKey = process.env.AI_API_KEY;      // optional
+const auth   = apiKey ? { Authorization: `Bearer ${apiKey}` } : {};
 
 const res = await fetch(`${base}/v1/images/generations`, {
   method: "POST",
-  headers: {
-    "Content-Type": "application/json",
-    ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {}),
-  },
+  headers: { "Content-Type": "application/json", ...auth },
   body: JSON.stringify({
-    model,
-    prompt: "a lighthouse at dawn, cinematic",
-    size: "1024x1024",
-    n: 1,
-    response_format: "b64_json",
+    model: process.env.IMAGE_MODEL, prompt: "a lighthouse at dawn", size: "1024x1024", n: 1, response_format: "b64_json",
   }),
 });
 if (!res.ok) throw new Error(`image backend ${res.status}: ${await res.text()}`);
-
 const json = await res.json();
 // OpenAI Images shape; extract defensively — some models/backends return a url instead.
 const b64 = json.data?.[0]?.b64_json ?? json.images?.[0]?.b64_json;
-const bytes = Buffer.from(b64, "base64");      // -> save, upload to storage, or return as data URI
+const bytes = Buffer.from(b64, "base64");   // -> save, upload to storage, or return as data URI
 ```
 
-Return the bytes to the browser as a normal image response or a `data:image/png;base64,…` URI.
-That server-proxy shape is exactly what the promote.me app uses (`image-provider.server.ts`),
-which lets it swap the Lovable gateway and this self-hosted backend behind one call site.
+### Audio — text-to-speech & transcription
 
-**Calling it straight from the browser** is possible — it's plain OpenAI-compatible HTTP — but
-only in a trusted/dev setup: there must be **no API key** (nothing to leak) and the backend host
-must be reachable from the browser with permissive CORS. For anything user-facing, proxy through
-your own backend (as above) so you keep control of auth, rate limiting and prompt policy.
+TTS returns **audio bytes** (not JSON); STT is a multipart upload returning `{ text }`.
+
+```ts
+// Text-to-speech (OpenAI-compatible). response_format: wav | mp3 | aac | flac | opus.
+const speech = await fetch(`${base}/v1/audio/speech`, {
+  method: "POST",
+  headers: { "Content-Type": "application/json", ...auth },
+  body: JSON.stringify({ model: process.env.TTS_MODEL, input: "Willkommen bei promote.me", response_format: "mp3" }),
+});
+const audio = Buffer.from(await speech.arrayBuffer());   // -> save as .mp3 / stream to the client
+
+// Speech-to-text (OpenAI-compatible, multipart/form-data).
+const form = new FormData();
+form.append("model", process.env.STT_MODEL!);
+form.append("file", new Blob([audioBytes], { type: "audio/wav" }), "clip.wav");
+const stt = await fetch(`${base}/v1/audio/transcriptions`, { method: "POST", headers: auth, body: form });
+const { text } = await stt.json();
+```
+
+### Video
+
+`POST /video` is **long-running** (seconds to minutes, GPU-bound) and returns a URL (or base64)
+to the generated clip. Treat it as a job, not a request/response you block a UI on.
+
+```ts
+const res = await fetch(`${base}/video`, {
+  method: "POST",
+  headers: { "Content-Type": "application/json", ...auth },
+  body: JSON.stringify({
+    model: process.env.VIDEO_MODEL,
+    prompt: "a neon city skyline at night, slow camera pan",
+    width: 512, height: 512, num_frames: 16, fps: 8,
+    response_format: "url",   // or "b64_json"
+  }),
+});
+const json = await res.json();
+const clipUrl = json.data?.[0]?.url;   // fetch / stream the mp4
+```
+
+```bash
+curl {AI_API_BASE}/video -H "Content-Type: application/json" -d '{
+  "model": "vllm-omni-wan2.2-t2v", "prompt": "A cat playing in a garden on a sunny day",
+  "width": 512, "height": 512, "num_frames": 16, "fps": 8 }'
+```
+
+Other `/video` params: `negative_prompt`, `start_image`, `end_image`, `input_reference`, `seconds`,
+`size`, `seed`, `cfg_scale`, `step`.
+
+**Calling straight from the browser** is possible for the OpenAI-compatible endpoints — but only in a
+trusted/dev setup: no API key (nothing to leak) and the backend reachable with permissive CORS. For
+anything user-facing, proxy through your own backend so you keep control of auth, rate limiting and
+prompt policy. (This server-proxy shape is exactly what the promote.me app uses in
+`image-provider.server.ts` / `audio-provider.server.ts` / `video-provider.server.ts`.)
 
 ## Options
 
 ```csharp
-builder.AddImageGeneration("imagegen", o =>
+builder.AddLocalAI("localai", o =>
 {
-    o.Gpu = ImageGenGpu.Nvidia;              // None | Nvidia | Amd
+    o.Gpu = LocalAiGpu.Nvidia;               // None | Nvidia | Amd
     o.Image = "localai/localai";
     o.Tag = "latest-aio-gpu-nvidia-cuda-12"; // AIO = batteries included; slim tags also work
     o.HostPort = 5069;                       // fixed host port (optional)
@@ -124,22 +178,22 @@ builder.AddImageGeneration("imagegen", o =>
 
 ## Models
 
-There are two model namespaces, added with two different methods:
+Each `Add…Model` call installs a model from the [LocalAI gallery](https://localai.io/gallery.html)
+on startup and tags it with a modality, so `WithLocalAI` knows which default-model env var to inject.
+The typed enums are a curated convenience — **any** gallery model works via the string overload, and
+the gallery is always the source of truth.
 
-- **`AddModel`** — installs a model from the [LocalAI gallery](https://localai.io/gallery.html).
-  Accepts `KnownImageModel` values, plain gallery names, huggingface/OCI URIs or config URLs.
-- **`AddHuggingFaceModel`** — loads any diffusers-format HuggingFace repo (not in the gallery)
-  by generating a model config on the fly.
+- `AddModel` — text-to-image (`KnownImageModel`, gallery names, huggingface/OCI URIs, config URLs)
+- `AddTextToSpeechModel` — TTS (`KnownTextToSpeechModel` or any gallery name)
+- `AddSpeechToTextModel` — STT (`KnownSpeechToTextModel` or any gallery name)
+- `AddVideoModel` — video (`KnownVideoModel` or any gallery name)
+- `AddHuggingFaceModel` — any diffusers-format HuggingFace image repo (not in the gallery)
 
-The name the consumer uses to call the model (the `model` field in the API request, and what
-`WithImageGeneration` injects as `IMAGE_MODEL`) is the **gallery name** for `AddModel`, or the
-model id / enum slug for `AddHuggingFaceModel`.
-
-### LocalAI gallery models (`AddModel`)
+### Image models (`AddModel`)
 
 | `KnownImageModel` | Gallery name (API `model`) | Notes |
 |---|---|---|
-| `StableDiffusionAio` | `stablediffusion` | Bundled with AIO images; the default when no `AddModel` is called |
+| `StableDiffusionAio` | `stablediffusion` | Bundled with AIO images; the default when no image model is added |
 | `StableDiffusion15` | `sd-1.5-ggml` | Classic SD 1.5, small & fast (GGML) |
 | `StableDiffusion3Medium` | `stable-diffusion-3-medium` | SD 3 Medium |
 | `StableDiffusion35Medium` | `sd-3.5-medium-ggml` | SD 3.5 Medium (GGML) |
@@ -161,23 +215,69 @@ model id / enum slug for `AddHuggingFaceModel`.
 | `Chroma1Hd` | `chroma1-hd` | Chroma1 HD |
 
 ```csharp
-imagegen
-    .AddModel(KnownImageModel.Flux1Schnell)          // enum -> gallery name
-    .AddModel(KnownImageModel.Flux1DevUncensored)    // uncensored FLUX (GGML Q8)
-    .AddModel("dreamshaper");                         // implicit string -> ImageModel
+ai.AddModel(KnownImageModel.Flux1Schnell)          // enum -> gallery name
+  .AddModel(KnownImageModel.Flux1DevUncensored)    // uncensored FLUX (GGML Q8)
+  .AddModel("dreamshaper");                         // implicit string -> ImageModel
 ```
 
-### HuggingFace diffusers models (`AddHuggingFaceModel`)
+### Audio models (`AddTextToSpeechModel` / `AddSpeechToTextModel`)
 
-Not in the LocalAI gallery — loaded from a HuggingFace repo by generating a model config that
-is bind-mounted into the container; LocalAI downloads the weights on startup. Includes curated,
+Text-to-speech (served on `/v1/audio/speech`):
+
+| `KnownTextToSpeechModel` | Gallery name | Notes |
+|---|---|---|
+| `Kokoro` | `kokoro` | Multilingual (incl. German), fast, high quality — good default |
+| `KokoroGerman` | `kokoros-de` | Kokoro (Rust port) with German voices |
+| `VibeVoice` | `vibevoice` | Expressive multi-speaker TTS |
+| `OmniVoice` | `omnivoice-cpp` | Fast TTS with voice cloning from a reference clip |
+| `OmniVoiceHq` | `omnivoice-cpp-hq` | Higher-fidelity OmniVoice variant |
+| `PocketTts` | `pocket-tts` | Small, fast general-purpose TTS |
+| `OuteTts` | `outetts` | Multilingual TTS |
+| `KittenTts` | `kitten-tts` | Very small / fast TTS |
+| `PiperGerman` | `vits-piper-de_DE-thorsten-sherpa` | Piper German voice (Thorsten), robust offline |
+
+Speech-to-text / whisper (served on `/v1/audio/transcriptions`):
+
+| `KnownSpeechToTextModel` | Gallery name | Notes |
+|---|---|---|
+| `WhisperBase` | `whisper-base` | 74M — good default, fast, low memory |
+| `WhisperSmall` | `whisper-small` | 244M — better accuracy, still light |
+| `WhisperMedium` | `whisper-medium` | 769M — high accuracy |
+| `WhisperLargeV3` | `whisper-large-v3` | 1.55B — best accuracy, multilingual; wants a GPU |
+
+```csharp
+ai.AddTextToSpeechModel(KnownTextToSpeechModel.Kokoro)
+  .AddSpeechToTextModel(KnownSpeechToTextModel.WhisperBase)
+  .AddTextToSpeechModel("vibevoice-cpp");   // any other gallery TTS model by exact name
+```
+
+### Video models (`AddVideoModel`)
+
+Served on `POST /video`. Weights are large (many GB) and generation is slow / GPU-bound — combine
+with `WithDataVolume()`.
+
+| `KnownVideoModel` | Gallery name | Notes |
+|---|---|---|
+| `Wan22TextToVideo` | `vllm-omni-wan2.2-t2v` | Wan 2.2 text-to-video (vllm-omni backend) |
+
+The video gallery moves fast. Other families available in LocalAI include **LTX-2**, **Wan 2.1**,
+**CogVideoX**, **HunyuanVideo** and **Stable Video Diffusion** — install any by its exact gallery id:
+
+```csharp
+ai.AddVideoModel(KnownVideoModel.Wan22TextToVideo)
+  .AddVideoModel("ltx-video");   // any gallery id — browse https://localai.io/gallery.html
+```
+
+### HuggingFace diffusers image models (`AddHuggingFaceModel`)
+
+Not in the LocalAI gallery — loaded from a HuggingFace repo by generating a model config that is
+bind-mounted into the container; LocalAI downloads the weights on startup. Includes curated,
 verified NSFW-capable SDXL models for adult platforms.
 
 ```csharp
-imagegen
-    .AddHuggingFaceModel(KnownHuggingFaceImageModel.RealVisXL4)      // photorealistic, NSFW-capable
-    .AddHuggingFaceModel(KnownHuggingFaceImageModel.NsfwGenV2)       // explicit content, unfiltered
-    .AddHuggingFaceModel("mymodel", "SG161222/RealVisXL_V5.0");      // any repo id (string overload)
+ai.AddHuggingFaceModel(KnownHuggingFaceImageModel.RealVisXL4)      // photorealistic, NSFW-capable
+  .AddHuggingFaceModel(KnownHuggingFaceImageModel.NsfwGenV2)       // explicit content, unfiltered
+  .AddHuggingFaceModel("mymodel", "SG161222/RealVisXL_V5.0");      // any repo id (string overload)
 ```
 
 | `KnownHuggingFaceImageModel` | HuggingFace repo | Notes |
@@ -212,7 +312,7 @@ custom repos via the string overload, tune `steps` and pass `f16: true` only if 
 fp16-variant files:
 
 ```csharp
-imagegen.AddHuggingFaceModel(
+ai.AddHuggingFaceModel(
     name: "my-turbo",
     hfRepo: "some/sdxl-turbo-repo",
     pipelineType: "StableDiffusionXLPipeline",   // default; fits SDXL-class models
@@ -224,17 +324,17 @@ imagegen.AddHuggingFaceModel(
 > `/models` volume on first start and does **not** overwrite it later. After changing models
 > (or this package), drop the volume so configs re-import: `docker volume rm <name>-models`.
 
-> Note: LocalAI gallery names (used with `AddModel`) and HuggingFace repos (used with
-> `AddHuggingFaceModel`) are different namespaces. A gallery name like `nsfw-v1` does **not**
-> exist in the gallery — use `AddHuggingFaceModel(KnownHuggingFaceImageModel.NsfwV1)` instead.
+> Note: LocalAI gallery names (used with `AddModel`/`AddTextToSpeechModel`/…) and HuggingFace repos
+> (used with `AddHuggingFaceModel`) are different namespaces. A gallery name like `nsfw-v1` does
+> **not** exist in the gallery — use `AddHuggingFaceModel(KnownHuggingFaceImageModel.NsfwV1)`.
 
 Browse everything at <https://localai.io/gallery.html>.
 
 Behavior notes:
 
-- **No `AddModel`** → AIO images load their bundled default set (image-gen, chat, tts, …).
-- **With `AddModel`** → only the added models are downloaded/loaded (the AIO default set
-  is overridden via the `MODELS` env var).
+- **No `Add…Model`** → AIO images load their bundled default set (image-gen, chat, tts, …).
+- **With any `Add…Model`** → only the models you added are downloaded/loaded (the AIO default set
+  is overridden via the `MODELS` env var). Mix modalities freely in one service.
 - `WithDataVolume()` persists `/models` **and** `/backends` — both downloads are multi-GB
   and only happen once.
 
@@ -251,9 +351,10 @@ Behavior notes:
 
 ## UIs
 
-- **LocalAI WebUI** is built in — open the resource endpoint in the browser (has a real
-  text-to-image tab, unlike Open WebUI's chat-centric flow).
-- **SD.Next** (recommended for image work): `WithSdNextUi()` adds a full
+- **LocalAI WebUI** is built in — open the resource endpoint in the browser. It has real
+  text-to-image, text-to-speech, transcription and video tabs, so it doubles as a quick way to
+  try every modality without writing a line of client code.
+- **SD.Next** (for serious image work): `WithSdNextUi()` adds a full
   [SD.Next](https://github.com/vladmandic/sdnext) studio — proper txt2img/img2img UI, model &
   LoRA management, Civitai/HuggingFace downloads. Runs its own GPU container with its own
   models (independent of LocalAI). Default image `vladmandic/sdnext-cuda:latest`, UI on port 7860.
@@ -261,18 +362,18 @@ Behavior notes:
   you reuse an existing Open WebUI (e.g. the one from the Ollama integration) instead of a second one:
   ```csharp
   var ollama = builder.AddOllama("ollama").WithOpenWebUI();  // Ollama's Open WebUI
-  var imagegen = builder.AddImageGeneration("imagegen").AddModel(KnownImageModel.Flux1Schnell)
+  var ai = builder.AddLocalAI("localai").AddModel(KnownImageModel.Flux1Schnell)
       .WithOpenWebUI(useExistingIfFound: true);              // reuse it, add image models
   // or pass it explicitly:
   var ui = builder.Resources.OfType<OpenWebUIResource>().FirstOrDefault();
-  if (ui is not null) imagegen.WithOpenWebUI(ui);
+  if (ui is not null) ai.WithOpenWebUI(ui);
   ```
   Note Open WebUI's image generation is awkward — you chat with a *text* model and press the image
   button; selecting an image model as a chat model yields `unimplemented` (it hits
-  `/v1/chat/completions`). Prefer SD.Next or the LocalAI WebUI for pure image generation.
+  `/v1/chat/completions`). Prefer the LocalAI WebUI or SD.Next for pure image generation.
 
 ```csharp
-var imagegen = builder.AddImageGeneration("imagegen")
+var ai = builder.AddLocalAI("localai")
     .WithDataVolume()
     .AddHuggingFaceModel(KnownHuggingFaceImageModel.NsfwV1)
     .WithSdNextUi()      // full image studio on :7860

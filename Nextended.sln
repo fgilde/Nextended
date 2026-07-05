@@ -56,7 +56,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Supabase.AppHost", "Tests\T
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "N8n.AppHost", "Tests\TestProjects\N8n.AppHost\N8n.AppHost.csproj", "{E2A3B4C5-6D7E-8F90-A1B2-C3D4E5F6A7B8}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nextended.Aspire.Hosting.ImageGen", "Nextended.Aspire.Hosting.ImageGen\Nextended.Aspire.Hosting.ImageGen.csproj", "{15D55227-5AF4-4AEA-9F2D-34322E5935D8}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nextended.Aspire.Hosting.LocalAI", "Nextended.Aspire.Hosting.LocalAI\Nextended.Aspire.Hosting.LocalAI.csproj", "{15D55227-5AF4-4AEA-9F2D-34322E5935D8}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

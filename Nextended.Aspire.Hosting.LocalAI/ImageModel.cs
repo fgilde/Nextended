@@ -1,7 +1,7 @@
 using System.ComponentModel;
 using System.Reflection;
 
-namespace Nextended.Aspire.Hosting.ImageGen;
+namespace Nextended.Aspire.Hosting.LocalAI;
 
 /// <summary>
 /// Well-known text-to-image models from the LocalAI model gallery.

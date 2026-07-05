@@ -14,8 +14,8 @@
   </ItemGroup>
 
   <PropertyGroup>
-    <Description>Self-hosted, OpenAI-compatible image generation (text-to-image) for .NET Aspire — LocalAI-based container resource with model management, GPU support and Open WebUI.</Description>
-    <PackageTags>Aspire, extensions, image-generation, stable-diffusion, flux, localai</PackageTags>
+    <Description>Self-hosted, OpenAI-compatible multimodal AI for .NET Aspire — a LocalAI-based container resource for image generation, text-to-speech, speech-to-text and video generation, with gallery model management, GPU support and Open WebUI. The self-hosted counterpart of AddOllama for everything beyond text.</Description>
+    <PackageTags>Aspire, extensions, localai, image-generation, text-to-speech, speech-to-text, video-generation, stable-diffusion, flux, whisper</PackageTags>
   </PropertyGroup>
 
   <ItemGroup>

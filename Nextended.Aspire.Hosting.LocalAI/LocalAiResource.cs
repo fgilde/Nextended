@@ -1,13 +1,14 @@
 using Aspire.Hosting.ApplicationModel;
 
-namespace Nextended.Aspire.Hosting.ImageGen;
+namespace Nextended.Aspire.Hosting.LocalAI;
 
 /// <summary>
-/// An OpenAI-compatible image generation service (backend: LocalAI).
-/// Exposes <c>/v1/images/generations</c> so any OpenAI-images client can consume it,
-/// plus LocalAI's built-in WebUI on the same endpoint.
+/// A self-hosted, OpenAI-compatible multimodal AI service (backend: LocalAI). One container
+/// serves image generation (<c>/v1/images/generations</c>), text-to-speech (<c>/v1/audio/speech</c>),
+/// speech-to-text (<c>/v1/audio/transcriptions</c>), video generation (<c>/video</c>), chat and
+/// embeddings — plus LocalAI's built-in WebUI, all on the same endpoint.
 /// </summary>
-public sealed class ImageGenerationResource(string name) : ContainerResource(name)
+public sealed class LocalAiResource(string name) : ContainerResource(name)
 {
     /// <summary>Default internal container port LocalAI listens on.</summary>
     public const int DefaultTargetPort = 8080;
@@ -18,8 +19,11 @@ public sealed class ImageGenerationResource(string name) : ContainerResource(nam
     /// <summary>The HTTP endpoint that serves the OpenAI-compatible API (and LocalAI WebUI).</summary>
     public EndpointReference HttpEndpoint => new(this, HttpEndpointName);
 
-    /// <summary>Models registered via <c>AddModel</c> (installed from the LocalAI gallery on startup).</summary>
-    public IList<ImageModel> Models { get; } = [];
+    /// <summary>
+    /// Models registered via <c>AddModel</c>/<c>AddTextToSpeechModel</c>/<c>AddSpeechToTextModel</c>/
+    /// <c>AddVideoModel</c> (installed from the LocalAI gallery on startup), each tagged with its modality.
+    /// </summary>
+    public IList<RegisteredModel> Models { get; } = [];
 
     /// <summary>Whether the container was configured with GPU acceleration (used for generated configs).</summary>
     internal bool GpuEnabled { get; set; }
@@ -28,14 +32,37 @@ public sealed class ImageGenerationResource(string name) : ContainerResource(nam
     internal string? HfConfigDir { get; set; }
 
     /// <summary>
-    /// The model consumers use by default (first <c>AddModel</c> wins; falls back to the
-    /// AIO-bundled <c>stablediffusion</c> when no model was added explicitly).
+    /// The default IMAGE model consumers use (first image model added wins; falls back to the
+    /// AIO-bundled <c>stablediffusion</c> when no image model was added explicitly).
     /// </summary>
-    public string DefaultModel => Models.Count > 0 ? Models[0].Name : ImageModel.NameOf(KnownImageModel.StableDiffusionAio);
+    public string DefaultModel => DefaultModelFor(ModelModality.Image) ?? ImageModel.NameOf(KnownImageModel.StableDiffusionAio);
+
+    /// <summary>The default model id for a modality (first added of that kind), or <c>null</c> if none was added.</summary>
+    public string? DefaultModelFor(ModelModality modality)
+        => Models.FirstOrDefault(m => m.Modality == modality)?.Name;
 }
 
-/// <summary>An Open WebUI container wired to an <see cref="ImageGenerationResource"/>.</summary>
-public sealed class ImageGenOpenWebUIResource(string name) : ContainerResource(name);
+/// <summary>The kind of generation a model performs — determines which default-model env var it drives.</summary>
+public enum ModelModality
+{
+    /// <summary>Text-to-image (<c>/v1/images/generations</c>).</summary>
+    Image,
+    /// <summary>Text-to-speech (<c>/v1/audio/speech</c>).</summary>
+    TextToSpeech,
+    /// <summary>Speech-to-text / transcription (<c>/v1/audio/transcriptions</c>).</summary>
+    SpeechToText,
+    /// <summary>Text/image-to-video (<c>POST /video</c>).</summary>
+    Video,
+}
+
+/// <summary>A model queued for install on LocalAI startup, tagged with its <see cref="ModelModality"/>.</summary>
+/// <param name="Name">The model id consumers pass to the API (and shown in /v1/models).</param>
+/// <param name="Reference">What goes into LocalAI's MODELS list: a gallery name, URI or container path to a generated config yaml.</param>
+/// <param name="Modality">The generation kind this model performs.</param>
+public sealed record RegisteredModel(string Name, string Reference, ModelModality Modality);
+
+/// <summary>An Open WebUI container wired to a <see cref="LocalAiResource"/>.</summary>
+public sealed class LocalAiOpenWebUIResource(string name) : ContainerResource(name);
 
 /// <summary>A standalone SD.Next image-generation studio attached to the stack.</summary>
 public sealed class SdNextResource(string name) : ContainerResource(name);
