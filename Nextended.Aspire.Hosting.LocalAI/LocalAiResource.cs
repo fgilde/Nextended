@@ -5,8 +5,9 @@ namespace Nextended.Aspire.Hosting.LocalAI;
 /// <summary>
 /// A self-hosted, OpenAI-compatible multimodal AI service (backend: LocalAI). One container
 /// serves image generation (<c>/v1/images/generations</c>), text-to-speech (<c>/v1/audio/speech</c>),
-/// speech-to-text (<c>/v1/audio/transcriptions</c>), video generation (<c>/video</c>), chat and
-/// embeddings — plus LocalAI's built-in WebUI, all on the same endpoint.
+/// speech-to-text (<c>/v1/audio/transcriptions</c>), video generation (<c>/video</c>),
+/// sound / music generation (<c>/v1/sound-generation</c>), chat and embeddings — plus LocalAI's
+/// built-in WebUI, all on the same endpoint.
 /// </summary>
 public sealed class LocalAiResource(string name) : ContainerResource(name)
 {
@@ -21,7 +22,8 @@ public sealed class LocalAiResource(string name) : ContainerResource(name)
 
     /// <summary>
     /// Models registered via <c>AddModel</c>/<c>AddTextToSpeechModel</c>/<c>AddSpeechToTextModel</c>/
-    /// <c>AddVideoModel</c> (installed from the LocalAI gallery on startup), each tagged with its modality.
+    /// <c>AddVideoModel</c>/<c>AddSoundModel</c> (installed from the LocalAI gallery on startup),
+    /// each tagged with its modality.
     /// </summary>
     public IList<RegisteredModel> Models { get; } = [];
 
@@ -53,6 +55,12 @@ public enum ModelModality
     SpeechToText,
     /// <summary>Text/image-to-video (<c>POST /video</c>).</summary>
     Video,
+    /// <summary>Text-to-sound / music generation (<c>POST /v1/sound-generation</c>).</summary>
+    Sound,
+    /// <summary>Chat / LLM text generation — incl. vision-capable multimodal (<c>POST /v1/chat/completions</c>).</summary>
+    Text,
+    /// <summary>Text embeddings for semantic search / RAG (<c>POST /v1/embeddings</c>).</summary>
+    Embedding,
 }
 
 /// <summary>A model queued for install on LocalAI startup, tagged with its <see cref="ModelModality"/>.</summary>

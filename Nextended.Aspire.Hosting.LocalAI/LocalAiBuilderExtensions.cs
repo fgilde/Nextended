@@ -21,11 +21,14 @@ public sealed class LocalAiOptions
     public string Image { get; set; } = "localai/localai";
 
     /// <summary>
-    /// Image tag. Default: the all-in-one NVIDIA CUDA 12 build which bundles a ready
-    /// <c>stablediffusion</c> model. Use e.g. <c>latest-gpu-nvidia-cuda-12</c> for a slim
-    /// image that only loads what you add via <c>AddModel</c>/<c>AddTextToSpeechModel</c>/….
+    /// Image tag. Default: the standard NVIDIA CUDA 12 build (currently LocalAI 4.x) — this is what
+    /// brings <b>video generation</b> and the <b>ace-step sound</b> backend. It's a slim image that
+    /// only loads what you add via <c>AddModel</c>/<c>AddTextModel</c>/…; backends download on demand.
+    /// NOTE: the all-in-one (<c>-aio-</c>) tags are frozen at v3.12.1 upstream and lack video/sound —
+    /// only pick one (e.g. <c>latest-aio-gpu-nvidia-cuda-12</c>) if you specifically want the bundled
+    /// default model set and can do without the newer backends.
     /// </summary>
-    public string Tag { get; set; } = "latest-aio-gpu-nvidia-cuda-12";
+    public string Tag { get; set; } = "latest-gpu-nvidia-cuda-12";
 
     /// <summary>GPU vendor. Default: <see cref="LocalAiGpu.Nvidia"/>.</summary>
     public LocalAiGpu Gpu { get; set; } = LocalAiGpu.Nvidia;
@@ -108,7 +111,7 @@ public static class LocalAiBuilderExtensions
 
         resource.GpuEnabled = options.Gpu != LocalAiGpu.None;
 
-        // Deferred: when models were added (image/tts/stt/video), MODELS lists exactly those —
+        // Deferred: when models were added (image/tts/stt/video/sound), MODELS lists exactly those —
         // this also overrides the AIO images' full default model set (embeddings, tts, vision, ...),
         // so only what you asked for gets downloaded and loaded.
         rb.WithEnvironment(context =>
@@ -195,6 +198,65 @@ public static class LocalAiBuilderExtensions
         string galleryName)
     {
         builder.Resource.Models.Add(new RegisteredModel(galleryName, galleryName, ModelModality.Video));
+        return builder;
+    }
+
+    /// <summary>
+    /// Registers a text-to-sound / MUSIC generation model from the LocalAI gallery (served on the
+    /// ElevenLabs-compatible <c>POST /v1/sound-generation</c>). The first sound model added becomes
+    /// the default injected as <c>SOUND_MODEL</c> by <see cref="WithLocalAI{T}"/>. Weights are large
+    /// (many GB) and generation is GPU-bound — combine with <see cref="WithDataVolume"/>.
+    /// </summary>
+    public static IResourceBuilder<LocalAiResource> AddSoundModel(
+        this IResourceBuilder<LocalAiResource> builder,
+        KnownSoundModel model)
+        => builder.AddSoundModel(GalleryNames.Of(model));
+
+    /// <summary>Registers any sound/music gallery model by its exact gallery name (served on <c>POST /v1/sound-generation</c>).</summary>
+    public static IResourceBuilder<LocalAiResource> AddSoundModel(
+        this IResourceBuilder<LocalAiResource> builder,
+        string galleryName)
+    {
+        builder.Resource.Models.Add(new RegisteredModel(galleryName, galleryName, ModelModality.Sound));
+        return builder;
+    }
+
+    /// <summary>
+    /// Registers a chat / LLM text model from the LocalAI gallery (served on <c>/v1/chat/completions</c>);
+    /// includes vision-capable multimodal models. The first text model added becomes the default injected
+    /// as <c>TEXT_MODEL</c> by <see cref="WithLocalAI{T}"/>. Any of the 1000+ gallery LLMs works via the
+    /// <c>AddTextModel(string)</c> overload — this is LocalAI's <c>AddOllama</c>-style role for text.
+    /// </summary>
+    public static IResourceBuilder<LocalAiResource> AddTextModel(
+        this IResourceBuilder<LocalAiResource> builder,
+        KnownTextModel model)
+        => builder.AddTextModel(GalleryNames.Of(model));
+
+    /// <summary>Registers any chat/LLM gallery model by its exact gallery name (served on <c>/v1/chat/completions</c>).</summary>
+    public static IResourceBuilder<LocalAiResource> AddTextModel(
+        this IResourceBuilder<LocalAiResource> builder,
+        string galleryName)
+    {
+        builder.Resource.Models.Add(new RegisteredModel(galleryName, galleryName, ModelModality.Text));
+        return builder;
+    }
+
+    /// <summary>
+    /// Registers a text-embedding model from the LocalAI gallery (served on <c>/v1/embeddings</c>).
+    /// The first embedding model added becomes the default injected as <c>EMBEDDING_MODEL</c> by
+    /// <see cref="WithLocalAI{T}"/>.
+    /// </summary>
+    public static IResourceBuilder<LocalAiResource> AddEmbeddingModel(
+        this IResourceBuilder<LocalAiResource> builder,
+        KnownEmbeddingModel model)
+        => builder.AddEmbeddingModel(GalleryNames.Of(model));
+
+    /// <summary>Registers any embedding gallery model by its exact gallery name (served on <c>/v1/embeddings</c>).</summary>
+    public static IResourceBuilder<LocalAiResource> AddEmbeddingModel(
+        this IResourceBuilder<LocalAiResource> builder,
+        string galleryName)
+    {
+        builder.Resource.Models.Add(new RegisteredModel(galleryName, galleryName, ModelModality.Embedding));
         return builder;
     }
 
@@ -411,8 +473,9 @@ public static class LocalAiBuilderExtensions
     /// <summary>
     /// Wires a consumer (frontend/API) to the LocalAI service. Injects one shared base URL plus
     /// the default model per modality: <c>AI_API_BASE</c>, <c>IMAGE_MODEL</c> and — when a model
-    /// of that kind was added — <c>TTS_MODEL</c>, <c>STT_MODEL</c>, <c>VIDEO_MODEL</c>
-    /// (and <c>AI_API_KEY</c> when set). For backwards compatibility it also injects the
+    /// of that kind was added — <c>TTS_MODEL</c>, <c>STT_MODEL</c>, <c>VIDEO_MODEL</c>, <c>SOUND_MODEL</c>,
+    /// <c>TEXT_MODEL</c>, <c>EMBEDDING_MODEL</c> (and <c>AI_API_KEY</c> when set). For backwards
+    /// compatibility it also injects the
     /// <c>IMAGE_PROVIDER</c>/<c>IMAGE_API_BASE</c> pair so existing image clients keep working.
     /// </summary>
     /// <param name="builder">The consuming resource.</param>
@@ -444,6 +507,12 @@ public static class LocalAiBuilderExtensions
                 if (stt is not null) ctx.EnvironmentVariables["STT_MODEL"] = stt;
                 var video = res.DefaultModelFor(ModelModality.Video);
                 if (video is not null) ctx.EnvironmentVariables["VIDEO_MODEL"] = video;
+                var sound = res.DefaultModelFor(ModelModality.Sound);
+                if (sound is not null) ctx.EnvironmentVariables["SOUND_MODEL"] = sound;
+                var text = res.DefaultModelFor(ModelModality.Text);
+                if (text is not null) ctx.EnvironmentVariables["TEXT_MODEL"] = text;
+                var embedding = res.DefaultModelFor(ModelModality.Embedding);
+                if (embedding is not null) ctx.EnvironmentVariables["EMBEDDING_MODEL"] = embedding;
             });
 
         if (!string.IsNullOrWhiteSpace(apiKey))

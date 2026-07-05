@@ -3,26 +3,32 @@
 Self-hosted, **OpenAI-compatible multimodal AI** for .NET Aspire — the self-hosted counterpart
 to `AddOllama` for everything beyond text. Runs [LocalAI](https://github.com/mudler/LocalAI) as a
 single container resource that serves **image generation, text-to-speech, speech-to-text, video
-generation, chat and embeddings** on one endpoint, with NVIDIA/AMD GPU support, gallery model
-management and an optional Open WebUI.
+generation, sound/music generation, chat and embeddings** on one endpoint, with NVIDIA/AMD GPU
+support, gallery model management and an optional Open WebUI.
 
 ```csharp
 var builder = DistributedApplication.CreateBuilder(args);
 
-var ai = builder.AddLocalAI("localai")                      // NVIDIA GPU + AIO image by default
+var ai = builder.AddLocalAI("localai")                      // NVIDIA GPU + LocalAI 4.x image by default
     .WithDataVolume()                                       // persist model downloads
-    .AddModel(KnownImageModel.Flux1Schnell)                 // image  -> /v1/images/generations
-    .AddTextToSpeechModel(KnownTextToSpeechModel.Kokoro)    // TTS    -> /v1/audio/speech
-    .AddSpeechToTextModel(KnownSpeechToTextModel.WhisperBase) // STT  -> /v1/audio/transcriptions
+    .AddModel(KnownImageModel.Flux1Schnell)                 // image    -> /v1/images/generations
+    .AddTextModel(KnownTextModel.Qwen3_8b)                  // chat/LLM -> /v1/chat/completions
+    .AddTextToSpeechModel(KnownTextToSpeechModel.Kokoro)    // TTS      -> /v1/audio/speech
+    .AddSpeechToTextModel(KnownSpeechToTextModel.WhisperBase) // STT    -> /v1/audio/transcriptions
     .WithOpenWebUI();                                       // dev-time UI (excluded from publish)
 
 builder.AddProject<Projects.Web>("web")
-    .WithLocalAI(ai);   // injects AI_API_BASE + IMAGE_MODEL / TTS_MODEL / STT_MODEL / VIDEO_MODEL
+    .WithLocalAI(ai);   // injects AI_API_BASE + IMAGE_MODEL / TEXT_MODEL / TTS_MODEL / STT_MODEL / VIDEO_MODEL / SOUND_MODEL / EMBEDDING_MODEL
 ```
 
 > Formerly `Nextended.Aspire.Hosting.ImageGen` (image-only). The container was always a full
 > LocalAI server — this package now exposes the other modalities too. `AddLocalAI`/`WithLocalAI`
 > replace `AddImageGeneration`/`WithImageGeneration`.
+
+> **Version / image:** the default tag is the standard **non-AIO 4.x** CUDA image
+> (`latest-gpu-nvidia-cuda-12`) — that's what ships **video generation** and the **ace-step sound**
+> backend. The all-in-one (`-aio-`) tags are frozen at **v3.12.1** upstream (no video/sound); only
+> pick one if you want the bundled default model set. Backends download on demand either way.
 
 ## What the consumer gets
 
@@ -33,10 +39,13 @@ every modality; the default model per modality is injected only when you added o
 |---|---|
 | `AI_PROVIDER` | `openai-compatible` |
 | `AI_API_BASE` | the service endpoint (all endpoints live under it) |
-| `IMAGE_MODEL` | default image model (first image `AddModel`, else the AIO-bundled `stablediffusion`) |
+| `IMAGE_MODEL` | default image model (first image `AddModel`, else `stablediffusion`) |
+| `TEXT_MODEL` | default chat/LLM model — only if an `AddTextModel` was added |
 | `TTS_MODEL` | default TTS model — only if an `AddTextToSpeechModel` was added |
 | `STT_MODEL` | default STT model — only if an `AddSpeechToTextModel` was added |
 | `VIDEO_MODEL` | default video model — only if an `AddVideoModel` was added |
+| `SOUND_MODEL` | default sound/music model — only if an `AddSoundModel` was added |
+| `EMBEDDING_MODEL` | default embedding model — only if an `AddEmbeddingModel` was added |
 | `AI_API_KEY` | only when configured |
 
 > Back-compat: `IMAGE_PROVIDER`, `IMAGE_API_BASE` (and `IMAGE_API_KEY`) are still injected too, so
@@ -50,11 +59,35 @@ every modality; the default model per modality is injected only when you added o
 | Text-to-speech | `POST /v1/audio/speech` | `TTS_MODEL` |
 | Speech-to-text | `POST /v1/audio/transcriptions` | `STT_MODEL` |
 | Video generation | `POST /video` | `VIDEO_MODEL` |
-| Chat / vision | `POST /v1/chat/completions` | — |
-| Embeddings | `POST /v1/embeddings` | — |
+| Sound / music generation | `POST /v1/sound-generation` | `SOUND_MODEL` |
+| Chat / LLM / vision | `POST /v1/chat/completions` | `TEXT_MODEL` |
+| Embeddings | `POST /v1/embeddings` | `EMBEDDING_MODEL` |
 
 All except `/video` are OpenAI-compatible, so any OpenAI client works unchanged. `/video` is
 LocalAI's own endpoint (there is no OpenAI video standard).
+
+### Chat / LLM, vision & embeddings
+
+LocalAI is also a full **LLM host** — the `AddOllama`-style role for text, with **1000+** chat models
+in the gallery. Add them like any other modality; the string overload takes ANY gallery id:
+
+```csharp
+ai.AddTextModel(KnownTextModel.Qwen3_8b)                    // enum -> gallery name
+  .AddTextModel(KnownTextModel.Qwen3Vl8b)                   // vision-capable multimodal
+  .AddTextModel("kimi-k2.7-code")                           // any of the 1000+ gallery LLMs by name
+  .AddEmbeddingModel(KnownEmbeddingModel.NomicEmbedText);   // -> /v1/embeddings
+```
+
+Curated `KnownTextModel` picks (any other via string): Qwen3 (`qwen3-0.6b`…`qwen3-32b`, `qwen3-30b-a3b`,
+`qwen3-coder-480b-a35b-instruct`), Llama 3.x (`meta-llama-3.1-8b-instruct`, `llama-3.3-70b-instruct`),
+Gemma 3 (`gemma-3-4b-it`…`-27b-it`, vision), DeepSeek (`deepseek-ai.deepseek-v3.2`, `deepseek-ocr`),
+`glm-4.7-flash`, `kimi-k2.7-code`/`kimi-k2.6`, `nousresearch_hermes-4-14b`, vision `qwen3-vl-{4,8,30}b`,
+omni `qwen3-omni-30b-a3b-instruct`. `KnownEmbeddingModel`: `bert-embeddings`, `nomic-embed-text-v1.5`,
+`bge-m3-colbert`, `granite-embedding-*`, `embeddinggemma-300m`, `qwen3-embedding-*`.
+
+Consume via the injected `TEXT_MODEL`/`EMBEDDING_MODEL` against `{AI_API_BASE}/v1/chat/completions`
+resp. `/v1/embeddings` (standard OpenAI shape). Browse all models in the LocalAI WebUI "Models" tab
+or at <https://localai.io/gallery.html>.
 
 ## Generating from your app
 
@@ -156,11 +189,47 @@ curl {AI_API_BASE}/video -H "Content-Type: application/json" -d '{
 Other `/video` params: `negative_prompt`, `start_image`, `end_image`, `input_reference`, `seconds`,
 `size`, `seed`, `cfg_scale`, `step`.
 
+> **WebUI note (LocalAI ≤ 3.12.x):** in LocalAI's built-in WebUI the Video tab's model dropdown
+> reverts to *"select a model"* and won't keep a `vllm-omni` (or other non-diffusers) video model
+> selected — a known upstream WebUI bug ([#8659](https://github.com/mudler/LocalAI/issues/8659),
+> fixed by [PR #8781](https://github.com/mudler/LocalAI/pull/8781), which added `vllm-omni` to the
+> WebUI's video-usecase detection). It is a UI-only bug: driving `POST /video` via the API (as
+> shown above, and as this package does) works regardless. Fix ships in **LocalAI ≥ 4.0** — upgrade
+> the image tag if you need the WebUI video picker.
+
+### Sound / music
+
+`POST /v1/sound-generation` is LocalAI's **ElevenLabs-compatible** music/sound-effect endpoint
+(distinct from TTS on `/v1/audio/speech`). It takes `model_id` + `text` and returns **audio bytes**
+(wav/flac/mp3). Like video it is **long-running / GPU-bound** — treat it as a job. ACE-Step also
+accepts optional music metadata (`lyrics`, `bpm`, `keyscale`, `duration_seconds`, …).
+
+```ts
+const res = await fetch(`${base}/v1/sound-generation`, {
+  method: "POST",
+  headers: { "Content-Type": "application/json", ...auth },
+  body: JSON.stringify({
+    model_id: process.env.SOUND_MODEL,          // e.g. "ace-step-turbo"
+    text: "an upbeat lofi hip-hop beat, mellow piano, 90 bpm",
+    // optional ACE-Step music controls:
+    // lyrics: "[Verse 1]\n…", bpm: 90, keyscale: "C major", duration_seconds: 30,
+  }),
+});
+if (!res.ok) throw new Error(`sound backend ${res.status}: ${await res.text()}`);
+const audio = Buffer.from(await res.arrayBuffer());   // -> save as .wav / stream to the client
+```
+
+```bash
+curl {AI_API_BASE}/v1/sound-generation -H "Content-Type: application/json" -d '{
+  "model_id": "ace-step-turbo", "text": "A funky Japanese disco track",
+  "bpm": 120, "keyscale": "Ab major", "duration_seconds": 30 }' --output music.wav
+```
+
 **Calling straight from the browser** is possible for the OpenAI-compatible endpoints — but only in a
 trusted/dev setup: no API key (nothing to leak) and the backend reachable with permissive CORS. For
 anything user-facing, proxy through your own backend so you keep control of auth, rate limiting and
 prompt policy. (This server-proxy shape is exactly what the promote.me app uses in
-`image-provider.server.ts` / `audio-provider.server.ts` / `video-provider.server.ts`.)
+`media-provider.server.ts` — `generateSpeech` / `transcribeAudio` / `generateVideo` / `generateSound`.)
 
 ## Options
 
@@ -187,6 +256,7 @@ the gallery is always the source of truth.
 - `AddTextToSpeechModel` — TTS (`KnownTextToSpeechModel` or any gallery name)
 - `AddSpeechToTextModel` — STT (`KnownSpeechToTextModel` or any gallery name)
 - `AddVideoModel` — video (`KnownVideoModel` or any gallery name)
+- `AddSoundModel` — sound / music generation (`KnownSoundModel` or any gallery name)
 - `AddHuggingFaceModel` — any diffusers-format HuggingFace image repo (not in the gallery)
 
 ### Image models (`AddModel`)
@@ -258,14 +328,41 @@ with `WithDataVolume()`.
 
 | `KnownVideoModel` | Gallery name | Notes |
 |---|---|---|
-| `Wan22TextToVideo` | `vllm-omni-wan2.2-t2v` | Wan 2.2 text-to-video (vllm-omni backend) |
+| `Wan22TextToVideo` | `vllm-omni-wan2.2-t2v` | Wan 2.2 **text**-to-video, 14B (vllm-omni). Strong GPU |
+| `Wan22ImageToVideo` | `vllm-omni-wan2.2-i2v` | Wan 2.2 **image**-to-video, 14B (vllm-omni) |
+| `Wan21TextToVideoGgml` | `wan-2.1-t2v-1.3b-ggml` | Wan 2.1 text-to-video 1.3B, GGUF — cheapest, CPU-offloadable (~10 GB RAM) |
+| `Wan21ImageToVideo480pGgml` | `wan-2.1-i2v-14b-480p-ggml` | Wan 2.1 image-to-video 14B 480p, GGUF Q4 |
+| `Wan21ImageToVideo720pGgml` | `wan-2.1-i2v-14b-720p-ggml` | Wan 2.1 image-to-video 14B 720p, GGUF Q4_K_M |
+| `Wan21FirstLastFrameToVideo720pGgml` | `wan-2.1-flf2v-14b-720p-ggml` | Wan 2.1 first-last-frame→video 14B 720p — interpolate/loop between two images |
+| `Ltx2` | `ltx-2` | Lightricks LTX-2 — synchronized **audio + video** (diffusers). GPU |
+| `Ltx23` | `ltx-2.3` | Lightricks LTX-2.3 — improved LTX-2, synchronized audio-video (diffusers). GPU |
 
-The video gallery moves fast. Other families available in LocalAI include **LTX-2**, **Wan 2.1**,
-**CogVideoX**, **HunyuanVideo** and **Stable Video Diffusion** — install any by its exact gallery id:
+The video gallery moves fast. Install any other family by its exact gallery id:
 
 ```csharp
 ai.AddVideoModel(KnownVideoModel.Wan22TextToVideo)
-  .AddVideoModel("ltx-video");   // any gallery id — browse https://localai.io/gallery.html
+  .AddVideoModel(KnownVideoModel.Ltx2)
+  .AddVideoModel("some-new-video-id");   // any gallery id — browse https://localai.io/gallery.html
+```
+
+> The built-in WebUI's Video tab can't select `vllm-omni` video models before LocalAI 4.0 — see the
+> WebUI note under [Video](#video) above. The API works either way.
+
+### Sound / music models (`AddSoundModel`)
+
+Served on the ElevenLabs-compatible `POST /v1/sound-generation` (`model_id` + `text`; ACE-Step also
+takes `lyrics`/`bpm`/`keyscale`/`duration_seconds`). Multi-GB and GPU-bound — combine with
+`WithDataVolume()`.
+
+| `KnownSoundModel` | Gallery name | Notes |
+|---|---|---|
+| `AceStepTurbo` | `ace-step-turbo` | ACE-Step 1.5 Turbo — music from text/lyrics with BPM/key control (ace-step backend). Good default |
+| `AceStepCppTurbo` | `acestep-cpp-turbo` | ACE-Step 1.5 Turbo, native C++/GGML (acestep-cpp), stereo 48kHz, Q8_0 |
+| `AceStepCppTurbo4b` | `acestep-cpp-turbo-4b` | ACE-Step 1.5 Turbo C++/GGML with the larger 4B LM — higher quality |
+
+```csharp
+ai.AddSoundModel(KnownSoundModel.AceStepTurbo)
+  .AddSoundModel("acestep-cpp-turbo");   // any gallery sound_generation model by exact name
 ```
 
 ### HuggingFace diffusers image models (`AddHuggingFaceModel`)
@@ -352,8 +449,10 @@ Behavior notes:
 ## UIs
 
 - **LocalAI WebUI** is built in — open the resource endpoint in the browser. It has real
-  text-to-image, text-to-speech, transcription and video tabs, so it doubles as a quick way to
-  try every modality without writing a line of client code.
+  text-to-image, text-to-speech, transcription, video and sound-generation tabs, so it doubles as a
+  quick way to try every modality without writing a line of client code. (Before LocalAI 4.0 the
+  Video tab can't keep a `vllm-omni` video model selected — a UI-only bug, see the Video section;
+  the `POST /video` API is unaffected.)
 - **SD.Next** (for serious image work): `WithSdNextUi()` adds a full
   [SD.Next](https://github.com/vladmandic/sdnext) studio — proper txt2img/img2img UI, model &
   LoRA management, Civitai/HuggingFace downloads. Runs its own GPU container with its own

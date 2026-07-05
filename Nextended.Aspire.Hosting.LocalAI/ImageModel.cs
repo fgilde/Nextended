@@ -94,6 +94,40 @@ public enum KnownImageModel
     /// <summary>Z-Image Turbo (diffusers) — very fast generations.</summary>
     [Description("z-image-turbo-diffusers")]
     ZImageTurbo,
+
+    // — Additional verified LocalAI-gallery image models —
+
+    /// <summary>Z-Image (diffusers) — full (non-turbo) Z-Image, higher quality than the turbo variant.</summary>
+    [Description("z-image-diffusers")]
+    ZImageDiffusers,
+
+    /// <summary>Z-Image Turbo via the vllm-omni backend — fast generations served through vLLM.</summary>
+    [Description("vllm-omni-z-image-turbo")]
+    ZImageTurboVllm,
+
+    /// <summary>FLUX.1 dev (diffusers, full fp16) — reference FLUX.1-dev; large download, heavy VRAM.</summary>
+    [Description("flux.1-dev")]
+    Flux1DevDiffusers,
+
+    /// <summary>FLUX.1 dev (GGML Q8_0) — higher-quality quant than the default GGML build; more VRAM.</summary>
+    [Description("flux.1-dev-ggml-q8_0")]
+    Flux1DevGgmlQ8,
+
+    /// <summary>FLUX.1 Krea dev (GGML Q8_0) — higher-quality quant of the photographic Krea model.</summary>
+    [Description("flux.1-krea-dev-ggml-q8_0")]
+    Flux1KreaDevGgmlQ8,
+
+    /// <summary>Ideogram 4 (GGML IQ4_NL) — smaller/faster Ideogram 4 quant with strong text rendering.</summary>
+    [Description("ideogram-4-iq4nl-ggml")]
+    Ideogram4Iq4nl,
+
+    /// <summary>Qwen-Image-Edit — instruction-driven image editing (edit an input image from a prompt).</summary>
+    [Description("qwen-image-edit")]
+    QwenImageEdit,
+
+    /// <summary>Qwen-Image-Edit 2509 — updated (Sept 2025) Qwen image-editing model.</summary>
+    [Description("qwen-image-edit-2509")]
+    QwenImageEdit2509,
 }
 
 /// <summary>
@@ -187,6 +221,56 @@ public enum KnownHuggingFaceImageModel
     /// <summary>RealVisXL V5.0 Lightning — photoreal SDXL, ~6 steps (very fast).</summary>
     [Description("SG161222/RealVisXL_V5.0_Lightning")]
     RealVisXL5Lightning,
+
+    // — Additional curated HuggingFace diffusers repos (photoreal / anime / NSFW) —
+
+    /// <summary>Juggernaut XL v8 (RunDiffusion) — earlier, very popular photorealistic SDXL.</summary>
+    [Description("RunDiffusion/Juggernaut-XL-v8")]
+    JuggernautXLv8,
+
+    /// <summary>SDXL Turbo — single-/few-step SDXL from Stability AI (very fast).</summary>
+    [Description("stabilityai/sdxl-turbo")]
+    SdxlTurbo,
+
+    /// <summary>Stable Diffusion v1.5 (reference SD1.5 checkpoint, diffusers).</summary>
+    [Description("stable-diffusion-v1-5/stable-diffusion-v1-5")]
+    StableDiffusion15Diffusers,
+
+    /// <summary>DreamShaper 7 (SD1.5) — popular all-rounder, predecessor of DreamShaper 8.</summary>
+    [Description("Lykon/dreamshaper-7")]
+    DreamShaper7,
+
+    /// <summary>AbsoluteReality v1.8.1 (SD1.5) — photoreal SD1.5 all-rounder.</summary>
+    [Description("digiplay/AbsoluteReality_v1.8.1")]
+    AbsoluteReality,
+
+    /// <summary>CyberRealistic v3.3 (SD1.5) — photoreal SD1.5, renders NSFW.</summary>
+    [Description("digiplay/CyberRealistic_V3.3")]
+    CyberRealistic,
+
+    /// <summary>Deliberate v2 (SD1.5) — versatile, widely used SD1.5 model.</summary>
+    [Description("XpucT/Deliberate")]
+    DeliberateV2,
+
+    /// <summary>NeverEnding Dream (SD1.5) — anime/semi-real SD1.5.</summary>
+    [Description("Lykon/NeverEnding-Dream")]
+    NeverEndingDream,
+
+    /// <summary>Counterfeit V3.0 (SD1.5) — high-quality anime SD1.5.</summary>
+    [Description("gsdf/Counterfeit-V3.0")]
+    CounterfeitV3,
+
+    /// <summary>MeinaMix v11 (SD1.5) — extremely popular anime SD1.5.</summary>
+    [Description("Meina/MeinaMix_V11")]
+    MeinaMix,
+
+    /// <summary>NoobAI-XL (NAI-XL) EPS v1.1 — Illustrious-based anime SDXL, uncensored.</summary>
+    [Description("John6666/noobai-xl-nai-xl-epsilonpred11version-sdxl")]
+    NoobAiXL,
+
+    /// <summary>Illustrious XL v0.1 — the base Illustrious anime SDXL model.</summary>
+    [Description("OnomaAIResearch/Illustrious-xl-early-release-v0")]
+    IllustriousXL,
 }
 
 /// <summary>
