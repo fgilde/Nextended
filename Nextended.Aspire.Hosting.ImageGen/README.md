@@ -36,6 +36,78 @@ POST {IMAGE_API_BASE}/v1/images/generations
 { "model": "flux.1-schnell", "prompt": "a lighthouse at dawn", "size": "1024x1024", "response_format": "b64_json" }
 ```
 
+## Generating images from your app
+
+The endpoint speaks the **OpenAI Images API** (`POST /v1/images/generations`) and returns a
+base64 PNG. Read the three env vars `WithImageGeneration` injects and post a request — no SDK
+required. Prefer calling it **server-side**: if you set an `ApiKey`, it must never reach the
+browser, and LocalAI is meant to live on a trusted network, not be exposed publicly.
+
+**C# (from the consuming service):**
+
+```csharp
+var baseUrl = builder.Configuration["IMAGE_API_BASE"]!;   // injected, e.g. http://localhost:5069
+var model   = builder.Configuration["IMAGE_MODEL"]!;      // the default model
+var apiKey  = builder.Configuration["IMAGE_API_KEY"];     // only if you set o.ApiKey
+
+using var http = new HttpClient();
+if (!string.IsNullOrEmpty(apiKey))
+    http.DefaultRequestHeaders.Authorization = new("Bearer", apiKey);
+
+var res = await http.PostAsJsonAsync($"{baseUrl}/v1/images/generations", new
+{
+    model,
+    prompt = "a lighthouse at dawn, cinematic",
+    size = "1024x1024",
+    n = 1,
+    response_format = "b64_json",
+});
+res.EnsureSuccessStatusCode();
+
+using var doc = JsonDocument.Parse(await res.Content.ReadAsStringAsync());
+var b64 = doc.RootElement.GetProperty("data")[0].GetProperty("b64_json").GetString();
+await File.WriteAllBytesAsync("out.png", Convert.FromBase64String(b64!));
+```
+
+**TypeScript / JavaScript (Node, TanStack Start server fn, Next route handler, …):**
+
+```ts
+// Keep this on the server — never ship IMAGE_API_KEY to the browser.
+const base   = process.env.IMAGE_API_BASE!;   // injected by WithImageGeneration
+const model  = process.env.IMAGE_MODEL!;
+const apiKey = process.env.IMAGE_API_KEY;      // optional
+
+const res = await fetch(`${base}/v1/images/generations`, {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {}),
+  },
+  body: JSON.stringify({
+    model,
+    prompt: "a lighthouse at dawn, cinematic",
+    size: "1024x1024",
+    n: 1,
+    response_format: "b64_json",
+  }),
+});
+if (!res.ok) throw new Error(`image backend ${res.status}: ${await res.text()}`);
+
+const json = await res.json();
+// OpenAI Images shape; extract defensively — some models/backends return a url instead.
+const b64 = json.data?.[0]?.b64_json ?? json.images?.[0]?.b64_json;
+const bytes = Buffer.from(b64, "base64");      // -> save, upload to storage, or return as data URI
+```
+
+Return the bytes to the browser as a normal image response or a `data:image/png;base64,…` URI.
+That server-proxy shape is exactly what the promote.me app uses (`image-provider.server.ts`),
+which lets it swap the Lovable gateway and this self-hosted backend behind one call site.
+
+**Calling it straight from the browser** is possible — it's plain OpenAI-compatible HTTP — but
+only in a trusted/dev setup: there must be **no API key** (nothing to leak) and the backend host
+must be reachable from the browser with permissive CORS. For anything user-facing, proxy through
+your own backend (as above) so you keep control of auth, rate limiting and prompt policy.
+
 ## Options
 
 ```csharp
@@ -52,41 +124,101 @@ builder.AddImageGeneration("imagegen", o =>
 
 ## Models
 
-`AddModel` accepts `KnownImageModel` values, plain gallery names, huggingface/OCI URIs or
-config URLs. Known models include (gallery names in parentheses):
+There are two model namespaces, added with two different methods:
 
-- `StableDiffusionAio` (`stablediffusion`, bundled with AIO images)
-- `StableDiffusion15` / `StableDiffusion3Medium` / `StableDiffusion35Medium` / `StableDiffusion35Large`
-- `DreamShaper` (`dreamshaper`)
-- `Flux1Schnell` / `Flux1Dev` / `Flux1KontextDev` / `Flux2Dev`
-- `Flux1DevUncensored` (`flux.1-dev-ggml-abliterated-v2-q8_0`) — no content filtering, GGML Q8 (~13 GB)
-- `Flux1DevUncensoredDiffusers` (`flux.1dev-abliteratedv2`) — same model as full fp16 via the
-  python diffusers backend (~24 GB, heavy VRAM)
-- `QwenImage`, `Chroma1Hd`, `ZImageTurbo`
+- **`AddModel`** — installs a model from the [LocalAI gallery](https://localai.io/gallery.html).
+  Accepts `KnownImageModel` values, plain gallery names, huggingface/OCI URIs or config URLs.
+- **`AddHuggingFaceModel`** — loads any diffusers-format HuggingFace repo (not in the gallery)
+  by generating a model config on the fly.
 
-Additional gallery models: `Flux1KreaDev`, `Flux2Klein4b`/`Flux2Klein9b`, `Ideogram4`,
-`ZImageTurboGgml`.
+The name the consumer uses to call the model (the `model` field in the API request, and what
+`WithImageGeneration` injects as `IMAGE_MODEL`) is the **gallery name** for `AddModel`, or the
+model id / enum slug for `AddHuggingFaceModel`.
 
-### HuggingFace models (not in the gallery)
+### LocalAI gallery models (`AddModel`)
 
-`AddHuggingFaceModel` loads any diffusers-format HF repo by generating a model config —
-including curated, verified NSFW-capable SDXL models for adult platforms:
+| `KnownImageModel` | Gallery name (API `model`) | Notes |
+|---|---|---|
+| `StableDiffusionAio` | `stablediffusion` | Bundled with AIO images; the default when no `AddModel` is called |
+| `StableDiffusion15` | `sd-1.5-ggml` | Classic SD 1.5, small & fast (GGML) |
+| `StableDiffusion3Medium` | `stable-diffusion-3-medium` | SD 3 Medium |
+| `StableDiffusion35Medium` | `sd-3.5-medium-ggml` | SD 3.5 Medium (GGML) |
+| `StableDiffusion35Large` | `sd-3.5-large-ggml` | SD 3.5 Large (GGML), higher quality & VRAM |
+| `DreamShaper` | `dreamshaper` | Popular general-purpose SD 1.5 fine-tune |
+| `Flux1Schnell` | `flux.1-schnell` | FLUX.1 [schnell], fast few-step |
+| `Flux1Dev` | `flux.1-dev-ggml` | FLUX.1 [dev] (GGML) |
+| `Flux1DevUncensored` | `flux.1-dev-ggml-abliterated-v2-q8_0` | FLUX.1 [dev] abliterated — no content filter, GGML Q8 (~13 GB) |
+| `Flux1DevUncensoredDiffusers` | `flux.1dev-abliteratedv2` | Same model, full fp16 via the python diffusers backend (~24 GB, heavy VRAM) |
+| `Flux1KontextDev` | `flux.1-kontext-dev` | FLUX.1 Kontext [dev] (instruction / image editing) |
+| `Flux1KreaDev` | `flux.1-krea-dev-ggml` | FLUX.1 Krea [dev] (GGML) |
+| `Flux2Dev` | `flux.2-dev` | FLUX.2 [dev] |
+| `Flux2Klein4b` | `flux.2-klein-4b` | FLUX.2 Klein, 4B params (lighter) |
+| `Flux2Klein9b` | `flux.2-klein-9b` | FLUX.2 Klein, 9B params |
+| `Ideogram4` | `ideogram-4-q8_0-ggml` | Ideogram 4 (GGML Q8) |
+| `ZImageTurbo` | `z-image-turbo-diffusers` | Z-Image Turbo (diffusers backend) |
+| `ZImageTurboGgml` | `Z-Image-Turbo` | Z-Image Turbo (GGML build) |
+| `QwenImage` | `qwen-image` | Qwen-Image |
+| `Chroma1Hd` | `chroma1-hd` | Chroma1 HD |
+
+```csharp
+imagegen
+    .AddModel(KnownImageModel.Flux1Schnell)          // enum -> gallery name
+    .AddModel(KnownImageModel.Flux1DevUncensored)    // uncensored FLUX (GGML Q8)
+    .AddModel("dreamshaper");                         // implicit string -> ImageModel
+```
+
+### HuggingFace diffusers models (`AddHuggingFaceModel`)
+
+Not in the LocalAI gallery — loaded from a HuggingFace repo by generating a model config that
+is bind-mounted into the container; LocalAI downloads the weights on startup. Includes curated,
+verified NSFW-capable SDXL models for adult platforms.
 
 ```csharp
 imagegen
     .AddHuggingFaceModel(KnownHuggingFaceImageModel.RealVisXL4)      // photorealistic, NSFW-capable
     .AddHuggingFaceModel(KnownHuggingFaceImageModel.NsfwGenV2)       // explicit content, unfiltered
-    .AddHuggingFaceModel("mymodel", "SG161222/RealVisXL_V5.0");      // any repo id
+    .AddHuggingFaceModel("mymodel", "SG161222/RealVisXL_V5.0");      // any repo id (string overload)
 ```
 
-Known HF models: `RealVisXL4`, `RealVisXL5`, `NsfwGenV2`, `NsfwGenAnime`, `NsfwV1`,
-`OmnigenXL`, `OmnigenXLNsfw`, `WaiIllustriousSDXL`, `PonyDiffusionV6XL`,
-`DreamShaperXLTurbo` (8 steps), `AnimagineXL4`, `PlaygroundV25`.
+| `KnownHuggingFaceImageModel` | HuggingFace repo | Notes |
+|---|---|---|
+| `RealVisXL4` | `SG161222/RealVisXL_V4.0` | Photorealistic SDXL, NSFW-capable |
+| `RealVisXL5` | `SG161222/RealVisXL_V5.0` | Photorealistic SDXL v5 |
+| `RealVisXL5Lightning` | `SG161222/RealVisXL_V5.0_Lightning` | Lightning variant — **6 steps** |
+| `NsfwGenV2` | `UnfilteredAI/NSFW-gen-v2` | Explicit content, unfiltered |
+| `NsfwGenAnime` | `UnfilteredAI/NSFW-GEN-ANIME` | Explicit anime, unfiltered |
+| `NsfwV1` | `stablediffusionapi/nsfw` | Explicit content |
+| `OmnigenXL` | `stablediffusionapi/omnigen-xl` | OmniGen XL |
+| `OmnigenXLNsfw` | `stablediffusionapi/omnigenxlnsfwsfw-v10` | OmniGen XL, NSFW |
+| `WaiIllustriousSDXL` | `votepurchase/waiIllustriousSDXL_v150` | Illustrious / anime SDXL |
+| `PonyDiffusionV6XL` | `John6666/pony-diffusion-v6-xl-sdxl-spo` | Pony Diffusion v6 XL |
+| `DreamShaperXLTurbo` | `Lykon/dreamshaper-xl-v2-turbo` | Turbo — **8 steps** |
+| `DreamShaper8` | `Lykon/dreamshaper-8` | DreamShaper 8 (SD 1.5) |
+| `AnimagineXL4` | `cagliostrolab/animagine-xl-4.0` | Anime SDXL v4 |
+| `AnimagineXL31` | `cagliostrolab/animagine-xl-3.1` | Anime SDXL v3.1 |
+| `PlaygroundV25` | `playgroundai/playground-v2.5-1024px-aesthetic` | Playground v2.5 |
+| `SdxlBase` | `stabilityai/stable-diffusion-xl-base-1.0` | Stock SDXL base 1.0 |
+| `MajicMixRealistic` | `digiplay/majicMIX_realistic_v7` | Photoreal SD 1.5 |
+| `JuggernautXLv9` | `RunDiffusion/Juggernaut-XL-v9` | Juggernaut XL v9 |
+| `EpicRealismXL` | `misri/epicrealismXL_v7FinalDestination` | epiCRealism XL |
+| `EpicRealism15` | `emilianJR/epiCRealism` | epiCRealism (SD 1.5) |
+| `RealisticVision51` | `stablediffusionapi/realistic-vision-v51` | Realistic Vision v5.1 |
+
 These run on LocalAI's python `diffusers` backend (first use downloads the backend + weights;
-SDXL-class models want ≥8 GB free VRAM). The correct fp16 file-variant flag is set
-**automatically per known model** (repos ship either `*.fp16.safetensors` or default-named
-weights — the wrong flag fails to load). For custom repos via the string overload, pass
-`f16: true` only if the repo ships fp16-variant files.
+SDXL-class models want ≥8 GB free VRAM). Sampler `steps` and the fp16 file-variant flag are set
+**automatically per known model** — turbo/lightning models use fewer steps, and repos that don't
+ship `*.fp16.safetensors` load their default-named weights (the wrong flag fails to load). For
+custom repos via the string overload, tune `steps` and pass `f16: true` only if the repo ships
+fp16-variant files:
+
+```csharp
+imagegen.AddHuggingFaceModel(
+    name: "my-turbo",
+    hfRepo: "some/sdxl-turbo-repo",
+    pipelineType: "StableDiffusionXLPipeline",   // default; fits SDXL-class models
+    steps: 8,                                     // turbo/lightning want ~6-8
+    f16: true);                                   // only if the repo publishes fp16 files
+```
 
 > **Changing/adding models on an existing stack:** LocalAI imports each model config into its
 > `/models` volume on first start and does **not** overwrite it later. After changing models
