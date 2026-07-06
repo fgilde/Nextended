@@ -1,3 +1,4 @@
+using Nextended.Aspire;
 using Nextended.Aspire.Hosting.N8n.Builders;
 
 // Test/demo AppHost for the Nextended.Aspire.Hosting.N8n integration.
@@ -19,4 +20,4 @@ var n8n = builder.AddN8n("n8n")
     // Seed n8n with example workflows on startup (local development).
     .WithWorkflowsFromDirectory(Path.Combine(builder.AppHostDirectory, "workflows"));
 
-builder.Build().Run();
+builder.Build().EnsureDockerRunningIfLocalDebug().Run();

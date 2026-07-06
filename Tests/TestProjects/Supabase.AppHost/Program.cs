@@ -1,3 +1,4 @@
+using Nextended.Aspire;
 using Nextended.Aspire.Hosting.Supabase.Builders;
 
 // Test/demo AppHost for the Nextended.Aspire.Hosting.Supabase integration.
@@ -12,4 +13,4 @@ var supabase = builder.AddSupabase("supabase")
     .WithRegisteredUser("dev@example.com", "dev1234", "Developer")
     .WithClearCommand();
 
-builder.Build().Run();
+builder.Build().EnsureDockerRunningIfLocalDebug().Run();

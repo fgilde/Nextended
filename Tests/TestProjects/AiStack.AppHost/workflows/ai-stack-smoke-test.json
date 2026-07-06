@@ -1,0 +1,35 @@
+{
+  "name": "AI Stack — Ollama smoke test",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "8f1b0a10-0000-4000-8000-000000000001",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [260, 300]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.OLLAMA_BASE_URL }}/api/tags",
+        "options": {}
+      },
+      "id": "8f1b0a10-0000-4000-8000-000000000002",
+      "name": "List Ollama models",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [480, 300]
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          { "node": "List Ollama models", "type": "main", "index": 0 }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1" }
+}

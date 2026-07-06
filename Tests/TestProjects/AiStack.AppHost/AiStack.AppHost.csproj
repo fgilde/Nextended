@@ -1,8 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <Sdk Name="Aspire.AppHost.Sdk" Version="13.4.6" />
-  <Import Project="..\..\..\Version.props" />
 
+  <Import Project="..\..\..\Version.props" />
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -11,16 +11,20 @@
     <Nullable>enable</Nullable>
     <IsAspireHost>true</IsAspireHost>
     <IsPackable>false</IsPackable>
-    <UserSecretsId>nextended-n8n-apphost-3d9a4e51</UserSecretsId>
+    <UserSecretsId>nextended-aistack-apphost-7c1e9f42</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Aspire.Hosting.AppHost" Version="$(AspireVersion)" />
     <PackageReference Include="Aspire.Hosting.Azure.AppContainers" Version="$(AspireVersion)" />
+    <!-- Ollama hosting (self-hosted LLMs / embeddings) — from the CommunityToolkit. -->
+    <PackageReference Include="CommunityToolkit.Aspire.Hosting.Ollama" Version="13.4.0" />
   </ItemGroup>
 
   <ItemGroup>
+    <!-- The two Nextended hosting extensions this demo wires together, plus n8n. -->
     <ProjectReference Include="..\..\..\Nextended.Aspire.Hosting.N8n\Nextended.Aspire.Hosting.N8n.csproj" IsAspireProjectResource="false" />
+    <ProjectReference Include="..\..\..\Nextended.Aspire.Hosting.LocalAI\Nextended.Aspire.Hosting.LocalAI.csproj" IsAspireProjectResource="false" />
   </ItemGroup>
 
 </Project>
