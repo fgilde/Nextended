@@ -390,6 +390,9 @@ public static class LocalAiBuilderExtensions
             .WithHttpEndpoint(port: hostPort, targetPort: 8080, name: "http")
             .WithVolume($"{uiName}-data", "/app/backend/data")
             .WithEnvironment("WEBUI_AUTH", "False")
+            // Env is authoritative every start (Open WebUI "PersistentConfig" otherwise freezes these
+            // in its DB on first run and ignores later changes) — keeps our config declarative via Aspire.
+            .WithEnvironment("ENABLE_PERSISTENT_CONFIG", "False")
             .WithEnvironment("ENABLE_IMAGE_GENERATION", "True")
             .WithEnvironment("IMAGE_GENERATION_ENGINE", "openai")
             .WithEnvironment("IMAGES_OPENAI_API_BASE_URL", apiBase)
@@ -456,6 +459,10 @@ public static class LocalAiBuilderExtensions
         var apiBase = ReferenceExpression.Create($"{localAi.HttpEndpoint}/v1");
         webui.Annotations.Add(new EnvironmentCallbackAnnotation(ctx =>
         {
+            // CRUCIAL for a REUSED WebUI: it was already initialized (e.g. by Ollama) without our config,
+            // and Open WebUI's "PersistentConfig" then ignores env changes. Forcing env to win every start
+            // is what makes our connection + image-gen settings actually apply (otherwise silently ignored).
+            ctx.EnvironmentVariables["ENABLE_PERSISTENT_CONFIG"] = "False";
             // Model list / chat: register LocalAI as an OpenAI-compatible backend — this is what makes
             // our models appear in the reused WebUI (the previous version only wired image generation).
             ctx.EnvironmentVariables["ENABLE_OPENAI_API"] = "True";
