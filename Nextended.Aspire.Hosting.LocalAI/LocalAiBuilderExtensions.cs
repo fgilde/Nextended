@@ -52,6 +52,48 @@ public sealed class LocalAiOptions
 }
 
 /// <summary>
+/// Options for the <c>WithOpenWebUI(...)</c> overloads. Defaults reproduce the built-in wiring
+/// (LocalAI registered as an OpenAI-compatible connection + image generation, env authoritative).
+/// Override to change auth, persistence, the image model/tag, or add arbitrary env.
+/// </summary>
+public sealed class OpenWebUiOptions
+{
+    /// <summary>Container image — only used when a NEW Open WebUI is created. Default <c>ghcr.io/open-webui/open-webui</c>.</summary>
+    public string Image { get; set; } = "ghcr.io/open-webui/open-webui";
+
+    /// <summary>Image tag (new WebUI only). Default <c>main</c>.</summary>
+    public string Tag { get; set; } = "main";
+
+    /// <summary>
+    /// <c>WEBUI_AUTH</c>. <c>null</c> = leave untouched (a reused WebUI keeps its own setting);
+    /// a newly-created WebUI defaults to <c>false</c> (no login, dev-friendly).
+    /// </summary>
+    public bool? Auth { get; set; }
+
+    /// <summary>
+    /// <c>ENABLE_PERSISTENT_CONFIG</c>. Default <c>false</c> so this env is authoritative on every start —
+    /// otherwise Open WebUI freezes these values in its DB on first run and ignores later env changes
+    /// (that's why a reused WebUI wouldn't pick up the config). Set <c>true</c> to let the UI persist changes.
+    /// </summary>
+    public bool PersistentConfig { get; set; }
+
+    /// <summary>Register LocalAI as an OpenAI-compatible model connection (chat/LLM/vision list). Default <c>true</c>.</summary>
+    public bool RegisterOpenAiModels { get; set; } = true;
+
+    /// <summary>Wire image generation against LocalAI's OpenAI-compatible images endpoint. Default <c>true</c>.</summary>
+    public bool EnableImageGeneration { get; set; } = true;
+
+    /// <summary>Image-generation model Open WebUI uses. Default: the LocalAI default image model.</summary>
+    public string? ImageGenerationModel { get; set; }
+
+    /// <summary>API key sent to LocalAI for the OpenAI/images calls. Default <c>sk-local</c>.</summary>
+    public string ApiKey { get; set; } = "sk-local";
+
+    /// <summary>Extra environment variables for the Open WebUI container (applied last — overrides the above).</summary>
+    public IDictionary<string, string> Environment { get; } = new Dictionary<string, string>();
+}
+
+/// <summary>
 /// Aspire hosting extension for a self-hosted, OpenAI-compatible multimodal AI service (LocalAI):
 /// image generation, text-to-speech, speech-to-text, video generation, chat and embeddings —
 /// the self-hosted counterpart of <c>AddOllama</c> for everything beyond text.
@@ -371,36 +413,30 @@ public static class LocalAiBuilderExtensions
     }
 
     /// <summary>
-    /// Adds an Open WebUI container wired to this service for image generation via the
-    /// OpenAI-compatible endpoint (chat models served by the same LocalAI instance also work).
-    /// Dev-time only: excluded from the publish manifest.
-    /// Note: LocalAI additionally ships its own WebUI on the service endpoint itself.
+    /// Adds a NEW Open WebUI container wired to this service: registers LocalAI as an OpenAI-compatible
+    /// connection (chat/LLM + vision models appear) and enables image generation against it.
+    /// Dev-time only: excluded from the publish manifest. (LocalAI additionally ships its own WebUI on
+    /// the service endpoint.) Pass <paramref name="configure"/> to tweak defaults (auth, persistent
+    /// config, image model, image tag, extra env …).
     /// </summary>
     public static IResourceBuilder<LocalAiResource> WithOpenWebUI(
         this IResourceBuilder<LocalAiResource> builder,
         int? hostPort = null,
-        string? name = null)
+        string? name = null,
+        Action<OpenWebUiOptions>? configure = null)
     {
         var appBuilder = builder.ApplicationBuilder;
         var uiName = name ?? $"{builder.Resource.Name}-webui";
         var apiBase = ReferenceExpression.Create($"{builder.Resource.HttpEndpoint}/v1");
+        var options = new OpenWebUiOptions { Auth = false };   // a brand-new WebUI defaults to no-auth (dev)
+        configure?.Invoke(options);
 
         appBuilder.AddResource(new LocalAiOpenWebUIResource(uiName))
-            .WithImage("ghcr.io/open-webui/open-webui", "main")
+            .WithImage(options.Image, options.Tag)
             .WithHttpEndpoint(port: hostPort, targetPort: 8080, name: "http")
             .WithVolume($"{uiName}-data", "/app/backend/data")
-            .WithEnvironment("WEBUI_AUTH", "False")
-            // Env is authoritative every start (Open WebUI "PersistentConfig" otherwise freezes these
-            // in its DB on first run and ignores later changes) — keeps our config declarative via Aspire.
-            .WithEnvironment("ENABLE_PERSISTENT_CONFIG", "False")
-            .WithEnvironment("ENABLE_IMAGE_GENERATION", "True")
-            .WithEnvironment("IMAGE_GENERATION_ENGINE", "openai")
-            .WithEnvironment("IMAGES_OPENAI_API_BASE_URL", apiBase)
-            .WithEnvironment("IMAGES_OPENAI_API_KEY", "sk-local")
-            // Deferred: picks up models even when AddModel is chained after WithOpenWebUI.
-            .WithEnvironment(ctx => ctx.EnvironmentVariables["IMAGE_GENERATION_MODEL"] = builder.Resource.DefaultModel)
-            .WithEnvironment("OPENAI_API_BASE_URL", apiBase)
-            .WithEnvironment("OPENAI_API_KEY", "sk-local")
+            // Deferred: resolves the default model + reads options even when AddModel is chained after WithOpenWebUI.
+            .WithEnvironment(ctx => ApplyOpenWebUiEnv(ctx, builder.Resource, options, apiBase))
             .WithReference(builder.Resource.HttpEndpoint)
             .WaitFor(builder)
             .WithParentRelationship(builder.Resource)
@@ -417,9 +453,10 @@ public static class LocalAiBuilderExtensions
     /// </summary>
     public static IResourceBuilder<LocalAiResource> WithOpenWebUI(
         this IResourceBuilder<LocalAiResource> builder,
-        IResourceWithEnvironment existingOpenWebUi)
+        IResourceWithEnvironment existingOpenWebUi,
+        Action<OpenWebUiOptions>? configure = null)
     {
-        AttachLocalAiToOpenWebUI(builder.Resource, existingOpenWebUi);
+        AttachLocalAiToOpenWebUI(builder.Resource, existingOpenWebUi, configure);
         return builder;
     }
 
@@ -432,7 +469,8 @@ public static class LocalAiBuilderExtensions
         this IResourceBuilder<LocalAiResource> builder,
         bool useExistingIfFound,
         int? hostPort = null,
-        string? name = null)
+        string? name = null,
+        Action<OpenWebUiOptions>? configure = null)
     {
         if (useExistingIfFound)
         {
@@ -442,11 +480,11 @@ public static class LocalAiBuilderExtensions
                 .FirstOrDefault(r => r.GetType().Name == "OpenWebUIResource");
             if (existing is not null)
             {
-                AttachLocalAiToOpenWebUI(builder.Resource, existing);
+                AttachLocalAiToOpenWebUI(builder.Resource, existing, configure);
                 return builder;
             }
         }
-        return builder.WithOpenWebUI(hostPort, name);
+        return builder.WithOpenWebUI(hostPort, name, configure);
     }
 
     /// <summary>
@@ -454,26 +492,43 @@ public static class LocalAiBuilderExtensions
     /// (so its chat/LLM models show up alongside e.g. Ollama's — Ollama keeps working via its
     /// separate <c>OLLAMA_*</c> connection) AND enables image generation against it. Deferred env.
     /// </summary>
-    private static void AttachLocalAiToOpenWebUI(LocalAiResource localAi, IResourceWithEnvironment webui)
+    private static void AttachLocalAiToOpenWebUI(LocalAiResource localAi, IResourceWithEnvironment webui, Action<OpenWebUiOptions>? configure)
     {
+        // A reused WebUI keeps its own auth unless the caller opts in (Auth stays null => WEBUI_AUTH untouched).
+        var options = new OpenWebUiOptions();
+        configure?.Invoke(options);
         var apiBase = ReferenceExpression.Create($"{localAi.HttpEndpoint}/v1");
-        webui.Annotations.Add(new EnvironmentCallbackAnnotation(ctx =>
+        webui.Annotations.Add(new EnvironmentCallbackAnnotation(ctx => ApplyOpenWebUiEnv(ctx, localAi, options, apiBase)));
+    }
+
+    /// <summary>
+    /// Writes the Open WebUI env from <see cref="OpenWebUiOptions"/> into <paramref name="ctx"/> (shared by
+    /// the new-WebUI and reuse-existing paths). CRUCIAL: <c>ENABLE_PERSISTENT_CONFIG=False</c> (default) makes
+    /// this env authoritative every start — otherwise Open WebUI freezes the values in its DB on first run
+    /// and ignores later changes (which is why a reused WebUI wouldn't pick up the connection/image config).
+    /// User-supplied <see cref="OpenWebUiOptions.Environment"/> entries are applied last and win.
+    /// </summary>
+    private static void ApplyOpenWebUiEnv(EnvironmentCallbackContext ctx, LocalAiResource localAi, OpenWebUiOptions o, ReferenceExpression apiBase)
+    {
+        if (o.Auth.HasValue) ctx.EnvironmentVariables["WEBUI_AUTH"] = o.Auth.Value ? "True" : "False";
+        ctx.EnvironmentVariables["ENABLE_PERSISTENT_CONFIG"] = o.PersistentConfig ? "True" : "False";
+        if (o.RegisterOpenAiModels)
         {
-            // CRUCIAL for a REUSED WebUI: it was already initialized (e.g. by Ollama) without our config,
-            // and Open WebUI's "PersistentConfig" then ignores env changes. Forcing env to win every start
-            // is what makes our connection + image-gen settings actually apply (otherwise silently ignored).
-            ctx.EnvironmentVariables["ENABLE_PERSISTENT_CONFIG"] = "False";
-            // Model list / chat: register LocalAI as an OpenAI-compatible backend — this is what makes
-            // our models appear in the reused WebUI (the previous version only wired image generation).
+            // Model list / chat: register LocalAI as an OpenAI-compatible backend (Ollama, if present, keeps
+            // its own separate OLLAMA_* connection, so both model sets show up).
             ctx.EnvironmentVariables["ENABLE_OPENAI_API"] = "True";
             ctx.EnvironmentVariables["OPENAI_API_BASE_URL"] = apiBase;
-            ctx.EnvironmentVariables["OPENAI_API_KEY"] = "sk-local";
+            ctx.EnvironmentVariables["OPENAI_API_KEY"] = o.ApiKey;
+        }
+        if (o.EnableImageGeneration)
+        {
             ctx.EnvironmentVariables["ENABLE_IMAGE_GENERATION"] = "True";
             ctx.EnvironmentVariables["IMAGE_GENERATION_ENGINE"] = "openai";
             ctx.EnvironmentVariables["IMAGES_OPENAI_API_BASE_URL"] = apiBase;
-            ctx.EnvironmentVariables["IMAGES_OPENAI_API_KEY"] = "sk-local";
-            ctx.EnvironmentVariables["IMAGE_GENERATION_MODEL"] = localAi.DefaultModel;
-        }));
+            ctx.EnvironmentVariables["IMAGES_OPENAI_API_KEY"] = o.ApiKey;
+            ctx.EnvironmentVariables["IMAGE_GENERATION_MODEL"] = o.ImageGenerationModel ?? localAi.DefaultModel;
+        }
+        foreach (var (key, value) in o.Environment) ctx.EnvironmentVariables[key] = value;
     }
 
     /// <summary>
