@@ -15,6 +15,7 @@ optional queue mode (Redis + workers), and 1:1 deployment to Azure Container App
 - [Importing Workflows & Credentials](#importing-workflows--credentials)
 - [Accessing Resources](#accessing-resources)
 - [Consuming the n8n API from a service](#consuming-the-n8n-api-from-a-service)
+- [Using n8n with local AI backends](#using-n8n-with-local-ai-backends)
 - [Deployment](#deployment)
 - [Defaults](#defaults)
 
@@ -206,6 +207,43 @@ public sealed class MyService(N8nApiClient n8n)
 
 The base URL is resolved from `ConnectionStrings:n8n` (set automatically by `WithReference(n8n)`).
 A health check probing `/healthz` is registered as well.
+
+---
+
+## Using n8n with local AI backends
+
+n8n's AI nodes (*OpenAI*, *Ollama*, *AI Agent*, *Embeddings*) can run entirely against the
+self-hosted AI backends in this repo — [LocalAI](https://github.com/mudler/LocalAI)
+(OpenAI-compatible, via [`Nextended.Aspire.Hosting.LocalAI`](../Nextended.Aspire.Hosting.LocalAI))
+and Ollama — with no cloud calls. Aspire makes the backends reachable from the n8n container and
+orders startup; you inject their URLs as environment variables:
+
+```csharp
+var ollama  = builder.AddOllama("ollama");                          // CommunityToolkit.Aspire.Hosting.Ollama
+var localai = builder.AddLocalAI("localai")                         // Nextended.Aspire.Hosting.LocalAI
+    .AddTextModel(KnownTextModel.Qwen3_8b)                          // chat  -> /v1/chat/completions
+    .AddEmbeddingModel(KnownEmbeddingModel.BertEmbeddings);         // embeddings / RAG
+
+// LocalAI speaks the OpenAI API under /v1:
+var openAiBase = ReferenceExpression.Create($"{localai.Resource.HttpEndpoint}/v1");
+
+var n8n = builder.AddN8n("n8n")
+    .WaitFor(ollama).WaitFor(localai)                               // start after both are up
+    .WithEnvironment("OPENAI_API_BASE_URL", openAiBase)            // LocalAI (OpenAI-compatible)
+    .WithEnvironment("OPENAI_API_KEY", "sk-local")                 // LocalAI's default dev key
+    .WithEnvironment("OLLAMA_BASE_URL", ollama.Resource.PrimaryEndpoint)
+    .WithEnvironmentVariable("N8N_BLOCK_ENV_ACCESS_IN_NODE", "false"); // read them via {{ $env.NAME }}
+```
+
+> **Credentials are still created in the n8n UI.** n8n stores node credentials in its own database —
+> no environment variable auto-provisions them. Aspire only makes the backends reachable and injects
+> their URLs; you add the credentials once in the editor pointing at those URLs: an **OpenAI**
+> credential (Base URL `http://localai:8080/v1`, key `sk-local`) and an **Ollama** credential
+> (Base URL `http://ollama:11434`). To skip even that click, pre-seed them with
+> [`WithImportCredentials`](#seeding-workflows--credentials).
+
+A complete, runnable example (LocalAI + Ollama + n8n, with a seeded smoke-test workflow) lives in
+`Tests/TestProjects/AiStack.AppHost`.
 
 ---
 

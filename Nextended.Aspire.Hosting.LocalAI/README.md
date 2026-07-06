@@ -231,6 +231,29 @@ anything user-facing, proxy through your own backend so you keep control of auth
 prompt policy. (This server-proxy shape is exactly what the promote.me app uses in
 `media-provider.server.ts` — `generateSpeech` / `transcribeAudio` / `generateVideo` / `generateSound`.)
 
+## Using it from n8n
+
+Because the endpoint is **OpenAI-compatible**, LocalAI is a drop-in backend for
+[n8n](https://n8n.io)'s *OpenAI*, *AI Agent* and *Embeddings OpenAI* nodes — point them at
+`{endpoint}/v1` with any key (default `sk-local`); pair it with `AddOllama` for the native
+*Ollama* nodes. When you host n8n via
+[`Nextended.Aspire.Hosting.N8n`](../Nextended.Aspire.Hosting.N8n), wire the URL in and order startup:
+
+```csharp
+var localai = builder.AddLocalAI("localai").AddTextModel(KnownTextModel.Qwen3_8b);
+
+var n8n = builder.AddN8n("n8n")
+    .WaitFor(localai)
+    .WithEnvironment("OPENAI_API_BASE_URL",
+        ReferenceExpression.Create($"{localai.Resource.HttpEndpoint}/v1"))
+    .WithEnvironment("OPENAI_API_KEY", "sk-local");
+```
+
+n8n keeps node credentials in its own DB, so you still add the *OpenAI* credential once in the
+editor (Base URL `http://localai:8080/v1`, key `sk-local`) — or pre-seed it via
+`WithImportCredentials`. A full runnable example (LocalAI + Ollama + n8n) is in
+`Tests/TestProjects/AiStack.AppHost`.
+
 ## Options
 
 ```csharp
