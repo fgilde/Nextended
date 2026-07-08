@@ -57,7 +57,16 @@ var localai = builder.AddLocalAI("localai", o =>
     .AddModel(KnownTextModel.Qwen3_8b)             // /v1/chat/completions
     .AddModel(KnownEmbeddingModel.BertEmbeddings)  // /v1/embeddings
     // Optional extra modalities — uncomment to expose them in n8n via the same base:
-    // .AddModel(KnownImageModel.StableDiffusion15)  // /v1/images/generations
+    .AddModel(KnownImageModel.StableDiffusion15)  // /v1/images/generations
+    .AddModel(KnownHuggingFaceImageModel.NsfwGenV2)  // /v1/images/generations
+    .AddModel(KnownHuggingFaceImageModel.NsfwV1)  // /v1/images/generations
+    .AddModel(KnownHuggingFaceImageModel.NsfwGenAnime)
+    .AddModel(KnownHuggingFaceImageModel.OmnigenXLNsfw)
+    .AddModel(KnownHuggingFaceImageModel.PonyDiffusionV6XL)
+    .AddModel(KnownHuggingFaceImageModel.SdxlBase)
+    .AddHuggingFaceModel("NSFWAnime V2", "UnfilteredAI/NSFW-GEN-ANIME-v2")
+    .AddHuggingFaceModel("NSFWAnime V2-1", "UnfilteredAI/NSFW-GEN-ANIME-v2.1")
+    .AddHuggingFaceModel("DAN-L3-R1-8B","UnfilteredAI/DAN-L3-R1-8B")
     // .AddModel(KnownTextToSpeechModel.Kokoro)      // /v1/audio/speech
     // .AddModel(KnownSpeechToTextModel.WhisperBase) // /v1/audio/transcriptions
     ;
