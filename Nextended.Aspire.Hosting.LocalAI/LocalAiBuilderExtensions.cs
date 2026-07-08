@@ -330,6 +330,49 @@ public static class LocalAiBuilderExtensions
     }
 
     /// <summary>
+    /// Registers a text-embedding model via a GENERATED model config (erzwingt <c>embeddings: true</c> und
+    /// ein explizites Embed-Backend), bind-gemountet in den Container. Nutze das, wenn ein Gallery-Modell
+    /// beim <c>/v1/embeddings</c>-Aufruf „Method not implemented" liefert (dann implementiert das per Gallery
+    /// gewählte Backend keine Embeddings). Das Default-Backend <c>sentencetransformers</c> lädt beliebige
+    /// HuggingFace-Sentence-Transformers-Modelle zuverlässig als Embedder. Der erste Embedding-Eintrag wird
+    /// von <see cref="WithLocalAI{T}"/> als <c>EMBEDDING_MODEL</c> injiziert. Mit <see cref="WithDataVolume"/>
+    /// kombinieren (Backend + Gewichte werden beim ersten Start geladen).
+    /// </summary>
+    /// <param name="name">Modell-Id für Konsumenten (auch der EMBEDDING_MODEL-Wert + /v1/models-Eintrag).</param>
+    /// <param name="model">HuggingFace-Repo (z. B. <c>sentence-transformers/all-MiniLM-L6-v2</c>) bzw. für
+    /// <c>backend: llama-cpp</c> eine GGUF-URL/-Datei.</param>
+    /// <param name="backend">LocalAI-Embed-Backend: <c>sentencetransformers</c> (Default), <c>llama-cpp</c>,
+    /// <c>bert-embeddings</c>, …</param>
+    public static IResourceBuilder<LocalAiResource> AddEmbeddingModel(
+        this IResourceBuilder<LocalAiResource> builder,
+        string name,
+        string model,
+        string backend = "sentencetransformers")
+    {
+        var resource = builder.Resource;
+        if (resource.HfConfigDir is null)
+        {
+            resource.HfConfigDir = Path.Combine(
+                builder.ApplicationBuilder.AppHostDirectory, "obj", "localai", resource.Name);
+            Directory.CreateDirectory(resource.HfConfigDir);
+            builder.WithBindMount(resource.HfConfigDir, "/hf-configs", isReadOnly: true);
+        }
+
+        var safeName = new string(name.Trim().ToLowerInvariant().Select(c => char.IsLetterOrDigit(c) || c is '-' or '_' or '.' ? c : '-').ToArray());
+        var yaml = $"""
+            name: {safeName}
+            backend: {backend}
+            embeddings: true
+            parameters:
+              model: {model}
+            """;
+        File.WriteAllText(Path.Combine(resource.HfConfigDir, $"{safeName}.yaml"), yaml);
+
+        resource.Models.Add(new RegisteredModel(safeName, $"/hf-configs/{safeName}.yaml", ModelModality.Embedding));
+        return builder;
+    }
+
+    /// <summary>
     /// Registers a HuggingFace-hosted diffusers image model (e.g. SDXL fine-tunes like RealVisXL or
     /// the UnfilteredAI NSFW models) that is not part of the LocalAI gallery. A model config
     /// yaml is generated and bind-mounted into the container; LocalAI downloads the weights
