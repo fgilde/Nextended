@@ -1,3 +1,6 @@
+using System.Globalization;
+using System.Net.Http;
+using System.Text.Json;
 using Aspire.Hosting;
 using Aspire.Hosting.ApplicationModel;
 
@@ -197,6 +200,12 @@ public static class LocalAiBuilderExtensions
     /// <summary>Convenience: routes a chat / LLM (incl. vision) model to <c>AddTextModel</c>.</summary>
     public static IResourceBuilder<LocalAiResource> AddModel(this IResourceBuilder<LocalAiResource> builder, KnownTextModel model) => builder.AddTextModel(model);
 
+    /// <summary>Convenience: routes a curated HuggingFace chat/LLM model to the generated-config <c>AddTextModel</c>.</summary>
+    public static IResourceBuilder<LocalAiResource> AddModel(this IResourceBuilder<LocalAiResource> builder, KnownHuggingFaceTextModel model) => builder.AddTextModel(model);
+
+    /// <summary>Convenience: routes a curated HuggingFace image LoRA to <c>AddImageLora</c> (auto base + adapter).</summary>
+    public static IResourceBuilder<LocalAiResource> AddModel(this IResourceBuilder<LocalAiResource> builder, KnownHuggingFaceImageLora lora) => builder.AddImageLora(lora);
+
     /// <summary>Convenience: routes an embedding model to <c>AddEmbeddingModel</c>.</summary>
     public static IResourceBuilder<LocalAiResource> AddModel(this IResourceBuilder<LocalAiResource> builder, KnownEmbeddingModel model) => builder.AddEmbeddingModel(model);
 
@@ -311,6 +320,107 @@ public static class LocalAiBuilderExtensions
     }
 
     /// <summary>
+    /// Registers a curated HuggingFace chat/LLM model (the UnfilteredAI uncensored family) via the
+    /// generated-config path. See <see cref="KnownHuggingFaceTextModel"/> for the load mechanism per model.
+    /// </summary>
+    public static IResourceBuilder<LocalAiResource> AddTextModel(
+        this IResourceBuilder<LocalAiResource> builder,
+        KnownHuggingFaceTextModel model,
+        string? name = null)
+        => builder.AddTextModel(name ?? model.ToString().ToLowerInvariant(), GalleryNames.Of(model));
+
+    /// <summary>
+    /// Registers a chat/LLM text model via a GENERATED model config — the TEXT counterpart of
+    /// <see cref="AddHuggingFaceModel(IResourceBuilder{LocalAiResource}, string, string, string, int, bool)"/>
+    /// (which is image/diffusers-only; do NOT use it for LLMs). For HuggingFace models that are not in
+    /// the LocalAI gallery (e.g. <c>UnfilteredAI/DAN-L3-R1-8B</c>). Served on <c>/v1/chat/completions</c>.
+    /// Two forms, auto-detected from <paramref name="model"/>:
+    /// <list type="bullet">
+    /// <item><b>GGUF</b> (recommended — light &amp; robust): a <c>huggingface://owner/repo/file.gguf</c> URI
+    /// (or bare <c>owner/repo/file.gguf</c>) → runs on the <c>llama-cpp</c> backend; the file is fetched via a
+    /// generated <c>download_files</c> entry (<paramref name="backend"/> ignored).</item>
+    /// <item><b>Full weights</b>: a repo id <c>owner/repo</c> → runs the safetensors weights on
+    /// <paramref name="backend"/> (<c>vllm</c> default, or <c>transformers</c>); more VRAM, and the backend
+    /// must support the model architecture.</item>
+    /// </list>
+    /// The first text model added becomes <c>TEXT_MODEL</c> for <see cref="WithLocalAI{T}"/>.
+    /// Combine with <see cref="WithDataVolume"/> (weights download on first start).
+    /// </summary>
+    public static IResourceBuilder<LocalAiResource> AddTextModel(
+        this IResourceBuilder<LocalAiResource> builder,
+        string name,
+        string model,
+        string backend = "vllm")
+    {
+        var dir = EnsureHfConfigDir(builder);
+        var safeName = new string(name.Trim().ToLowerInvariant().Select(c => char.IsLetterOrDigit(c) || c is '-' or '_' or '.' ? c : '-').ToArray());
+
+        string yaml;
+        if (model.EndsWith(".gguf", StringComparison.OrdinalIgnoreCase))
+        {
+            // GGUF → the robust llama-cpp backend; download exactly this file (accept a full
+            // huggingface:// URI or a bare "owner/repo/file.gguf" that we normalise to one).
+            var file = model[(model.LastIndexOf('/') + 1)..];
+            var uri = model.Contains("://", StringComparison.Ordinal) ? model : $"huggingface://{model}";
+            yaml = $"""
+                name: {safeName}
+                backend: llama-cpp
+                parameters:
+                  model: {file}
+                download_files:
+                - filename: {file}
+                  uri: {uri}
+                """;
+        }
+        else
+        {
+            // Full HF weights via a transformers-class backend (vllm/transformers).
+            yaml = $"""
+                name: {safeName}
+                backend: {backend}
+                parameters:
+                  model: {model}
+                """;
+        }
+        File.WriteAllText(Path.Combine(dir, $"{safeName}.yaml"), yaml);
+
+        builder.Resource.Models.Add(new RegisteredModel(safeName, $"/hf-configs/{safeName}.yaml", ModelModality.Text));
+        return builder;
+    }
+
+    /// <summary>Ensures the generated-config dir exists and is bind-mounted at <c>/hf-configs</c> (idempotent).</summary>
+    private static string EnsureHfConfigDir(IResourceBuilder<LocalAiResource> builder)
+    {
+        var resource = builder.Resource;
+        if (resource.HfConfigDir is null)
+        {
+            resource.HfConfigDir = Path.Combine(
+                builder.ApplicationBuilder.AppHostDirectory, "obj", "localai", resource.Name);
+            Directory.CreateDirectory(resource.HfConfigDir);
+            builder.WithBindMount(resource.HfConfigDir, "/hf-configs", isReadOnly: true);
+        }
+        return resource.HfConfigDir;
+    }
+
+    /// <summary>
+    /// Normalises a HuggingFace reference to a bare <c>owner/repo</c>: accepts a plain id, a
+    /// <c>huggingface://</c> URI, or a full <c>https://huggingface.co/owner/repo[/tree/…]</c> URL
+    /// (strips scheme/host, any <c>/tree|/blob|/resolve/…</c> suffix, query/fragment and slashes).
+    /// </summary>
+    private static string NormalizeHfRepo(string reference)
+    {
+        var s = reference.Trim().Replace("huggingface://", "", StringComparison.OrdinalIgnoreCase);
+        foreach (var host in new[] { "https://huggingface.co/", "http://huggingface.co/", "https://www.huggingface.co/" })
+            if (s.StartsWith(host, StringComparison.OrdinalIgnoreCase)) { s = s[host.Length..]; break; }
+        var cut = s.IndexOfAny(new[] { '?', '#' });
+        if (cut >= 0) s = s[..cut];
+        s = s.Trim('/');
+        // A diffusers repo id is owner/repo — drop any /tree/main, /blob/…, /resolve/… tail.
+        var parts = s.Split('/', StringSplitOptions.RemoveEmptyEntries);
+        return parts.Length >= 2 ? $"{parts[0]}/{parts[1]}" : s;
+    }
+
+    /// <summary>
     /// Registers a text-embedding model from the LocalAI gallery (served on <c>/v1/embeddings</c>).
     /// The first embedding model added becomes the default injected as <c>EMBEDDING_MODEL</c> by
     /// <see cref="WithLocalAI{T}"/>.
@@ -366,7 +476,7 @@ public static class LocalAiBuilderExtensions
             parameters:
               model: {model}
             """;
-        File.WriteAllText(Path.Combine(resource.HfConfigDir, $"{safeName}.yaml"), yaml);
+        File.WriteAllText(Path.Combine(resource.HfConfigDir!, $"{safeName}.yaml"), yaml);
 
         resource.Models.Add(new RegisteredModel(safeName, $"/hf-configs/{safeName}.yaml", ModelModality.Embedding));
         return builder;
@@ -392,7 +502,34 @@ public static class LocalAiBuilderExtensions
             f16: ImageModel.F16Of(known));
 
     /// <summary>
-    /// Registers any HuggingFace-hosted diffusers image model by repo id, e.g.
+    /// Registers any HuggingFace diffusers image model from just its <b>repo id or URL</b> — the model id
+    /// is derived from the repo name, so you don't have to invent one:
+    /// <code>
+    /// ai.AddHuggingFaceModel("SG161222/RealVisXL_V4.0");
+    /// ai.AddHuggingFaceModel("https://huggingface.co/John6666/pony-diffusion-v6-xl-sdxl-spo");
+    /// </code>
+    /// Accepts a bare <c>owner/repo</c>, a <c>huggingface://…</c> URI or a full
+    /// <c>https://huggingface.co/owner/repo[/tree/…]</c> URL. Uses SDXL defaults (pipeline
+    /// <c>StableDiffusionXLPipeline</c>, 25 steps, no fp16) — correct for the SDXL class
+    /// (RealVis/Pony/Illustrious/Juggernaut/NSFW-gen …). For SD1.5/FLUX (a different pipeline) or
+    /// fp16-only repos, use the overload with an explicit name + <c>pipelineType</c>/<c>f16</c>.
+    /// </summary>
+    public static IResourceBuilder<LocalAiResource> AddHuggingFaceModel(
+        this IResourceBuilder<LocalAiResource> builder,
+        string hfRepoOrUrl)
+    {
+        var repo = NormalizeHfRepo(hfRepoOrUrl);
+        // A LoRA has no diffusers pipeline (no model_index.json) → the checkpoint loader would 404 at
+        // generation time. Detect it (best-effort HF lookup) and auto-route to the LoRA path instead,
+        // so the consumer doesn't have to know whether a repo is a checkpoint or an adapter.
+        if (ProbeHf(repo) is { IsLora: true })
+            return builder.AddImageLora(hfRepoOrUrl);
+        var name = repo.Contains('/') ? repo[(repo.LastIndexOf('/') + 1)..] : repo;
+        return builder.AddHuggingFaceModel(name, repo);
+    }
+
+    /// <summary>
+    /// Registers any HuggingFace-hosted diffusers image model by repo id (or URL), e.g.
     /// <c>AddHuggingFaceModel("realvis", "SG161222/RealVisXL_V4.0")</c>.
     /// </summary>
     /// <param name="builder">The LocalAI resource builder.</param>
@@ -410,14 +547,8 @@ public static class LocalAiBuilderExtensions
         bool f16 = false)
     {
         var resource = builder.Resource;
-
-        if (resource.HfConfigDir is null)
-        {
-            resource.HfConfigDir = Path.Combine(
-                builder.ApplicationBuilder.AppHostDirectory, "obj", "localai", resource.Name);
-            Directory.CreateDirectory(resource.HfConfigDir);
-            builder.WithBindMount(resource.HfConfigDir, "/hf-configs", isReadOnly: true);
-        }
+        hfRepo = NormalizeHfRepo(hfRepo);
+        EnsureHfConfigDir(builder);
 
         var safeName = new string(name.Trim().ToLowerInvariant().Select(c => char.IsLetterOrDigit(c) || c is '-' or '_' or '.' ? c : '-').ToArray());
         // f16 defaults OFF: setting it makes diffusers request the "fp16" file variant,
@@ -434,10 +565,177 @@ public static class LocalAiBuilderExtensions
               cuda: {(resource.GpuEnabled ? "true" : "false")}
               pipeline_type: {pipelineType}
             """;
-        File.WriteAllText(Path.Combine(resource.HfConfigDir, $"{safeName}.yaml"), yaml);
+        File.WriteAllText(Path.Combine(resource.HfConfigDir!, $"{safeName}.yaml"), yaml);
 
         resource.Models.Add(new RegisteredModel(safeName, $"/hf-configs/{safeName}.yaml", ModelModality.Image));
         return builder;
+    }
+
+    // ---- LoRA support -------------------------------------------------------------------------
+    // A LoRA is an adapter, not a standalone checkpoint: it must be downloaded locally and applied on
+    // top of a base model. These overloads generate a diffusers config that does exactly that
+    // (download_files fetches the .safetensors into the model dir; lora_adapters/lora_scales apply it),
+    // so a consumer just names a LoRA and it works — no manual base/LoRA juggling.
+
+    /// <summary>Adds a curated image LoRA (see <see cref="KnownHuggingFaceImageLora"/>) on its known base — zero config.</summary>
+    public static IResourceBuilder<LocalAiResource> AddImageLora(
+        this IResourceBuilder<LocalAiResource> builder,
+        KnownHuggingFaceImageLora lora,
+        string? name = null)
+        => builder.AddImageLora(
+            name ?? lora.ToString().ToLowerInvariant(),
+            ImageLora.BaseOf(lora),
+            $"huggingface://{ImageLora.RepoOf(lora)}/{ImageLora.FileOf(lora)}");
+
+    /// <summary>Adds an image LoRA on a curated base checkpoint (SDXL defaults).</summary>
+    public static IResourceBuilder<LocalAiResource> AddImageLora(
+        this IResourceBuilder<LocalAiResource> builder,
+        string name,
+        KnownHuggingFaceImageModel baseModel,
+        string loraRepoOrUrl,
+        float scale = 0.8f)
+        => builder.AddImageLora(name, ImageModel.RepoOf(baseModel), loraRepoOrUrl, scale,
+            "StableDiffusionXLPipeline", ImageModel.StepsOf(baseModel), f16: false);
+
+    /// <summary>
+    /// Adds an image LoRA from <b>just its repo/URL</b> — the base model is auto-detected from the LoRA's
+    /// HuggingFace <c>base_model</c> metadata (Pony/Illustrious SDXL) and the weight file is resolved
+    /// automatically. Needs network at build (HuggingFace); if unreachable it throws with a clear hint to
+    /// use the explicit-base overload. The "paste a LoRA, it just works" entry point.
+    /// </summary>
+    public static IResourceBuilder<LocalAiResource> AddImageLora(
+        this IResourceBuilder<LocalAiResource> builder,
+        string loraRepoOrUrl,
+        float scale = 0.8f)
+    {
+        var repo = NormalizeHfRepo(loraRepoOrUrl);
+        var info = ProbeHf(repo)
+            ?? throw new InvalidOperationException(
+                $"LoRA '{repo}': HuggingFace war nicht erreichbar, um das Basismodell zu ermitteln. " +
+                $"Nutze die explizite Form, z. B. AddImageLora(name, KnownHuggingFaceImageModel.PonyDiffusionV6XL, \"{repo}\").");
+        var name = repo.Contains('/') ? repo[(repo.LastIndexOf('/') + 1)..] : repo;
+        return builder.AddImageLora(name, MapBase(info.BaseModel), loraRepoOrUrl, scale);
+    }
+
+    /// <summary>
+    /// Core: adds an image LoRA on an explicit base repo. Generates a diffusers config that downloads the
+    /// LoRA weight file into the model dir (<c>download_files</c>) and applies it (<c>lora_adapters</c> +
+    /// <c>lora_scales</c>). <paramref name="loraRepoOrUrl"/> may be a repo id (its single <c>.safetensors</c>
+    /// is looked up on HuggingFace) or a direct <c>huggingface://owner/repo/file.safetensors</c> reference.
+    /// </summary>
+    public static IResourceBuilder<LocalAiResource> AddImageLora(
+        this IResourceBuilder<LocalAiResource> builder,
+        string name,
+        string baseRepo,
+        string loraRepoOrUrl,
+        float scale = 0.8f,
+        string pipelineType = "StableDiffusionXLPipeline",
+        int steps = 25,
+        bool f16 = false)
+    {
+        var resource = builder.Resource;
+        baseRepo = NormalizeHfRepo(baseRepo);
+        var (loraRepo, loraFile) = ResolveLoraRef(loraRepoOrUrl);
+        EnsureHfConfigDir(builder);
+
+        var safeName = new string(name.Trim().ToLowerInvariant().Select(c => char.IsLetterOrDigit(c) || c is '-' or '_' or '.' ? c : '-').ToArray());
+        var scaleStr = scale.ToString(CultureInfo.InvariantCulture);
+        var yaml = $"""
+            name: {safeName}
+            backend: diffusers
+            step: {steps}
+            {(f16 ? "f16: true\n" : "")}parameters:
+              model: {baseRepo}
+            diffusers:
+              cuda: {(resource.GpuEnabled ? "true" : "false")}
+              pipeline_type: {pipelineType}
+            download_files:
+            - filename: {loraFile}
+              uri: huggingface://{loraRepo}/{loraFile}
+            lora_adapters:
+            - {loraFile}
+            lora_scales:
+            - {scaleStr}
+            """;
+        File.WriteAllText(Path.Combine(resource.HfConfigDir!, $"{safeName}.yaml"), yaml);
+
+        resource.Models.Add(new RegisteredModel(safeName, $"/hf-configs/{safeName}.yaml", ModelModality.Image));
+        return builder;
+    }
+
+    // ---- HuggingFace probe (build-time, fail-open) --------------------------------------------
+
+    private readonly record struct HfInfo(bool IsLora, string? BaseModel, string[] Safetensors);
+    private static readonly Dictionary<string, HfInfo?> _hfCache = new();
+
+    /// <summary>Best-effort HuggingFace metadata lookup (4s timeout, cached, fail-open → <c>null</c> on any error).</summary>
+    private static HfInfo? ProbeHf(string repo)
+    {
+        if (_hfCache.TryGetValue(repo, out var cached)) return cached;
+        HfInfo? result = null;
+        try
+        {
+            using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(4) };
+            http.DefaultRequestHeaders.UserAgent.ParseAdd("Nextended.Aspire.Hosting.LocalAI");
+            var json = http.GetStringAsync($"https://huggingface.co/api/models/{repo}").GetAwaiter().GetResult();
+            using var doc = JsonDocument.Parse(json);
+            var root = doc.RootElement;
+
+            var isLora = root.TryGetProperty("tags", out var tags) && tags.ValueKind == JsonValueKind.Array
+                && tags.EnumerateArray().Any(e => e.ValueKind == JsonValueKind.String && e.GetString() == "lora");
+
+            string? baseModel = null;
+            if (root.TryGetProperty("cardData", out var cd) && cd.ValueKind == JsonValueKind.Object
+                && cd.TryGetProperty("base_model", out var bm))
+                baseModel = bm.ValueKind == JsonValueKind.String ? bm.GetString()
+                    : bm.ValueKind == JsonValueKind.Array && bm.GetArrayLength() > 0 ? bm[0].GetString() : null;
+
+            var safetensors = root.TryGetProperty("siblings", out var sib) && sib.ValueKind == JsonValueKind.Array
+                ? sib.EnumerateArray()
+                    .Select(s => s.TryGetProperty("rfilename", out var rf) ? rf.GetString() : null)
+                    .Where(f => f is not null && f.EndsWith(".safetensors", StringComparison.OrdinalIgnoreCase))
+                    .Select(f => f!).ToArray()
+                : Array.Empty<string>();
+
+            result = new HfInfo(isLora, baseModel, safetensors);
+        }
+        catch { result = null; }
+        _hfCache[repo] = result;
+        return result;
+    }
+
+    /// <summary>Splits a LoRA reference into (repo, file): a direct <c>*.safetensors</c> URL/URI is parsed; a bare repo id is looked up on HuggingFace.</summary>
+    private static (string Repo, string File) ResolveLoraRef(string loraRepoOrUrl)
+    {
+        var s = loraRepoOrUrl.Trim().Replace("huggingface://", "", StringComparison.OrdinalIgnoreCase);
+        foreach (var host in new[] { "https://huggingface.co/", "http://huggingface.co/", "https://www.huggingface.co/" })
+            if (s.StartsWith(host, StringComparison.OrdinalIgnoreCase)) { s = s[host.Length..]; break; }
+        var cut = s.IndexOfAny(new[] { '?', '#' });
+        if (cut >= 0) s = s[..cut];
+        s = s.Trim('/');
+        var parts = s.Split('/', StringSplitOptions.RemoveEmptyEntries);
+
+        if (s.EndsWith(".safetensors", StringComparison.OrdinalIgnoreCase))
+        {
+            var fileRepo = parts.Length >= 2 ? $"{parts[0]}/{parts[1]}" : (parts.Length > 0 ? parts[0] : s);
+            return (fileRepo, parts[^1]);
+        }
+
+        var repo = parts.Length >= 2 ? $"{parts[0]}/{parts[1]}" : s;
+        var file = ProbeHf(repo)?.Safetensors.FirstOrDefault(f => !f.Contains('/'))
+            ?? throw new InvalidOperationException(
+                $"Konnte die LoRA-Datei für '{repo}' nicht ermitteln (HuggingFace nicht erreichbar?). " +
+                $"Gib sie explizit an: AddImageLora(name, base, \"huggingface://{repo}/DATEI.safetensors\").");
+        return (repo, file);
+    }
+
+    /// <summary>Maps a LoRA's declared base_model to a known diffusers base (Illustrious for illustrious/noob, else Pony).</summary>
+    private static KnownHuggingFaceImageModel MapBase(string? baseModel)
+    {
+        var b = (baseModel ?? "").ToLowerInvariant();
+        return b.Contains("illustrious") || b.Contains("noob")
+            ? KnownHuggingFaceImageModel.IllustriousXL
+            : KnownHuggingFaceImageModel.PonyDiffusionV6XL;
     }
 
     /// <summary>

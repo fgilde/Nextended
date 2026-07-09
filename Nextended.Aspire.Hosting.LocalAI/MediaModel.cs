@@ -506,6 +506,46 @@ public enum KnownTextModel
 }
 
 /// <summary>
+/// Curated chat/LLM models hosted on HuggingFace that are NOT in the LocalAI gallery (the UnfilteredAI
+/// uncensored family). Loaded via the generated-config <c>AddTextModel(name, model, backend)</c> — the
+/// TEXT counterpart of <c>AddHuggingFaceModel</c> (which is image/diffusers-only). Served on
+/// <c>/v1/chat/completions</c>. The <see cref="DescriptionAttribute"/> carries the load reference:
+/// a <c>huggingface://owner/repo/file.gguf</c> URI runs on the robust <c>llama-cpp</c> backend, a bare
+/// <c>owner/repo</c> id runs the full safetensors weights on the <c>vllm</c> backend (more VRAM, and vllm
+/// must support the architecture — verify on your GPU). All repos verified public/text-generation.
+/// </summary>
+public enum KnownHuggingFaceTextModel
+{
+    /// <summary>UnfilteredAI DAN-L3-R1-8B — uncensored Llama-3 8B ("DAN" reasoning). GGUF f16 → llama-cpp (robust).</summary>
+    [Description("huggingface://UnfilteredAI/DAN-L3-R1-8B/DAN-L3-R1-8B.f16.gguf")]
+    DanL3R1_8b,
+
+    /// <summary>UnfilteredAI NSFW-flash — uncensored NSFW chat model. GGUF Q4_K_M → llama-cpp (robust).</summary>
+    [Description("huggingface://UnfilteredAI/NSFW-flash/nsfw-flash-q4_k_m.gguf")]
+    NsfwFlash,
+
+    /// <summary>UnfilteredAI Dan-Qwen3.5-4B — uncensored Qwen3 4B (safetensors → vllm).</summary>
+    [Description("UnfilteredAI/Dan-Qwen3.5-4B")]
+    DanQwen35_4b,
+
+    /// <summary>UnfilteredAI DAN-Qwen3-1.7B — small uncensored Qwen3 (safetensors → vllm).</summary>
+    [Description("UnfilteredAI/DAN-Qwen3-1.7B")]
+    DanQwen3_1_7b,
+
+    /// <summary>UnfilteredAI BADMISTRAL-1.5B — tiny uncensored Mistral-class (safetensors → vllm).</summary>
+    [Description("UnfilteredAI/BADMISTRAL-1.5B")]
+    BadMistral_1_5b,
+
+    /// <summary>UnfilteredAI UNfilteredAI-1B — 1B uncensored base (safetensors → vllm).</summary>
+    [Description("UnfilteredAI/UNfilteredAI-1B")]
+    UnfilteredAi_1b,
+
+    /// <summary>UnfilteredAI Helvete-nano — nano uncensored model (safetensors → vllm).</summary>
+    [Description("UnfilteredAI/Helvete-nano")]
+    HelveteNano,
+}
+
+/// <summary>
 /// Well-known text-embedding models from the LocalAI gallery, installed via <c>AddEmbeddingModel</c>
 /// and served on <c>/v1/embeddings</c> (semantic search / RAG). Any other works via the string overload.
 /// </summary>
