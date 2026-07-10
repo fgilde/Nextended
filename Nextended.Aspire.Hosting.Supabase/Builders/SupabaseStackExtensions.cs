@@ -82,14 +82,18 @@ public static class SupabaseStackExtensions
             stack.EdgeFunctionsPath = functionsPath;
         var containerPrefix = stack.Name;
 
-        var dbPassword = stack.Database!.Resource.Password;
+        // Mode-agnostic DB endpoint (set by AddSupabase): internal container OR injected external resource.
+        var dbEndpoint = stack.DatabaseEndpoint!;
 
-        // Get database endpoint for dynamic service discovery (works in ACA and locally)
-        var dbEndpoint = stack.Database.GetEndpoint("tcp");
-
-        // Build database URL using Aspire's dynamic endpoint resolution
-        var edgeDbUrl = ReferenceExpression.Create(
-            $"postgresql://postgres:{dbPassword}@{dbEndpoint.Property(EndpointProperty.Host)}:{dbEndpoint.Property(EndpointProperty.Port)}/postgres");
+        // Read the DB password HERE — WithEdgeFunctions runs AFTER ConfigureDatabase/WithPassword in the
+        // chain, so the internal dbResource password is finalized. Internal: the live password. External:
+        // the injected resource's password parameter (stack.DatabasePassword). Using the early
+        // stack.DatabasePassword snapshot for the internal path would be stale (pre-WithPassword default).
+        var edgeDbUrl = stack.Database is not null
+            ? ReferenceExpression.Create(
+                $"postgresql://postgres:{stack.Database.Resource.Password}@{dbEndpoint.Property(EndpointProperty.Host)}:{dbEndpoint.Property(EndpointProperty.Port)}/postgres")
+            : ReferenceExpression.Create(
+                $"postgresql://postgres:{stack.DatabasePassword!}@{dbEndpoint.Property(EndpointProperty.Host)}:{dbEndpoint.Property(EndpointProperty.Port)}/postgres");
 
         // Generate router file for multi-function support
         var infraRoot = stack.InfraRootDir ?? Path.Combine(appBuilder.AppHostDirectory, "..", "infra", "supabase");
@@ -127,7 +131,7 @@ public static class SupabaseStackExtensions
             .WithEnvironment("DENO_DIR", "/tmp/deno")
             .WithEnvironment("EDGE_RUNTIME_PORT", EdgeRuntimePort.ToString())
             .WithEndpoint(targetPort: EdgeRuntimePort, name: "http", scheme: "http", isExternal: false)
-            .WaitFor(stack.Database!)
+            .WaitFor(stack.DatabaseWaitTarget!)
             .WaitFor(stack.Kong!);
 
         if (isPublishMode)
@@ -259,23 +263,50 @@ public static class SupabaseStackExtensions
         combinedSql.AppendLine($"-- Source: {migrationsPath}");
         combinedSql.AppendLine("-- ============================================");
         combinedSql.AppendLine();
-        combinedSql.AppendLine("-- Wait for auth.users table (GoTrue must start first)");
+        // READINESS GATE. The Supabase service containers migrate their OWN schemas to the MODERN
+        // shape on their first start, in SEPARATE containers (GoTrue -> auth, storage-api -> storage).
+        // The supabase/postgres image bakes ANCIENT auth/storage tables at initdb, so waiting for the
+        // TABLE to exist is not enough — it exists far too early. We poll for a MODERN COLUMN that only
+        // appears AFTER the service finished migrating: auth.users.email_confirmed_at (written by the
+        // admin seed + needed by nearly every migration) and storage.buckets.public (needed by the
+        // bucket-seed migrations + storage RLS). One combined poll (~5 min budget), then a HARD abort
+        // if auth is still un-migrated; storage stays a SOFT per-file gate below so a slow/stuck Storage
+        // API never blocks the ~88 non-storage migrations. NOTE: gate on a stable modern COLUMN, never
+        // on a migration COUNT (that is tied to the pinned image tag and any bump would hang forever).
         combinedSql.AppendLine("DO $$");
         combinedSql.AppendLine("DECLARE");
         combinedSql.AppendLine("    retry_count integer := 0;");
-        combinedSql.AppendLine("    max_retries integer := 30;");
+        combinedSql.AppendLine("    max_retries integer := 150;  -- ~5 min at 2s/iteration");
+        combinedSql.AppendLine("    auth_ok boolean;");
+        combinedSql.AppendLine("    storage_ok boolean;");
         combinedSql.AppendLine("BEGIN");
-        combinedSql.AppendLine("    WHILE NOT EXISTS (SELECT FROM pg_tables WHERE schemaname = 'auth' AND tablename = 'users') AND retry_count < max_retries LOOP");
-        combinedSql.AppendLine("        PERFORM pg_sleep(1);");
+        combinedSql.AppendLine("    LOOP");
+        combinedSql.AppendLine("        auth_ok := EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'auth' AND table_name = 'users' AND column_name = 'email_confirmed_at');");
+        combinedSql.AppendLine("        storage_ok := EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'storage' AND table_name = 'buckets' AND column_name = 'public');");
+        combinedSql.AppendLine("        EXIT WHEN (auth_ok AND storage_ok) OR retry_count >= max_retries;");
+        combinedSql.AppendLine("        PERFORM pg_sleep(2);");
         combinedSql.AppendLine("        retry_count := retry_count + 1;");
-        combinedSql.AppendLine("        RAISE NOTICE '[Migrations] Waiting for auth.users... (Attempt %/%)', retry_count, max_retries;");
+        combinedSql.AppendLine("        IF retry_count % 5 = 0 THEN");
+        combinedSql.AppendLine("            RAISE NOTICE '[Migrations] readiness poll: auth=% storage=% (attempt %/%)', auth_ok, storage_ok, retry_count, max_retries;");
+        combinedSql.AppendLine("        END IF;");
         combinedSql.AppendLine("    END LOOP;");
-        combinedSql.AppendLine("    IF NOT EXISTS (SELECT FROM pg_tables WHERE schemaname = 'auth' AND tablename = 'users') THEN");
-        combinedSql.AppendLine("        RAISE EXCEPTION '[Migrations] auth.users was not found after % attempts', max_retries;");
-        combinedSql.AppendLine("    END IF;");
-        combinedSql.AppendLine("    RAISE NOTICE '[Migrations] auth.users found, starting migrations';");
+        combinedSql.AppendLine("    RAISE NOTICE '[Migrations] readiness poll done: auth=% storage=%', auth_ok, storage_ok;");
         combinedSql.AppendLine("END;");
         combinedSql.AppendLine("$$;");
+        combinedSql.AppendLine();
+        combinedSql.AppendLine("-- HARD auth gate: abort LOUDLY if GoTrue never migrated. In publish the whole file runs as one");
+        combinedSql.AppendLine("-- `psql -f` inside a `set -e && ... && echo Completed` chain, so ON_ERROR_STOP makes psql exit");
+        combinedSql.AppendLine("-- non-zero and the init container fail instead of running app migrations + the seed against a");
+        combinedSql.AppendLine("-- half-migrated schema. Locally post_init.sh ignores the exit code (degrade, never brick).");
+        combinedSql.AppendLine("\\set ON_ERROR_STOP on");
+        combinedSql.AppendLine("DO $$");
+        combinedSql.AppendLine("BEGIN");
+        combinedSql.AppendLine("    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'auth' AND table_name = 'users' AND column_name = 'email_confirmed_at') THEN");
+        combinedSql.AppendLine("        RAISE EXCEPTION '[Migrations] ABORT: auth schema not migrated (auth.users.email_confirmed_at missing) after readiness timeout - GoTrue did not finish its startup migrations. Refusing to run migrations against a half-migrated schema.';");
+        combinedSql.AppendLine("    END IF;");
+        combinedSql.AppendLine("END;");
+        combinedSql.AppendLine("$$;");
+        combinedSql.AppendLine("\\set ON_ERROR_STOP off");
         combinedSql.AppendLine();
 
         // ------------------------------------------------------------------
@@ -284,8 +315,8 @@ public static class SupabaseStackExtensions
         // post_init runs this whole file via `psql -f` on EVERY post-init pass
         // (cold start, container restart, every `azd deploy`/`azd up`). Without
         // tracking, non-idempotent migrations re-run against a persistent DB and
-        // corrupt it (e.g. global schema_categories seeded with mandate_id = NULL
-        // duplicate because NULL is DISTINCT in UNIQUE(mandate_id, name); bare
+        // corrupt it (e.g. a row with a nullable UNIQUE column seeded as NULL gets a
+        // duplicate because two NULLs are DISTINCT under a UNIQUE constraint; bare
         // `ALTER PUBLICATION ... ADD TABLE` errors on the 2nd run). Locally this
         // never shows because each `aspire run` starts a fresh DB = one pass.
         //
@@ -302,35 +333,110 @@ public static class SupabaseStackExtensions
         combinedSql.AppendLine(");");
         combinedSql.AppendLine();
 
+        // The loop runs with ON_ERROR_STOP OFF: a transactional file that errors rolls back (leaving
+        // it UNMARKED) and psql continues to the next file. Only non-transactional (opt-out) files
+        // scope ON_ERROR_STOP ON to themselves so they fail loud instead of being marked on error.
+        combinedSql.AppendLine("\\set ON_ERROR_STOP off");
+        combinedSql.AppendLine();
+
+        // Statements that CANNOT run inside a BEGIN/COMMIT transaction. Files matching these are
+        // emitted UNWRAPPED under a scoped ON_ERROR_STOP (fail loud, mark only after success) instead
+        // of being transaction-wrapped. (Today only the two ALTER TYPE ... ADD VALUE migrations match;
+        // they are add-only and would survive a transaction on PG15, but we opt them out to be safe
+        // and future-proof.) Authors can force opt-out with a `-- aspire:no-transaction` marker.
+        var nonTxRegex = new System.Text.RegularExpressions.Regex(
+            @"\bCREATE\s+INDEX\s+CONCURRENTLY\b|\bDROP\s+INDEX\s+CONCURRENTLY\b|\bREINDEX\b[^;]*\bCONCURRENTLY\b|\bVACUUM\b|\bALTER\s+SYSTEM\b|\bCREATE\s+DATABASE\b|\bALTER\s+TYPE\b[\s\S]*?\bADD\s+VALUE\b|--\s*aspire:no-transaction",
+            System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        // Files whose body touches the storage schema must wait for storage-api to have migrated
+        // (storage.buckets.public present). Gated PER FILE so a lagging Storage API never blocks the
+        // non-storage migrations: if storage is not ready these files are skipped (unmarked) and
+        // retried next pass; the final completeness assertion turns a persistent miss into a loud fail.
+        var storageDepRegex = new System.Text.RegularExpressions.Regex(
+            @"\bstorage\.(buckets|objects)\b", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
         foreach (var sqlFile in sqlFiles)
         {
             var fileName = Path.GetFileName(sqlFile);
             var sqlName = fileName.Replace("'", "''"); // single-quote safety for the SQL literal
-            combinedSql.AppendLine($"-- Migration: {fileName}");
-            combinedSql.AppendLine($"-- ----------------------------------------");
-            // Set :_run_mig = 'true' only if this file has not been applied yet, then
-            // gate the whole migration body on it. \gset must terminate the query (no ';').
-            combinedSql.AppendLine(
-                $"SELECT (NOT EXISTS (SELECT 1 FROM public._aspire_applied_migrations WHERE filename = '{sqlName}'))::text AS _run_mig \\gset");
-            combinedSql.AppendLine("\\if :_run_mig");
-
+            string content;
             try
             {
-                var content = File.ReadAllText(sqlFile);
-                combinedSql.AppendLine(content);
-                combinedSql.AppendLine();
-                LogInformation($"  + {fileName}");
+                content = File.ReadAllText(sqlFile);
             }
             catch (Exception ex)
             {
                 LogWarning($"Could not read {fileName}: {ex.Message}");
+                continue;
             }
 
-            // Mark applied (runs even if a statement above errored — psql continues on
-            // error in autocommit, so this prevents a partially-failed file from looping).
-            combinedSql.AppendLine(
-                $"INSERT INTO public._aspire_applied_migrations (filename) VALUES ('{sqlName}') ON CONFLICT (filename) DO NOTHING;");
+            var isNonTx = nonTxRegex.IsMatch(content);
+            var isStorageDep = storageDepRegex.IsMatch(content);
+
+            combinedSql.AppendLine($"-- Migration: {fileName}{(isNonTx ? "  [non-transactional]" : "")}{(isStorageDep ? "  [storage-dependent]" : "")}");
+            combinedSql.AppendLine("-- ----------------------------------------");
+            // _run_mig := not-yet-applied (AND, for storage files, storage-api has migrated).
+            // \gset must terminate the query (no trailing ';').
+            if (isStorageDep)
+            {
+                combinedSql.AppendLine(
+                    $"SELECT ((NOT EXISTS (SELECT 1 FROM public._aspire_applied_migrations WHERE filename = '{sqlName}')) " +
+                    "AND EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'storage' AND table_name = 'buckets' AND column_name = 'public'))::text AS _run_mig \\gset");
+            }
+            else
+            {
+                combinedSql.AppendLine(
+                    $"SELECT (NOT EXISTS (SELECT 1 FROM public._aspire_applied_migrations WHERE filename = '{sqlName}'))::text AS _run_mig \\gset");
+            }
+            combinedSql.AppendLine("\\if :_run_mig");
+
+            if (isNonTx)
+            {
+                // Non-transactional: run unwrapped, fail loud on error, mark ONLY after success.
+                combinedSql.AppendLine("\\set ON_ERROR_STOP on");
+                combinedSql.AppendLine(content);
+                combinedSql.AppendLine();
+                combinedSql.AppendLine(
+                    $"INSERT INTO public._aspire_applied_migrations (filename) VALUES ('{sqlName}') ON CONFLICT (filename) DO NOTHING;");
+                combinedSql.AppendLine("\\set ON_ERROR_STOP off");
+            }
+            else
+            {
+                // Transactional: body + mark are ATOMIC. If any body statement errors the transaction
+                // aborts, the mark is skipped and COMMIT becomes ROLLBACK -> the file stays UNMARKED and
+                // is retried next pass; psql (ON_ERROR_STOP off) continues to the next file.
+                combinedSql.AppendLine("BEGIN;");
+                combinedSql.AppendLine(content);
+                combinedSql.AppendLine();
+                combinedSql.AppendLine(
+                    $"INSERT INTO public._aspire_applied_migrations (filename) VALUES ('{sqlName}') ON CONFLICT (filename) DO NOTHING;");
+                combinedSql.AppendLine("COMMIT;");
+            }
             combinedSql.AppendLine("\\endif");
+            combinedSql.AppendLine();
+            LogInformation($"  + {fileName}{(isNonTx ? " [non-tx]" : "")}{(isStorageDep ? " [storage]" : "")}");
+        }
+
+        // FINAL completeness assertion: every expected migration must be recorded applied. If a file
+        // failed (rolled back, unmarked) or was skipped (e.g. Storage API never migrated), this fails
+        // LOUDLY so the pass never reports success while half-migrated. Because tracking stays truthful
+        // (never falsely marked), a retry against a now-healthy DB applies exactly the missing files.
+        var expectedValues = string.Join(", ",
+            sqlFiles.Select(f => $"('{Path.GetFileName(f).Replace("'", "''")}')"));
+        if (!string.IsNullOrEmpty(expectedValues))
+        {
+            combinedSql.AppendLine("\\set ON_ERROR_STOP on");
+            combinedSql.AppendLine("DO $$");
+            combinedSql.AppendLine("DECLARE missing text;");
+            combinedSql.AppendLine("BEGIN");
+            combinedSql.AppendLine($"    SELECT string_agg(e.f, ', ') INTO missing FROM (VALUES {expectedValues}) AS e(f)");
+            combinedSql.AppendLine("        WHERE NOT EXISTS (SELECT 1 FROM public._aspire_applied_migrations m WHERE m.filename = e.f);");
+            combinedSql.AppendLine("    IF missing IS NOT NULL THEN");
+            combinedSql.AppendLine("        RAISE EXCEPTION '[Migrations] ABORT: not all migrations applied this pass (tracking left truthful for retry). Missing: %', missing;");
+            combinedSql.AppendLine("    END IF;");
+            combinedSql.AppendLine("    RAISE NOTICE '[Migrations] all expected migrations applied';");
+            combinedSql.AppendLine("END;");
+            combinedSql.AppendLine("$$;");
+            combinedSql.AppendLine("\\set ON_ERROR_STOP off");
             combinedSql.AppendLine();
         }
 
@@ -383,6 +489,13 @@ public static class SupabaseStackExtensions
         {
             Directory.CreateDirectory(scriptsDir);
             var userSqlPath = Path.Combine(scriptsDir, "users.sql");
+            // users.sql is appended to (a build may register several users). Clear it on the FIRST
+            // registered user of THIS generation, otherwise File.AppendAllText accumulates a stale
+            // seed block from every previous build/run (the file persists under infra/).
+            if (builder.Resource.RegisteredUsers.Count == 1)
+            {
+                File.WriteAllText(userSqlPath, string.Empty);
+            }
             AppendUserSql(userSqlPath, user);
 
             // For publish mode: Update PostInitSqlBase64 to include new user
@@ -412,6 +525,10 @@ public static class SupabaseStackExtensions
 
         var sql = $"""
 -- User: {user.Email}
+-- Loud seed: ON_ERROR_STOP makes a failed admin INSERT abort the init (publish) instead of being
+-- silently swallowed, and a post-seed assertion confirms the user exists. (Local post_init.sh
+-- ignores the exit code, so this degrades rather than bricks.)
+\set ON_ERROR_STOP on
 DO $$
 DECLARE
     new_user_id uuid;
@@ -495,6 +612,16 @@ EXCEPTION WHEN OTHERS THEN
     RAISE WARNING '[Post-Init] User creation completely failed for {email}: %', SQLERRM;
 END;
 $$;
+
+-- Assert the admin user actually exists (loud if the INSERT above failed).
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM auth.users WHERE email = '{email}') THEN
+        RAISE EXCEPTION '[Post-Init] ABORT: registered user {email} was not created';
+    END IF;
+END;
+$$;
+\set ON_ERROR_STOP off
 
 """;
         File.AppendAllText(path, sql);

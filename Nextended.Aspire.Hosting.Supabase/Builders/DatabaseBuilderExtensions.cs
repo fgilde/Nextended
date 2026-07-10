@@ -99,6 +99,12 @@ public static class DatabaseBuilderExtensions
 
     #region Legacy ConfigureDatabase (Obsolete)
 
+    public static IResourceBuilder<SupabaseStackResource> ConfigureDatabaseIf(
+        this IResourceBuilder<SupabaseStackResource> builder,
+        bool condition,
+        Action<IResourceBuilder<SupabaseDatabaseResource>> configure) =>
+        condition ? ConfigureDatabase(builder, configure) : builder;
+
     /// <summary>
     /// Configures the PostgreSQL database settings.
     /// </summary>
@@ -110,6 +116,12 @@ public static class DatabaseBuilderExtensions
         Action<IResourceBuilder<SupabaseDatabaseResource>> configure)
     {
         var stack = builder.Resource;
+        if (stack.UsesExternalDatabase)
+            throw new InvalidOperationException(
+                "ConfigureDatabase(...) is not valid when an external Postgres resource was passed to " +
+                "AddSupabase(..., externalDatabase: ...). The Supabase stack does not own the database in " +
+                "that mode — configure the image, password, data volume and deployment directly on your " +
+                "own Postgres resource (e.g. builder.AddPostgres(\"mypg\").WithImage(\"supabase/postgres\", …)).");
         if (stack.Database is null)
             throw new InvalidOperationException("Database not configured. Ensure AddSupabase() has been called.");
 

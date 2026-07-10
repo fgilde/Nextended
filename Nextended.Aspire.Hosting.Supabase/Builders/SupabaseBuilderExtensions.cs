@@ -22,6 +22,17 @@ public static class SupabaseBuilderExtensions
     public static string? PersistentStorageVolumeName { get; set; }
 
     /// <summary>
+    /// Optional name of a managedEnvironmentStorage (e.g. an NFS Azure Files share) to mount at the
+    /// PostgreSQL data directory (/var/lib/postgresql/data) in publish mode, so the whole database
+    /// survives container restarts/redeploys. Without it the ACA database is ephemeral (a restart
+    /// wipes ALL data). This is a generic Supabase concern — the HOST app owns creating the actual
+    /// storage resource and just sets this name here. When null/empty, publish mode stays ephemeral.
+    /// NOTE: PostgreSQL requires POSIX semantics (fsync/locking), so the backing share must be
+    /// Azure Files *NFS* (Premium), never SMB; the DB container is pinned to a single replica.
+    /// </summary>
+    public static string? PostgresDataVolumeName { get; set; }
+
+    /// <summary>
     /// Optional S3-compatible backend for the storage container (publish mode). When set, the
     /// storage container runs with STORAGE_BACKEND=s3 against this endpoint instead of the local
     /// FILE backend. This is a generic Supabase-storage concern: supabase-storage's FILE backend
@@ -186,10 +197,22 @@ public static class SupabaseBuilderExtensions
     /// </summary>
     /// <param name="builder">The distributed application builder.</param>
     /// <param name="name">The name of the Supabase resource (will appear as "supabase" in dashboard).</param>
+    /// <param name="externalDatabase">
+    /// Optional externally-provided Postgres resource (e.g. <c>builder.AddPostgres("mypg")</c>). When
+    /// supplied, the stack does NOT create/own its own database container — every Supabase service and
+    /// the post-init run against THIS resource, and you decide how it deploys
+    /// (<c>PublishAsContainer()</c>, <c>PublishAsAzureContainerApp()</c>, …). REQUIREMENT: it must use
+    /// the <c>supabase/postgres</c> image (via <c>.WithImage("supabase/postgres", "&lt;tag&gt;")</c>) —
+    /// the Supabase roles + extensions come from that image's initdb; we only reset the roles'
+    /// passwords to the resource's own password so the services can authenticate. When null, the stack
+    /// creates its internal database exactly as before. Passing this makes <c>ConfigureDatabase(...)</c>
+    /// throw (you own the DB config).
+    /// </param>
     /// <returns>A resource builder for further configuration.</returns>
     public static IResourceBuilder<SupabaseStackResource> AddSupabase(
         this IDistributedApplicationBuilder builder,
-        string name)
+        string name,
+        IResourceBuilder<PostgresServerResource>? externalDatabase = null)
     {
         // Create the main stack resource (which IS the Studio container)
         var stack = new SupabaseStackResource(name)
@@ -211,8 +234,20 @@ public static class SupabaseBuilderExtensions
 
         // --- Create typed container resources ---
 
-        // DATABASE
-        var dbResource = new SupabaseDatabaseResource($"{containerPrefix}-db")
+        // DATABASE — internal supabase/postgres container (default) OR an external Postgres resource
+        // the caller passed in. These shared handles are populated by whichever branch runs below, so
+        // everything downstream (services, post-init, waits) stays mode-agnostic.
+        var useExternalDb = externalDatabase is not null;
+        stack.UsesExternalDatabase = useExternalDb;
+        SupabaseDatabaseResource? dbResource = null;
+        EndpointReference dbEndpoint;
+        ReferenceExpression dbPassword;
+        IResourceBuilder<IResource> dbWait;                 // long-running DB the services WaitFor
+        IResourceBuilder<ContainerResource>? dbBootstrap = null; // external only: one-shot role setup
+
+        if (!useExternalDb)
+        {
+        dbResource = new SupabaseDatabaseResource($"{containerPrefix}-db")
         {
             Password = Defaults.Password,
             ExternalPort = Defaults.ExternalPostgresPort,
@@ -226,7 +261,7 @@ public static class SupabaseBuilderExtensions
         var dbBuilder = builder.AddResource(dbResource)
             .WithImage(Images.Postgres, Images.PostgresTag)
             .WithContainerName($"{containerPrefix}-db")
-            .WithEnvironment(context => context.EnvironmentVariables["POSTGRES_PASSWORD"] = dbResource.Password)
+            .WithEnvironment(context => context.EnvironmentVariables["POSTGRES_PASSWORD"] = dbResource!.Password)
             .WithEnvironment("POSTGRES_DB", "postgres")
             .WithEndpoint(port: isPublishMode ? Ports.Postgres : dbResource.ExternalPort, targetPort: Ports.Postgres, name: "tcp", scheme: "tcp", isExternal: !isPublishMode);
 
@@ -372,6 +407,16 @@ public static class SupabaseBuilderExtensions
                 "HBAEOF\n" +
                 "echo '[DB-Init] Custom pg_hba.conf created'\n" +
                 "\n" +
+                "# Step 4b: Ensure PGDATA ownership/permissions.\n" +
+                "# When a persistent Azure Files NFS volume is mounted at the data directory it is\n" +
+                "# initially owned by root; postgres/initdb refuse a PGDATA that isn't owned by the\n" +
+                "# postgres user with mode 0700. We run as root here, so fix it before handing over.\n" +
+                "# No-op/harmless when the directory is ephemeral container-local storage.\n" +
+                "echo '[DB-Init] Step 4b: Ensuring PGDATA ownership (postgres:postgres 0700)...'\n" +
+                "mkdir -p /var/lib/postgresql/data\n" +
+                "chown postgres:postgres /var/lib/postgresql/data\n" +
+                "chmod 0700 /var/lib/postgresql/data\n" +
+                "\n" +
                 "# Step 5: Start PostgreSQL with custom hba_file\n" +
                 "echo '[DB-Init] Step 5: Starting PostgreSQL...'\n" +
                 "echo '[DB-Init] === Wrapper script completed, handing over to docker-entrypoint.sh ==='\n" +
@@ -387,7 +432,10 @@ public static class SupabaseBuilderExtensions
                     "chmod +x /tmp/init-wrapper.sh && " +
                     "exec /tmp/init-wrapper.sh");
 
-            LogWarning("PostgreSQL in ACA uses ephemeral storage. Data will be lost on restart. For production, use Azure Database for PostgreSQL.");
+            if (string.IsNullOrEmpty(PostgresDataVolumeName))
+                LogWarning("PostgreSQL in ACA uses EPHEMERAL storage — data is lost on every container restart/redeploy. Set SupabaseBuilderExtensions.PostgresDataVolumeName (an NFS managedEnvironmentStorage) to persist it.");
+            else
+                LogInformation($"PostgreSQL data will be persisted on managedEnvironmentStorage '{PostgresDataVolumeName}' (mounted at /var/lib/postgresql/data).");
         }
         else
         {
@@ -399,16 +447,68 @@ public static class SupabaseBuilderExtensions
             // We only mount a roles.sql that sets all role passwords to our configured password
             // (same approach as the official supabase docker-compose).
             var rolesPath = Path.Combine(dirs.Init, "99-roles.sql");
-            SupabaseSqlGenerator.WriteRolesSql(rolesPath, dbResource.Password);
+            SupabaseSqlGenerator.WriteRolesSql(rolesPath, dbResource!.Password);
 
             dbBuilder
                 .WithBindMount(dirs.Data, "/var/lib/postgresql/data")
                 .WithBindMount(rolesPath, "/docker-entrypoint-initdb.d/init-scripts/99-roles.sql", isReadOnly: true);
         }
-        stack.Database = dbBuilder;
+            stack.Database = dbBuilder;
+            dbEndpoint = dbBuilder.GetEndpoint("tcp");
+            dbPassword = ReferenceExpression.Create($"{dbResource!.Password}");
+            dbWait = dbBuilder;
+        }
+        else
+        {
+            // EXTERNAL Postgres provided by the caller. We create NO database container; every service
+            // + the post-init point at this resource, and the caller owns how it deploys. It MUST use
+            // the supabase/postgres image (the Supabase roles + extensions come from its initdb). A
+            // one-shot bootstrap connects as the superuser and resets the Supabase roles' passwords to
+            // the resource's OWN password (passed as a psql variable, never baked into SQL) so the
+            // services can authenticate; every service WaitForCompletion's it (applied below).
+            var ext = externalDatabase!;
+            // The supabase/postgres image bootstraps its roles/schemas (via its migrate.sh +
+            // init-scripts) ONLY when initdb runs as user "supabase_admin" — that script connects as
+            // supabase_admin first and assumes it exists. Aspire's AddPostgres forces
+            // POSTGRES_USER=postgres, which makes initdb create "postgres" instead, so migrate.sh
+            // aborts ("role supabase_admin does not exist") and no Supabase roles get created. Re-assert
+            // the image's expected init user (added after AddPostgres' env, so it wins); migrate.sh then
+            // also creates the "postgres" superuser, so the resource's own connection string still works.
+            ext.WithEnvironment("POSTGRES_USER", "supabase_admin");
+            dbEndpoint = ext.Resource.PrimaryEndpoint;
+            dbPassword = ReferenceExpression.Create($"{ext.Resource.PasswordParameter}");
+            stack.Database = null; // no internal DB in external mode
+            dbWait = ext;          // services WaitFor the external DB (long-running)
 
-        // Get database endpoint for dynamic service discovery (used for local development)
-        var dbEndpoint = dbBuilder.GetEndpoint("tcp");
+            dbBootstrap = builder.AddContainer($"{containerPrefix}-db-bootstrap", Images.Postgres, Images.PostgresTag)
+                .WithContainerName($"{containerPrefix}-db-bootstrap")
+                .WithEnvironment("PGHOST", ext.Resource.PrimaryEndpoint.Property(EndpointProperty.Host))
+                .WithEnvironment("PGPORT", ext.Resource.PrimaryEndpoint.Property(EndpointProperty.Port))
+                // Connect as supabase_admin, NOT the resource's own user (postgres): the image's
+                // migrate.sh demotes postgres (removes superuser), and only a superuser can ALTER the
+                // reserved Supabase roles (authenticator, ...). supabase_admin is the image's superuser
+                // and migrate.sh sets its password to POSTGRES_PASSWORD (== this resource's password).
+                .WithEnvironment("PGUSER", "supabase_admin")
+                .WithEnvironment("PGPASSWORD", dbPassword)
+                .WithEnvironment("SUPABASE_ROLE_PASSWORD", dbPassword)
+                .WithEnvironment("ROLES_SQL_B64",
+                    Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(SupabaseSqlGenerator.GetRolesSqlTemplate())))
+                .WithEntrypoint("/bin/bash")
+                .WithArgs("-c",
+                    "for i in $(seq 1 90); do pg_isready -h \"$PGHOST\" -p \"$PGPORT\" -U \"$PGUSER\" >/dev/null 2>&1 && break; " +
+                    "echo '[db-bootstrap] waiting for external postgres...'; sleep 3; done; " +
+                    "echo \"$ROLES_SQL_B64\" | base64 -d > /tmp/roles.sql && " +
+                    "psql -v ON_ERROR_STOP=1 -v new_password=\"$SUPABASE_ROLE_PASSWORD\" -h \"$PGHOST\" -p \"$PGPORT\" -U \"$PGUSER\" -d postgres -f /tmp/roles.sql && " +
+                    "echo '[db-bootstrap] Supabase role passwords set'")
+                .WaitFor(ext);
+            dbWait = ext;
+        }
+
+        // Expose the resolved DB handles on the stack so later builder methods (edge functions,
+        // post-init helpers) stay mode-agnostic instead of touching stack.Database directly.
+        stack.DatabaseEndpoint = dbEndpoint;
+        stack.DatabasePassword = dbPassword;
+        stack.DatabaseWaitTarget = dbWait;
 
         // All services use Aspire's endpoint references which work in both local and Azure Container Apps
         // Azure Container Apps has internal DNS that resolves container names automatically
@@ -431,7 +531,7 @@ public static class SupabaseBuilderExtensions
         // Build database connection string using Aspire's endpoint references
         // Azure Container Apps has internal DNS - container names resolve automatically
         var authDbUrl = ReferenceExpression.Create(
-            $"postgres://supabase_auth_admin:{dbResource.Password}@{dbEndpoint.Property(EndpointProperty.Host)}:{dbEndpoint.Property(EndpointProperty.Port)}/postgres?search_path=auth");
+            $"postgres://supabase_auth_admin:{dbPassword}@{dbEndpoint.Property(EndpointProperty.Host)}:{dbEndpoint.Property(EndpointProperty.Port)}/postgres?search_path=auth");
 
         stack.Auth = builder.AddResource(authResource)
             .WithImage(Images.GoTrue, Images.GoTrueTag)
@@ -458,7 +558,7 @@ public static class SupabaseBuilderExtensions
             .WithEnvironment("GOTRUE_RATE_LIMIT_EMAIL_SENT", "100")
             .WithEndpoint(targetPort: Ports.GoTrue, name: "http", scheme: "http", isExternal: false)
             .WithContainerRuntimeArgs("--restart=on-failure:10")
-            .WaitFor(stack.Database);  // Password updates happen in DB container itself
+            .WaitFor(dbWait);  // Password updates happen in DB container itself
 
         if (isPublishMode)
         {
@@ -472,7 +572,7 @@ public static class SupabaseBuilderExtensions
         // Build database URI using Aspire's endpoint references
         // Azure Container Apps has internal DNS - container names resolve automatically
         var restDbUri = ReferenceExpression.Create(
-            $"postgres://authenticator:{dbResource.Password}@{dbEndpoint.Property(EndpointProperty.Host)}:{dbEndpoint.Property(EndpointProperty.Port)}/postgres");
+            $"postgres://authenticator:{dbPassword}@{dbEndpoint.Property(EndpointProperty.Host)}:{dbEndpoint.Property(EndpointProperty.Port)}/postgres");
 
         stack.Rest = builder.AddResource(restResource)
             .WithImage(Images.PostgREST, Images.PostgRESTTag)
@@ -487,7 +587,7 @@ public static class SupabaseBuilderExtensions
             .WithEnvironment("PGRST_APP_SETTINGS_JWT_EXP", "3600")
             .WithEndpoint(targetPort: Ports.PostgREST, name: "http", scheme: "http", isExternal: false)
             .WithContainerRuntimeArgs("--restart=on-failure:10")
-            .WaitFor(stack.Database);  // Password updates happen in DB container itself
+            .WaitFor(dbWait);  // Password updates happen in DB container itself
 
         // STORAGE
         var storageResource = new SupabaseStorageResource($"{containerPrefix}-storage") { Stack = stack };
@@ -500,7 +600,7 @@ public static class SupabaseBuilderExtensions
         // Build database URL using Aspire's endpoint references
         // Azure Container Apps has internal DNS - container names resolve automatically
         var storageDatabaseUrl = ReferenceExpression.Create(
-            $"postgres://supabase_storage_admin:{dbResource.Password}@{dbEndpoint.Property(EndpointProperty.Host)}:{dbEndpoint.Property(EndpointProperty.Port)}/postgres");
+            $"postgres://supabase_storage_admin:{dbPassword}@{dbEndpoint.Property(EndpointProperty.Host)}:{dbEndpoint.Property(EndpointProperty.Port)}/postgres");
         // Build REST URL using Aspire's endpoint reference for HTTP
         var postgrestUrl = stack.Rest.GetEndpoint("http");
 
@@ -532,7 +632,7 @@ public static class SupabaseBuilderExtensions
             .WithEnvironment("REQUEST_ALLOW_X_FORWARDED_PATH", "true")
             .WithEndpoint(targetPort: Ports.StorageApi, name: "http", scheme: "http", isExternal: false)
             .WithContainerRuntimeArgs("--restart=on-failure:10")
-            .WaitFor(stack.Database)  // Password updates happen in DB container itself
+            .WaitFor(dbWait)  // Password updates happen in DB container itself
             .WaitFor(stack.Rest);
 
         if (storageS3 != null)
@@ -599,7 +699,7 @@ public static class SupabaseBuilderExtensions
             .WithEnvironment("DB_HOST", realtimeDbHost)
             .WithEnvironment("DB_PORT", realtimeDbPort)
             .WithEnvironment("DB_USER", "supabase_admin")
-            .WithEnvironment("DB_PASSWORD", dbResource.Password)
+            .WithEnvironment("DB_PASSWORD", dbPassword)
             .WithEnvironment("DB_NAME", "postgres")
             .WithEnvironment("DB_AFTER_CONNECT_QUERY", "SET search_path TO _realtime")
             .WithEnvironment("DB_ENC_KEY", "supabaserealtime")
@@ -615,7 +715,7 @@ public static class SupabaseBuilderExtensions
             .WithEnvironment("DISABLE_HEALTHCHECK_LOGGING", "true")
             .WithEndpoint(targetPort: Ports.Realtime, name: "http", scheme: "http", isExternal: false)
             .WithContainerRuntimeArgs("--restart=on-failure:10")
-            .WaitFor(stack.Database);
+            .WaitFor(dbWait);
 
         if (isPublishMode)
         {
@@ -638,10 +738,10 @@ public static class SupabaseBuilderExtensions
             .WithEnvironment("PG_META_PORT", metaResource.Port.ToString())
             .WithEnvironment("PG_META_DB_NAME", "postgres")
             .WithEnvironment("PG_META_DB_USER", "supabase_admin")
-            .WithEnvironment("PG_META_DB_PASSWORD", dbResource.Password)
+            .WithEnvironment("PG_META_DB_PASSWORD", dbPassword)
             .WithEnvironment("CRYPTO_KEY", cryptoKey)
             .WithEndpoint(targetPort: Ports.PostgresMeta, name: "http", scheme: "http", isExternal: false)
-            .WaitFor(stack.Database);
+            .WaitFor(dbWait);
 
         // Set DB host/port using Aspire's endpoint references
         // Azure Container Apps has internal DNS - container name works without FQDN
@@ -797,7 +897,7 @@ public static class SupabaseBuilderExtensions
             .WithImage(Images.Studio, Images.StudioTag)
             .WithContainerName(name)
             .WithEnvironment("STUDIO_PG_META_URL", studioMetaUrl)
-            .WithEnvironment("POSTGRES_PASSWORD", dbResource.Password)
+            .WithEnvironment("POSTGRES_PASSWORD", dbPassword)
             .WithEnvironment("POSTGRES_DB", "postgres")
             .WithEnvironment("POSTGRES_USER", "supabase_admin")
             .WithEnvironment("DEFAULT_ORGANIZATION_NAME", "Default Organization")
@@ -882,10 +982,10 @@ public static class SupabaseBuilderExtensions
                 // Azure Container Apps has internal DNS - container name works without FQDN
                 .WithEnvironment("DB_HOST", dbEndpoint.Property(EndpointProperty.Host))
                 .WithEnvironment("DB_PORT", dbEndpoint.Property(EndpointProperty.Port))
-                .WithEnvironment(context => context.EnvironmentVariables["DB_PASSWORD"] = dbResource.Password)
+                .WithEnvironment("DB_PASSWORD", dbPassword)
                 .WithEntrypoint("/bin/bash")
                 .WithArgs("-c", postInitCommand)
-                .WaitFor(stack.Database)
+                .WaitFor(dbWait)
                 .WaitFor(stack.Auth);  // Wait for Auth to create auth.users table
 
             stack.InitContainer = initContainer;
@@ -898,8 +998,18 @@ public static class SupabaseBuilderExtensions
                 .WithBindMount(stack.ScriptsDir, "/scripts", isReadOnly: true)
                 .WithEntrypoint("/bin/bash")
                 .WithArgs("/scripts/post_init.sh")
-                .WaitFor(stack.Database)
+                .WaitFor(dbWait)
                 .WaitFor(stack.Auth);
+            // EXTERNAL DB only: override post_init.sh's baked password/host with the injected resource's
+            // runtime password + resolved endpoint host (the bare resource name isn't resolvable). In
+            // internal mode we deliberately do NOT set these — post_init.sh uses the values baked at
+            // event fire-time, which are already correct (and the early dbPassword ref would be stale).
+            if (useExternalDb)
+            {
+                initContainer
+                    .WithEnvironment("DB_PASSWORD", dbPassword)
+                    .WithEnvironment("SUPABASE_DB_HOST", dbEndpoint.Property(EndpointProperty.Host));
+            }
         }
 
         // Realtime must wait for init container to COMPLETE (creates realtime schema and supabase_realtime publication).
@@ -910,7 +1020,7 @@ public static class SupabaseBuilderExtensions
         }
 
         // Set parent relationships - Stack (Studio) is the visual parent for all containers
-        stack.Database.WithParentRelationship(stack);
+        stack.Database?.WithParentRelationship(stack);
         initContainer?.WithParentRelationship(stack);
         stack.Auth.WithParentRelationship(stack);
         stack.Rest.WithParentRelationship(stack);
@@ -989,13 +1099,36 @@ public static class SupabaseBuilderExtensions
                 app.Configuration.Ingress.ExposedPort = Ports.Realtime;
             });
 
-            // DB: set exposedPort for TCP connectivity + pin to exactly 1 replica
-            // Multiple DB replicas with ephemeral storage = independent databases = data inconsistency!
-            stack.Database.PublishAsAzureContainerApp((infra, app) =>
+            // DB: set exposedPort for TCP connectivity + pin to exactly 1 replica.
+            // Single replica is mandatory: two postgres processes on the same data directory
+            // (or two independent ephemeral ones) = corruption / split-brain.
+            // External mode: the caller owns the DB resource + its deployment, so skip this entirely.
+            stack.Database?.PublishAsAzureContainerApp((infra, app) =>
             {
                 app.Configuration.Ingress.ExposedPort = Ports.Postgres;
                 app.Template.Scale.MinReplicas = 1;
                 app.Template.Scale.MaxReplicas = 1;
+
+                // Persistent database: if the app provided a managedEnvironmentStorage name, mount
+                // it at PGDATA so the whole cluster survives restarts/redeploys. Must be NFS (see
+                // PostgresDataVolumeName remarks); the wrapper script chowns it to postgres:0700
+                // before initdb so a fresh NFS mount is accepted.
+                if (!string.IsNullOrEmpty(PostgresDataVolumeName))
+                {
+                    const string volName = "postgres-data";
+                    app.Template.Volumes.Add(new Azure.Provisioning.AppContainers.ContainerAppVolume
+                    {
+                        Name = volName,
+                        StorageType = Azure.Provisioning.AppContainers.ContainerAppStorageType.NfsAzureFile,
+                        StorageName = PostgresDataVolumeName,
+                    });
+                    app.Template.Containers[0].Value.VolumeMounts.Add(
+                        new Azure.Provisioning.AppContainers.ContainerAppVolumeMount
+                        {
+                            VolumeName = volName,
+                            MountPath = "/var/lib/postgresql/data",
+                        });
+                }
             });
 
             // Init container should also be pinned to 1 (it's a one-shot job)
@@ -1027,24 +1160,53 @@ public static class SupabaseBuilderExtensions
 
         // Write SQL files ONCE with the final password, after all configuration is applied.
         // BeforeResourceStartedEvent fires after all builder configuration but before the resource starts.
-        builder.Eventing.Subscribe<BeforeResourceStartedEvent>(dbResource, (_, _) =>
+        // INTERNAL DB ONLY: these files bake the (build-time-known) password for the local image's
+        // init-scripts + local post_init.sh. In external mode there is no internal dbResource and the
+        // password is a runtime parameter, so publish builds post-init via BuildCombinedPostInitSql +
+        // the $DB_PASSWORD env instead (see the init container), and the roles are set by the bootstrap.
+        // Local post-init: the local init container bind-mounts these and runs post_init.sh. Works in
+        // BOTH modes — internal bakes the build-time password; external bakes a placeholder but the
+        // script reads the real password from the DB_PASSWORD env at runtime and post_init.sql uses the
+        // :'new_password' psql var, so the injected resource's password is what actually gets applied.
+        // The DB host is the internal container OR the injected resource's name (local Docker DNS).
+        var postInitDbHost = useExternalDb ? externalDatabase!.Resource.Name : $"{containerPrefix}-db";
+        builder.Eventing.Subscribe<BeforeResourceStartedEvent>(dbWait.Resource, (_, _) =>
         {
-            var finalPassword = dbResource.Password;
-            SupabaseSqlGenerator.WriteInitSql(dirs.Init, finalPassword);
+            // Read the password HERE — the event fires AFTER all builder config (ConfigureDatabase /
+            // WithPassword / WithDatabasePassword), so the roles + baked post-init password match what
+            // the services were finally configured with. (Capturing it earlier used the pre-WithPassword
+            // default and desynced the role passwords from the services -> SASL auth failures.)
+            var seedPassword = dbResource?.Password ?? Defaults.Password;
+            // These two are only consumed by the internal image's mounted init-scripts; skip in external.
+            if (dbResource != null)
+            {
+                SupabaseSqlGenerator.WriteInitSql(dirs.Init, seedPassword);
+                var rolesPath = Path.Combine(dirs.Init, "99-roles.sql");
+                SupabaseSqlGenerator.WriteRolesSql(rolesPath, seedPassword);
+            }
 
             var postInitSqlPath = Path.Combine(scriptsDir, "post_init.sql");
-            SupabaseSqlGenerator.WritePostInitSql(postInitSqlPath, finalPassword);
+            SupabaseSqlGenerator.WritePostInitSql(postInitSqlPath, seedPassword);
 
             var postInitShPath = Path.Combine(scriptsDir, "post_init.sh");
-            SupabaseSqlGenerator.WritePostInitScript(postInitShPath, $"{containerPrefix}-db", finalPassword);
+            SupabaseSqlGenerator.WritePostInitScript(postInitShPath, postInitDbHost, seedPassword);
 
-            // Roles SQL for local development (mounted into the image's init-scripts)
-            var rolesPath = Path.Combine(dirs.Init, "99-roles.sql");
-            SupabaseSqlGenerator.WriteRolesSql(rolesPath, finalPassword);
-
-            LogInformation($"SQL files written with final password (length: {finalPassword.Length})");
+            LogInformation("Post-init SQL files written.");
             return Task.CompletedTask;
         });
+
+        // External DB: gate every DB consumer on the role-bootstrap COMPLETING (a one-shot that exits
+        // 0 after setting the Supabase roles' passwords), so they authenticate on first connect
+        // instead of crash-restarting until the roles exist.
+        if (dbBootstrap != null)
+        {
+            var dbConsumers = new IResourceBuilder<IResourceWithWaitSupport>?[]
+            {
+                stack.Auth, stack.Rest, stack.Storage, stack.Realtime, stack.Meta, initContainer,
+            };
+            foreach (var svc in dbConsumers)
+                svc?.WaitForCompletion(dbBootstrap);
+        }
 
         return stackBuilder;
     }

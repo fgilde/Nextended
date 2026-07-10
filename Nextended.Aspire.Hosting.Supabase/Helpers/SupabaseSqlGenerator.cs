@@ -288,8 +288,11 @@ END
 $$;
 
 -- Ensure supabase_admin password matches expected value (for existing databases
--- where the init SQL didn't run because the data directory already existed)
-ALTER ROLE supabase_admin WITH PASSWORD '{pw}';
+-- where the init SQL didn't run because the data directory already existed).
+-- Use the psql :'new_password' variable (supplied at runtime via -v new_password=$DB_PASSWORD)
+-- rather than a baked literal, so this is correct for BOTH the internal DB (password known at
+-- build time) AND an injected external DB (password is a runtime parameter).
+ALTER ROLE supabase_admin WITH PASSWORD :'new_password';
 
 -- NOTE: handle_new_user(), the on_auth_user_created trigger, and the profile/user_roles
 -- backfills that used to live here were APPLICATION schema — they reference public.profiles,
@@ -329,8 +332,8 @@ SELECT 'Post-Init abgeschlossen' as status;
 #!/bin/bash
 # Post-Init Script mit Retry-Logik
 
-export PGPASSWORD='{password}'
-DB_HOST='{dbHost}'
+if [ -n "$DB_PASSWORD" ]; then export PGPASSWORD="$DB_PASSWORD"; else export PGPASSWORD='{password}'; fi
+if [ -n "$SUPABASE_DB_HOST" ]; then DB_HOST="$SUPABASE_DB_HOST"; else DB_HOST='{dbHost}'; fi
 DB_USER='supabase_admin'
 MAX_RETRIES=30
 RETRY_INTERVAL=2
@@ -495,6 +498,37 @@ END $$;
 """;
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
         File.WriteAllText(path, sql);
+    }
+
+    /// <summary>
+    /// Roles SQL for an INJECTED external Postgres. Identical intent to <see cref="WriteRolesSql"/>
+    /// (set every Supabase role's password) but the password is supplied at runtime via the psql
+    /// variable <c>:'new_password'</c> (never baked into the text), because for an external resource
+    /// the password is an Aspire parameter only known at run time. Run as the superuser with
+    /// <c>psql -v new_password="$SUPABASE_ROLE_PASSWORD" -f</c>. Assumes the roles already exist
+    /// (i.e. the external DB uses the supabase/postgres image); the optional ones are guarded.
+    /// The value is stashed in a GUC first so the conditional DO block can read it (psql variables
+    /// are NOT substituted inside dollar-quoted <c>$$ … $$</c> bodies).
+    /// </summary>
+    public static string GetRolesSqlTemplate()
+    {
+        return """
+-- Reset all Supabase role passwords to the injected resource's password (:'new_password').
+SET my.aspire_new_password = :'new_password';
+ALTER USER authenticator WITH PASSWORD :'new_password';
+ALTER USER supabase_auth_admin WITH PASSWORD :'new_password';
+ALTER USER supabase_storage_admin WITH PASSWORD :'new_password';
+ALTER USER supabase_admin WITH PASSWORD :'new_password';
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'pgbouncer') THEN
+    EXECUTE format('ALTER USER pgbouncer WITH PASSWORD %L', current_setting('my.aspire_new_password'));
+  END IF;
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'supabase_functions_admin') THEN
+    EXECUTE format('ALTER USER supabase_functions_admin WITH PASSWORD %L', current_setting('my.aspire_new_password'));
+  END IF;
+END $$;
+""";
     }
 
     #endregion

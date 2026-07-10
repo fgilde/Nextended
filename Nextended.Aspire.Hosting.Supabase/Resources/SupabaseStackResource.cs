@@ -45,9 +45,25 @@ public sealed class SupabaseStackResource : ContainerResource, IResourceWithConn
     // --- Typisierte Container Referenzen ---
 
     /// <summary>
-    /// Gets the PostgreSQL database container resource.
+    /// Gets the PostgreSQL database container resource. Null when an external Postgres was injected
+    /// via AddSupabase(..., externalDatabase: ...) — see <see cref="UsesExternalDatabase"/>.
     /// </summary>
     public IResourceBuilder<SupabaseDatabaseResource>? Database { get; internal set; }
+
+    /// <summary>
+    /// True when the caller passed their own Postgres resource to AddSupabase (external mode); the
+    /// stack then owns no database container and <see cref="Database"/> is null.
+    /// </summary>
+    public bool UsesExternalDatabase { get; internal set; }
+
+    /// <summary>Mode-agnostic DB endpoint (internal container's or the injected resource's). Set by AddSupabase.</summary>
+    internal EndpointReference? DatabaseEndpoint { get; set; }
+
+    /// <summary>Mode-agnostic DB password expression (a literal for the internal DB, the injected resource's parameter otherwise).</summary>
+    internal ReferenceExpression? DatabasePassword { get; set; }
+
+    /// <summary>The long-running DB resource that consumers should WaitFor (internal container or the injected resource).</summary>
+    internal IResourceBuilder<IResource>? DatabaseWaitTarget { get; set; }
 
     /// <summary>
     /// Gets the GoTrue authentication container resource.

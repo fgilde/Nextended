@@ -25,6 +25,10 @@
     <PackageReference Include="Aspire.Hosting.Azure.Storage" Version="$(AspireVersion)" />
     <PackageReference Include="Aspire.Hosting.Azure.Network" Version="$(AspireVersion)" />
     <PackageReference Include="Aspire.Hosting.Docker" Version="$(AspireVersion)" />
+    <!-- Required by the optional external-database overload of AddSupabase(...), whose public
+         signature exposes IResourceBuilder<PostgresServerResource> so callers can pass their own
+         builder.AddPostgres(...) resource. -->
+    <PackageReference Include="Aspire.Hosting.PostgreSQL" Version="$(AspireVersion)" />
     <PackageReference Include="supabase-csharp" Version="0.16.2" />
   </ItemGroup>
 

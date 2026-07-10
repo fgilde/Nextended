@@ -42,7 +42,8 @@ public static class PersistentNfsStorageExtensions
     public static void AddSupabaseNfsStorage(
         this IDistributedApplicationBuilder builder,
         IResourceBuilder<AzureContainerAppEnvironmentResource> containerEnv,
-        string nfsEnvStorageName, string shareName = "supabasestorage", string vnetName = "supabaseStorageVnet", int shareQuotaGiB = 100)
+        string nfsEnvStorageName, string shareName = "supabasestorage", string vnetName = "supabaseStorageVnet", int shareQuotaGiB = 100,
+        string? postgresEnvStorageName = null, string postgresShareName = "postgresdata", int postgresShareQuotaGiB = 100)
     {
         containerEnv.ConfigureInfrastructure(infra =>
         {
@@ -127,6 +128,37 @@ public static class PersistentNfsStorageExtensions
                 },
             };
             infra.Add(envStorage);
+
+            // Optional 2nd share on the SAME account for the PostgreSQL data directory. Kept
+            // separate from the storage share so the DB cluster files and the object store never
+            // share a filesystem tree. Consumed via SupabaseBuilderExtensions.PostgresDataVolumeName.
+            if (!string.IsNullOrEmpty(postgresEnvStorageName))
+            {
+                var pgShare = new StorageFileShare("postgresDataShare")
+                {
+                    Parent = fileService,
+                    Name = postgresShareName,
+                    EnabledProtocol = FileShareEnabledProtocol.Nfs,
+                    ShareQuota = postgresShareQuotaGiB,
+                };
+                infra.Add(pgShare);
+
+                var pgEnvStorage = new ContainerAppManagedEnvironmentStorage(postgresEnvStorageName)
+                {
+                    Parent = env,
+                    Name = postgresEnvStorageName,
+                    Properties = new ManagedEnvironmentStorageProperties
+                    {
+                        NfsAzureFile = new ContainerAppNfsAzureFileProperties
+                        {
+                            Server = BicepFunction.Concat(storage.Name, ".file.core.windows.net"),
+                            ShareName = BicepFunction.Concat("/", storage.Name, "/", postgresShareName),
+                            AccessMode = ContainerAppAccessMode.ReadWrite,
+                        },
+                    },
+                };
+                infra.Add(pgEnvStorage);
+            }
         });
     }
 }
