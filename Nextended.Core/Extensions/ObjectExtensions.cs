@@ -1,18 +1,86 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
-using System.Threading;
-using System.Threading.Tasks;
-using Newtonsoft.Json;
+﻿using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Nextended.Core.DeepClone;
 using Nextended.Core.Helper;
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Globalization;
+using System.Linq;
+using System.Reflection;
+using System.Runtime.CompilerServices;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Nextended.Core.Extensions
 {
     public static class ObjectExtensions
     {
+
+        /// <summary>
+        /// Used to simplify and beautify casting an object to a type.
+        /// </summary>
+        /// <typeparam name="T">Type to be casted</typeparam>
+        /// <param name="obj">Object to cast</param>
+        /// <returns>Casted object</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static T As<T>(this object obj) where T : class => (T)obj;
+
+
+
+        /// <summary>Check if an item is in a list.</summary>
+        /// <param name="item">Item to check</param>
+        /// <param name="list">List of items</param>
+        /// <typeparam name="T">Type of the items</typeparam>
+        public static bool IsIn<T>(this T item, params T[] list)
+        {
+            return (new HashSet<T>(list)).Contains<T>(item);
+        }
+
+        /// <summary>Check if an item is in the given enumerable.</summary>
+        /// <param name="item">Item to check</param>
+        /// <param name="items">Items</param>
+        /// <typeparam name="T">Type of the items</typeparam>
+        public static bool IsIn<T>(this T item, IEnumerable<T> items) => items.Contains<T>(item);
+
+        /// <summary>
+        /// Can be used to conditionally perform a function
+        /// on an object and return the modified or the original object.
+        /// It is useful for chained calls.
+        /// </summary>
+        /// <param name="obj">An object</param>
+        /// <param name="condition">A condition</param>
+        /// <param name="func">A function that is executed only if the condition is <code>true</code></param>
+        /// <typeparam name="T">Type of the object</typeparam>
+        /// <returns>
+        /// Returns the modified object (by the <paramref name="func" /> if the <paramref name="condition" /> is <code>true</code>)
+        /// or the original object if the <paramref name="condition" /> is <code>false</code>
+        /// </returns>
+        public static T If<T>(this T obj, bool condition, Func<T, T> func) => condition ? func(obj) : obj;
+
+        public static T If<T>(this T obj, Func<bool> condition, Func<T, T> func) => If(obj, condition(), func);
+
+        /// <summary>
+        /// Can be used to conditionally perform an action
+        /// on an object and return the original object.
+        /// It is useful for chained calls on the object.
+        /// </summary>
+        /// <param name="obj">An object</param>
+        /// <param name="condition">A condition</param>
+        /// <param name="action">An action that is executed only if the condition is <code>true</code></param>
+        /// <typeparam name="T">Type of the object</typeparam>
+        /// <returns>Returns the original object.</returns>
+        public static T If<T>(this T obj, bool condition, Action<T> action)
+        {
+            if (condition)
+                action(obj);
+            return obj;
+        }
+
+        public static T If<T>(this T obj, Func<bool> condition, Action<T> action) => If(obj, condition(), action);
+
+
+
         public static T[] AllOf<T>(this object instance, ReflectReadSettings? settings = null)
         {
             return ReflectionHelper.FindAllValuesOf<T>(instance, settings);
