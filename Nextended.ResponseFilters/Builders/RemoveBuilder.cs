@@ -13,16 +13,16 @@ namespace Nextended.ResponseFilters.Builders;
 /// </remarks>
 public sealed class RemoveBuilder<T> : RuleBuilderBase<RemoveBuilder<T>, T> where T : class
 {
-    private readonly string[] _propertyNames;
+    private readonly PropertyAccessor[] _accessors;
 
     internal RemoveBuilder(ResponseFilter<T> filter, PropertyAccessor[] accessors) : base(filter)
     {
-        _propertyNames = accessors.Select(a => a.Property.Name).ToArray();
+        _accessors = accessors;
     }
 
     protected override void RegisterRule(AsyncPredicate<T> predicate)
     {
-        var names = _propertyNames;
+        var names = FilterProperties(_accessors).Select(a => a.Property.Name).ToArray();
         Filter.AddRule(new StructuralEditRule<T>(
             predicate,
             (_, _) => names.Select(StructuralEdit.Remove)));

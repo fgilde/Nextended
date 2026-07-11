@@ -61,6 +61,8 @@ public sealed class RemoveItemsTerminal<T, TItem> : RuleBuilderBase<RemoveItemsT
 
     protected override void RegisterRule(AsyncPredicate<T> outerPredicate)
     {
+        if (!PropertyAllowed(_accessor)) return; // WhenProperty gate on the collection property
+
         var accessor = _accessor;
         var itemPredicate = _itemPredicate;
         var keep = _invert;

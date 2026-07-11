@@ -50,7 +50,7 @@ public sealed class TransformTerminal<T, TProp> : RuleBuilderBase<TransformTermi
     protected override void RegisterRule(AsyncPredicate<T> predicate)
     {
         Filter.AddRule(new PropertyMutationRule<T>(
-            new[] { _accessor },
+            FilterProperties(_accessor),
             predicate,
             _valueProducer));
     }

@@ -16,7 +16,7 @@ public sealed class NullifyBuilder<T> : RuleBuilderBase<NullifyBuilder<T>, T> wh
     protected override void RegisterRule(AsyncPredicate<T> predicate)
     {
         Filter.AddRule(new PropertyMutationRule<T>(
-            _accessors,
+            FilterProperties(_accessors),
             predicate,
             valueProducer: static (_, _, _) => null));
     }

@@ -47,7 +47,7 @@ public sealed class HashBuilder<T> : RuleBuilderBase<HashBuilder<T>, T> where T 
         var algorithm = _algorithm;
 
         Filter.AddRule(new PropertyMutationRule<T>(
-            new[] { _accessor },
+            FilterProperties(_accessor),
             predicate,
             valueProducer: (instance, accessor, _) =>
             {

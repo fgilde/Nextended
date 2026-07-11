@@ -50,7 +50,7 @@ public sealed class ReplaceTerminal<T, TProp> : RuleBuilderBase<ReplaceTerminal<
     protected override void RegisterRule(AsyncPredicate<T> predicate)
     {
         Filter.AddRule(new PropertyMutationRule<T>(
-            new[] { _accessor },
+            FilterProperties(_accessor),
             predicate,
             _valueProducer));
     }

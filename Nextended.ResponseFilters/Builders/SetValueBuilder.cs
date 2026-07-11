@@ -55,7 +55,7 @@ public sealed class SetValueTerminal<T, TProp> : RuleBuilderBase<SetValueTermina
     protected override void RegisterRule(AsyncPredicate<T> predicate)
     {
         Filter.AddRule(new PropertyMutationRule<T>(
-            new[] { _accessor },
+            FilterProperties(_accessor),
             predicate,
             _valueProducer));
     }

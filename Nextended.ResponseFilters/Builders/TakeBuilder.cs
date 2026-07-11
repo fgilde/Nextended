@@ -55,6 +55,8 @@ public sealed class TakeTerminal<T, TItem> : RuleBuilderBase<TakeTerminal<T, TIt
 
     protected override void RegisterRule(AsyncPredicate<T> outerPredicate)
     {
+        if (!PropertyAllowed(_accessor)) return; // WhenProperty gate on the collection property
+
         var accessor = _accessor;
         var count = _count;
         var fromEnd = _fromEnd;

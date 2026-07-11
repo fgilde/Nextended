@@ -55,7 +55,7 @@ public sealed class TruncateTerminal<T> : RuleBuilderBase<TruncateTerminal<T>, T
         var suffix = _suffix;
 
         Filter.AddRule(new PropertyMutationRule<T>(
-            new[] { _accessor },
+            FilterProperties(_accessor),
             predicate,
             valueProducer: (instance, accessor, _) =>
             {

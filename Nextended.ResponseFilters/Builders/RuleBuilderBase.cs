@@ -1,5 +1,8 @@
 using System;
+using System.Linq;
+using System.Reflection;
 using System.Threading.Tasks;
+using Nextended.ResponseFilters.Reflection;
 
 namespace Nextended.ResponseFilters.Builders;
 
@@ -25,10 +28,46 @@ public abstract class RuleBuilderBase<TBuilder, T> : IRuleBuilder<T>
 {
     protected readonly ResponseFilter<T> Filter;
 
+    private Func<PropertyInfo, bool>? _propertyFilter;
+
     protected RuleBuilderBase(ResponseFilter<T> filter)
     {
         Filter = filter;
     }
+
+    // -------------------------------------------------------------------------
+    // WhenProperty — metadata-aware, build-time property gate
+    // -------------------------------------------------------------------------
+
+    /// <summary>
+    /// Restrict the rule to the target properties whose <see cref="PropertyInfo"/> matches
+    /// <paramref name="predicate"/> (e.g. carry a certain attribute). Because property metadata is
+    /// static, this is evaluated once at build time — the non-matching properties are simply dropped
+    /// from the rule, at zero runtime cost. Composes with <c>When</c>/<c>Unless</c> and can be chained
+    /// multiple times (logical AND).
+    /// </summary>
+    /// <example>
+    /// <code>
+    /// Nullify(x => x.A, x => x.B).WhenProperty(p => p.GetCustomAttribute&lt;SecretAttribute&gt;() != null).Always();
+    /// Remove(x => x.Token).WhenProperty(p => p.PropertyType == typeof(string));
+    /// </code>
+    /// </example>
+    /// <remarks>Applies to property-targeting builders; it has no effect on <c>Apply</c> (which targets no property).</remarks>
+    public TBuilder WhenProperty(Func<PropertyInfo, bool> predicate)
+    {
+        if (predicate is null) throw new ArgumentNullException(nameof(predicate));
+        var existing = _propertyFilter;
+        _propertyFilter = existing is null ? predicate : p => existing(p) && predicate(p);
+        return (TBuilder)this;
+    }
+
+    /// <summary>Apply the <see cref="WhenProperty"/> gate to a candidate accessor set (subclasses call this in <see cref="RegisterRule"/>).</summary>
+    protected PropertyAccessor[] FilterProperties(params PropertyAccessor[] accessors)
+        => _propertyFilter is null ? accessors : accessors.Where(a => _propertyFilter(a.Property)).ToArray();
+
+    /// <summary>Whether a single target property passes the <see cref="WhenProperty"/> gate (for whole-rule gating).</summary>
+    protected bool PropertyAllowed(PropertyAccessor accessor)
+        => _propertyFilter is null || _propertyFilter(accessor.Property);
 
     // -------------------------------------------------------------------------
     // When — full predicate vocabulary

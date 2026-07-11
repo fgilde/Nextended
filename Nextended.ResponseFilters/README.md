@@ -151,6 +151,41 @@ and edits resolve against the CLR member, so they keep working under any naming 
 inside `ForEach` sub-filters are applied per element. (Limitation: values reached only through dictionary
 entries are not descended into for nested structural edits.)
 
+#### Metadata-aware property selection
+
+Two complementary ways to target properties by their `PropertyInfo` (e.g. an attribute) instead of, or
+in addition to, naming them explicitly. Property metadata is static, so both are resolved **at build time**
+— zero runtime cost.
+
+**`.WhenProperty(p => …)`** — a cross-cutting refinement available on **every** property-targeting builder.
+It restricts the rule to the already-selected properties whose `PropertyInfo` matches, and composes with
+`When`/`Unless` (and can be chained, logical AND):
+
+```csharp
+// Only null the listed properties that carry [Secret]
+Nullify(x => x.A, x => x.B, x => x.C)
+    .WhenProperty(p => p.GetCustomAttribute<SecretAttribute>() != null)
+    .When(NotInRole("Admin"));
+
+Remove(x => x.Token).WhenProperty(p => p.PropertyType == typeof(string));
+```
+
+**`Properties(...)` / `PropertiesWhere(...)`** — a *transposed* entry point: select the property set first,
+then pick a type-agnostic operation (`.Nullify()`, `.Remove()`, `.SetToDefault()`, `.TransformKey()`).
+`PropertiesWhere` scans the type and selects by metadata, so you don't have to enumerate the properties:
+
+```csharp
+// Remove every [Secret] property from the response
+PropertiesWhere(p => p.GetCustomAttribute<SecretAttribute>() != null).Remove().Always();
+
+// Null a named set
+Properties(x => x.Name, x => x.Id).Nullify().When(...);
+```
+
+This avoids a combinatorial `NullifyWhere`/`RemoveWhere`/… explosion: one `WhenProperty` works for all
+operations, and `PropertiesWhere` exposes the type-agnostic operations from a single builder. (`WhenProperty`
+has no effect on `Apply`, which targets no property.)
+
 #### Escape hatch
 
 | Builder | Purpose | Example |
@@ -171,6 +206,10 @@ overload that reads best at the call site — the library adapts it to the canon
 | `.Always()` | unconditional |
 | `.WhenAll(p1, p2, …)` | all `AsyncPredicate<T>` predicates true (short-circuits on first false) |
 | `.WhenAny(p1, p2, …)` | at least one `AsyncPredicate<T>` predicate true (short-circuits on first true) |
+
+`.WhenProperty(Func<PropertyInfo,bool>)` is a **refinement** (not a terminal): it narrows the rule to the
+target properties matching a metadata predicate at build time, then you still close with one of the terminals
+above. See [Metadata-aware property selection](#metadata-aware-property-selection).
 
 #### Supported predicate shapes (each on `When` and `Unless`)
 

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Reflection;
 using System.Threading.Tasks;
 using Nextended.ResponseFilters.Builders;
 using Nextended.ResponseFilters.Reflection;
@@ -239,7 +240,7 @@ public abstract class ResponseFilter<T> : IResponseFilter where T : class
     protected TransformKeyBuilder<T> TransformKey<TProp>(Expression<Func<T, TProp>> selector)
     {
         var accessor = PropertyAccessor.For(PropertySelector.Resolve(selector));
-        return new TransformKeyBuilder<T>(this, new[] { accessor.Property.Name });
+        return new TransformKeyBuilder<T>(this, new[] { accessor });
     }
 
     /// <summary>
@@ -247,7 +248,7 @@ public abstract class ResponseFilter<T> : IResponseFilter where T : class
     /// (closes with <c>.Using(k =&gt; …)</c>) — e.g. to force a naming convention on a single response.
     /// </summary>
     protected TransformKeyBuilder<T> TransformKeys()
-        => new(this, TransformKeyBuilder<T>.AllPropertyNames());
+        => new(this, TransformKeyBuilder<T>.AllAccessors());
 
     /// <summary>
     /// Begin a rule that injects an extra key into the serialized output that does not exist on the
@@ -257,6 +258,30 @@ public abstract class ResponseFilter<T> : IResponseFilter where T : class
     {
         if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("Property name must be non-empty.", nameof(name));
         return new AddPropertyBuilder<T>(this, name);
+    }
+
+    /// <summary>
+    /// Transposed entry point: select properties by selector, then pick an operation
+    /// (<c>.Nullify()</c>/<c>.Remove()</c>/<c>.SetToDefault()</c>/<c>.TransformKey()</c>).
+    /// </summary>
+    /// <example><code>Properties(x =&gt; x.Name, x =&gt; x.Id).Remove().Always();</code></example>
+    protected PropertySetBuilder<T> Properties(params Expression<Func<T, object?>>[] selectors)
+        => new(this, ResolveSelectors(selectors));
+
+    /// <summary>
+    /// Transposed entry point that selects properties by their <see cref="PropertyInfo"/> (e.g. an
+    /// attribute), then picks an operation. Property metadata is static, so selection happens at build time.
+    /// </summary>
+    /// <example><code>PropertiesWhere(p =&gt; p.GetCustomAttribute&lt;SecretAttribute&gt;() != null).Remove().Always();</code></example>
+    protected PropertySetBuilder<T> PropertiesWhere(Func<PropertyInfo, bool> predicate)
+    {
+        if (predicate is null) throw new ArgumentNullException(nameof(predicate));
+        var accessors = typeof(T)
+            .GetProperties(BindingFlags.Public | BindingFlags.Instance)
+            .Where(p => p.CanRead && p.GetIndexParameters().Length == 0 && predicate(p))
+            .Select(PropertyAccessor.For)
+            .ToArray();
+        return new PropertySetBuilder<T>(this, accessors);
     }
 
     private static PropertyAccessor[] ResolveSelectors<TProp>(Expression<Func<T, TProp>>[] selectors)
@@ -314,4 +339,6 @@ public sealed class InlineFilter<T> : ResponseFilter<T> where T : class
     public new TransformKeyBuilder<T> TransformKey<TProp>(Expression<Func<T, TProp>> selector) => base.TransformKey(selector);
     public new TransformKeyBuilder<T> TransformKeys() => base.TransformKeys();
     public new AddPropertyBuilder<T> AddProperty(string name) => base.AddProperty(name);
+    public new PropertySetBuilder<T> Properties(params Expression<Func<T, object?>>[] selectors) => base.Properties(selectors);
+    public new PropertySetBuilder<T> PropertiesWhere(Func<PropertyInfo, bool> predicate) => base.PropertiesWhere(predicate);
 }

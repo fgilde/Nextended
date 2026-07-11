@@ -26,7 +26,7 @@ public sealed class SetToDefaultBuilder<T> : RuleBuilderBase<SetToDefaultBuilder
     protected override void RegisterRule(AsyncPredicate<T> predicate)
     {
         Filter.AddRule(new PropertyMutationRule<T>(
-            _accessors,
+            FilterProperties(_accessors),
             predicate,
             valueProducer: static (_, accessor, _) => DefaultValueFor(accessor.PropertyType)));
     }

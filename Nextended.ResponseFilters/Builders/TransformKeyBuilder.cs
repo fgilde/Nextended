@@ -15,44 +15,44 @@ namespace Nextended.ResponseFilters.Builders;
 public sealed class TransformKeyBuilder<T> where T : class
 {
     private readonly ResponseFilter<T> _filter;
-    private readonly string[] _propertyNames;
+    private readonly PropertyAccessor[] _accessors;
 
-    internal TransformKeyBuilder(ResponseFilter<T> filter, string[] propertyNames)
+    internal TransformKeyBuilder(ResponseFilter<T> filter, PropertyAccessor[] accessors)
     {
         _filter = filter;
-        _propertyNames = propertyNames;
+        _accessors = accessors;
     }
 
     /// <summary>Map the current serialized key to a new one (e.g. <c>k =&gt; "x_" + k</c>).</summary>
     public TransformKeyTerminal<T> Using(Func<string, string> keyTransform)
     {
         if (keyTransform is null) throw new ArgumentNullException(nameof(keyTransform));
-        return new TransformKeyTerminal<T>(_filter, _propertyNames, keyTransform);
+        return new TransformKeyTerminal<T>(_filter, _accessors, keyTransform);
     }
 
-    /// <summary>Enumerate the public, readable instance properties of <typeparamref name="T"/> (used by <c>TransformKeys</c>).</summary>
-    internal static string[] AllPropertyNames()
+    /// <summary>Every public, readable instance property of <typeparamref name="T"/> (used by <c>TransformKeys</c>).</summary>
+    internal static PropertyAccessor[] AllAccessors()
         => typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance)
                     .Where(p => p.CanRead && p.GetIndexParameters().Length == 0)
-                    .Select(p => p.Name)
+                    .Select(PropertyAccessor.For)
                     .ToArray();
 }
 
 /// <summary>Terminal phase of a <c>TransformKey</c>/<c>TransformKeys</c> rule — applies the predicate vocabulary.</summary>
 public sealed class TransformKeyTerminal<T> : RuleBuilderBase<TransformKeyTerminal<T>, T> where T : class
 {
-    private readonly string[] _propertyNames;
+    private readonly PropertyAccessor[] _accessors;
     private readonly Func<string, string> _keyTransform;
 
-    internal TransformKeyTerminal(ResponseFilter<T> filter, string[] propertyNames, Func<string, string> keyTransform) : base(filter)
+    internal TransformKeyTerminal(ResponseFilter<T> filter, PropertyAccessor[] accessors, Func<string, string> keyTransform) : base(filter)
     {
-        _propertyNames = propertyNames;
+        _accessors = accessors;
         _keyTransform = keyTransform;
     }
 
     protected override void RegisterRule(AsyncPredicate<T> predicate)
     {
-        var names = _propertyNames;
+        var names = FilterProperties(_accessors).Select(a => a.Property.Name).ToArray();
         var transform = _keyTransform;
         Filter.AddRule(new StructuralEditRule<T>(
             predicate,

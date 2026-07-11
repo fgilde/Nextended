@@ -26,7 +26,7 @@ public sealed class ClearBuilder<T> : RuleBuilderBase<ClearBuilder<T>, T> where 
     protected override void RegisterRule(AsyncPredicate<T> predicate)
     {
         Filter.AddRule(new PropertyMutationRule<T>(
-            new[] { _accessor },
+            FilterProperties(_accessor),
             predicate,
             valueProducer: static (instance, accessor, _) => EmptyValueFor(accessor.GetValue(instance), accessor.PropertyType)));
     }

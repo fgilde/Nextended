@@ -71,7 +71,7 @@ public sealed class MaskBuilder<T> : RuleBuilderBase<MaskBuilder<T>, T> where T 
         var fixedPattern = _fixedPattern;
 
         Filter.AddRule(new PropertyMutationRule<T>(
-            new[] { _accessor },
+            FilterProperties(_accessor),
             predicate,
             valueProducer: (instance, accessor, _) =>
             {

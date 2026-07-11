@@ -54,7 +54,7 @@ public sealed class RoundTerminal<T> : RuleBuilderBase<RoundTerminal<T>, T> wher
         var mode = _mode;
 
         Filter.AddRule(new PropertyMutationRule<T>(
-            new[] { _accessor },
+            FilterProperties(_accessor),
             predicate,
             valueProducer: (instance, accessor, _) =>
             {
