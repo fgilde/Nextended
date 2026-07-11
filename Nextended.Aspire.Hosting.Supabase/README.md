@@ -6,6 +6,7 @@ A complete Supabase stack integration for .NET Aspire, providing local developme
 
 - [Quick Start](#quick-start)
 - [Configuration Options](#configuration-options)
+- [Database: Internal or External Postgres](#database-internal-or-external-postgres)
 - [Syncing from Remote Supabase Project](#syncing-from-remote-supabase-project)
 - [Local Migrations](#local-migrations)
 - [Edge Functions](#edge-functions)
@@ -15,6 +16,7 @@ A complete Supabase stack integration for .NET Aspire, providing local developme
 - [Accessing Resources](#accessing-resources)
 - [Environment Variables for Frontend](#environment-variables-for-frontend)
 - [Deployment](#deployment)
+  - [Persistent Storage on Azure Container Apps](#persistent-storage-on-azure-container-apps)
 
 ---
 
@@ -103,14 +105,57 @@ var supabase = builder.AddSupabase("supabase")
 
 ### Direct Container Access
 
-Each Configure method has an overload that provides direct access to the container builder:
+Each sub-resource *is* a container, so the `configure` callback already exposes the full Aspire container builder — call `WithEnvironment`, `WithVolume`, `WithBindMount`, etc. directly on it:
 
 ```csharp
-.ConfigureDatabase(
-    db => db.WithPassword("password"),
-    container => container
-        .WithEnvironment("CUSTOM_VAR", "value")
-        .WithVolume("my-volume", "/data"))
+.ConfigureDatabase(db => db
+    .WithPassword("password")
+    .WithEnvironment("CUSTOM_VAR", "value")
+    .WithVolume("my-volume", "/data"))
+```
+
+You can also reach each container after the fact via the [`Get*()` accessors](#accessing-resources).
+
+---
+
+## Database: Internal or External Postgres
+
+By default `AddSupabase(...)` creates and owns its own PostgreSQL container (the `supabase/postgres` image) as part of the stack, configured via `ConfigureDatabase(...)`:
+
+```csharp
+var supabase = builder.AddSupabase("supabase")
+    .ConfigureDatabase(db => db.WithPassword("secure-password"));
+```
+
+### Bring your own Postgres
+
+Alternatively, pass an existing Postgres resource as `externalDatabase`. The stack then does **not** create a database — it points every service (Auth, REST, Storage, Realtime, Meta, Edge) at your resource and seeds the Supabase roles it needs into it:
+
+```csharp
+var postgres = builder.AddPostgres("mypg")
+    .WithImage("supabase/postgres", "15.8.1.085")
+    .WithPassword(builder.AddParameter("pg-password", secret: true))
+    .WithPgAdmin();
+
+var supabase = builder.AddSupabase("supabase", externalDatabase: postgres);
+```
+
+> The external database **must** use the `supabase/postgres` image — a vanilla `postgres` image lacks the roles, extensions and init scripts the stack relies on. In this mode you own the database: configure its image, password, data volume and deployment on your own resource.
+
+Because the stack no longer owns the database, `ConfigureDatabase(...)` **throws** when an external database was supplied. Use `ConfigureDatabaseIf(...)` to keep a single code path that works both ways:
+
+```csharp
+bool useExternalDb = false;
+
+var postgres = useExternalDb
+    ? builder.AddPostgres("mypg")
+        .WithImage("supabase/postgres", "15.8.1.085")
+        .WithPassword(builder.AddParameter("pg-password", secret: true))
+    : null;
+
+var supabase = builder.AddSupabase("supabase", externalDatabase: postgres)
+    // only applied when there is an internal database to configure
+    .ConfigureDatabaseIf(postgres is null, db => db.WithPassword("secure-password"));
 ```
 
 ---
@@ -216,6 +261,8 @@ var supabase = builder.AddSupabase("supabase")
 ```
 
 Migration files should follow the naming convention: `YYYYMMDDHHMMSS_description.sql`
+
+Each file is tracked in `public._aspire_applied_migrations` and applied **at most once** (like the Supabase CLI), so migrations are safe to leave in place across restarts and redeploys — they will not re-run against a persistent database.
 
 Example structure:
 ```
@@ -376,15 +423,47 @@ var frontend = builder.AddJavaScriptApp("frontend", "../frontend", "dev")
 
 ## Deployment
 
-For easy azure container apps deployment you can use azd:
+The stack targets **Azure Container Apps**, deployed with `azd`:
 
 ```bash
 azd init
 azd up
 ```
 
-Or for a JavaScript/TypeScript app:
+### Persistent Storage on Azure Container Apps
 
+Container filesystems on Azure Container Apps are **ephemeral** — a restart or redeploy wipes the internal database and any uploaded files. To persist data across redeploys, wire NFS-backed storage in publish mode:
+
+```csharp
+if (builder.ExecutionContext.IsPublishMode)
+{
+    var containerEnv = builder.AddAzureContainerAppEnvironment("acaenv");
+
+    // Premium Azure Files NFS shares (one for storage, one for the Postgres data dir),
+    // plus the VNet/subnet NFS requires. Omit postgresEnvStorageName to persist storage only.
+    builder.AddSupabaseNfsStorage(containerEnv,
+        nfsEnvStorageName: "supabasenfs",
+        postgresEnvStorageName: "supabasepgnfs");
+
+    // Run MinIO on the storage NFS share and point the Storage API at it as an S3 backend.
+    // (Azure Files NFS has no extended attributes, so storage-api's FILE backend can't use it.)
+    builder.AddMinioS3OnNfs(nfsEnvStorageName: "supabasenfs");
+
+    // Mount the second NFS share at the internal Postgres data dir so the whole DB survives.
+    SupabaseBuilderExtensions.PostgresDataVolumeName = "supabasepgnfs";
+}
+
+var supabase = builder.AddSupabase("supabase") /* ... */;
+```
+
+| Call | Effect |
+|------|--------|
+| `AddSupabaseNfsStorage(env, nfsEnvStorageName, postgresEnvStorageName?)` | Provisions a VNet + delegated subnet, a Premium Azure Files account with one or two NFS shares, and registers them as `managedEnvironmentStorage` on the ACA environment. |
+| `AddMinioS3OnNfs(nfsEnvStorageName)` | Adds a MinIO container backed by that NFS share and points the Storage API at it as an S3 backend. |
+| `SupabaseBuilderExtensions.PostgresDataVolumeName` | Env-storage name to mount at the internal Postgres data dir. The DB is pinned to a single replica. Leave unset to keep an ephemeral database. |
+| `SupabaseBuilderExtensions.PersistentStorageVolumeName` | Alternative to MinIO: mount an env-storage directly at storage-api's file directory. Leave unset when using `AddMinioS3OnNfs`. |
+
+> `PostgresDataVolumeName` applies to the **internal** database only. With an external Postgres you persist its data on your own resource; `AddSupabaseNfsStorage` + `AddMinioS3OnNfs` still apply for storage.
 
 ---
 
@@ -393,8 +472,6 @@ Or for a JavaScript/TypeScript app:
 Here's a complete example combining multiple features:
 
 ```csharp
-using MandateManager.AppHost.Extensions;
-
 var builder = DistributedApplication.CreateBuilder(args);
 
 // Paths
