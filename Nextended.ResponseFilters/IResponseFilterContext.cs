@@ -23,4 +23,11 @@ public interface IResponseFilterContext
     /// Not thread-safe; rules are applied sequentially per object.
     /// </summary>
     IDictionary<string, object?> Items { get; }
+
+    /// <summary>
+    /// Ledger of structural edits (remove / rename / key-transform / add) recorded by structural rules.
+    /// A POCO can't drop or rename a property at runtime, so these are collected here and replayed
+    /// against the serialized JSON tree by the serialization layer (e.g. the ASP.NET Core adapter).
+    /// </summary>
+    StructuralEditBook StructuralEdits { get; }
 }

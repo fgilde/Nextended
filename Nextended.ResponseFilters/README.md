@@ -131,6 +131,26 @@ For ASP.NET Core: see [Nextended.ResponseFilters.AspNetCore](../Nextended.Respon
 | `KeepOnly(...).Where(pred)` | Inverse of `RemoveItems` — keep matching items, drop the rest. | `KeepOnly<Line>(x => x.Lines).Where(l => l.IsPublic).When(...)` |
 | `Take(...).First(n)` / `.Last(n)` | Limit a collection to the first/last N items. | `Take<Line>(x => x.Lines).First(10).When(...)` |
 
+#### Structural operations (key-level)
+
+A POCO can't drop a property or rename its JSON key at runtime, so these builders don't mutate the
+instance — they record an edit that is **replayed against the serialized JSON tree**. In ASP.NET Core
+this happens automatically (the result filter swaps in the transformed `JsonNode`); when you run the
+pipeline yourself, apply the edits with `JsonStructuralTransformer.Transform(dto, ctx.StructuralEdits, jsonOptions)`.
+
+| Builder | Purpose | Example |
+| --- | --- | --- |
+| `Remove(...)` | Drop one or more properties from the output entirely (key disappears — unlike `Nullify`, which keeps a `null`). | `Remove(x => x.Internal, x => x.Debug).When(...)` |
+| `Rename(...).To(name)` | Rename a property's serialized key to a fixed name. | `Rename(x => x.Id).To("orderId").Always()` |
+| `TransformKey(...).Using(fn)` | Transform one property's serialized key through a function. | `TransformKey(x => x.Id).Using(k => "x_" + k).Always()` |
+| `TransformKeys().Using(fn)` | Transform **every** property's serialized key (e.g. enforce a naming convention for one response). | `TransformKeys().Using(k => k.ToUpperInvariant()).When(...)` |
+| `AddProperty(name).From(...)` | Inject an extra key that doesn't exist on the CLR type (computed per instance/context). | `AddProperty("displayName").From(o => $"#{o.Id}").Always()` |
+
+The key transform receives the **serialized** key (after any `JsonNamingPolicy` / `[JsonPropertyName]`),
+and edits resolve against the CLR member, so they keep working under any naming policy. Structural edits
+inside `ForEach` sub-filters are applied per element. (Limitation: values reached only through dictionary
+entries are not descended into for nested structural edits.)
+
 #### Escape hatch
 
 | Builder | Purpose | Example |

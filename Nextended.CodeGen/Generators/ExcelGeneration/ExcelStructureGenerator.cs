@@ -36,8 +36,6 @@ public class ExcelStructureGenerator : ISourceSubGenerator
             {
                 var staticSource = StaticTableEmitter.GenerateCode(ws, cfg);
                 var fn = Path.ChangeExtension(Path.GetFileName(cfg.SourceFile), ".table.g.cs");
-                File.WriteAllText("D:\\"+fn, staticSource);
-
                 yield return new GeneratedFile(fn, cfg.Namespace, staticSource, op);
             }
         }

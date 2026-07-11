@@ -12,9 +12,11 @@ public sealed class ResponseFilterContext : IResponseFilterContext
         Services = services ?? throw new ArgumentNullException(nameof(services));
         CancellationToken = cancellationToken;
         Items = new Dictionary<string, object?>(StringComparer.Ordinal);
+        StructuralEdits = new StructuralEditBook();
     }
 
     public IServiceProvider Services { get; }
     public CancellationToken CancellationToken { get; }
     public IDictionary<string, object?> Items { get; }
+    public StructuralEditBook StructuralEdits { get; }
 }

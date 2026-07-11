@@ -208,6 +208,57 @@ public abstract class ResponseFilter<T> : IResponseFilter where T : class
         return new ClearBuilder<T>(this, accessor);
     }
 
+    // -------------------------------------------------------------------------
+    // Structural builders — remove/rename/transform keys, add extra keys.
+    // These can't mutate a POCO in place, so they record edits that are replayed
+    // against the serialized JSON tree (see JsonStructuralTransformer).
+    // -------------------------------------------------------------------------
+
+    /// <summary>
+    /// Begin a rule that removes one or more properties from the serialized output entirely
+    /// (the key disappears — unlike <see cref="Nullify{TProp}"/>, which keeps a <c>null</c> value).
+    /// Accepts heterogeneous property types in a single call.
+    /// </summary>
+    protected RemoveBuilder<T> Remove(params Expression<Func<T, object?>>[] selectors)
+    {
+        var accessors = ResolveSelectors(selectors);
+        return new RemoveBuilder<T>(this, accessors);
+    }
+
+    /// <summary>Begin a rule that renames a property's serialized key (closes with <c>.To(newName)</c>).</summary>
+    protected RenameBuilder<T> Rename<TProp>(Expression<Func<T, TProp>> selector)
+    {
+        var accessor = PropertyAccessor.For(PropertySelector.Resolve(selector));
+        return new RenameBuilder<T>(this, accessor);
+    }
+
+    /// <summary>
+    /// Begin a rule that transforms a single property's serialized key through a function
+    /// (closes with <c>.Using(k =&gt; …)</c>).
+    /// </summary>
+    protected TransformKeyBuilder<T> TransformKey<TProp>(Expression<Func<T, TProp>> selector)
+    {
+        var accessor = PropertyAccessor.For(PropertySelector.Resolve(selector));
+        return new TransformKeyBuilder<T>(this, new[] { accessor.Property.Name });
+    }
+
+    /// <summary>
+    /// Begin a rule that transforms <em>every</em> property's serialized key through a function
+    /// (closes with <c>.Using(k =&gt; …)</c>) — e.g. to force a naming convention on a single response.
+    /// </summary>
+    protected TransformKeyBuilder<T> TransformKeys()
+        => new(this, TransformKeyBuilder<T>.AllPropertyNames());
+
+    /// <summary>
+    /// Begin a rule that injects an extra key into the serialized output that does not exist on the
+    /// CLR type (closes with <c>.From(...)</c>/<c>.WithValue(...)</c> then the predicate vocabulary).
+    /// </summary>
+    protected AddPropertyBuilder<T> AddProperty(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("Property name must be non-empty.", nameof(name));
+        return new AddPropertyBuilder<T>(this, name);
+    }
+
     private static PropertyAccessor[] ResolveSelectors<TProp>(Expression<Func<T, TProp>>[] selectors)
     {
         if (selectors is null || selectors.Length == 0)
@@ -258,4 +309,9 @@ public sealed class InlineFilter<T> : ResponseFilter<T> where T : class
     public new RoundBuilder<T> Round<TNum>(Expression<Func<T, TNum>> selector) where TNum : System.Numerics.INumber<TNum> => base.Round(selector);
     public new RoundBuilder<T> Round<TNum>(Expression<Func<T, TNum?>> selector) where TNum : struct, System.Numerics.INumber<TNum> => base.Round(selector);
     public new ClearBuilder<T> Clear<TProp>(Expression<Func<T, TProp>> selector) => base.Clear(selector);
+    public new RemoveBuilder<T> Remove(params Expression<Func<T, object?>>[] selectors) => base.Remove(selectors);
+    public new RenameBuilder<T> Rename<TProp>(Expression<Func<T, TProp>> selector) => base.Rename(selector);
+    public new TransformKeyBuilder<T> TransformKey<TProp>(Expression<Func<T, TProp>> selector) => base.TransformKey(selector);
+    public new TransformKeyBuilder<T> TransformKeys() => base.TransformKeys();
+    public new AddPropertyBuilder<T> AddProperty(string name) => base.AddProperty(name);
 }
