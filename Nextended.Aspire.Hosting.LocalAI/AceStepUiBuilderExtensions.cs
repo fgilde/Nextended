@@ -16,7 +16,10 @@ public sealed class AceStepUiOptions
     /// <summary>ACE-Step server image tag. Default <c>latest</c>.</summary>
     public string ApiTag { get; set; } = "latest";
 
-    /// <summary>Fixed host port for the ACE-Step REST API (random if null). The UI talks to it internally either way.</summary>
+    /// <summary>
+    /// Fixed host port for the ACE-Step server (random if null). The UI talks to it internally either way;
+    /// the endpoint also serves ACE-Step's own Gradio UI, handy for debugging.
+    /// </summary>
     public int? ApiHostPort { get; set; }
 
     /// <summary>Git repository the UI is built from. Default <c>https://github.com/fspecii/ace-step-ui</c>.</summary>
@@ -52,7 +55,8 @@ public static class AceStepUiBuilderExtensions
 {
     /// <summary>
     /// Adds a full local music-generation studio: the official <b>ACE-Step 1.5</b> server
-    /// (REST API mode) plus the <b>ace-step-ui</b> frontend wired to it.
+    /// (Gradio mode with <c>--enable-api</c> — the API surface ace-step-ui generates through)
+    /// plus the <b>ace-step-ui</b> frontend wired to it.
     /// <para>
     /// IMPORTANT: ace-step-ui speaks ACE-Step's own REST API — <b>not</b> LocalAI's
     /// OpenAI/ElevenLabs-compatible <c>/v1/sound-generation</c>. So this runs its own ACE-Step GPU
@@ -91,12 +95,19 @@ public static class AceStepUiBuilderExtensions
         var uiName = name ?? $"{builder.Resource.Name}-acestep-ui";
         var apiName = name is null ? $"{builder.Resource.Name}-acestep" : $"{name}-api";
 
-        // --- ACE-Step 1.5 server (REST API mode) --------------------------------------------------
+        // --- ACE-Step 1.5 server (Gradio mode + REST routes) ---------------------------------------
+        // ace-step-ui generates through the GRADIO app (@gradio/client → /generation_wrapper) and uses
+        // the REST routes the Gradio app registers with --enable-api (/health, /v1/models, /query_result …).
+        // The plain REST mode (ACESTEP_MODE=api) does NOT mount Gradio — the UI would then fall back to
+        // spawning a local Python process, which cannot work from inside the UI container.
         var api = appBuilder.AddResource(new AceStepApiResource(apiName))
             .WithImage(options.ApiImage, options.ApiTag)
-            .WithHttpEndpoint(port: options.ApiHostPort, targetPort: 8001, name: "http")
-            .WithEnvironment("ACESTEP_MODE", "api")            // entrypoint: REST API instead of Gradio UI
-            .WithEnvironment("ACESTEP_API_HOST", "0.0.0.0")
+            .WithHttpEndpoint(port: options.ApiHostPort, targetPort: 7860, name: "http")
+            .WithEnvironment("ACESTEP_MODE", "gradio")
+            .WithEnvironment("ACESTEP_EXTRA_ARGS", "--enable-api")
+            // /health comes from --enable-api; keeps the UI waiting until the server actually
+            // accepts requests (first start downloads several GB of weights before that).
+            .WithHttpHealthCheck("/health")
             .WithVolume($"{apiName}-checkpoints", "/app/checkpoints")   // model weights (several GB)
             .WithVolume($"{apiName}-outputs", "/app/gradio_outputs")
             .WithVolume($"{apiName}-datasets", "/app/datasets")          // shared with the UI for LoRA training uploads

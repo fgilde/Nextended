@@ -13,8 +13,8 @@ name: Publish to NuGet
 #        Repository       : Nextended
 #        Workflow file    : nuget-publish.yml
 #        (scope it to the package owner / glob that covers Nextended.*)
-#   2. Add a repo secret NUGET_USER = your nuget.org account/profile name (NOT your email).
-#        (GitHub → repo → Settings → Secrets and variables → Actions → Secrets.)
+#   2. Add NUGET_USER = your nuget.org account/profile name (NOT your email), as either a repo
+#        secret OR a repo variable (GitHub → Settings → Secrets and variables → Actions).
 #   That's it — no API-key secret needed.
 #
 #   Note: on a private repo the policy is "temporarily active" for 7 days until the first successful
@@ -72,7 +72,8 @@ jobs:
         id: login
         uses: NuGet/login@v1
         with:
-          user: ${{ secrets.NUGET_USER }}   # nuget.org profile name (not email)
+          # Works whether NUGET_USER was added as a repo secret or a repo variable.
+          user: ${{ secrets.NUGET_USER || vars.NUGET_USER || 'fgilde' }}   # nuget.org profile name (not email)
 
       - name: Push to nuget.org (Core first, then the rest)
         shell: pwsh
