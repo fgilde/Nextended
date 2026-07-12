@@ -52,10 +52,22 @@
     <None Include="README.md" Pack="true" PackagePath="README.md" />
   </ItemGroup>
 
-  <!-- ─────────────  Alles aus bin\* in analyzers/dotnet/cs packen  ───────────── -->
-  <ItemGroup>
-    <None Include="$(OutputPath)\*.dll" Exclude="$(OutputPath)System*.dll;$(OutputPath)Microsoft*.dll;$(OutputPath)mscorlib.dll;$(OutputPath)netstandard.dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
-  </ItemGroup>
+  <!-- ─────────────  Alles aus bin\* in analyzers/dotnet/cs packen  ─────────────
+       Muss über TargetsForTfmSpecificContentInPackage laufen: ein <None Include="$(OutputPath)\*.dll">
+       würde zur Evaluationszeit globben – also BEVOR der Build die Abhängigkeiten ins Output kopiert.
+       Bei einem sauberen Build (CI) ist der Ordner dann leer und das Analyzer-Paket bliebe leer.
+       Dieser Target-basierte Glob läuft zur Pack-Zeit, nach dem Build, und findet alle DLLs. -->
+  <PropertyGroup>
+    <TargetsForTfmSpecificContentInPackage>$(TargetsForTfmSpecificContentInPackage);_PackAnalyzerDependencies</TargetsForTfmSpecificContentInPackage>
+  </PropertyGroup>
+  <Target Name="_PackAnalyzerDependencies">
+    <ItemGroup>
+      <TfmSpecificPackageFile Include="$(OutputPath)*.dll"
+                              Exclude="$(OutputPath)System*.dll;$(OutputPath)Microsoft*.dll;$(OutputPath)mscorlib.dll;$(OutputPath)netstandard.dll">
+        <PackagePath>analyzers/dotnet/cs</PackagePath>
+      </TfmSpecificPackageFile>
+    </ItemGroup>
+  </Target>
   <ItemGroup>
     <Folder Include="Generators\CodeToText\" />
   </ItemGroup>

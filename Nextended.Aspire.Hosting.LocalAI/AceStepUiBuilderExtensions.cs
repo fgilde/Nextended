@@ -140,6 +140,11 @@ public static class AceStepUiBuilderExtensions
             var apiDir = Path.Combine(appBuilder.AppHostDirectory, "obj", "localai", apiName);
             var srcDir = Path.Combine(apiDir, "src");
             EnsureGitCheckout(options.ApiRepository, options.ApiGitRef, srcDir);
+            // Keep .git out of the build context (smaller + stable layer cache); only when the
+            // checkout ships no .dockerignore itself (untracked files survive the refresh reset).
+            var dockerIgnore = Path.Combine(srcDir, ".dockerignore");
+            if (!File.Exists(dockerIgnore))
+                File.WriteAllText(dockerIgnore, ".git\n");
             var dockerfilePath = Path.Combine(apiDir, "Dockerfile");
             // ReplaceLineEndings: the heredoc entrypoint must be LF — CRLF makes bash fail ("bash\r").
             File.WriteAllText(dockerfilePath, $$"""
@@ -224,6 +229,11 @@ public static class AceStepUiBuilderExtensions
              && rm -rf /var/lib/apt/lists/*
             RUN git clone --depth 1 --branch {options.UiGitRef} {options.UiRepository} /app
             WORKDIR /app
+            # Fix an upstream bug in buildGradioArgs: it passes is_format_caption_state, but that is a
+            # gr.State — @gradio/client skips State slots itself, so sending it shifts every argument
+            # after index 36 by one position (breaking latent/normalization/autogen values server-side).
+            # If upstream removes the line, this sed is a no-op.
+            RUN sed -i '/params.isFormatCaption ?? false,/d' /app/server/src/services/acestep.ts
             RUN npm install --no-audit --no-fund
             WORKDIR /app/server
             RUN npm install --no-audit --no-fund
