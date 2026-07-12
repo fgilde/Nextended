@@ -127,7 +127,10 @@ if ($Preflight) {
 
 # CodeGen's build target (UpdateGuid) and Output.props both use $(SolutionDir); pass it explicitly so
 # building single projects (not the .sln) behaves identically.
-$common = @("-c", $Configuration, "-p:SolutionDir=$repo\", "--nologo")
+# GeneratePackageOnBuild=false: the projects set it to true, which makes `build` re-enter the Pack
+# target and can race the assembly copy on a clean tree (NU5026 "file to be packed was not found").
+# `dotnet pack` produces the .nupkg itself, so disabling the on-build pack is correct here.
+$common = @("-c", $Configuration, "-p:SolutionDir=$repo\", "-p:GeneratePackageOnBuild=false", "--nologo")
 
 # ── 1. Version ───────────────────────────────────────────────────────────────
 Step "Setting version $Version in Version.props (PackageVersion + UsedCorePackageVersion)"
