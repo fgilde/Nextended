@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Aspire.Hosting;
 using Aspire.Hosting.ApplicationModel;
 
@@ -10,10 +11,35 @@ namespace Nextended.Aspire.Hosting.LocalAI;
 /// </summary>
 public sealed class AceStepUiOptions
 {
-    /// <summary>ACE-Step server image (without tag). Default <c>ghcr.io/ace-step/ace-step-1.5</c>.</summary>
+    /// <summary>
+    /// Build the ACE-Step server from <see cref="ApiRepository"/>@<see cref="ApiGitRef"/> via a generated
+    /// Dockerfile instead of pulling <see cref="ApiImage"/>:<see cref="ApiTag"/>. Default <c>true</c>, and
+    /// deliberately so: ace-step-ui calls the Gradio <c>/generation_wrapper</c> with POSITIONAL arguments,
+    /// so server and UI must pair exactly. The UI's argument list matches the ACE-Step <b>v0.1.4</b>
+    /// signature; newer releases inserted parameters, shifting positions (symptom:
+    /// <i>"Value: is not in the list of choices ['euler','heun']"</i>) — and GHCR offers no v0.1.4 image,
+    /// hence the source build. Set <c>false</c> only with a matching prebuilt image (see <see cref="ApiTag"/>).
+    /// </summary>
+    public bool BuildApiFromSource { get; set; } = true;
+
+    /// <summary>Git repository the ACE-Step server is built from (source build only). Default <c>https://github.com/ace-step/ACE-Step-1.5</c>.</summary>
+    public string ApiRepository { get; set; } = "https://github.com/ace-step/ACE-Step-1.5";
+
+    /// <summary>
+    /// Git branch/tag of <see cref="ApiRepository"/> to build (source build only). Default <c>v0.1.4</c> —
+    /// the revision whose <c>/generation_wrapper</c> signature the UI is built against. If you change it,
+    /// pin <see cref="UiGitRef"/> to a UI revision matching that server (see <see cref="BuildApiFromSource"/>).
+    /// </summary>
+    public string ApiGitRef { get; set; } = "v0.1.4";
+
+    /// <summary>ACE-Step server image (without tag) — only used when <see cref="BuildApiFromSource"/> is <c>false</c>. Default <c>ghcr.io/ace-step/ace-step-1.5</c>.</summary>
     public string ApiImage { get; set; } = "ghcr.io/ace-step/ace-step-1.5";
 
-    /// <summary>ACE-Step server image tag. Default <c>latest</c>.</summary>
+    /// <summary>
+    /// ACE-Step server image tag (see <see cref="ApiImage"/>). Default <c>latest</c>. WARNING: released
+    /// images (0.1.8/latest) do NOT match the current UI's positional Gradio signature — only use a
+    /// prebuilt image together with a <see cref="UiGitRef"/> built against exactly that server version.
+    /// </summary>
     public string ApiTag { get; set; } = "latest";
 
     /// <summary>
@@ -31,11 +57,14 @@ public sealed class AceStepUiOptions
     /// <summary>Base image for the generated UI Dockerfile. Default <c>node:22-bookworm</c>.</summary>
     public string NodeImage { get; set; } = "node:22-bookworm";
 
-    /// <summary>ACE-Step DiT model config (<c>ACESTEP_CONFIG_PATH</c>, e.g. <c>acestep-v15-turbo</c>). <c>null</c> = image default.</summary>
-    public string? ConfigPath { get; set; }
+    /// <summary>ACE-Step DiT model config (<c>ACESTEP_CONFIG_PATH</c>). Default <c>acestep-v15-turbo</c>; <c>null</c>/empty = server default.</summary>
+    public string? ConfigPath { get; set; } = "acestep-v15-turbo";
 
-    /// <summary>ACE-Step language-model path (<c>ACESTEP_LM_MODEL_PATH</c>, e.g. <c>acestep-5Hz-lm-4B</c>). <c>null</c> = image default.</summary>
-    public string? LmModelPath { get; set; }
+    /// <summary>
+    /// ACE-Step language model (<c>ACESTEP_LM_MODEL_PATH</c>) powering the UI's "thinking"/enhance features.
+    /// Default <c>acestep-5Hz-lm-4B</c> (~8 GB extra VRAM); set <c>null</c>/empty to skip loading a LM.
+    /// </summary>
+    public string? LmModelPath { get; set; } = "acestep-5Hz-lm-4B";
 
     /// <summary>Optional Pexels API key for the UI's video-background feature (<c>PEXELS_API_KEY</c>).</summary>
     public string? PexelsApiKey { get; set; }
@@ -100,8 +129,63 @@ public static class AceStepUiBuilderExtensions
         // the REST routes the Gradio app registers with --enable-api (/health, /v1/models, /query_result …).
         // The plain REST mode (ACESTEP_MODE=api) does NOT mount Gradio — the UI would then fall back to
         // spawning a local Python process, which cannot work from inside the UI container.
-        var api = appBuilder.AddResource(new AceStepApiResource(apiName))
-            .WithImage(options.ApiImage, options.ApiTag)
+        var apiResource = new AceStepApiResource(apiName);
+        IResourceBuilder<AceStepApiResource> api;
+        if (options.BuildApiFromSource)
+        {
+            // Match the UI: build the server from source at the pinned ref. The repo is cloned/updated on
+            // the host (docker build needs a local context; offline is fine once cloned). The Dockerfile is
+            // GENERATED next to the checkout — older refs like v0.1.4 ship none, and it must work with or
+            // without a tracked uv.lock (hence `uv sync --frozen || uv sync`).
+            var apiDir = Path.Combine(appBuilder.AppHostDirectory, "obj", "localai", apiName);
+            var srcDir = Path.Combine(apiDir, "src");
+            EnsureGitCheckout(options.ApiRepository, options.ApiGitRef, srcDir);
+            var dockerfilePath = Path.Combine(apiDir, "Dockerfile");
+            // ReplaceLineEndings: the heredoc entrypoint must be LF — CRLF makes bash fail ("bash\r").
+            File.WriteAllText(dockerfilePath, $$"""
+                # Generated by Nextended.Aspire.Hosting.LocalAI — builds {{options.ApiRepository}}@{{options.ApiGitRef}}.
+                FROM nvidia/cuda:12.8.1-runtime-ubuntu22.04
+                ENV DEBIAN_FRONTEND=noninteractive LANG=C.UTF-8 LC_ALL=C.UTF-8
+                RUN apt-get update && apt-get install -y --no-install-recommends \
+                        software-properties-common build-essential git curl wget \
+                        libsndfile1 libsndfile1-dev ffmpeg libffi-dev libssl-dev \
+                    && add-apt-repository ppa:deadsnakes/ppa && apt-get update \
+                    && apt-get install -y --no-install-recommends python3.11 python3.11-dev python3.11-venv \
+                    && rm -rf /var/lib/apt/lists/*
+                COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+                WORKDIR /app
+                COPY . /app/
+                RUN uv sync --frozen --no-dev --python python3.11 || uv sync --no-dev --python python3.11
+                RUN mkdir -p /app/checkpoints /app/gradio_outputs /app/output
+                ENV GRADIO_SERVER_NAME=0.0.0.0 ACESTEP_API_HOST=0.0.0.0 TOKENIZERS_PARALLELISM=false
+                EXPOSE 7860 8001
+                COPY <<'ENTRYPOINT_EOF' /app/docker-entrypoint.sh
+                #!/usr/bin/env bash
+                set -e
+                INIT_ARGS=""
+                if [ "${ACESTEP_INIT_SERVICE:-true}" = "true" ]; then
+                    INIT_ARGS="--init_service true"
+                    [ -n "${ACESTEP_CONFIG_PATH:-}" ]   && INIT_ARGS="${INIT_ARGS} --config_path ${ACESTEP_CONFIG_PATH}"
+                    [ -n "${ACESTEP_LM_MODEL_PATH:-}" ] && INIT_ARGS="${INIT_ARGS} --init_llm true --lm_model_path ${ACESTEP_LM_MODEL_PATH}"
+                fi
+                if [ "${ACESTEP_MODE:-gradio}" = "api" ]; then
+                    exec uv run python -m acestep.api_server --host "${ACESTEP_API_HOST:-0.0.0.0}" --port "${ACESTEP_API_PORT:-8001}" ${ACESTEP_EXTRA_ARGS:-}
+                else
+                    exec uv run python -m acestep.acestep_v15_pipeline --server-name "${GRADIO_SERVER_NAME:-0.0.0.0}" --port "${GRADIO_PORT:-7860}" ${INIT_ARGS} ${ACESTEP_EXTRA_ARGS:-}
+                fi
+                ENTRYPOINT_EOF
+                RUN chmod +x /app/docker-entrypoint.sh
+                ENTRYPOINT ["/app/docker-entrypoint.sh"]
+                """.ReplaceLineEndings("\n"));
+
+            apiResource.Annotations.Add(new ContainerImageAnnotation { Image = apiName, Tag = "latest" });
+            api = appBuilder.AddResource(apiResource).WithDockerfile(srcDir, dockerfilePath);
+        }
+        else
+        {
+            api = appBuilder.AddResource(apiResource).WithImage(options.ApiImage, options.ApiTag);
+        }
+        api = api
             .WithHttpEndpoint(port: options.ApiHostPort, targetPort: 7860, name: "http")
             .WithEnvironment("ACESTEP_MODE", "gradio")
             .WithEnvironment("ACESTEP_EXTRA_ARGS", "--enable-api")
@@ -114,10 +198,10 @@ public static class AceStepUiBuilderExtensions
             .WithParentRelationship(builder.Resource)
             .ExcludeFromManifest();
 
-        if (options.ConfigPath is not null)
-            api.WithEnvironment("ACESTEP_CONFIG_PATH", options.ConfigPath);
-        if (options.LmModelPath is not null)
-            api.WithEnvironment("ACESTEP_LM_MODEL_PATH", options.LmModelPath);
+        // Always set both (empty = feature off) so the prebuilt image's env defaults can't override
+        // a deliberate null and behavior matches the source-built image.
+        api.WithEnvironment("ACESTEP_CONFIG_PATH", options.ConfigPath ?? "");
+        api.WithEnvironment("ACESTEP_LM_MODEL_PATH", options.LmModelPath ?? "");
 
         // GPU follows the LocalAI resource's configuration (default: NVIDIA).
         if (builder.Resource.GpuEnabled)
@@ -147,7 +231,7 @@ public static class AceStepUiBuilderExtensions
             WORKDIR /app
             EXPOSE 3000 3001
             CMD ["sh", "-c", "(cd /app/server && npm run dev &) ; exec npm run dev -- --host 0.0.0.0 --port 3000"]
-            """);
+            """.ReplaceLineEndings("\n"));
 
         // WithDockerfile only REPLACES an existing image annotation (AddContainer normally creates it) —
         // a custom resource added via AddResource needs the placeholder annotation up front.
@@ -174,5 +258,47 @@ public static class AceStepUiBuilderExtensions
             ui.WithEnvironment(key, value);
 
         return builder;
+    }
+
+    /// <summary>
+    /// Clones <paramref name="repository"/>@<paramref name="gitRef"/> into <paramref name="dir"/> (shallow),
+    /// or refreshes an existing checkout to that ref. A failed refresh (offline) keeps the existing
+    /// checkout; the initial clone is required and throws with a clear message.
+    /// </summary>
+    private static void EnsureGitCheckout(string repository, string gitRef, string dir)
+    {
+        if (!Directory.Exists(Path.Combine(dir, ".git")))
+        {
+            if (Directory.Exists(dir)) Directory.Delete(dir, recursive: true);
+            Directory.CreateDirectory(Path.GetDirectoryName(dir)!);
+            // autocrlf=false: a Windows checkout would otherwise stamp CRLF into the repo's Dockerfile,
+            // whose heredoc-generated entrypoint script then fails in the container ("bash\r: not found").
+            if (!RunGit($"clone -c core.autocrlf=false --depth 1 --branch {gitRef} {repository} \"{dir}\"", workDir: null))
+                throw new InvalidOperationException(
+                    $"Konnte '{repository}' ({gitRef}) nicht nach '{dir}' klonen — git muss installiert und das Repo erreichbar sein. " +
+                    "Alternativ BuildApiFromSource=false setzen, um das fertige Image zu verwenden.");
+        }
+        else if (RunGit($"fetch --depth 1 origin {gitRef}", dir))
+        {
+            RunGit("reset --hard FETCH_HEAD", dir);
+        }
+    }
+
+    /// <summary>Runs git with output passing through to the AppHost console; <c>false</c> on failure (incl. git missing).</summary>
+    private static bool RunGit(string args, string? workDir)
+    {
+        try
+        {
+            var psi = new ProcessStartInfo("git", args) { UseShellExecute = false };
+            if (workDir is not null) psi.WorkingDirectory = workDir;
+            using var process = Process.Start(psi);
+            if (process is null) return false;
+            process.WaitForExit();
+            return process.ExitCode == 0;
+        }
+        catch
+        {
+            return false;
+        }
     }
 }

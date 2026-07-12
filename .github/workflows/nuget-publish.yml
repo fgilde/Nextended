@@ -81,7 +81,15 @@ jobs:
           NUGET_KEY: ${{ steps.login.outputs.NUGET_API_KEY }}
         run: |
           $src = 'https://api.nuget.org/v3/index.json'
-          # Core first so its dependency is available before dependents index.
-          dotnet nuget push "artifacts/Nextended.Core.*.nupkg" -s $src -k $env:NUGET_KEY --skip-duplicate
-          # Everything else (Core re-push is a no-op thanks to --skip-duplicate).
-          dotnet nuget push "artifacts/*.nupkg"                -s $src -k $env:NUGET_KEY --skip-duplicate
+          # `dotnet nuget push` does not expand wildcards, so enumerate the files ourselves and push
+          # each explicitly — Core first, then the rest, CodeGen last.
+          $pkgs = Get-ChildItem artifacts/*.nupkg
+          if (-not $pkgs) { throw "No packages found in artifacts/." }
+          $ordered = @($pkgs | Where-Object { $_.Name -like 'Nextended.Core.*' }) +
+                     @($pkgs | Where-Object { $_.Name -notlike 'Nextended.Core.*' -and $_.Name -notlike 'Nextended.CodeGen.*' }) +
+                     @($pkgs | Where-Object { $_.Name -like 'Nextended.CodeGen.*' })
+          foreach ($p in $ordered) {
+            Write-Host "push $($p.Name)"
+            dotnet nuget push $p.FullName -s $src -k $env:NUGET_KEY --skip-duplicate
+            if ($LASTEXITCODE -ne 0) { throw "push failed for $($p.Name)" }
+          }

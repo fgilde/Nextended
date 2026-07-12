@@ -482,13 +482,16 @@ Behavior notes:
   models (independent of LocalAI). Default image `vladmandic/sdnext-cuda:latest`, UI on port 7860.
 - **ACE-Step UI** (music studio): `WithAceStepUi()` adds a local Suno-style music studio —
   [ace-step-ui](https://github.com/fspecii/ace-step-ui) (song library, lyrics editor, stem
-  separation, audio editor) plus the official **ACE-Step 1.5** server it requires
-  (`ghcr.io/ace-step/ace-step-1.5`, REST API mode, GPU). NOTE: the UI speaks ACE-Step's own
-  REST API — *not* LocalAI's `/v1/sound-generation` — so like SD.Next it runs its own model
-  container with its own weights (`{name}-checkpoints` volume, several GB on first start);
-  models added via `AddSoundModel` are independent of it. The UI repo ships no container image,
-  so it is built from source via a generated Dockerfile on first run (pin
-  `AceStepUiOptions.UiGitRef` for reproducible builds).
+  separation, audio editor) plus the **ACE-Step 1.5** server it requires, run in Gradio mode
+  with `--enable-api` (the API surface the UI generates through). NOTE: the UI speaks ACE-Step's
+  own Gradio/REST API — *not* LocalAI's `/v1/sound-generation` — so like SD.Next it runs its own
+  model container with its own weights (`{name}-checkpoints` volume, ~18 GB on first start);
+  models added via `AddSoundModel` are independent of it. Both containers are built from source
+  on first run: the UI ships no image, and the server is built from the pinned ACE-Step tag
+  `v0.1.4` — the UI calls the Gradio endpoint with *positional* args, and its argument list
+  matches exactly that signature (newer releases inserted parameters, shifting positions and
+  breaking generation; GHCR offers no v0.1.4 image). If you change `ApiGitRef`/`ApiTag`, pin
+  `UiGitRef` to a UI revision built against that server version.
 - **Open WebUI**: `WithOpenWebUI()` adds a `ghcr.io/open-webui/open-webui` container. Overloads let
   you reuse an existing Open WebUI (e.g. the one from the Ollama integration) instead of a second one:
   ```csharp
