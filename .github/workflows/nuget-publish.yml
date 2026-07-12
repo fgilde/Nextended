@@ -1,0 +1,86 @@
+name: Publish to NuGet
+
+# Fires when you publish a GitHub Release. Use the release **tag** as the version, e.g. `10.1.14`
+# (a leading `v` is stripped, so `v10.1.14` works too). The tag the release creates is the single
+# source of truth — no version is edited by hand.
+#
+# Publishing uses NuGet **Trusted Publishing** (OIDC): GitHub Actions exchanges a short-lived token
+# for a temporary NuGet key at run time. No long-lived API key is stored in the repo.
+#
+# ── One-time setup on nuget.org ──────────────────────────────────────────────
+#   1. nuget.org → account → "Trusted Publishing" → add a policy:
+#        Repository owner : fgilde
+#        Repository       : Nextended
+#        Workflow file    : nuget-publish.yml
+#        (scope it to the package owner / glob that covers Nextended.*)
+#   2. Add a repo secret NUGET_USER = your nuget.org account/profile name (NOT your email).
+#        (GitHub → repo → Settings → Secrets and variables → Actions → Secrets.)
+#   That's it — no API-key secret needed.
+#
+#   Note: on a private repo the policy is "temporarily active" for 7 days until the first successful
+#   publish locks it to the repo/owner IDs; just run a release within that window.
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to publish (e.g. 10.1.14)'
+        required: true
+
+permissions:
+  contents: read
+  id-token: write   # required for NuGet Trusted Publishing (OIDC)
+
+concurrency:
+  group: nuget-publish
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    # Windows runner is required: Nextended.UI targets net*-windows.
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET (8 / 9 / 10)
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            8.0.x
+            9.0.x
+            10.0.x
+
+      - name: Resolve version from release tag
+        id: ver
+        shell: pwsh
+        run: |
+          $v = if ($env:GITHUB_EVENT_NAME -eq 'release') { '${{ github.event.release.tag_name }}' }
+               else { '${{ github.event.inputs.version }}' }
+          $v = $v.Trim() -replace '^v', ''
+          if ($v -notmatch '^\d+\.\d+\.\d+([-.0-9A-Za-z]+)?$') { throw "Bad version '$v'" }
+          "version=$v" >> $env:GITHUB_OUTPUT
+          Write-Host "Publishing version $v"
+
+      - name: Build & pack all packages (Core-first, CodeGen via local feed)
+        shell: pwsh
+        run: ./publish.ps1 -Version ${{ steps.ver.outputs.version }}   # no -Push -> pack only, into .\artifacts
+
+      - name: NuGet login (Trusted Publishing / OIDC)
+        id: login
+        uses: NuGet/login@v1
+        with:
+          user: ${{ secrets.NUGET_USER }}   # nuget.org profile name (not email)
+
+      - name: Push to nuget.org (Core first, then the rest)
+        shell: pwsh
+        env:
+          NUGET_KEY: ${{ steps.login.outputs.NUGET_API_KEY }}
+        run: |
+          $src = 'https://api.nuget.org/v3/index.json'
+          # Core first so its dependency is available before dependents index.
+          dotnet nuget push "artifacts/Nextended.Core.*.nupkg" -s $src -k $env:NUGET_KEY --skip-duplicate
+          # Everything else (Core re-push is a no-op thanks to --skip-duplicate).
+          dotnet nuget push "artifacts/*.nupkg"                -s $src -k $env:NUGET_KEY --skip-duplicate

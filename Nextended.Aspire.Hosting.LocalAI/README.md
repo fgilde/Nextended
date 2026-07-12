@@ -480,6 +480,15 @@ Behavior notes:
   [SD.Next](https://github.com/vladmandic/sdnext) studio — proper txt2img/img2img UI, model &
   LoRA management, Civitai/HuggingFace downloads. Runs its own GPU container with its own
   models (independent of LocalAI). Default image `vladmandic/sdnext-cuda:latest`, UI on port 7860.
+- **ACE-Step UI** (music studio): `WithAceStepUi()` adds a local Suno-style music studio —
+  [ace-step-ui](https://github.com/fspecii/ace-step-ui) (song library, lyrics editor, stem
+  separation, audio editor) plus the official **ACE-Step 1.5** server it requires
+  (`ghcr.io/ace-step/ace-step-1.5`, REST API mode, GPU). NOTE: the UI speaks ACE-Step's own
+  REST API — *not* LocalAI's `/v1/sound-generation` — so like SD.Next it runs its own model
+  container with its own weights (`{name}-checkpoints` volume, several GB on first start);
+  models added via `AddSoundModel` are independent of it. The UI repo ships no container image,
+  so it is built from source via a generated Dockerfile on first run (pin
+  `AceStepUiOptions.UiGitRef` for reproducible builds).
 - **Open WebUI**: `WithOpenWebUI()` adds a `ghcr.io/open-webui/open-webui` container. Overloads let
   you reuse an existing Open WebUI (e.g. the one from the Ollama integration) instead of a second one:
   ```csharp
@@ -499,6 +508,7 @@ var ai = builder.AddLocalAI("localai")
     .WithDataVolume()
     .AddHuggingFaceModel(KnownHuggingFaceImageModel.NsfwV1)
     .WithSdNextUi()      // full image studio on :7860
+    .WithAceStepUi()     // Suno-style music studio (own ACE-Step 1.5 server)
     .WithOpenWebUI();    // optional, chat-first
 ```
 

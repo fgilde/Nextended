@@ -27,6 +27,9 @@
     <ProjectReference Include="..\Nextended.Core\Nextended.Core.csproj" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="$(MsVersion)" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="$(MsVersion)" />
+    <!-- EF Core resolves Caching.Memory to its vulnerable 8.0.0 minimum on net8 (GHSA-qj66-m88j-hmgj);
+         pin the patched version explicitly. Flows transitively to Nextended.Web. -->
+    <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="$(CachingMemoryVersion)" />
   </ItemGroup>
 
 

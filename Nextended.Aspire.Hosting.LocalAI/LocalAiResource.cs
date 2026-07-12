@@ -74,3 +74,9 @@ public sealed class LocalAiOpenWebUIResource(string name) : ContainerResource(na
 
 /// <summary>A standalone SD.Next image-generation studio attached to the stack.</summary>
 public sealed class SdNextResource(string name) : ContainerResource(name);
+
+/// <summary>The ACE-Step 1.5 server (REST API mode) backing an <see cref="AceStepUiResource"/>.</summary>
+public sealed class AceStepApiResource(string name) : ContainerResource(name);
+
+/// <summary>The ace-step-ui music studio (Suno-style frontend for ACE-Step), built from source.</summary>
+public sealed class AceStepUiResource(string name) : ContainerResource(name);

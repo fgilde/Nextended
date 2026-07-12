@@ -59,6 +59,10 @@ var localai = builder.AddLocalAI("localai", o =>
     .AddModel(KnownHuggingFaceImageModel.NsfwGenV2)  // /v1/images/generations
     .AddModel(KnownHuggingFaceImageModel.NsfwV1)  // /v1/images/generations
     .AddModel(KnownHuggingFaceImageModel.OmnigenXLNsfw)
+    .AddModel(KnownSoundModel.AceStepTurbo)
+    .WithAceStepUi()
+    .WithSdNextUi()
+    .WithOpenWebUI()
     ;
 
 // LocalAI speaks the OpenAI API under /v1 — build that base URL once (resolved at runtime).

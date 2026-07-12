@@ -14,7 +14,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Nextended.Core\Nextended.Core.csproj" />
     <PackageReference Include="Microsoft.Extensions.Caching.Abstractions" Version="$(ManagementVersion)" />
-    <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="$(ManagementVersion)" />
+    <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="$(CachingMemoryVersion)" />
     <PackageReference Include="Microsoft.Extensions.Options" Version="$(MsVersion)" />
     <PackageReference Include="System.Runtime.Caching" Version="$(ManagementVersion)" />
   </ItemGroup>
