@@ -491,7 +491,10 @@ Behavior notes:
   `v0.1.4` — the UI calls the Gradio endpoint with *positional* args, and its argument list
   matches exactly that signature (newer releases inserted parameters, shifting positions and
   breaking generation; GHCR offers no v0.1.4 image). If you change `ApiGitRef`/`ApiTag`, pin
-  `UiGitRef` to a UI revision built against that server version.
+  `UiGitRef` to a UI revision built against that server version. The generated server Dockerfile
+  also pins `torchcodec==0.10.0` (the release matching torch 2.10 on the CUDA-12.8 base) — v0.1.4
+  has no lockfile, so an unpinned build otherwise pulls a torchcodec built for CUDA 13 and
+  cover/reference-audio generation fails to decode its input (plain text2music is unaffected).
 - **Open WebUI**: `WithOpenWebUI()` adds a `ghcr.io/open-webui/open-webui` container. Overloads let
   you reuse an existing Open WebUI (e.g. the one from the Ollama integration) instead of a second one:
   ```csharp
