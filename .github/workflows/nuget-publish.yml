@@ -68,6 +68,25 @@ jobs:
         shell: pwsh
         run: ./publish.ps1 -Version ${{ steps.ver.outputs.version }}   # no -Push -> pack only, into .\artifacts
 
+      - name: Verify CodeGen analyzer package is complete
+        shell: pwsh
+        run: |
+          # Guard against the empty-analyzer regression: the CodeGen package must bundle its
+          # dependencies under analyzers/dotnet/cs (e.g. Nextended.Core.dll). Fail here — before any
+          # publish — so a hollow package can never reach nuget.org.
+          $pkg = Get-ChildItem artifacts/Nextended.CodeGen.*.nupkg | Select-Object -First 1
+          if (-not $pkg) { throw "CodeGen package not found in artifacts/." }
+          $zip = [System.IO.Compression.ZipFile]::OpenRead($pkg.FullName)
+          try {
+            $analyzers = @($zip.Entries | Where-Object { $_.FullName -like 'analyzers/dotnet/cs/*.dll' })
+            $hasCore   = [bool]($analyzers | Where-Object { $_.FullName -eq 'analyzers/dotnet/cs/Nextended.Core.dll' })
+            Write-Host ("CodeGen package: {0} ({1:N2} MB), {2} analyzer DLLs, Core bundled: {3}" -f $pkg.Name, ($pkg.Length/1MB), $analyzers.Count, $hasCore)
+            if (-not $hasCore -or $analyzers.Count -lt 5) {
+              throw "CodeGen analyzer package looks broken (Core bundled: $hasCore, analyzer DLLs: $($analyzers.Count)). Refusing to publish."
+            }
+          } finally { $zip.Dispose() }
+          Write-Host "CodeGen analyzer package OK."
+
       - name: NuGet login (Trusted Publishing / OIDC)
         id: login
         uses: NuGet/login@v1
