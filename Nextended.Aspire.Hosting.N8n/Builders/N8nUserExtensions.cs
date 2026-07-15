@@ -54,44 +54,45 @@ public static class N8nUserExtensions
         {
             var baseUrl = resource.HttpEndpoint.Url.TrimEnd('/');
             using var http = new HttpClient();
+            var payload = JsonSerializer.Serialize(new { email, firstName, lastName, password });
 
-            // n8n signals readiness only via /healthz — the container being "running" is not enough
-            // (DB migrations on first boot can take a while).
-            var healthy = false;
+            // Retry the setup call itself instead of gating on /healthz: n8n mounts /healthz EARLY in
+            // its boot (returns 200 while DB migrations still run), but the /rest controllers are only
+            // registered afterwards — a too-early POST yields a plain Express 404 ("Cannot POST").
+            // Connection errors and 404 therefore both mean "not ready yet".
+            HttpStatusCode? lastStatus = null;
+            string lastBody = "";
             for (var i = 0; i < 150 && !ct.IsCancellationRequested; i++)   // ~5 min
             {
                 try
                 {
-                    var health = await http.GetAsync($"{baseUrl}/healthz", ct).ConfigureAwait(false);
-                    if (health.IsSuccessStatusCode) { healthy = true; break; }
+                    using var content = new StringContent(payload, Encoding.UTF8, "application/json");
+                    var response = await http.PostAsync($"{baseUrl}/rest/owner/setup", content, ct).ConfigureAwait(false);
+
+                    if (response.IsSuccessStatusCode)
+                    {
+                        LogInformation($"n8n '{resource.Name}': owner '{email}' created.");
+                        return;
+                    }
+                    if (response.StatusCode == HttpStatusCode.BadRequest)
+                    {
+                        // Typical cause: instance already has an owner (seed survived in the data mount/db).
+                        LogInformation($"n8n '{resource.Name}': owner already set up — seeding skipped.");
+                        return;
+                    }
+
+                    lastStatus = response.StatusCode;
+                    lastBody = await response.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
+                    if (response.StatusCode != HttpStatusCode.NotFound)
+                        break; // real error — retrying won't change it
                 }
                 catch (HttpRequestException) { /* not up yet */ }
                 await Task.Delay(TimeSpan.FromSeconds(2), ct).ConfigureAwait(false);
             }
-            if (!healthy)
-            {
-                LogWarning($"n8n '{resource.Name}': instance did not become healthy — owner seeding skipped.");
-                return;
-            }
 
-            var payload = JsonSerializer.Serialize(new { email, firstName, lastName, password });
-            using var content = new StringContent(payload, Encoding.UTF8, "application/json");
-            var response = await http.PostAsync($"{baseUrl}/rest/owner/setup", content, ct).ConfigureAwait(false);
-
-            if (response.IsSuccessStatusCode)
-            {
-                LogInformation($"n8n '{resource.Name}': owner '{email}' created.");
-            }
-            else if (response.StatusCode == HttpStatusCode.BadRequest)
-            {
-                // Typical cause: instance already has an owner (seed survived in the data mount/db).
-                LogInformation($"n8n '{resource.Name}': owner already set up — seeding skipped.");
-            }
-            else
-            {
-                var body = await response.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
-                LogWarning($"n8n '{resource.Name}': owner setup failed ({(int)response.StatusCode}): {body}");
-            }
+            LogWarning(lastStatus is null
+                ? $"n8n '{resource.Name}': instance did not become reachable — owner seeding skipped."
+                : $"n8n '{resource.Name}': owner setup failed ({(int)lastStatus}): {lastBody}");
         });
 
         LogInformation($"n8n '{resource.Name}': owner '{email}' will be seeded on startup.");

@@ -23,13 +23,16 @@ internal static class N8nLogger
         }
     }
 
+    // Console fallback (not Debug.WriteLine): the AppHost console is where users look —
+    // Debug output is invisible outside an attached debugger, hiding e.g. seeding failures.
+
     /// <summary>Logs an informational message.</summary>
     public static void LogInformation(string message)
     {
         if (_logger is not null)
             _logger.LogInformation("{Message}", message);
         else
-            System.Diagnostics.Debug.WriteLine($"{Prefix} {message}");
+            Console.WriteLine($"{Prefix} {message}");
     }
 
     /// <summary>Logs a warning message.</summary>
@@ -38,7 +41,7 @@ internal static class N8nLogger
         if (_logger is not null)
             _logger.LogWarning("{Message}", message);
         else
-            System.Diagnostics.Debug.WriteLine($"{Prefix} WARNING: {message}");
+            Console.WriteLine($"{Prefix} WARNING: {message}");
     }
 
     /// <summary>Logs an error message.</summary>
@@ -47,6 +50,6 @@ internal static class N8nLogger
         if (_logger is not null)
             _logger.LogError("{Message}", message);
         else
-            System.Diagnostics.Debug.WriteLine($"{Prefix} ERROR: {message}");
+            Console.WriteLine($"{Prefix} ERROR: {message}");
     }
 }
