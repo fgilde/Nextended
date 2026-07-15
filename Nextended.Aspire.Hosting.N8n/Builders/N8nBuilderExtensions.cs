@@ -38,17 +38,23 @@ public static class N8nBuilderExtensions
     /// <summary>
     /// Adds an n8n workflow-automation instance to the application.
     /// By default a dedicated PostgreSQL container is created as the n8n backend.
-    /// Use <c>WithDatabase(...)</c> to attach an existing Aspire PostgreSQL resource or
-    /// <c>WithSqlite()</c> to use the bundled SQLite database instead.
+    /// Pass <paramref name="externalDatabase"/> (or call <c>WithDatabase(...)</c>) to use an existing
+    /// Aspire PostgreSQL resource instead, or <c>WithSqlite()</c> for the bundled SQLite database.
     /// </summary>
     /// <param name="builder">The distributed application builder.</param>
     /// <param name="name">The name of the n8n resource (shown in the Aspire dashboard).</param>
     /// <param name="httpPort">Optional fixed host port for the n8n editor (local development only). Defaults to 5678.</param>
+    /// <param name="externalDatabase">
+    /// Optional existing PostgreSQL server to use as the n8n backend (same pattern as
+    /// <c>AddSupabase(..., externalDatabase: ...)</c>). A logical database named "n8n" is added to it;
+    /// no dedicated PostgreSQL container is created.
+    /// </param>
     /// <returns>A resource builder for further configuration.</returns>
     public static IResourceBuilder<N8nResource> AddN8n(
         this IDistributedApplicationBuilder builder,
         [ResourceName] string name,
-        int? httpPort = null)
+        int? httpPort = null,
+        IResourceBuilder<PostgresServerResource>? externalDatabase = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
@@ -62,15 +68,32 @@ public static class N8nBuilderExtensions
             HostPort = httpPort ?? Defaults.HostPort
         };
 
-        // --- Default PostgreSQL backend ---------------------------------------------------
-        // Created eagerly so the common case "just works". If the caller later supplies an
+        // Deploy safety: never bake the well-known dev encryption key into a publish manifest.
+        // A generated secret parameter (stable per azd environment) is used unless the caller
+        // supplies an explicit key via WithEncryptionKey(...).
+        if (isPublishMode)
+            resource.EncryptionKeyParameter = ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(
+                builder, $"{name}-encryption-key", special: false);
+
+        // --- PostgreSQL backend --------------------------------------------------------------
+        // Default: created eagerly so the common case "just works". If the caller later supplies an
         // external database via WithDatabase(...) or switches to SQLite via WithSqlite(),
         // these auto-created resources are removed again (see N8nDatabaseExtensions).
-        var postgres = builder.AddPostgres($"{name}-pg");
-        var database = postgres.AddDatabase($"{name}-db", Defaults.DatabaseName);
-        resource.PostgresServer = postgres;
+        IResourceBuilder<PostgresServerResource>? postgres = null;
+        IResourceBuilder<PostgresDatabaseResource> database;
+        if (externalDatabase is null)
+        {
+            postgres = builder.AddPostgres($"{name}-pg");
+            database = postgres.AddDatabase($"{name}-db", Defaults.DatabaseName);
+            resource.PostgresServer = postgres;
+            resource.OwnsDatabase = true;
+        }
+        else
+        {
+            database = externalDatabase.AddDatabase($"{name}-db", Defaults.DatabaseName);
+            resource.OwnsDatabase = false;
+        }
         resource.Database = database;
-        resource.OwnsDatabase = true;
 
         // --- n8n main container ------------------------------------------------------------
         var n8nBuilder = builder.AddResource(resource)
@@ -100,7 +123,7 @@ public static class N8nBuilderExtensions
         }
 
         // --- Visual grouping ---------------------------------------------------------------
-        postgres.WithParentRelationship(resource);
+        postgres?.WithParentRelationship(resource);
 
         // --- Azure Container Apps ----------------------------------------------------------
         if (isPublishMode)

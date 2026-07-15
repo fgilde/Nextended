@@ -51,13 +51,19 @@ By default `AddN8n` creates a dedicated PostgreSQL container as the n8n backend.
 
 ```csharp
 var pg = builder.AddPostgres("pg");
-var db = pg.AddDatabase("n8ndb");
 
-var n8n = builder.AddN8n("n8n")
+// Same pattern as AddSupabase(..., externalDatabase: ...): no dedicated container is created,
+// a logical "n8n" database is added to your server.
+var n8n = builder.AddN8n("n8n", externalDatabase: pg);
+
+// or attach it afterwards (works with a database or a server resource):
+var db = pg.AddDatabase("n8ndb");
+var n8n2 = builder.AddN8n("n8n2")
     .WithDatabase(db);          // or: .WithDatabase(pg, "n8ndb")
 ```
 
-The auto-created PostgreSQL container is removed automatically when you supply your own.
+With `WithDatabase(...)` the auto-created PostgreSQL container is removed automatically. Both
+variants deploy like everything else — the manifest references your server resource.
 
 ### Use the bundled SQLite database
 
@@ -114,12 +120,25 @@ var n8n = builder.AddN8n("n8n")
 > The encryption key encrypts stored credentials. If it changes, existing credentials can no
 > longer be decrypted. A stable development default is used when none is set — always set your own.
 
+### Seeding the owner account
+
+Modern n8n shows an interactive "set up owner" screen on first launch. `WithOwner` skips it by
+creating the owner account automatically once the instance is healthy (run mode only) — so login
+and the REST/public API work immediately, e.g. in integration tests:
+
+```csharp
+var n8n = builder.AddN8n("n8n")
+    .WithOwner("admin@example.com", "Passw0rd!");   // min 8 chars, 1 number, 1 capital
+```
+
+Idempotent: when the instance already has an owner (persisted data), seeding is skipped.
+
 ### A note on `WithBasicAuth`
 
 `WithBasicAuth(user, password)` sets the legacy `N8N_BASIC_AUTH_*` variables and only takes effect
 on n8n versions **< 1.0**. The modern default image uses the built-in **owner-account / user
-management** model, which is configured interactively on first launch — those variables are ignored
-there.
+management** model, which is configured interactively on first launch (or seeded via
+`WithOwner`) — those variables are ignored there.
 
 ---
 
@@ -260,6 +279,10 @@ All containers and their configuration are translated 1:1 from the Aspire model 
 resources. The n8n editor is exposed via an external HTTPS ingress; PostgreSQL, Redis and the
 workers stay internal.
 
+In publish mode the insecure development defaults are **never** emitted: when you don't supply your
+own values, the encryption key (`{name}-encryption-key`) and the queue-mode Redis password
+(`{name}-redis-password`) become generated secret parameters — like the PostgreSQL password.
+
 ---
 
 ## Defaults
@@ -269,7 +292,7 @@ workers stay internal.
 | Image | `n8nio/n8n:1.110.1` |
 | Editor / REST port | 5678 |
 | Database | dedicated PostgreSQL container |
-| Encryption key | insecure dev default (override with `WithEncryptionKey`) |
+| Encryption key | insecure dev default locally; generated secret parameter in publish mode (override with `WithEncryptionKey`) |
 | Timezone | UTC |
 | Queue mode | disabled |
 | Diagnostics / telemetry | disabled |

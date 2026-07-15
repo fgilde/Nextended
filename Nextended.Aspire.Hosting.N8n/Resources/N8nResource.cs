@@ -149,4 +149,7 @@ public sealed class N8nResource : ContainerResource, IResourceWithConnectionStri
 
     /// <summary>True once the credentials directory has been bind-mounted into the import container.</summary>
     internal bool CredentialsMountAdded { get; set; }
+
+    /// <summary>True once <c>WithOwner</c> registered its seeding callback (guards double subscription).</summary>
+    internal bool OwnerConfigured { get; set; }
 }

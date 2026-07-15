@@ -1,5 +1,5 @@
 /// <summary>
-/// --- AUTO GENERATED CODE (13.07.2026 11:56:58) ---
+/// --- AUTO GENERATED CODE (15.07.2026 11:25:40) ---
 /// --- ScacCodes ---
 /// </summary>
 

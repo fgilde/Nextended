@@ -40,6 +40,12 @@ public static class N8nQueueExtensions
 
         if (!resource.QueueModeEnabled)
         {
+            // Deploy safety: never bake the well-known dev Redis password into a publish manifest.
+            // Generated secret parameter unless the caller supplied one (param or string).
+            if (app.ExecutionContext.IsPublishMode && resource.RedisPasswordParameter is null && resource.RedisPassword is null)
+                resource.RedisPasswordParameter = ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(
+                    app, $"{resource.Name}-redis-password", special: false);
+
             // Plain (non-TLS) Redis container. Aspire's AddRedis enables TLS with a self-signed
             // certificate, which the n8n/ioredis client cannot consume out of the box.
             // The password is read lazily so WithRedisPassword(...) works in any call order.

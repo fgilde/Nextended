@@ -90,6 +90,7 @@ var n8n = builder.AddN8n("n8n")
     .WithEnvironmentVariable("N8N_BLOCK_ENV_ACCESS_IN_NODE", "false")
     // Seed a tiny smoke-test workflow that hits Ollama through the injected URL
     // (no credentials needed). Optional — delete the workflows folder to skip it.
-    .WithWorkflowsFromDirectory(Path.Combine(builder.AppHostDirectory, "workflows"));
+    .WithWorkflowsFromDirectory(Path.Combine(builder.AppHostDirectory, "workflows"))
+    .WithOwner("fg@g.de", "Test1234!", "Admin");
 
 builder.Build().EnsureDockerRunningIfLocalDebug().Run();
