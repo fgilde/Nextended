@@ -91,6 +91,20 @@ var n8n = builder.AddN8n("n8n")
     // Seed a tiny smoke-test workflow that hits Ollama through the injected URL
     // (no credentials needed). Optional — delete the workflows folder to skip it.
     .WithWorkflowsFromDirectory(Path.Combine(builder.AppHostDirectory, "workflows"))
-    .WithOwner("fg@g.de", "Test1234!", "Admin");
+    .WithOwner("admin@localhost", "Test1234!", "Admin");
+
+
+
+var pg = builder.AddPostgres("pg");
+var db = pg.AddDatabase("havewadb", "havewa");
+
+var dbUrl = ReferenceExpression.Create(
+    $"postgresql://postgres:{pg.Resource.PasswordParameter}@{pg.Resource.PrimaryEndpoint.Property(EndpointProperty.Host)}:{pg.Resource.PrimaryEndpoint.Property(EndpointProperty.Port)}/havewa");
+
+builder.AddGithubRepository("havewa", "https://github.com/fgilde/hausverwaltung")
+    .WithHttpEndpoint(targetPort: 3000)
+    .WithEnvironment("DATABASE_URL", dbUrl)
+    .WaitFor(db);
+
 
 builder.Build().EnsureDockerRunningIfLocalDebug().Run();
