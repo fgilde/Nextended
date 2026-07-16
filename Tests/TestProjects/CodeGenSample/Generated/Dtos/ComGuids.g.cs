@@ -3,8 +3,8 @@ namespace MyGenerated.Code.Test {
 	#region ComGuids
 	public static partial class ComGuids
 	{
-		public const string IdUserLevelDto = "978ed05a-bffa-44e6-ab74-fe9dae6f782e";
-		public const string IdAddressDto = "9f73211d-9d41-4cf5-86a4-8e7b6e4e5b3b";
+		public const string IdAddressDto = "95c75c3b-7991-4d0a-8106-5b95bf127b73";
+		public const string IdUserLevelDto = "bd8bedc5-39a6-48e7-b2cf-24c89f8edbbe";
 	}
 	#endregion ComGuids
 
