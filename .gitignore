@@ -356,3 +356,6 @@ MigrationBackup/
 /Tests/TestProjects/infra/
 /Tests/TestProjects/*/*.module.bicep
 /Tests/TestProjects/*/aspire-manifest.json
+
+# Generated observability configs (written at app start by Nextended.Aspire.Hosting.Grafana)
+**/observability/.generated/

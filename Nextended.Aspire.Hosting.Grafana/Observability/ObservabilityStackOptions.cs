@@ -1,9 +1,13 @@
+using Nextended.Aspire.Hosting.Grafana;
+
 namespace Nextended.Aspire.Hosting.Observability;
 
 /// <summary>
-/// Options for <c>AddObservabilityStack</c>. Designed to be self-contained so the
-/// stack can later be extracted into a reusable NuGet package without depending on
-/// any specific project layout.
+/// Options for <c>AddObservabilityStack</c> — the one-call, batteries-included way
+/// to get the full stack. For piecemeal composition use the fluent
+/// <c>AddGrafana().WithPrometheus()…</c> API from
+/// <see cref="Nextended.Aspire.Hosting.Grafana.GrafanaBuilderExtensions"/>;
+/// this options class drives exactly those building blocks.
 /// </summary>
 public sealed class ObservabilityStackOptions
 {
@@ -19,8 +23,7 @@ public sealed class ObservabilityStackOptions
     /// Folder containing the Grafana dashboard JSON files (one file = one
     /// dashboard, auto-loaded by Grafana's provisioning). When <c>null</c>,
     /// defaults to <c>{ConfigRootPath}/grafana/dashboards</c>. Set explicitly
-    /// if dashboards live outside the config tree — required for the NuGet
-    /// scenario where the consumer wants to point at their own folder.
+    /// if dashboards live outside the config tree.
     /// </summary>
     public string? DashboardsPath { get; set; }
 
@@ -55,35 +58,31 @@ public sealed class ObservabilityStackOptions
 
     // ---- Image versions --------------------------------------------------------
     // Pinning images here gives consumers a single seam to upgrade without touching
-    // the extension code. All values are sane defaults at the time of writing.
+    // the extension code. Defaults are shared with the fluent API.
 
-    public string PrometheusImage { get; set; } = "prom/prometheus";
-    public string PrometheusImageTag { get; set; } = "v2.55.1";
+    public string PrometheusImage { get; set; } = GrafanaStackDefaults.PrometheusImage;
+    public string PrometheusImageTag { get; set; } = GrafanaStackDefaults.PrometheusImageTag;
 
-    public string GrafanaImage { get; set; } = "grafana/grafana";
-    public string GrafanaImageTag { get; set; } = "11.5.0";
+    public string GrafanaImage { get; set; } = GrafanaStackDefaults.GrafanaImage;
+    public string GrafanaImageTag { get; set; } = GrafanaStackDefaults.GrafanaImageTag;
 
-    public string LokiImage { get; set; } = "grafana/loki";
-    public string LokiImageTag { get; set; } = "3.3.0";
+    public string LokiImage { get; set; } = GrafanaStackDefaults.LokiImage;
+    public string LokiImageTag { get; set; } = GrafanaStackDefaults.LokiImageTag;
 
-    public string PromtailImage { get; set; } = "grafana/promtail";
-    public string PromtailImageTag { get; set; } = "3.3.0";
+    public string PromtailImage { get; set; } = GrafanaStackDefaults.PromtailImage;
+    public string PromtailImageTag { get; set; } = GrafanaStackDefaults.PromtailImageTag;
 
-    public string TempoImage { get; set; } = "grafana/tempo";
-    public string TempoImageTag { get; set; } = "2.6.0";
+    public string TempoImage { get; set; } = GrafanaStackDefaults.TempoImage;
+    public string TempoImageTag { get; set; } = GrafanaStackDefaults.TempoImageTag;
 
-    public string OtelCollectorImage { get; set; } = "otel/opentelemetry-collector-contrib";
-    // 0.111.0 is the last release where the binary sat at `/otelcol-contrib`.
-    // Starting with 0.112+, it moved to `/usr/local/bin/otelcol-contrib`, which
-    // breaks docker-startup on some setups with: `exec /otelcol-contrib: no such
-    // file or directory`. Stay on the older binary layout until that settles.
-    public string OtelCollectorImageTag { get; set; } = "0.111.0";
+    public string OtelCollectorImage { get; set; } = GrafanaStackDefaults.OtelCollectorImage;
+    public string OtelCollectorImageTag { get; set; } = GrafanaStackDefaults.OtelCollectorImageTag;
 
-    public string PostgresExporterImage { get; set; } = "quay.io/prometheuscommunity/postgres-exporter";
-    public string PostgresExporterImageTag { get; set; } = "v0.16.0";
+    public string PostgresExporterImage { get; set; } = GrafanaStackDefaults.PostgresExporterImage;
+    public string PostgresExporterImageTag { get; set; } = GrafanaStackDefaults.PostgresExporterImageTag;
 
-    public string CAdvisorImage { get; set; } = "gcr.io/cadvisor/cadvisor";
-    public string CAdvisorImageTag { get; set; } = "v0.49.1";
+    public string CAdvisorImage { get; set; } = GrafanaStackDefaults.CAdvisorImage;
+    public string CAdvisorImageTag { get; set; } = GrafanaStackDefaults.CAdvisorImageTag;
 
     // ---- Grafana auth ----------------------------------------------------------
 
@@ -103,7 +102,7 @@ public sealed class ObservabilityStackOptions
     public string? GrafanaAdminPassword { get; set; }
 
     /// <summary>Grafana retention for Prometheus (<c>--storage.tsdb.retention.time</c>). Default 15 days.</summary>
-    public string PrometheusRetention { get; set; } = "15d";
+    public string PrometheusRetention { get; set; } = GrafanaStackDefaults.PrometheusRetention;
 
     /// <summary>
     /// Grafana folder name under which auto-provisioned dashboards appear in the
@@ -117,7 +116,7 @@ public sealed class ObservabilityStackOptions
     /// Default points at <c>host.docker.internal:18889</c> — Aspire 13's standard
     /// local-dev port. Set to <c>""</c> to disable the mirror exporter.
     /// </summary>
-    public string AspireDashboardOtlpEndpoint { get; set; } = "host.docker.internal:18889";
+    public string AspireDashboardOtlpEndpoint { get; set; } = GrafanaStackDefaults.AspireDashboardOtlpEndpoint;
 }
 
 /// <summary>

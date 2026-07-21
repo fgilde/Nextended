@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="..\Shared.props" />
+
+  <PropertyGroup>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <IsPackable>true</IsPackable>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <PackReadMe>false</PackReadMe>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="README.md" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <Description>Grafana observability stack for .NET Aspire — Grafana, Prometheus, Loki, Tempo, Promtail, cAdvisor, postgres_exporter and OpenTelemetry Collector as composable container resources with auto-provisioned datasources and runtime-generated configs.</Description>
+    <PackageTags>Aspire, extensions, grafana, prometheus, loki, tempo, observability, monitoring, opentelemetry</PackageTags>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Aspire.Hosting.AppHost" Version="$(AspireVersion)" />
+    <!-- Required by the typed WithPostgresDatasource / WithPostgresExporter overloads whose public
+         signatures expose IResourceBuilder<PostgresServerResource>. -->
+    <PackageReference Include="Aspire.Hosting.PostgreSQL" Version="$(AspireVersion)" />
+  </ItemGroup>
+
+</Project>

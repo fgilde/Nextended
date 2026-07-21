@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <Sdk Name="Aspire.AppHost.Sdk" Version="13.4.6" />
+  <Import Project="..\..\..\Version.props" />
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsAspireHost>true</IsAspireHost>
+    <IsPackable>false</IsPackable>
+    <UserSecretsId>nextended-grafana-apphost-7c2e91af</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Aspire.Hosting.AppHost" Version="$(AspireVersion)" />
+    <PackageReference Include="Aspire.Hosting.PostgreSQL" Version="$(AspireVersion)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\Nextended.Aspire.Hosting.Grafana\Nextended.Aspire.Hosting.Grafana.csproj" IsAspireProjectResource="false" />
+  </ItemGroup>
+
+</Project>

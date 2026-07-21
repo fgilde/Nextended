@@ -21,6 +21,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Nextended.Aspire\Nextended.Aspire.csproj" />
+    <ProjectReference Include="..\Nextended.Aspire.Hosting.Grafana\Nextended.Aspire.Hosting.Grafana.csproj" />
     <PackageReference Include="Aspire.Hosting.Azure.AppContainers" Version="$(AspireVersion)" />
     <PackageReference Include="Aspire.Hosting.Azure.Storage" Version="$(AspireVersion)" />
     <PackageReference Include="Aspire.Hosting.Azure.Network" Version="$(AspireVersion)" />
