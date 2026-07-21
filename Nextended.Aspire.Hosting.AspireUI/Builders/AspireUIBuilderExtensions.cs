@@ -34,12 +34,18 @@ public static class AspireUIBuilderExtensions
         var urls = "http://+:" + AspireUIResource.DefaultTargetPort;
         return builder.AddResource(new AspireUIResource(name))
             .WithImage(image ?? AspireUIResource.DefaultImage, tag ?? AspireUIResource.DefaultTag)
+            // Default tag is a rolling "latest" — always re-pull so a stale local image doesn't pin an old build.
+            .WithImagePullPolicy(ImagePullPolicy.Always)
             .WithHttpEndpoint(port: port, targetPort: AspireUIResource.DefaultTargetPort, name: AspireUIResource.HttpEndpointName)
             // The container listens on 8080; keep its data on /data (matches the env below).
             .WithEnvironment("ASPNETCORE_URLS", urls)
             .WithEnvironment("DB_PATH", "/data/aspireui.db")
             .WithEnvironment("WORKSPACE_DIR", "/data/workspace")
-            .WithVolume("aspireui-data", "/data")
+            // Cookies ignore the port, so multiple AspireUI instances on localhost would share a session
+            // cookie and log each other out. A per-instance cookie name keeps them independent.
+            .WithEnvironment("ASPIREUI_COOKIE_NAME", "aspireui-" + name)
+            // Per-instance named volume so different AspireUI resources don't share stacks/users/settings.
+            .WithVolume($"aspireui-data-{name}", "/data")
             // AspireUI shells `dotnet run` on generated AppHosts, which start their own containers —
             // it needs the host Docker daemon. (Linux hosts; on Docker Desktop the socket path holds.)
             .WithBindMount("/var/run/docker.sock", "/var/run/docker.sock");

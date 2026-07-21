@@ -26,7 +26,20 @@ public class AspireUIExtensionsTests
 
         var mounts = res.Annotations.OfType<ContainerMountAnnotation>().ToList();
         Assert.Contains(mounts, m => (m.Source ?? "").Contains("docker.sock"));       // host docker socket
-        Assert.Contains(mounts, m => m.Target == "/data");                            // data volume
+        Assert.Contains(mounts, m => m.Target == "/data" && (m.Source ?? "").Contains("aspireui-data-aspireui")); // per-instance data volume
+    }
+
+    [Fact]
+    public void Volume_IsPerInstance_SoResourcesDontShareData()
+    {
+        var b = DistributedApplication.CreateBuilder();
+        var a = b.AddAspireUI("first").Resource;
+        var c = b.AddAspireUI("second").Resource;
+        string vol(IResource r) =>
+            r.Annotations.OfType<ContainerMountAnnotation>().First(m => m.Target == "/data").Source ?? "";
+        Assert.NotEqual(vol(a), vol(c));
+        Assert.Contains("first", vol(a));
+        Assert.Contains("second", vol(c));
     }
 
     [Fact]
