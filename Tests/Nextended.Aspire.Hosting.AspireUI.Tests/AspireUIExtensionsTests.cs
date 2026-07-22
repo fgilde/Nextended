@@ -59,6 +59,23 @@ public class AspireUIExtensionsTests
     }
 
     [Fact]
+    public void WithAi_String_SetsEnv()
+    {
+        var res = Add().WithAi("http://ollama:11434/v1", "llama3.2", "sk-x").Resource;
+        var env = res.Annotations.OfType<EnvironmentCallbackAnnotation>();
+        Assert.NotEmpty(env); // ASPIREUI_AI_BASE_URL/MODEL/API_KEY set via WithEnvironment
+    }
+
+    [Fact]
+    public void WithAi_Backend_Compiles()
+    {
+        var b = DistributedApplication.CreateBuilder();
+        var ollama = b.AddContainer("ollama", "ollama/ollama").WithHttpEndpoint(targetPort: 11434, name: "http");
+        var ui = b.AddAspireUI().WithAi(ollama, "llama3.2");
+        Assert.NotNull(ui.Resource);
+    }
+
+    [Fact]
     public void CustomNameAndImage_Honored()
     {
         var res = DistributedApplication.CreateBuilder().AddAspireUI("ui", image: "myrepo/aspireui", tag: "v1").Resource;

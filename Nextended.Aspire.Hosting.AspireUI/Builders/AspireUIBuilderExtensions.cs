@@ -109,4 +109,40 @@ public static class AspireUIBuilderExtensions
         ArgumentException.ThrowIfNullOrWhiteSpace(hostPath);
         return builder.WithBindMount(hostPath, containerPath ?? hostPath);
     }
+
+    /// <summary>
+    /// Configures AspireUI's built-in AI assistant to use an OpenAI-compatible endpoint (base URL +
+    /// model, optional key). Seeded into AspireUI's settings on first run (via the ASPIREUI_AI_* env).
+    /// </summary>
+    public static IResourceBuilder<AspireUIResource> WithAi(
+        this IResourceBuilder<AspireUIResource> builder, string baseUrl, string model, string? apiKey = null)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(baseUrl);
+        ArgumentException.ThrowIfNullOrWhiteSpace(model);
+        builder.WithEnvironment("ASPIREUI_AI_BASE_URL", baseUrl)
+               .WithEnvironment("ASPIREUI_AI_MODEL", model);
+        if (!string.IsNullOrEmpty(apiKey)) builder.WithEnvironment("ASPIREUI_AI_API_KEY", apiKey);
+        return builder;
+    }
+
+    /// <summary>
+    /// Points AspireUI's assistant at an OpenAI-compatible backend resource in the same stack
+    /// (e.g. Ollama or LocalAI). The base URL is derived from the backend's HTTP endpoint +
+    /// <paramref name="apiPath"/> (default <c>/v1</c>). AspireUI waits for the backend to be ready.
+    /// </summary>
+    public static IResourceBuilder<AspireUIResource> WithAi<T>(
+        this IResourceBuilder<AspireUIResource> builder, IResourceBuilder<T> backend, string model,
+        string endpointName = "http", string? apiKey = null)
+        where T : IResourceWithEndpoints
+    {
+        ArgumentNullException.ThrowIfNull(backend);
+        ArgumentException.ThrowIfNullOrWhiteSpace(model);
+        var ep = backend.GetEndpoint(endpointName);
+        // "/v1" is a literal part of the interpolated ReferenceExpression (the handler only accepts
+        // value-providers like the endpoint for interpolated holes, not arbitrary strings).
+        builder.WithEnvironment("ASPIREUI_AI_BASE_URL", ReferenceExpression.Create($"{ep}/v1"))
+               .WithEnvironment("ASPIREUI_AI_MODEL", model);
+        if (!string.IsNullOrEmpty(apiKey)) builder.WithEnvironment("ASPIREUI_AI_API_KEY", apiKey);
+        return builder;
+    }
 }
