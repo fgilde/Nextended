@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="..\Shared.props" />
+
+  <PropertyGroup>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <IsPackable>true</IsPackable>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <PackReadMe>false</PackReadMe>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="README.md" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <Description>Run PHP endpoints inside your .NET Aspire stack. AddPhp() serves a folder (docroot) or a single .php file (router script) via PHP's built-in web server in the official php:cli container, with php.ini settings as fluent options — so your .NET services can call PHP scripts like any other referenced resource.</Description>
+    <PackageTags>Aspire, extensions, php, hosting, container, endpoints, scripting</PackageTags>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Aspire.Hosting.AppHost" Version="$(AspireVersion)" />
+  </ItemGroup>
+
+</Project>
