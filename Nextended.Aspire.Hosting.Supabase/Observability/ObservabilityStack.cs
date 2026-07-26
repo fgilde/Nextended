@@ -15,6 +15,15 @@ namespace Nextended.Aspire.Hosting.Observability;
 /// </summary>
 public static class ObservabilityStack
 {
+
+    public static IResourceBuilder<SupabaseStackResource> WithObservability(
+        this IResourceBuilder<SupabaseStackResource> supabase,
+        Action<ObservabilityStackOptions>? configure = null)
+    {
+        supabase.ApplicationBuilder.AddObservabilityStack(supabase, configure);
+        return supabase;
+    }
+
     /// <summary>
     /// Convenience overload — derives Postgres connection details from the
     /// supplied Supabase stack and lets the caller tweak everything else.
