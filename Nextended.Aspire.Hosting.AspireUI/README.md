@@ -1,5 +1,7 @@
 # Nextended.Aspire.Hosting.AspireUI
 
+**[▶ See demo app](https://github.com/fgilde/Nextended/tree/main/Tests/TestProjects/AspireUI.AppHost)** — runnable sample AppHost for this integration.
+
 Run [AspireUI](https://github.com/fgilde/AspireUI) — the visual .NET Aspire AppHost builder — as a
 resource inside your own Aspire stack.
 

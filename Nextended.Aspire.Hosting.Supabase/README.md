@@ -1,5 +1,7 @@
 ﻿# Nextended.Aspire.Hosting.Supabase provides Supabase for .NET Aspire
 
+**[▶ See demo app](https://github.com/fgilde/Nextended/tree/main/Tests/TestProjects/Supabase.AppHost)** — runnable sample AppHost for this integration.
+
 A complete Supabase stack integration for .NET Aspire, providing local development with full Supabase functionality including PostgreSQL, Auth (GoTrue), REST API (PostgREST), Storage, Kong API Gateway, Studio Dashboard, and Edge Functions.
 
 ## Table of Contents

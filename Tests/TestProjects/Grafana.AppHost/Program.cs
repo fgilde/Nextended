@@ -1,8 +1,6 @@
 using Nextended.Aspire.Hosting.Grafana;
 
-// Test/demo AppHost for the Nextended.Aspire.Hosting.Grafana integration.
-// Run with `dotnet run` (Docker required). Grafana UI: anonymous admin, all
-// datasources (Prometheus, Loki, Tempo, Postgres) pre-provisioned.
+// Test/demo AppHost for the Nextended.Aspire.Hosting.Grafana
 var builder = DistributedApplication.CreateBuilder(args);
 
 var pg = builder.AddPostgres("pg");

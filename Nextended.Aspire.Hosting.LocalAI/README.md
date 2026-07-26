@@ -1,5 +1,7 @@
 # Nextended.Aspire.Hosting.LocalAI
 
+**[▶ See demo app](https://github.com/fgilde/Nextended/tree/main/Tests/TestProjects/AiStack.AppHost)** — runnable sample AppHost for this integration.
+
 Self-hosted, **OpenAI-compatible multimodal AI** for .NET Aspire — the self-hosted counterpart
 to `AddOllama` for everything beyond text. Runs [LocalAI](https://github.com/mudler/LocalAI) as a
 single container resource that serves **image generation, text-to-speech, speech-to-text, video

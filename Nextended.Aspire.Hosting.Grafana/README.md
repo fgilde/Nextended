@@ -1,5 +1,7 @@
 # Nextended.Aspire.Hosting.Grafana
 
+**[▶ See demo app](https://github.com/fgilde/Nextended/tree/main/Tests/TestProjects/Grafana.AppHost)** — runnable sample AppHost for this integration.
+
 Grafana observability stack for .NET Aspire — Grafana, Prometheus, Loki, Tempo, Promtail, cAdvisor, postgres_exporter and OpenTelemetry Collector as composable container resources. Datasources are auto-provisioned, all YAML configs are generated at application start from the actual resource names — no hardcoded config files, and the fluent calls work in any order.
 
 ## Fluent API

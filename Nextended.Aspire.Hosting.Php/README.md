@@ -1,5 +1,7 @@
 # Nextended.Aspire.Hosting.Php
 
+**[▶ See demo app](https://github.com/fgilde/Nextended/tree/main/Tests/TestProjects/Php.AppHost)** — runnable sample AppHost for this integration (PHP + MySQL/phpMyAdmin + Mailpit + .NET web form).
+
 Run PHP endpoints inside your .NET Aspire stack — a folder or a single `.php` file, served by
 PHP's built-in web server in the official `php:cli` container — and call them from your .NET
 services like any other referenced resource.

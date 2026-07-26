@@ -1,17 +1,10 @@
 using Nextended.Aspire.Hosting.Php;
 
-// Test/demo AppHost for the Nextended.Aspire.Hosting.Php integration.
-// Run with `dotnet run` (Docker required). Resources:
-//   mysql + phpmyadmin — MySQL server with phpMyAdmin UI (fixed port so PHP can link to it)
-//   mailpit            — dev SMTP sink with web UI (open its http endpoint to see received mail)
-//   php                — ./www served by PHP's built-in server; index.php is a small dashboard
-//                        showing the live MySQL connection; send-mail.php delivers via mailpit
-//   webdemo            — .NET app with a form that posts to send-mail.php and shows PHP's response
+// Test/demo AppHost for the Nextended.Aspire.Hosting.Php
 var builder = DistributedApplication.CreateBuilder(args);
 
 const int PhpMyAdminPort = 8081;
-// Precomputed: an interpolated string here would bind to the ReferenceExpression
-// WithEnvironment overload, which can't format an int.
+
 var phpMyAdminUrl = "http://localhost:" + PhpMyAdminPort;
 
 var mysqlPassword = builder.AddParameter("mysql-password", "demo-password-123", secret: true);

@@ -1,5 +1,7 @@
 # Nextended.Aspire.Hosting.N8n provides n8n for .NET Aspire
 
+**[▶ See demo app](https://github.com/fgilde/Nextended/tree/main/Tests/TestProjects/N8n.AppHost)** — runnable sample AppHost for this integration.
+
 A first-class [.NET Aspire](https://learn.microsoft.com/dotnet/aspire/) integration for
 [n8n](https://n8n.io) — the fair-code workflow-automation platform. One `AddN8n("n8n")` call
 gives you a fully wired n8n instance with a PostgreSQL backend, sensible self-hosting defaults,
