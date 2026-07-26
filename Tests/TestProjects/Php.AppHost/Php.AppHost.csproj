@@ -15,10 +15,12 @@
 
   <ItemGroup>
     <PackageReference Include="Aspire.Hosting.AppHost" Version="$(AspireVersion)" />
+    <PackageReference Include="Aspire.Hosting.MySql" Version="$(AspireVersion)" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\..\Nextended.Aspire.Hosting.Php\Nextended.Aspire.Hosting.Php.csproj" IsAspireProjectResource="false" />
+    <ProjectReference Include="..\Php.WebDemo\Php.WebDemo.csproj" />
   </ItemGroup>
 
 </Project>

@@ -35,6 +35,12 @@ public sealed class PhpResource(string name) : ContainerResource(name), IResourc
     /// </summary>
     public string? RouterScript { get; internal set; }
 
+    /// <summary>Resolved host path (folder or file) that is mounted into the container.</summary>
+    public string? SourcePath { get; internal set; }
+
     /// <summary>php.ini directives applied as <c>-d key=value</c> (see <c>WithPhpIni</c>).</summary>
     public IDictionary<string, string> IniSettings { get; } = new Dictionary<string, string>();
+
+    /// <summary>PHP extensions installed at container start (see <c>WithPhpExtensions</c>).</summary>
+    public IList<string> Extensions { get; } = [];
 }

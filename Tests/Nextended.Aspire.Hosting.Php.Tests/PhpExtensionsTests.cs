@@ -104,9 +104,113 @@ public class PhpExtensionsTests
     }
 
     [Fact]
-    public void WorkerEnv_IsSet_SoParallelRequestsDontDeadlock()
+    public async Task WithPhpIniConfiguration_MapsTypedProperties()
     {
-        var res = AddFolder().Resource;
-        Assert.NotEmpty(res.Annotations.OfType<EnvironmentCallbackAnnotation>()); // PHP_CLI_SERVER_WORKERS
+        var res = AddFolder().WithPhpIniConfiguration(a =>
+        {
+            a.DisplayErrors = true;
+            a.MemoryLimit = "256M";
+            a.MaxExecutionTime = 30;
+            a.DateTimezone = "Europe/Berlin";
+        }).Resource;
+
+        Assert.Equal("1", res.IniSettings["display_errors"]);      // convention + bool -> 1/0
+        Assert.Equal("256M", res.IniSettings["memory_limit"]);
+        Assert.Equal("30", res.IniSettings["max_execution_time"]);
+        Assert.Equal("Europe/Berlin", res.IniSettings["date.timezone"]); // via [PhpIniKey]
+        Assert.Equal(4, res.IniSettings.Count);                    // untouched (null) properties not emitted
+
+        var args = await ArgsOf(res);
+        Assert.Contains("display_errors=1", args);
+    }
+
+    private sealed class CustomIni : PhpIniConfiguration
+    {
+        [PhpIniKey("opcache.enable")]
+        public bool? OpcacheEnable { get; set; }
+
+        public string? AutoPrependFile { get; set; }
+    }
+
+    [Fact]
+    public void WithPhpIniConfiguration_CustomSubclass_MapsOwnAndInheritedProperties()
+    {
+        var res = AddFolder().WithPhpIniConfiguration<CustomIni>(a =>
+        {
+            a.OpcacheEnable = true;
+            a.AutoPrependFile = "/app/bootstrap.php";
+            a.DisplayErrors = false;
+        }).Resource;
+
+        Assert.Equal("1", res.IniSettings["opcache.enable"]);
+        Assert.Equal("/app/bootstrap.php", res.IniSettings["auto_prepend_file"]);
+        Assert.Equal("0", res.IniSettings["display_errors"]);
+    }
+
+    /// <summary>Runs the resource's env callbacks the way Aspire would at start.</summary>
+    private static async Task<Dictionary<string, object>> EnvOf(IResource res)
+    {
+        var ctx = new EnvironmentCallbackContext(new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run));
+        foreach (var a in res.Annotations.OfType<EnvironmentCallbackAnnotation>())
+            await a.Callback(ctx);
+        return new Dictionary<string, object>(ctx.EnvironmentVariables);
+    }
+
+    [Fact]
+    public async Task WorkerEnv_DefaultsTo8_WithWorkersOverrides()
+    {
+        var env = await EnvOf(AddFolder().Resource);
+        Assert.Equal("8", env["PHP_CLI_SERVER_WORKERS"]?.ToString());
+
+        env = await EnvOf(AddFolder().WithWorkers(3).Resource);
+        Assert.Equal("3", env["PHP_CLI_SERVER_WORKERS"]?.ToString());
+    }
+
+    [Fact]
+    public void WithComposer_AddsInstallContainer_AndPhpWaitsForIt()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+        var php = builder.AddPhp("php", "www").WithComposer();
+
+        var composer = Assert.IsType<ContainerResource>(Assert.Single(builder.Resources, r => r.Name == "php-composer"));
+
+        var img = Assert.Single(composer.Annotations.OfType<ContainerImageAnnotation>());
+        Assert.Equal("composer", img.Image);
+        Assert.Equal("2", img.Tag);
+
+        var mounts = composer.Annotations.OfType<ContainerMountAnnotation>().ToList();
+        Assert.Contains(mounts, m => m.Target == "/app" && (m.Source ?? "").EndsWith("www")); // same source as php
+        Assert.Contains(mounts, m => m.Target == "/tmp/cache");                               // composer cache volume
+
+        Assert.NotEmpty(php.Resource.Annotations.OfType<WaitAnnotation>()); // php starts after composer finished
+    }
+
+    [Fact]
+    public async Task WithPhpExtensions_WrapsCommandWithExtensionInstall()
+    {
+        var res = AddFolder()
+            .WithPhpExtensions("mysqli", "pdo_mysql")
+            .WithPhpExtensions("mysqli") // duplicate ignored
+            .WithPhpIni("memory_limit", "256M")
+            .Resource;
+
+        Assert.Equal(2, res.Extensions.Count);
+
+        var args = await ArgsOf(res);
+        Assert.Equal("sh", args[0]);
+        Assert.Equal("-c", args[1]);
+        var cmd = args[2];
+        Assert.Contains("docker-php-ext-install", cmd);
+        Assert.Contains("'mysqli' 'pdo_mysql'", cmd);
+        Assert.Contains("&& exec php", cmd);
+        Assert.Contains("'memory_limit=256M'", cmd);
+        Assert.Contains("'-t' '/app'", cmd);
+    }
+
+    [Fact]
+    public void WithComposer_SingleFileMode_Throws()
+    {
+        var php = DistributedApplication.CreateBuilder().AddPhp("mailer", "www/send-mail.php");
+        Assert.Throws<InvalidOperationException>(() => php.WithComposer());
     }
 }
