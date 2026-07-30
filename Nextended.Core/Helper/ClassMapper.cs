@@ -724,18 +724,19 @@ namespace Nextended.Core.Helper
                 string[] propertyNames = propertyName.Split(new[] { '.' });
                 if (propertyNames.Count() > 1)
                 {
-                    object childItem = GetProperty(propertyNames[0], input).GetValue(input, null);
+                    var childProperty = GetReadableProperty(propertyNames[0], input);
+                    object childItem = childProperty?.GetValue(input, null);
                     if (childItem != null)
                     {
                         return GetPropertyOrFieldValue(propertyName.Substring(propertyName.IndexOf(".", StringComparison.Ordinal) + 1), childItem);
                     }
-                    object childItemField = GetField(propertyNames[0], input).GetValue(input);
+                    object childItemField = GetField(propertyNames[0], input)?.GetValue(input);
                     if (childItemField != null)
                         return GetPropertyOrFieldValue(propertyName.Substring(propertyName.IndexOf(".", StringComparison.Ordinal) + 1), childItemField);
                 }
                 else
                 {
-                    var p = GetProperty(propertyNames[0], input);
+                    var p = GetReadableProperty(propertyNames[0], input);
                     if (p != null)
                         return p.GetValue(input, null);
                     var f = GetField(propertyNames[0], input);
@@ -750,6 +751,19 @@ namespace Nextended.Core.Helper
                     return null;
                 throw;
             }
+		}
+
+		/// <summary>
+		/// Gets the property, but only when its value can actually be read.
+		/// A property without a getter throws on GetValue, and that happens more often than the
+		/// write only property it looks like: a trimmed application keeps the property metadata
+		/// while dropping accessors nobody calls statically, so reflection sees a property whose
+		/// getter is gone. Callers fall back to the field of the same name instead.
+		/// </summary>
+		private PropertyInfo GetReadableProperty(string propertyName, object item)
+		{
+			return item?.GetType().GetPropertiesRecursive(GetBindingFlags())
+				.FirstOrDefault(info => info.Name == propertyName && info.CanRead);
 		}
 
 		/// <summary>

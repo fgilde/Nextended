@@ -26,6 +26,24 @@ namespace Nextended.Core.Tests
 
     }
 
+    class WriteOnlySource
+    {
+        private string _secret;
+
+        public string Name { get; set; }
+
+        public string Secret
+        {
+            set => _secret = value;
+        }
+    }
+
+    class WriteOnlyTarget
+    {
+        public string Name { get; set; }
+        public string Secret { get; set; }
+    }
+
     [TestClass]
     public class ClassMappingTests
     {
@@ -65,6 +83,20 @@ namespace Nextended.Core.Tests
             var two = c.MapTo<TwoClass>();
             Assert.AreEqual(c.Name, two.Name);
             Assert.AreEqual(213.23m, two.Amount.Amount);
+        }
+
+        [TestMethod]
+        public void MapsAroundPropertiesThatCannotBeRead()
+        {
+            // stands in for a trimmed application: there the property metadata survives while the
+            // getter nobody calls statically is dropped, and reflection then sees exactly this
+            var source = new WriteOnlySource { Name = "Hans P" };
+            source.Secret = "never readable";
+
+            var target = source.MapTo<WriteOnlyTarget>();
+
+            Assert.AreEqual("Hans P", target.Name);
+            Assert.IsNull(target.Secret);
         }
 
         [TestMethod]
