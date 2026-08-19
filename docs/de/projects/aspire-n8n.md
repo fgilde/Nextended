@@ -3,6 +3,8 @@ title: Nextended.Aspire.Hosting.N8n
 ---
 # Nextended.Aspire.Hosting.N8n
 
+📚 **[Vollständige API-Referenz](/de/projects/aspire-n8n-api)** — jeder öffentliche Typ und Member, erzeugt aus der kompilierten Assembly.
+
 🇬🇧 [This page in English](/projects/aspire-n8n)
 
 Die Workflow-Automatisierung n8n als Aspire-Ressource — mit Postgres-Persistenz, Workflow-Import und typisiertem Client zum Auslösen von Workflows aus .NET.

@@ -3,6 +3,8 @@ title: Nextended.Aspire.Hosting.Php
 ---
 # Nextended.Aspire.Hosting.Php
 
+📚 **[Full API reference](/projects/aspire-php-api)** — every public type and member, generated from the compiled assembly.
+
 Run PHP endpoints inside your Aspire stack — a docroot folder or a single router script served by PHP's built-in web server, with php.ini settings as fluent options.
 [![NuGet](https://img.shields.io/nuget/v/Nextended.Aspire.Hosting.Php.svg)](https://www.nuget.org/packages/Nextended.Aspire.Hosting.Php/)
 

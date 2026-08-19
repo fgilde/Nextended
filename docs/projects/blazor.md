@@ -3,6 +3,8 @@ title: Nextended.Blazor
 ---
 # Nextended.Blazor
 
+📚 **[Full API reference](/projects/blazor-api)** — every public type and member, generated from the compiled assembly.
+
 🇩🇪 [Diese Seite auf Deutsch](/de/projects/blazor)
 
 Blazor-specific helpers, extensions, and utilities for building modern web applications.

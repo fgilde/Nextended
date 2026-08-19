@@ -3,6 +3,8 @@ title: Nextended.Aspire.Hosting.WebDataStudio
 ---
 # Nextended.Aspire.Hosting.WebDataStudio
 
+📚 **[Full API reference](/projects/aspire-webdatastudio-api)** — every public type and member, generated from the compiled assembly.
+
 🇩🇪 [Diese Seite auf Deutsch](/de/projects/aspire-webdatastudio)
 
 A [.NET Aspire](https://learn.microsoft.com/dotnet/aspire/) integration for

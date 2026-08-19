@@ -3,6 +3,8 @@ title: Nextended.Aspire.Hosting.AspireUI
 ---
 # Nextended.Aspire.Hosting.AspireUI
 
+📚 **[Full API reference](/projects/aspire-aspireui-api)** — every public type and member, generated from the compiled assembly.
+
 AspireUI — the visual AppHost builder — as a resource inside your own Aspire stack, with an optional pre-seeded admin user and a starter stack built from your project paths.
 [![NuGet](https://img.shields.io/nuget/v/Nextended.Aspire.Hosting.AspireUI.svg)](https://www.nuget.org/packages/Nextended.Aspire.Hosting.AspireUI/)
 

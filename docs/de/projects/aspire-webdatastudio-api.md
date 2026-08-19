@@ -1,0 +1,116 @@
+---
+title: Nextended.Aspire.Hosting.WebDataStudio — API-Referenz
+---
+
+# Nextended.Aspire.Hosting.WebDataStudio — API-Referenz
+
+🇬🇧 [This page in English](/projects/aspire-webdatastudio-api)
+
+Die vollständige öffentliche Oberfläche von `Nextended.Aspire.Hosting.WebDataStudio`, erzeugt aus der gebauten Assembly.
+
+::: info Generiert
+Diese Seite wird von `tools/ApiRef` aus der kompilierten Assembly erzeugt — sie zeigt auch Member ohne XML-Kommentar und kann daher nicht vom Code abweichen. Nicht von Hand bearbeiten.
+:::
+
+↩ [Zurück zur Paketseite](/de/projects/aspire-webdatastudio)
+
+## Nextended.Aspire.Hosting.WebDataStudio
+
+### `WebDataStudioAttachExtensions`
+
+`static class`
+
+Attaches WebDataStudio to a database from the database's own side, the way Aspire's `WithPgAdmin` and `WithRedisInsight` do it: the studio is created once and every further call attaches another connection to the same one.
+
+### `WebDataStudioBuilderExtensions`
+
+`static class`
+
+Fluent API for running WebDataStudio inside your Aspire stack. Either add it yourself with `AddWebDataStudio` and attach databases with `WithReference`, or start from a database resource and call `WithWebDataStudio``1`.
+
+### `WebDataStudioEngine`
+
+`enum`
+
+The database engines WebDataStudio can talk to. The value tells the studio which driver to open a connection string with, and is passed as `WDS_CONN_<NAME>_ENGINE`.
+
+**Werte**
+
+- `ClickHouse`
+  <br>ClickHouse.
+- `DuckDb`
+  <br>DuckDB, backed by a file the container can reach.
+- `MongoDb`
+  <br>MongoDB.
+- `MySql`
+  <br>MySQL and MariaDB.
+- `Oracle`
+  <br>Oracle Database.
+- `PostgreSql`
+  <br>PostgreSQL (and anything speaking its wire protocol).
+- `Redis`
+  <br>Redis and Valkey.
+- `SqlServer`
+  <br>Microsoft SQL Server and Azure SQL.
+- `Sqlite`
+  <br>SQLite, backed by a file the container can reach.
+- `value__`
+
+### `WebDataStudioEngineExtensions`
+
+`static class`
+
+Maps `WebDataStudioEngine` to the identifiers WebDataStudio expects.
+
+**Extension Methods**
+
+- `ToEngineId(this WebDataStudioEngine engine) : string`
+  <br>The engine id as WebDataStudio spells it in `WDS_CONN_<NAME>_ENGINE`.
+
+### `WebDataStudioResource`
+
+`class`
+
+WebDataStudio — a browser-based database studio — running as a container resource. Exposes an HTTP endpoint for the studio, and carries the connections that were attached to it so several databases can share one instance.
+
+**Konstruktoren**
+
+- `WebDataStudioResource(string name)`
+  <br>WebDataStudio — a browser-based database studio — running as a container resource. Exposes an HTTP endpoint for the studio, and carries the connections that were attached to it so several databases can share one instance.
+
+**Eigenschaften**
+
+- `ConnectionNames : IReadOnlyList<string> { get; }`
+  <br>Names of the connections attached to this studio, in the order they were added. These are the labels the studio shows in its explorer, and the suffixes of its `WDS_CONN_*` variables.
+- `Title : string { get; }`
+  <br>The name the studio shows in its header and browser tab. Defaults to the resource name, so three studios in one stack are told apart at a glance; `WithTitle` overrides it and `WithTitle(null)` leaves the studio unnamed.
+- `Username : string { get; }`
+  <br>Login name, when one was configured with `WithLogin`. Null means anonymous access.
+
+**Felder**
+
+- `DefaultImage : string`
+  <br>The published WebDataStudio image.
+- `DefaultResourceName : string`
+  <br>Resource name used when nothing else is asked for, and the key for sharing one studio.
+- `DefaultTag : string`
+  <br>Default image tag.
+- `DefaultTargetPort : int`
+  <br>Port the studio listens on inside the container.
+- `HttpEndpointName : string`
+  <br>Name of the HTTP endpoint serving the studio.
+
+## Projects
+
+### `Nextended_Aspire_Hosting_WebDataStudio`
+
+`class`
+
+Metadata for the Aspire AppHost project.
+
+**Eigenschaften**
+
+- `ProjectPath : string { get; }`
+  <br>The path to the Aspire Host project.
+
+↩ [Zurück zur Paketseite](/de/projects/aspire-webdatastudio)

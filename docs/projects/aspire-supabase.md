@@ -3,6 +3,8 @@ title: Nextended.Aspire.Hosting.Supabase
 ---
 # Nextended.Aspire.Hosting.Supabase
 
+📚 **[Full API reference](/projects/aspire-supabase-api)** — every public type and member, generated from the compiled assembly.
+
 🇩🇪 [Diese Seite auf Deutsch](/de/projects/aspire-supabase)
 
 Complete Supabase stack integration for .NET Aspire — PostgreSQL, GoTrue auth, PostgREST, Storage, Kong gateway, Studio dashboard, and Edge Functions, all wired up with sensible defaults for local development and Azure Container Apps deployment.

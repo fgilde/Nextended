@@ -1,14 +1,20 @@
 ---
 title: Nextended.Aspire.Hosting.AspireUI
+description: AspireUI — der visuelle AppHost-Builder — als Ressource im eigenen Aspire-Stack, mit optional vorangelegtem Admin-Benutzer und Starter-Stack.
 ---
+
 # Nextended.Aspire.Hosting.AspireUI
+
+📚 **[Vollständige API-Referenz](/de/projects/aspire-aspireui-api)** — jeder öffentliche Typ und Member, erzeugt aus der kompilierten Assembly.
 
 🇬🇧 [This page in English](/projects/aspire-aspireui)
 
-AspireUI — der visuelle AppHost-Builder — als Ressource im eigenen Aspire-Stack, mit optional vorangelegtem Admin-Benutzer und einem Starter-Stack aus Ihren Projektpfaden.
+[AspireUI](https://github.com/fgilde/AspireUI) — der visuelle AppHost-Builder für .NET Aspire —
+als Ressource im eigenen Aspire-Stack.
+
 [![NuGet](https://img.shields.io/nuget/v/Nextended.Aspire.Hosting.AspireUI.svg)](https://www.nuget.org/packages/Nextended.Aspire.Hosting.AspireUI/)
 
----
+**[▶ Beispielprojekt ansehen](https://github.com/fgilde/Nextended/tree/main/Tests/TestProjects/AspireUI.AppHost)** — lauffähiger AppHost für diese Integration.
 
 ## Installation
 
@@ -16,23 +22,54 @@ AspireUI — der visuelle AppHost-Builder — als Ressource im eigenen Aspire-St
 dotnet add package Nextended.Aspire.Hosting.AspireUI
 ```
 
-## Was das Paket macht
+Ins **AppHost**-Projekt.
 
-AspireUI — der visuelle AppHost-Builder — als Ressource im eigenen Aspire-Stack, mit optional vorangelegtem Admin-Benutzer und einem Starter-Stack aus Ihren Projektpfaden.
+## Schnellstart
 
-Die **vollständige Referenz** — alle Typen, Builder, Optionen und ausführlich kommentierte
-Codebeispiele — steht auf der englischen Seite:
+```csharp
+var builder = DistributedApplication.CreateBuilder(args);
 
-[📖 Nextended.Aspire.Hosting.AspireUI — vollständige Referenz (englisch)](/projects/aspire-aspireui)
-Ebenso ausführlich und ebenfalls englisch ist das Paket-README:
+builder.AddAspireUI()
+    .WithAdminUser("admin", builder.AddParameter("aspireui-password", secret: true))
+    .WithSeedStack("Mein Stack", "../MyApi", "../MyWorker");
 
-[📄 Nextended.Aspire.Hosting.AspireUI/README.md](https://github.com/fgilde/Nextended/blob/main/Nextended.Aspire.Hosting.AspireUI/README.md)
+builder.Build().Run();
+```
+
+Der Container `ghcr.io/fgilde/aspireui` bekommt einen HTTP-Endpunkt und erscheint im
+Aspire-Dashboard wie jede andere Ressource.
+
+## API
+
+| Aufruf | Wirkung |
+| --- | --- |
+| `AddAspireUI(name = "aspireui", port?, image?, tag?)` | Fügt den AspireUI-Container hinzu. |
+| `.WithAdminUser(username, password)` | Legt den Administrator beim ersten Start an (idempotent, Passwort wird gehasht gespeichert). Nimmt auch eine Aspire-`ParameterResource` als Passwort. |
+| `.WithSeedStack(name, params projectPaths)` | Legt einen Starter-Stack mit je einem `AddProject`-Knoten pro Pfad an. |
+| `.WithSourceMount(hostPath, containerPath?)` | Bindet Quellcode in den Container ein, damit ein angelegter Stack dort auch laufen kann. |
+
+## Sicherheit
+
+::: warning Docker-Socket
+Der eingebundene Docker-Socket gibt dem Container Kontrolle über den Docker-Daemon des Hosts.
+Betreiben Sie das nur auf einem vertrauenswürdigen Rechner — in der Praxis heißt das: lokale
+Entwicklung, nicht ein geteilter oder öffentlich erreichbarer Host.
+:::
+
+Das Anlegen von Benutzer und Stack passiert **nur beim ersten Start**. Sobald AspireUI irgendeinen
+Benutzer kennt, wird das Seeding übersprungen; ein vorhandenes Passwort wird also nicht
+überschrieben.
+
+Das Passwort sollte über eine Aspire-Parameter-Ressource kommen, nicht als Zeichenkette im Code:
+
+```csharp
+var password = builder.AddParameter("aspireui-password", secret: true);
+builder.AddAspireUI().WithAdminUser("admin", password);
+```
+
+So landet es nicht im Manifest.
 
 ## Ausführbares Beispiel
-
-Im Repository liegt ein vollständiger, startbarer AppHost:
-
-**[AspireUI.AppHost](https://github.com/fgilde/Nextended/tree/main/Tests/TestProjects/AspireUI.AppHost)**
 
 ```bash
 git clone https://github.com/fgilde/Nextended.git
@@ -46,22 +83,14 @@ dotnet run
 - `net9.0`
 - `net10.0`
 
-## Plattform
-
-Cross-platform
-
 ## Abhängigkeiten
 
-- Aspire.Hosting.AppHost
+- `Aspire.Hosting.AppHost`
 
 ## Links
 
 - 📦 [NuGet-Paket](https://www.nuget.org/packages/Nextended.Aspire.Hosting.AspireUI/)
-- 📖 [Vollständige Referenz (englisch)](/projects/aspire-aspireui)
 - 🧑‍💻 [Quellcode](https://github.com/fgilde/Nextended/tree/main/Nextended.Aspire.Hosting.AspireUI)
-- 📄 [Paket-README](https://github.com/fgilde/Nextended/blob/main/Nextended.Aspire.Hosting.AspireUI/README.md)
+- 🧪 [Beispiel-AppHost](https://github.com/fgilde/Nextended/tree/main/Tests/TestProjects/AspireUI.AppHost)
+- 🔗 [AspireUI-Projekt](https://github.com/fgilde/AspireUI)
 - 🐛 [Fehler melden](https://github.com/fgilde/Nextended/issues)
-
-## Lizenz
-
-GPL-3.0-or-later — siehe [LICENSE](https://github.com/fgilde/Nextended/blob/main/LICENSE).

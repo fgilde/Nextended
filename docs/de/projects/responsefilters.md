@@ -3,6 +3,8 @@ title: Nextended.ResponseFilters
 ---
 # Nextended.ResponseFilters
 
+📚 **[Vollständige API-Referenz](/de/projects/responsefilters-api)** — jeder öffentliche Typ und Member, erzeugt aus der kompilierten Assembly.
+
 🇬🇧 [This page in English](/projects/responsefilters)
 
 Eine providerunabhängige Fluent-Pipeline, die Response-DTOs vor der Serialisierung schwärzt,

@@ -3,6 +3,8 @@ title: Nextended.Aspire.Hosting.Supabase
 ---
 # Nextended.Aspire.Hosting.Supabase
 
+📚 **[Vollständige API-Referenz](/de/projects/aspire-supabase-api)** — jeder öffentliche Typ und Member, erzeugt aus der kompilierten Assembly.
+
 🇬🇧 [This page in English](/projects/aspire-supabase)
 
 Der komplette Supabase-Stack — Postgres, Auth (GoTrue), REST, Realtime, Storage, Studio, Kong und Edge Functions — als eine kombinierbare Aspire-Ressource.

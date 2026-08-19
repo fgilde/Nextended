@@ -3,6 +3,8 @@ title: Nextended.CodeGen
 ---
 # Nextended.CodeGen
 
+📚 **[Vollständige API-Referenz](/de/projects/codegen-api)** — jeder öffentliche Typ und Member, erzeugt aus der kompilierten Assembly.
+
 🇬🇧 [This page in English](/projects/codegen)
 
 Roslyn-Source-Generator — DTOs und Interfaces aus Ihren Entities, stark typisierte Klassen aus JSON/XML, Lookup-Tabellen aus Excel und Dokumentation aus Quelldateien.

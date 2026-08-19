@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Deliberately NOT part of Nextended.sln and NOT importing Shared.props: this is a build-time
+       documentation tool, not a shipped package. Directory.Build.targets would otherwise try to
+       run the docs sync from inside the docs tool. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net9.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <IsPackable>false</IsPackable>
+    <NextendedSkipDocsSync>true</NextendedSkipDocsSync>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Reads the compiled assemblies without executing them, so a package that targets
+         net8.0-windows or references a framework this tool does not have can still be inspected. -->
+    <PackageReference Include="System.Reflection.MetadataLoadContext" Version="9.0.0" />
+  </ItemGroup>
+
+</Project>

@@ -3,6 +3,8 @@ title: Nextended.Core
 ---
 # Nextended.Core
 
+📚 **[Full API reference](/projects/core-api)** — every public type and member, generated from the compiled assembly.
+
 🇩🇪 [Diese Seite auf Deutsch](/de/projects/core)
 
 The foundation library providing essential extension methods, custom types, and utilities for .NET development.

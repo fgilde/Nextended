@@ -3,6 +3,8 @@ title: Nextended.Aspire.Hosting.Grafana
 ---
 # Nextended.Aspire.Hosting.Grafana
 
+📚 **[Full API reference](/projects/aspire-grafana-api)** — every public type and member, generated from the compiled assembly.
+
 Grafana, Prometheus, Loki, Tempo, Promtail, cAdvisor, postgres_exporter and the OpenTelemetry Collector as composable resources with auto-provisioned datasources.
 [![NuGet](https://img.shields.io/nuget/v/Nextended.Aspire.Hosting.Grafana.svg)](https://www.nuget.org/packages/Nextended.Aspire.Hosting.Grafana/)
 

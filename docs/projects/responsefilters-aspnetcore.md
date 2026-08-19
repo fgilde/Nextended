@@ -3,6 +3,8 @@ title: Nextended.ResponseFilters.AspNetCore
 ---
 # Nextended.ResponseFilters.AspNetCore
 
+📚 **[Full API reference](/projects/responsefilters-aspnetcore-api)** — every public type and member, generated from the compiled assembly.
+
 ASP.NET Core adapter for Nextended.ResponseFilters — registers the pipeline as a global IAsyncResultFilter and replays structural edits against the serialized JSON tree.
 [![NuGet](https://img.shields.io/nuget/v/Nextended.ResponseFilters.AspNetCore.svg)](https://www.nuget.org/packages/Nextended.ResponseFilters.AspNetCore/)
 

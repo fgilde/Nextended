@@ -3,6 +3,8 @@ title: Nextended.ResponseFilters
 ---
 # Nextended.ResponseFilters
 
+📚 **[Full API reference](/projects/responsefilters-api)** — every public type and member, generated from the compiled assembly.
+
 A fluent, provider-agnostic pipeline that redacts, masks, rounds, truncates, hashes, prunes and
 restructures response DTOs before serialization — per request, per user, per permission.
 [![NuGet](https://img.shields.io/nuget/v/Nextended.ResponseFilters.svg)](https://www.nuget.org/packages/Nextended.ResponseFilters/)

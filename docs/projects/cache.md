@@ -3,6 +3,8 @@ title: Nextended.Cache
 ---
 # Nextended.Cache
 
+📚 **[Full API reference](/projects/cache-api)** — every public type and member, generated from the compiled assembly.
+
 🇩🇪 [Diese Seite auf Deutsch](/de/projects/cache)
 
 Caching utilities and extensions for simplified caching operations in .NET applications.

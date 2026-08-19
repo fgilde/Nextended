@@ -3,6 +3,8 @@ title: Nextended.EF
 ---
 # Nextended.EF
 
+📚 **[Full API reference](/projects/ef-api)** — every public type and member, generated from the compiled assembly.
+
 🇩🇪 [Diese Seite auf Deutsch](/de/projects/ef)
 
 Entity Framework Core extensions: graph loading, declarative includes,

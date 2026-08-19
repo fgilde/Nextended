@@ -3,6 +3,8 @@ title: Nextended.Aspire.Hosting.N8n
 ---
 # Nextended.Aspire.Hosting.N8n
 
+📚 **[Full API reference](/projects/aspire-n8n-api)** — every public type and member, generated from the compiled assembly.
+
 🇩🇪 [Diese Seite auf Deutsch](/de/projects/aspire-n8n)
 
 A first-class [.NET Aspire](https://learn.microsoft.com/dotnet/aspire/) integration for

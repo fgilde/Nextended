@@ -3,6 +3,8 @@ title: Nextended.Web
 ---
 # Nextended.Web
 
+📚 **[Full API reference](/projects/web-api)** — every public type and member, generated from the compiled assembly.
+
 🇩🇪 [Diese Seite auf Deutsch](/de/projects/web)
 
 ASP.NET Core and web application helpers, extensions, and utilities.

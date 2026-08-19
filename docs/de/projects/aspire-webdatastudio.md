@@ -3,6 +3,8 @@ title: Nextended.Aspire.Hosting.WebDataStudio
 ---
 # Nextended.Aspire.Hosting.WebDataStudio
 
+📚 **[Vollständige API-Referenz](/de/projects/aspire-webdatastudio-api)** — jeder öffentliche Typ und Member, erzeugt aus der kompilierten Assembly.
+
 🇬🇧 [This page in English](/projects/aspire-webdatastudio)
 
 WebDataStudio — ein Browser-Datenbankstudio für PostgreSQL, MySQL, SQL Server, SQLite, Oracle, DuckDB, ClickHouse, MongoDB und Redis — verdrahtet mit den Datenbanken Ihres Stacks.

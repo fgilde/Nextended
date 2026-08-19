@@ -7,7 +7,7 @@
     <Authors>fgilde</Authors>
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
     <RepositoryType>Git</RepositoryType>
-    <PackageProjectUrl>https://github.com/fgilde/Nextended</PackageProjectUrl>
+    <PackageProjectUrl>https://fgilde.github.io/Nextended/</PackageProjectUrl>
     <RepositoryUrl>https://github.com/fgilde/Nextended</RepositoryUrl>
     <Description>This Library provides great and usefull Extension Methods, Small Helpers and Great usefull Types</Description>
     <Copyright>Copyright © $(Authors) 2020-$([System.DateTime]::Now.Year)</Copyright>

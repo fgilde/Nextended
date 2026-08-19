@@ -3,6 +3,8 @@ title: Nextended.CodeGen
 ---
 # Nextended.CodeGen
 
+📚 **[Full API reference](/projects/codegen-api)** — every public type and member, generated from the compiled assembly.
+
 🇩🇪 [Diese Seite auf Deutsch](/de/projects/codegen)
 
 Compile-time source code generation from various sources including classes, JSON, XML, and Excel files.

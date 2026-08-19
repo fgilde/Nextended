@@ -3,6 +3,8 @@ title: Nextended.Aspire.Hosting.LocalAI
 ---
 # Nextended.Aspire.Hosting.LocalAI
 
+📚 **[Full API reference](/projects/aspire-localai-api)** — every public type and member, generated from the compiled assembly.
+
 Self-hosted, OpenAI-compatible multimodal AI — image generation, text-to-speech, speech-to-text and video — with gallery model management, GPU support and Open WebUI.
 [![NuGet](https://img.shields.io/nuget/v/Nextended.Aspire.Hosting.LocalAI.svg)](https://www.nuget.org/packages/Nextended.Aspire.Hosting.LocalAI/)
 

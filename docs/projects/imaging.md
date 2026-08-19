@@ -3,6 +3,8 @@ title: Nextended.Imaging
 ---
 # Nextended.Imaging
 
+📚 **[Full API reference](/projects/imaging-api)** — every public type and member, generated from the compiled assembly.
+
 🇩🇪 [Diese Seite auf Deutsch](/de/projects/imaging)
 
 Image processing and manipulation utilities for .NET applications.

@@ -3,6 +3,8 @@ title: Nextended.Aspire.Hosting.LocalAI
 ---
 # Nextended.Aspire.Hosting.LocalAI
 
+📚 **[Vollständige API-Referenz](/de/projects/aspire-localai-api)** — jeder öffentliche Typ und Member, erzeugt aus der kompilierten Assembly.
+
 🇬🇧 [This page in English](/projects/aspire-localai)
 
 Selbst gehostete, OpenAI-kompatible multimodale KI — Bildgenerierung, Text-to-Speech, Speech-to-Text und Video — mit Galerie-Modellverwaltung, GPU-Unterstützung und Open WebUI.

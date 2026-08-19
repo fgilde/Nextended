@@ -3,6 +3,8 @@ title: Nextended.UI
 ---
 # Nextended.UI
 
+📚 **[Full API reference](/projects/ui-api)** — every public type and member, generated from the compiled assembly.
+
 🇩🇪 [Diese Seite auf Deutsch](/de/projects/ui)
 
 WPF and Windows Forms utilities for desktop application development.

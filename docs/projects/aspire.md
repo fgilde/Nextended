@@ -3,6 +3,8 @@ title: Nextended.Aspire
 ---
 # Nextended.Aspire
 
+📚 **[Full API reference](/projects/aspire-api)** — every public type and member, generated from the compiled assembly.
+
 🇩🇪 [Diese Seite auf Deutsch](/de/projects/aspire)
 
 Extensions for .NET Aspire distributed application framework.
