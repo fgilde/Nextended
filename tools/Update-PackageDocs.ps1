@@ -273,7 +273,7 @@ function Format-ProjectHeader([object] $pkg) {
     # even though GitHub renders it fine. Centring is not expressible in CommonMark, so the
     # logo simply sits left-aligned — a visible logo beats a centred code snippet.
     # The URL must also be on nuget.org's image allow-list; raw.githubusercontent.com is.
-    [void]$sb.AppendLine("![Nextended]($($meta.iconRawUrl))")
+    [void]$sb.AppendLine("![Nextended]($($meta.iconReadmeRawUrl))")
     [void]$sb.AppendLine()
     [void]$sb.AppendLine("# $($pkg.name)")
     [void]$sb.AppendLine()
@@ -465,6 +465,55 @@ if (Test-Path $rootReadme) {
 }
 
 # ---------------------------------------------------------------------------
+# README icon — a small raster derived from the one root icon.
+#
+# nuget.org renders README files as CommonMark, which cannot size an image, so the full-size
+# icon.png (needed as the package icon) fills the whole width of the README. This writes a
+# downscaled copy that the README blocks point at instead. It is derived from icon.png, so the
+# root file stays the single source.
+#
+# System.Drawing is Windows-only, so on Linux (the docs-sync CI runner) this is skipped with a
+# warning rather than failing: the committed icon-readme.png is used as-is there.
+# ---------------------------------------------------------------------------
+
+function Update-ReadmeIcon([string] $sourcePath, [string] $targetPath, [int] $maxEdge) {
+    if (-not $IsWindows) {
+        Write-Host "skipped icon-readme.png (System.Drawing needs Windows); using the committed copy." -ForegroundColor DarkGray
+        return $false
+    }
+
+    Add-Type -AssemblyName System.Drawing -ErrorAction Stop
+
+    $src = [System.Drawing.Image]::FromFile($sourcePath)
+    try {
+        $scale = [Math]::Min($maxEdge / $src.Width, $maxEdge / $src.Height)
+        $w = [int][Math]::Round($src.Width * $scale)
+        $h = [int][Math]::Round($src.Height * $scale)
+
+        $bmp = New-Object System.Drawing.Bitmap $w, $h
+        try {
+            $g = [System.Drawing.Graphics]::FromImage($bmp)
+            try {
+                $g.CompositingQuality = 'HighQuality'
+                $g.InterpolationMode = 'HighQualityBicubic'
+                $g.SmoothingMode = 'HighQuality'
+                $g.Clear([System.Drawing.Color]::Transparent)
+                $g.DrawImage($src, 0, 0, $w, $h)
+            } finally { $g.Dispose() }
+
+            $tmp = "$targetPath.tmp"
+            $bmp.Save($tmp, [System.Drawing.Imaging.ImageFormat]::Png)
+
+            # Only replace when the bytes actually changed, so -Check stays meaningful.
+            $changed = -not (Test-Path $targetPath) -or
+                       (Get-FileHash $tmp).Hash -ne (Get-FileHash $targetPath).Hash
+            if ($changed) { Move-Item $tmp $targetPath -Force } else { Remove-Item $tmp -Force }
+            return $changed
+        } finally { $bmp.Dispose() }
+    } finally { $src.Dispose() }
+}
+
+# ---------------------------------------------------------------------------
 # Icon — one source file, copied where a copy is unavoidable (the VitePress public dir)
 # ---------------------------------------------------------------------------
 
@@ -477,6 +526,14 @@ if (-not $SkipIcon) {
         $targetDir = Split-Path -Parent $iconTarget
         if (-not (Test-Path $targetDir)) {
             if (-not $Check) { New-Item -ItemType Directory -Path $targetDir -Force | Out-Null }
+        }
+
+        # Small README variant, derived from the same root icon.
+        $readmeIcon = Join-Path $repoRoot $meta.iconReadmeSource
+        if (-not $Check) {
+            if (Update-ReadmeIcon $iconSource $readmeIcon 160) {
+                $writtenFiles.Add($meta.iconReadmeSource)
+            }
         }
 
         $sourceHash = (Get-FileHash -LiteralPath $iconSource -Algorithm SHA256).Hash

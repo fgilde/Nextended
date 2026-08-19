@@ -3,7 +3,9 @@
     "repo": "https://github.com/fgilde/Nextended",
     "docsSite": "https://fgilde.github.io/Nextended",
     "iconSource": "icon.png",
-    "iconRawUrl": "https://raw.githubusercontent.com/fgilde/Nextended/main/icon.png"
+    "iconRawUrl": "https://raw.githubusercontent.com/fgilde/Nextended/main/icon.png",
+    "iconReadmeSource": "icon-readme.png",
+    "iconReadmeRawUrl": "https://raw.githubusercontent.com/fgilde/Nextended/main/icon-readme.png"
   },
   "categories": [
     {
@@ -276,6 +278,12 @@
       "summary": {
         "en": "The complete Supabase stack — Postgres, Auth (GoTrue), REST, Realtime, Storage, Studio, Kong and Edge Functions — as one composable Aspire resource.",
         "de": "Der komplette Supabase-Stack — Postgres, Auth (GoTrue), REST, Realtime, Storage, Studio, Kong und Edge Functions — als eine kombinierbare Aspire-Ressource."
+      },
+      "product": {
+        "name": "Supabase",
+        "site": "https://supabase.com/",
+        "logo": "https://raw.githubusercontent.com/supabase/supabase/master/apps/docs/public/img/supabase-logo-wordmark--light.svg",
+        "screenshot": "https://raw.githubusercontent.com/supabase/supabase/master/apps/docs/public/img/guides/cli/local-studio.png"
       }
     },
     {
@@ -428,6 +436,11 @@
       "summary": {
         "en": "Run PHP endpoints inside your Aspire stack — a docroot folder or a single router script served by PHP's built-in web server, with php.ini settings as fluent options.",
         "de": "PHP-Endpunkte im Aspire-Stack betreiben — ein docroot-Ordner oder ein einzelnes Router-Skript über PHPs eingebauten Webserver, mit php.ini-Einstellungen als Fluent-Optionen."
+      },
+      "product": {
+        "name": "PHP",
+        "site": "https://www.php.net/",
+        "logo": "https://raw.githubusercontent.com/php/web-php/master/public/images/logos/php-logo.svg"
       }
     }
   ]
