@@ -43,6 +43,8 @@ The Nextended suite consists of multiple specialized packages, each serving a sp
 - **[Nextended.CodeGen](projects/codegen.md)** - Source code generation tools (attributes, JSON/Excel to classes, DTO generation)
 - **[Nextended.Aspire](projects/aspire.md)** - .NET Aspire framework extensions for distributed applications
 - **[Nextended.Aspire.Hosting.Supabase](projects/aspire-supabase.md)** - Complete Supabase stack (Postgres, Auth, REST, Storage, Studio, Edge Functions) as an Aspire resource
+- **[Nextended.Aspire.Hosting.N8n](projects/aspire-n8n.md)** - The n8n workflow-automation platform as an Aspire resource
+- **[Nextended.Aspire.Hosting.WebDataStudio](projects/aspire-webdatastudio.md)** - WebDataStudio, a browser-based database studio, wired to the databases of your stack
 - **[Nextended.AutoDto](projects/autodto.md)** - Automatic DTO generation utilities
 
 ## 🚀 Quick Start

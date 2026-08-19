@@ -85,6 +85,15 @@ internal static class EdgeFunctionRouter
         sb.AppendLine("    'Deno.serve({ port: ' + port + ' }, '");
         sb.AppendLine("  );");
         sb.AppendLine();
+        sb.AppendLine("  // The worker runs via stdin ('deno run -'), so the module base is $deno$stdin —");
+        sb.AppendLine("  // relative imports like ../_shared/x.ts would resolve to file:///_shared/x.ts and fail.");
+        sb.AppendLine("  // Rewrite all relative import/export specifiers to absolute file:// URLs.");
+        sb.AppendLine("  const moduleBase = 'file://' + FUNCTIONS_DIR + '/' + functionName + '/';");
+        sb.AppendLine("  transformedCode = transformedCode.replace(");
+        sb.AppendLine("    /(from\\s+|import\\s+|import\\s*\\(\\s*)([\"'])(\\.\\.?\\/[^\"']+)\\2/g,");
+        sb.AppendLine("    (_m: string, prefix: string, quote: string, rel: string) => prefix + quote + new URL(rel, moduleBase).href + quote");
+        sb.AppendLine("  );");
+        sb.AppendLine();
         sb.AppendLine("  console.log('[Router] Transformed code for ' + functionName);");
         sb.AppendLine();
         sb.AppendLine("  const command = new Deno.Command(\"deno\", {");

@@ -178,6 +178,20 @@ This document provides an overview of all projects in the Nextended solution.
 
 ---
 
+### [Nextended.Aspire.Hosting.WebDataStudio](aspire-webdatastudio.md)
+**Description**: [WebDataStudio](https://fgilde.github.io/WebDataStudio/) — a browser-based database studio for nine engines — as an Aspire resource, wired to the databases of your stack.
+
+**Key Features**:
+- `WithWebDataStudio()` on any resource with a connection string: PostgreSQL, MySQL, SQL Server, SQLite, Oracle, DuckDB, ClickHouse, MongoDB, Redis
+- One shared studio by default, several by name, or one you build yourself with `AddWebDataStudio`
+- Engine detected from the resource type; connections labelled, grouped, coloured and optionally read-only
+- Login, read-only mode, row caps, statement timeout, session limits and the secret key from the app host
+- Passwords and keys as Aspire parameters, so nothing lands in the manifest
+
+**NuGet**: [Nextended.Aspire.Hosting.WebDataStudio](https://www.nuget.org/packages/Nextended.Aspire.Hosting.WebDataStudio/)
+
+---
+
 ### [Nextended.AutoDto](autodto.md)
 **Description**: Automatic DTO generation support library.
 
@@ -206,6 +220,7 @@ This document provides an overview of all projects in the Nextended solution.
 | Nextended.Aspire | .NET 8/9/10 | Cross-platform | Aspire |
 | Nextended.Aspire.Hosting.Supabase | .NET 8/9/10 | Cross-platform | Aspire |
 | Nextended.Aspire.Hosting.N8n | .NET 8/9/10 | Cross-platform | Aspire, PostgreSQL, Redis |
+| Nextended.Aspire.Hosting.WebDataStudio | .NET 8/9/10 | Cross-platform | Aspire |
 | Nextended.AutoDto | .NET Standard 2.0 | Build-time | Roslyn |
 
 ## Installation

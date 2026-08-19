@@ -20,6 +20,13 @@ A comprehensive suite of .NET libraries providing powerful extension methods, cu
 | **[Nextended.UI](Nextended.UI/README.md)** | WPF/Windows UI helpers | [![NuGet](https://img.shields.io/nuget/v/Nextended.UI.svg)](https://www.nuget.org/packages/Nextended.UI/) |
 | **[Nextended.CodeGen](Nextended.CodeGen/README.md)** | Source code generation | [![NuGet](https://img.shields.io/nuget/v/Nextended.CodeGen.svg)](https://www.nuget.org/packages/Nextended.CodeGen/) |
 | **[Nextended.Aspire](Nextended.Aspire/README.md)** | .NET Aspire extensions | [![NuGet](https://img.shields.io/nuget/v/Nextended.Aspire.svg)](https://www.nuget.org/packages/Nextended.Aspire/) |
+| **[Nextended.Aspire.Hosting.Supabase](Nextended.Aspire.Hosting.Supabase/README.md)** | Supabase stack as one Aspire resource | [![NuGet](https://img.shields.io/nuget/v/Nextended.Aspire.Hosting.Supabase.svg)](https://www.nuget.org/packages/Nextended.Aspire.Hosting.Supabase/) |
+| **[Nextended.Aspire.Hosting.N8n](Nextended.Aspire.Hosting.N8n/README.md)** | n8n workflow automation as an Aspire resource | [![NuGet](https://img.shields.io/nuget/v/Nextended.Aspire.Hosting.N8n.svg)](https://www.nuget.org/packages/Nextended.Aspire.Hosting.N8n/) |
+| **[Nextended.Aspire.Hosting.Grafana](Nextended.Aspire.Hosting.Grafana/README.md)** | Grafana, Prometheus, Loki and Tempo as Aspire resources | [![NuGet](https://img.shields.io/nuget/v/Nextended.Aspire.Hosting.Grafana.svg)](https://www.nuget.org/packages/Nextended.Aspire.Hosting.Grafana/) |
+| **[Nextended.Aspire.Hosting.WebDataStudio](Nextended.Aspire.Hosting.WebDataStudio/README.md)** | WebDataStudio, a browser database studio, wired to your databases | [![NuGet](https://img.shields.io/nuget/v/Nextended.Aspire.Hosting.WebDataStudio.svg)](https://www.nuget.org/packages/Nextended.Aspire.Hosting.WebDataStudio/) |
+| **[Nextended.Aspire.Hosting.AspireUI](Nextended.Aspire.Hosting.AspireUI/README.md)** | AspireUI, the visual AppHost builder, as an Aspire resource | [![NuGet](https://img.shields.io/nuget/v/Nextended.Aspire.Hosting.AspireUI.svg)](https://www.nuget.org/packages/Nextended.Aspire.Hosting.AspireUI/) |
+| **[Nextended.Aspire.Hosting.LocalAI](Nextended.Aspire.Hosting.LocalAI/README.md)** | LocalAI as an Aspire resource | [![NuGet](https://img.shields.io/nuget/v/Nextended.Aspire.Hosting.LocalAI.svg)](https://www.nuget.org/packages/Nextended.Aspire.Hosting.LocalAI/) |
+| **[Nextended.Aspire.Hosting.Php](Nextended.Aspire.Hosting.Php/README.md)** | PHP applications as Aspire resources | [![NuGet](https://img.shields.io/nuget/v/Nextended.Aspire.Hosting.Php.svg)](https://www.nuget.org/packages/Nextended.Aspire.Hosting.Php/) |
 
 ## 🚀 Quick Start
 
