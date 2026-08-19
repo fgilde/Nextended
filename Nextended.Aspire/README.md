@@ -217,7 +217,7 @@ Ready-made resources built on this package, each with a runnable AppHost sample:
 - 📦 [NuGet package](https://www.nuget.org/packages/Nextended.Aspire/)
 - 📖 [Documentation — English](https://fgilde.github.io/Nextended/projects/aspire)
 - 📖 [Dokumentation — Deutsch](https://fgilde.github.io/Nextended/de/projects/aspire)
-- 🏠 [Documentation portal](https://fgilde.github.io/Nextended)
+- 🏠 [Documentation portal](https://fgilde.github.io/Nextended/)
 - 🧑‍💻 [Source code](https://github.com/fgilde/Nextended/tree/main/Nextended.Aspire)
 - 🐛 [Report an issue](https://github.com/fgilde/Nextended/issues)
 

@@ -372,7 +372,7 @@ If you'd rather absorb filter failures (e.g. for a public CMS that must never 50
 - 📦 [NuGet package](https://www.nuget.org/packages/Nextended.ResponseFilters/)
 - 📖 [Documentation — English](https://fgilde.github.io/Nextended/projects/responsefilters)
 - 📖 [Dokumentation — Deutsch](https://fgilde.github.io/Nextended/de/projects/responsefilters)
-- 🏠 [Documentation portal](https://fgilde.github.io/Nextended)
+- 🏠 [Documentation portal](https://fgilde.github.io/Nextended/)
 - 🧑‍💻 [Source code](https://github.com/fgilde/Nextended/tree/main/Nextended.ResponseFilters)
 - 🐛 [Report an issue](https://github.com/fgilde/Nextended/issues)
 

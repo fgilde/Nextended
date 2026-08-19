@@ -187,7 +187,7 @@ var cache = new CacheProvider(
 - 📦 [NuGet package](https://www.nuget.org/packages/Nextended.Cache/)
 - 📖 [Documentation — English](https://fgilde.github.io/Nextended/projects/cache)
 - 📖 [Dokumentation — Deutsch](https://fgilde.github.io/Nextended/de/projects/cache)
-- 🏠 [Documentation portal](https://fgilde.github.io/Nextended)
+- 🏠 [Documentation portal](https://fgilde.github.io/Nextended/)
 - 🧑‍💻 [Source code](https://github.com/fgilde/Nextended/tree/main/Nextended.Cache)
 - 🐛 [Report an issue](https://github.com/fgilde/Nextended/issues)
 

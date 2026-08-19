@@ -594,7 +594,7 @@ All UIs are dev-time only (`ExcludeFromManifest`).
 - 📦 [NuGet package](https://www.nuget.org/packages/Nextended.Aspire.Hosting.LocalAI/)
 - 📖 [Documentation — English](https://fgilde.github.io/Nextended/projects/aspire-localai)
 - 📖 [Dokumentation — Deutsch](https://fgilde.github.io/Nextended/de/projects/aspire-localai)
-- 🏠 [Documentation portal](https://fgilde.github.io/Nextended)
+- 🏠 [Documentation portal](https://fgilde.github.io/Nextended/)
 - 🧪 [Runnable sample](https://github.com/fgilde/Nextended/tree/main/Tests/TestProjects/AiStack.AppHost)
 - 🧑‍💻 [Source code](https://github.com/fgilde/Nextended/tree/main/Nextended.Aspire.Hosting.LocalAI)
 - 🐛 [Report an issue](https://github.com/fgilde/Nextended/issues)

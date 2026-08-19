@@ -185,7 +185,7 @@ dotnet run --project Tests/TestProjects/WebDataStudio.AppHost
 - 📦 [NuGet package](https://www.nuget.org/packages/Nextended.Aspire.Hosting.WebDataStudio/)
 - 📖 [Documentation — English](https://fgilde.github.io/Nextended/projects/aspire-webdatastudio)
 - 📖 [Dokumentation — Deutsch](https://fgilde.github.io/Nextended/de/projects/aspire-webdatastudio)
-- 🏠 [Documentation portal](https://fgilde.github.io/Nextended)
+- 🏠 [Documentation portal](https://fgilde.github.io/Nextended/)
 - 🧪 [Runnable sample](https://github.com/fgilde/Nextended/tree/main/Tests/TestProjects/WebDataStudio.AppHost)
 - 🧑‍💻 [Source code](https://github.com/fgilde/Nextended/tree/main/Nextended.Aspire.Hosting.WebDataStudio)
 - 🐛 [Report an issue](https://github.com/fgilde/Nextended/issues)

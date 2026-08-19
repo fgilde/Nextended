@@ -279,7 +279,7 @@ Please have a look at this sample project to see how to use the code generation 
 - 📦 [NuGet package](https://www.nuget.org/packages/Nextended.CodeGen/)
 - 📖 [Documentation — English](https://fgilde.github.io/Nextended/projects/codegen)
 - 📖 [Dokumentation — Deutsch](https://fgilde.github.io/Nextended/de/projects/codegen)
-- 🏠 [Documentation portal](https://fgilde.github.io/Nextended)
+- 🏠 [Documentation portal](https://fgilde.github.io/Nextended/)
 - 🧪 [Runnable sample](https://github.com/fgilde/Nextended/tree/main/Tests/TestProjects/CodeGenSample)
 - 🧑‍💻 [Source code](https://github.com/fgilde/Nextended/tree/main/Nextended.CodeGen)
 - 🐛 [Report an issue](https://github.com/fgilde/Nextended/issues)

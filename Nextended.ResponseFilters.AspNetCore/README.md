@@ -133,7 +133,7 @@ The result filter is registered globally via `MvcOptions.Filters.AddService<Resp
 - 📦 [NuGet package](https://www.nuget.org/packages/Nextended.ResponseFilters.AspNetCore/)
 - 📖 [Documentation — English](https://fgilde.github.io/Nextended/projects/responsefilters-aspnetcore)
 - 📖 [Dokumentation — Deutsch](https://fgilde.github.io/Nextended/de/projects/responsefilters-aspnetcore)
-- 🏠 [Documentation portal](https://fgilde.github.io/Nextended)
+- 🏠 [Documentation portal](https://fgilde.github.io/Nextended/)
 - 🧑‍💻 [Source code](https://github.com/fgilde/Nextended/tree/main/Nextended.ResponseFilters.AspNetCore)
 - 🐛 [Report an issue](https://github.com/fgilde/Nextended/issues)
 

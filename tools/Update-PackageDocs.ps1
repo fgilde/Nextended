@@ -323,7 +323,7 @@ function Format-ProjectFooter([object] $pkg) {
     [void]$sb.AppendLine("- 📦 [NuGet package]($(Get-NuGetUrl $pkg.name))")
     [void]$sb.AppendLine("- 📖 [Documentation — English]($(Get-DocsUrlEn $pkg))")
     [void]$sb.AppendLine("- 📖 [Dokumentation — Deutsch]($(Get-DocsUrlDe $pkg))")
-    [void]$sb.AppendLine("- 🏠 [Documentation portal]($($meta.docsSite))")
+    [void]$sb.AppendLine("- 🏠 [Documentation portal]($($meta.docsSite)/)")
     if (Test-HasSample $pkg) {
         [void]$sb.AppendLine("- 🧪 [Runnable sample]($(Get-SampleUrl $pkg))")
     }
@@ -425,7 +425,7 @@ if (Test-Path $rootReadme) {
 <p align="center">
   <a href="$(Get-NuGetUrl 'Nextended.Core')"><img src="https://img.shields.io/nuget/v/Nextended.Core.svg" alt="NuGet"></a>
   <a href="$($meta.repo)/blob/main/LICENSE"><img src="https://img.shields.io/github/license/fgilde/Nextended" alt="License"></a>
-  <a href="$($meta.docsSite)"><img src="https://img.shields.io/badge/docs-en%20%7C%20de-blue" alt="Documentation"></a>
+  <a href="$($meta.docsSite)/"><img src="https://img.shields.io/badge/docs-en%20%7C%20de-blue" alt="Documentation"></a>
 </p>
 
 <p align="center">
@@ -434,7 +434,7 @@ if (Test-Path $rootReadme) {
 </p>
 
 <p align="center">
-  📖 <a href="$($meta.docsSite)">Documentation (English)</a> ·
+  📖 <a href="$($meta.docsSite)/">Documentation (English)</a> ·
   📖 <a href="$($meta.repo)/blob/main/docs/de/index.md">Dokumentation (Deutsch)</a>
 </p>
 "@

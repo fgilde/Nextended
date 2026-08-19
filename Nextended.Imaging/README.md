@@ -183,7 +183,7 @@ var bytes = _cache.ExecuteWithCache(this, self => self.BuildThumbnail(imageId, 2
 - 📦 [NuGet package](https://www.nuget.org/packages/Nextended.Imaging/)
 - 📖 [Documentation — English](https://fgilde.github.io/Nextended/projects/imaging)
 - 📖 [Dokumentation — Deutsch](https://fgilde.github.io/Nextended/de/projects/imaging)
-- 🏠 [Documentation portal](https://fgilde.github.io/Nextended)
+- 🏠 [Documentation portal](https://fgilde.github.io/Nextended/)
 - 🧑‍💻 [Source code](https://github.com/fgilde/Nextended/tree/main/Nextended.Imaging)
 - 🐛 [Report an issue](https://github.com/fgilde/Nextended/issues)
 

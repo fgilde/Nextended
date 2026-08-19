@@ -139,7 +139,7 @@ that derives the Postgres connection from a Supabase stack:
 - 📦 [NuGet package](https://www.nuget.org/packages/Nextended.Aspire.Hosting.Grafana/)
 - 📖 [Documentation — English](https://fgilde.github.io/Nextended/projects/aspire-grafana)
 - 📖 [Dokumentation — Deutsch](https://fgilde.github.io/Nextended/de/projects/aspire-grafana)
-- 🏠 [Documentation portal](https://fgilde.github.io/Nextended)
+- 🏠 [Documentation portal](https://fgilde.github.io/Nextended/)
 - 🧪 [Runnable sample](https://github.com/fgilde/Nextended/tree/main/Tests/TestProjects/Grafana.AppHost)
 - 🧑‍💻 [Source code](https://github.com/fgilde/Nextended/tree/main/Nextended.Aspire.Hosting.Grafana)
 - 🐛 [Report an issue](https://github.com/fgilde/Nextended/issues)

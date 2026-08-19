@@ -215,7 +215,7 @@ var bitmap = converter.Convert(myControl, typeof(BitmapSource), null, CultureInf
 - 📦 [NuGet package](https://www.nuget.org/packages/Nextended.UI/)
 - 📖 [Documentation — English](https://fgilde.github.io/Nextended/projects/ui)
 - 📖 [Dokumentation — Deutsch](https://fgilde.github.io/Nextended/de/projects/ui)
-- 🏠 [Documentation portal](https://fgilde.github.io/Nextended)
+- 🏠 [Documentation portal](https://fgilde.github.io/Nextended/)
 - 🧑‍💻 [Source code](https://github.com/fgilde/Nextended/tree/main/Nextended.UI)
 - 🐛 [Report an issue](https://github.com/fgilde/Nextended/issues)
 

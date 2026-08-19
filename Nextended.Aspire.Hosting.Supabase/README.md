@@ -627,7 +627,7 @@ builder.Build().Run();
 - 📦 [NuGet package](https://www.nuget.org/packages/Nextended.Aspire.Hosting.Supabase/)
 - 📖 [Documentation — English](https://fgilde.github.io/Nextended/projects/aspire-supabase)
 - 📖 [Dokumentation — Deutsch](https://fgilde.github.io/Nextended/de/projects/aspire-supabase)
-- 🏠 [Documentation portal](https://fgilde.github.io/Nextended)
+- 🏠 [Documentation portal](https://fgilde.github.io/Nextended/)
 - 🧪 [Runnable sample](https://github.com/fgilde/Nextended/tree/main/Tests/TestProjects/Supabase.AppHost)
 - 🧑‍💻 [Source code](https://github.com/fgilde/Nextended/tree/main/Nextended.Aspire.Hosting.Supabase)
 - 🐛 [Report an issue](https://github.com/fgilde/Nextended/issues)

@@ -213,7 +213,7 @@ No Nextended dependencies — this is the root of the dependency tree.
 - 📦 [NuGet package](https://www.nuget.org/packages/Nextended.Core/)
 - 📖 [Documentation — English](https://fgilde.github.io/Nextended/projects/core)
 - 📖 [Dokumentation — Deutsch](https://fgilde.github.io/Nextended/de/projects/core)
-- 🏠 [Documentation portal](https://fgilde.github.io/Nextended)
+- 🏠 [Documentation portal](https://fgilde.github.io/Nextended/)
 - 🧑‍💻 [Source code](https://github.com/fgilde/Nextended/tree/main/Nextended.Core)
 - 🐛 [Report an issue](https://github.com/fgilde/Nextended/issues)
 

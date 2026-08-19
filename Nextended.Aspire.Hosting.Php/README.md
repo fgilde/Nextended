@@ -140,7 +140,7 @@ builder.AddPhp("mailer", "./php/send-mail.php");
 - 📦 [NuGet package](https://www.nuget.org/packages/Nextended.Aspire.Hosting.Php/)
 - 📖 [Documentation — English](https://fgilde.github.io/Nextended/projects/aspire-php)
 - 📖 [Dokumentation — Deutsch](https://fgilde.github.io/Nextended/de/projects/aspire-php)
-- 🏠 [Documentation portal](https://fgilde.github.io/Nextended)
+- 🏠 [Documentation portal](https://fgilde.github.io/Nextended/)
 - 🧪 [Runnable sample](https://github.com/fgilde/Nextended/tree/main/Tests/TestProjects/Php.AppHost)
 - 🧑‍💻 [Source code](https://github.com/fgilde/Nextended/tree/main/Nextended.Aspire.Hosting.Php)
 - 🐛 [Report an issue](https://github.com/fgilde/Nextended/issues)

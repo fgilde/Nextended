@@ -373,7 +373,7 @@ Override the image with `WithImage("n8nio/n8n", "<tag>")` or `WithImageTag("<tag
 - 📦 [NuGet package](https://www.nuget.org/packages/Nextended.Aspire.Hosting.N8n/)
 - 📖 [Documentation — English](https://fgilde.github.io/Nextended/projects/aspire-n8n)
 - 📖 [Dokumentation — Deutsch](https://fgilde.github.io/Nextended/de/projects/aspire-n8n)
-- 🏠 [Documentation portal](https://fgilde.github.io/Nextended)
+- 🏠 [Documentation portal](https://fgilde.github.io/Nextended/)
 - 🧪 [Runnable sample](https://github.com/fgilde/Nextended/tree/main/Tests/TestProjects/N8n.AppHost)
 - 🧑‍💻 [Source code](https://github.com/fgilde/Nextended/tree/main/Nextended.Aspire.Hosting.N8n)
 - 🐛 [Report an issue](https://github.com/fgilde/Nextended/issues)

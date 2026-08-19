@@ -175,7 +175,7 @@ Useful when parameters arrive from configuration or JSON and you want to avoid a
 - 📦 [NuGet package](https://www.nuget.org/packages/Nextended.Blazor/)
 - 📖 [Documentation — English](https://fgilde.github.io/Nextended/projects/blazor)
 - 📖 [Dokumentation — Deutsch](https://fgilde.github.io/Nextended/de/projects/blazor)
-- 🏠 [Documentation portal](https://fgilde.github.io/Nextended)
+- 🏠 [Documentation portal](https://fgilde.github.io/Nextended/)
 - 🧑‍💻 [Source code](https://github.com/fgilde/Nextended/tree/main/Nextended.Blazor)
 - 🐛 [Report an issue](https://github.com/fgilde/Nextended/issues)
 

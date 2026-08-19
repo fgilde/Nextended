@@ -228,7 +228,7 @@ Looking for permission-aware response shaping instead? That is
 - 📦 [NuGet package](https://www.nuget.org/packages/Nextended.Web/)
 - 📖 [Documentation — English](https://fgilde.github.io/Nextended/projects/web)
 - 📖 [Dokumentation — Deutsch](https://fgilde.github.io/Nextended/de/projects/web)
-- 🏠 [Documentation portal](https://fgilde.github.io/Nextended)
+- 🏠 [Documentation portal](https://fgilde.github.io/Nextended/)
 - 🧑‍💻 [Source code](https://github.com/fgilde/Nextended/tree/main/Nextended.Web)
 - 🐛 [Report an issue](https://github.com/fgilde/Nextended/issues)
 

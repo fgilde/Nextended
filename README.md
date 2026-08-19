@@ -8,7 +8,7 @@
 <p align="center">
   <a href="https://www.nuget.org/packages/Nextended.Core/"><img src="https://img.shields.io/nuget/v/Nextended.Core.svg" alt="NuGet"></a>
   <a href="https://github.com/fgilde/Nextended/blob/main/LICENSE"><img src="https://img.shields.io/github/license/fgilde/Nextended" alt="License"></a>
-  <a href="https://fgilde.github.io/Nextended"><img src="https://img.shields.io/badge/docs-en%20%7C%20de-blue" alt="Documentation"></a>
+  <a href="https://fgilde.github.io/Nextended/"><img src="https://img.shields.io/badge/docs-en%20%7C%20de-blue" alt="Documentation"></a>
 </p>
 
 <p align="center">
@@ -17,7 +17,7 @@
 </p>
 
 <p align="center">
-  📖 <a href="https://fgilde.github.io/Nextended">Documentation (English)</a> ·
+  📖 <a href="https://fgilde.github.io/Nextended/">Documentation (English)</a> ·
   📖 <a href="https://github.com/fgilde/Nextended/blob/main/docs/de/index.md">Dokumentation (Deutsch)</a>
 </p>
 <!-- NEXTENDED:HEADER:END -->

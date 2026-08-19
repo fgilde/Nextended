@@ -104,7 +104,7 @@ This adds the `ghcr.io/fgilde/aspireui` container with:
 - 📦 [NuGet package](https://www.nuget.org/packages/Nextended.Aspire.Hosting.AspireUI/)
 - 📖 [Documentation — English](https://fgilde.github.io/Nextended/projects/aspire-aspireui)
 - 📖 [Dokumentation — Deutsch](https://fgilde.github.io/Nextended/de/projects/aspire-aspireui)
-- 🏠 [Documentation portal](https://fgilde.github.io/Nextended)
+- 🏠 [Documentation portal](https://fgilde.github.io/Nextended/)
 - 🧪 [Runnable sample](https://github.com/fgilde/Nextended/tree/main/Tests/TestProjects/AspireUI.AppHost)
 - 🧑‍💻 [Source code](https://github.com/fgilde/Nextended/tree/main/Nextended.Aspire.Hosting.AspireUI)
 - 🐛 [Report an issue](https://github.com/fgilde/Nextended/issues)
