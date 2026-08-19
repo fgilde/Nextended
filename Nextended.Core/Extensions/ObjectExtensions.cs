@@ -56,9 +56,9 @@ namespace Nextended.Core.Extensions
         /// Returns the modified object (by the <paramref name="func" /> if the <paramref name="condition" /> is <code>true</code>)
         /// or the original object if the <paramref name="condition" /> is <code>false</code>
         /// </returns>
-        public static T If<T>(this T obj, bool condition, Func<T, T> func) => condition ? func(obj) : obj;
+        public static T When<T>(this T obj, bool condition, Func<T, T> func) => condition ? func(obj) : obj;
 
-        public static T If<T>(this T obj, Func<bool> condition, Func<T, T> func) => If(obj, condition(), func);
+        public static T When<T>(this T obj, Func<bool> condition, Func<T, T> func) => When(obj, condition(), func);
 
         /// <summary>
         /// Can be used to conditionally perform an action
@@ -70,14 +70,14 @@ namespace Nextended.Core.Extensions
         /// <param name="action">An action that is executed only if the condition is <code>true</code></param>
         /// <typeparam name="T">Type of the object</typeparam>
         /// <returns>Returns the original object.</returns>
-        public static T If<T>(this T obj, bool condition, Action<T> action)
+        public static T When<T>(this T obj, bool condition, Action<T> action)
         {
             if (condition)
                 action(obj);
             return obj;
         }
 
-        public static T If<T>(this T obj, Func<bool> condition, Action<T> action) => If(obj, condition(), action);
+        public static T When<T>(this T obj, Func<bool> condition, Action<T> action) => When(obj, condition(), action);
 
 
 

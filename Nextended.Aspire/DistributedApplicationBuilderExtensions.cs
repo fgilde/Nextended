@@ -90,6 +90,8 @@ public static partial class DistributedApplicationBuilderExtensions
     {
         return builder.WaitForIf(dependency is { Resource: IResourceWithParent }, dependency!);
     }
+    
+
 
     public static IResourceBuilder<T> WaitForIf<T>(
         this IResourceBuilder<T> builder,
