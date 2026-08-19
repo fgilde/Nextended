@@ -35,9 +35,12 @@ jobs:
           # to the last commit instead of the one that actually changed it.
           fetch-depth: 0
 
+      # Node 24 ships npm 11, which is what writes the committed lockfile. The npm 10 that
+      # comes with Node 22 rejects that lockfile under `npm ci`, because search-insights is
+      # only an optional peer of the search component and has no entry of its own.
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 24
           cache: npm
           cache-dependency-path: docs/package-lock.json
 
