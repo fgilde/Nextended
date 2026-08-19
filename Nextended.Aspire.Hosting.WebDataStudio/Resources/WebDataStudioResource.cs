@@ -31,6 +31,13 @@ public sealed class WebDataStudioResource(string name) : ContainerResource(name)
     public string? Username { get; internal set; }
 
     /// <summary>
+    /// The name the studio shows in its header and browser tab. Defaults to the resource name, so
+    /// three studios in one stack are told apart at a glance; <c>WithTitle</c> overrides it and
+    /// <c>WithTitle(null)</c> leaves the studio unnamed.
+    /// </summary>
+    public string? Title { get; internal set; }
+
+    /// <summary>
     /// Names of the connections attached to this studio, in the order they were added. These are
     /// the labels the studio shows in its explorer, and the suffixes of its <c>WDS_CONN_*</c>
     /// variables.

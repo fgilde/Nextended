@@ -35,7 +35,9 @@ public static class WebDataStudioBuilderExtensions
         // WithEnvironment, which cannot format an int.
         var urls = "http://+:" + WebDataStudioResource.DefaultTargetPort.ToString(CultureInfo.InvariantCulture);
 
-        return builder.AddResource(new WebDataStudioResource(name))
+        var resource = new WebDataStudioResource(name) { Title = name };
+
+        return builder.AddResource(resource)
             .WithImage(image ?? WebDataStudioResource.DefaultImage, tag ?? WebDataStudioResource.DefaultTag)
             // The default tag is a rolling "latest"; re-pull so a stale local image cannot pin an old build.
             .WithImagePullPolicy(ImagePullPolicy.Always)
@@ -43,6 +45,9 @@ public static class WebDataStudioBuilderExtensions
                 name: WebDataStudioResource.HttpEndpointName)
             .WithEnvironment("ASPNETCORE_URLS", urls)
             .WithEnvironment("DB_PATH", "/data/webdatastudio.db")
+            // The resource name is what the dashboard calls this studio; showing the same name in
+            // the studio itself is what tells three of them apart.
+            .WithEnvironment("WDS_TITLE", name)
             // Per-instance volume: two studios in one stack must not share saved connections.
             .WithVolume($"webdatastudio-data-{name}", "/data")
             .WithHttpHealthCheck("/api/auth/me", endpointName: WebDataStudioResource.HttpEndpointName);
@@ -97,6 +102,22 @@ public static class WebDataStudioBuilderExtensions
         return builder
             .WithEnvironment("WDS_USER", username)
             .WithEnvironment("WDS_PASSWORD", password);
+    }
+
+    /// <summary>
+    /// Sets the name the studio shows in its header and browser tab. Without this it uses the
+    /// resource name; pass <c>null</c> for a studio with no name at all.
+    /// </summary>
+    public static IResourceBuilder<WebDataStudioResource> WithTitle(
+        this IResourceBuilder<WebDataStudioResource> builder, string? title)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        builder.Resource.Title = string.IsNullOrWhiteSpace(title) ? null : title.Trim();
+
+        // An empty value is what the studio reads as "no name", so it is set either way — the
+        // default from AddWebDataStudio has to be overridable.
+        return builder.WithEnvironment("WDS_TITLE", builder.Resource.Title ?? "");
     }
 
     /// <summary>

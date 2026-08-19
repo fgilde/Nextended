@@ -10,7 +10,13 @@ var builder = DistributedApplication.CreateBuilder(args);
 
 // --- the shared studio ---------------------------------------------------------------------
 // Two databases, one call each, one studio with both connections in it.
-var postgres = builder.AddPostgres("pg");
+var postgres = builder.AddPostgres("pg")
+    // The image runs everything in this folder against POSTGRES_DB the first time it starts, so
+    // the seed lands in "shop" rather than in the maintenance database.
+    .WithEnvironment("POSTGRES_DB", "shop")
+    // Customers, products, orders, order items and a view — something to actually click around in.
+    .WithInitFiles("init");
+
 var shop = postgres.AddDatabase("shop").WithWebDataStudio();
 
 var sqlServer = builder.AddSqlServer("sql");
@@ -34,6 +40,8 @@ builder.AddMongoDB("mongo").AddDatabase("events")
 var studioPassword = builder.AddParameter("studio-password", "change-me-please", secret: true);
 
 builder.AddWebDataStudio("admin-studio")
+    // Each studio shows its resource name in its header and browser tab; this one says more.
+    .WithTitle("Production · read only")
     .WithLogin("admin", studioPassword)
     .WithReadOnly()
     .WithSessionLimits(maxSessions: 4, idleTimeout: TimeSpan.FromMinutes(2))

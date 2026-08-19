@@ -22,6 +22,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- The seed script has to sit next to the binary for the container mount to find it. -->
+    <None Include="init\**" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\..\..\Nextended.Aspire.Hosting.WebDataStudio\Nextended.Aspire.Hosting.WebDataStudio.csproj" IsAspireProjectResource="false" />
   </ItemGroup>
 

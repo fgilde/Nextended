@@ -135,6 +135,34 @@ public class WebDataStudioExtensionsTests
     }
 
     [Fact]
+    public async Task TheStudioIsNamedAfterItsResource()
+    {
+        var studio = DistributedApplication.CreateBuilder().AddWebDataStudio("analytics-studio");
+
+        Assert.Equal("analytics-studio", studio.Resource.Title);
+        Assert.Equal("analytics-studio", (await EnvOf(studio.Resource))["WDS_TITLE"]);
+    }
+
+    [Fact]
+    public async Task WithTitle_OverridesTheName()
+    {
+        var studio = Add().WithTitle("Analytics");
+
+        Assert.Equal("Analytics", studio.Resource.Title);
+        Assert.Equal("Analytics", (await EnvOf(studio.Resource))["WDS_TITLE"]);
+    }
+
+    [Fact]
+    public async Task WithTitle_Null_LeavesTheStudioUnnamed()
+    {
+        var studio = Add().WithTitle(null);
+
+        // The studio reads an empty value as "no name" and shows nothing at all.
+        Assert.Null(studio.Resource.Title);
+        Assert.Equal("", (await EnvOf(studio.Resource))["WDS_TITLE"]);
+    }
+
+    [Fact]
     public async Task Options_AreWrittenAsTheStudioSpellsThem()
     {
         var studio = Add()
