@@ -77,6 +77,34 @@ function Step($msg) { Write-Host "`n=== $msg ===" -ForegroundColor Cyan }
 function Info($msg) { Write-Host "    $msg" -ForegroundColor DarkGray }
 function Warn($msg) { Write-Host "    $msg" -ForegroundColor Yellow }
 
+# NuGet normalises a package version before it names the .nupkg: 10.2.00 becomes 10.2.0, and
+# 1.02.3 becomes 1.2.3. The version handed in here comes from a release tag, so it is whatever
+# a human typed. Normalising it once at the entry point keeps every downstream use consistent —
+# the artifacts\<Id>.<Version>.nupkg lookups, the nuget.org preflight query and the git tag.
+#
+# Without this, a tag of 10.2.00 packs successfully and then dies at the staging step with
+# "Expected package not found: ...Nextended.Core.10.2.00.nupkg", because the file on disk is
+# Nextended.Core.10.2.0.nupkg.
+function Get-NormalizedNuGetVersion([string]$raw) {
+    $v = $raw.Trim()
+    if ($v.StartsWith('v', [System.StringComparison]::OrdinalIgnoreCase)) { $v = $v.Substring(1) }
+
+    # Split off a prerelease/build suffix; only the numeric core is normalised.
+    $core, $suffix = $v -split '(?=[-+])', 2
+    $parts = $core -split '\.' | ForEach-Object { [int]$_ }
+
+    # NuGet also drops a fourth segment when it is zero (1.2.3.0 -> 1.2.3).
+    while ($parts.Count -gt 3 -and $parts[-1] -eq 0) { $parts = $parts[0..($parts.Count - 2)] }
+
+    return ($parts -join '.') + $suffix
+}
+
+$normalized = Get-NormalizedNuGetVersion $Version
+if ($normalized -ne $Version) {
+    Warn "Version '$Version' normalised to '$normalized' (NuGet names the .nupkg this way)."
+    $Version = $normalized
+}
+
 function Invoke-Dotnet {
     param([string[]]$DotnetArgs)
     & dotnet @DotnetArgs
