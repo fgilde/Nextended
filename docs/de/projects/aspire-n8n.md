@@ -1,26 +1,12 @@
 ---
-layout: default
 title: Nextended.Aspire.Hosting.N8n
-parent: Projekte
-grand_parent: Deutsch
-nav_order: 13
 ---
-
 # Nextended.Aspire.Hosting.N8n
-{: .no_toc }
 
-🇬🇧 [This page in English](https://github.com/fgilde/Nextended/blob/main/docs/projects/aspire-n8n.md)
+🇬🇧 [This page in English](/projects/aspire-n8n)
 
 Die Workflow-Automatisierung n8n als Aspire-Ressource — mit Postgres-Persistenz, Workflow-Import und typisiertem Client zum Auslösen von Workflows aus .NET.
-{: .fs-5 .fw-300 }
-
 [![NuGet](https://img.shields.io/nuget/v/Nextended.Aspire.Hosting.N8n.svg)](https://www.nuget.org/packages/Nextended.Aspire.Hosting.N8n/)
-
-## Inhalt
-{: .no_toc .text-delta }
-
-1. TOC
-{:toc}
 
 ---
 
@@ -37,9 +23,7 @@ Die Workflow-Automatisierung n8n als Aspire-Ressource — mit Postgres-Persisten
 Die **vollständige Referenz** — alle Typen, Builder, Optionen und ausführlich kommentierte
 Codebeispiele — steht auf der englischen Seite:
 
-[📖 Nextended.Aspire.Hosting.N8n — vollständige Referenz (englisch)](https://github.com/fgilde/Nextended/blob/main/docs/projects/aspire-n8n.md)
-{: .fs-5 }
-
+[📖 Nextended.Aspire.Hosting.N8n — vollständige Referenz (englisch)](/projects/aspire-n8n)
 Ebenso ausführlich und ebenfalls englisch ist das Paket-README:
 
 [📄 Nextended.Aspire.Hosting.N8n/README.md](https://github.com/fgilde/Nextended/blob/main/Nextended.Aspire.Hosting.N8n/README.md)
@@ -74,7 +58,7 @@ Cross-platform
 ## Links
 
 - 📦 [NuGet-Paket](https://www.nuget.org/packages/Nextended.Aspire.Hosting.N8n/)
-- 📖 [Vollständige Referenz (englisch)](https://github.com/fgilde/Nextended/blob/main/docs/projects/aspire-n8n.md)
+- 📖 [Vollständige Referenz (englisch)](/projects/aspire-n8n)
 - 🧑‍💻 [Quellcode](https://github.com/fgilde/Nextended/tree/main/Nextended.Aspire.Hosting.N8n)
 - 📄 [Paket-README](https://github.com/fgilde/Nextended/blob/main/Nextended.Aspire.Hosting.N8n/README.md)
 - 🐛 [Fehler melden](https://github.com/fgilde/Nextended/issues)

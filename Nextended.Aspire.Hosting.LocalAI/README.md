@@ -11,7 +11,7 @@
 
 > Self-hosted, OpenAI-compatible multimodal AI — image generation, text-to-speech, speech-to-text and video — with gallery model management, GPU support and Open WebUI.
 
-📖 **Documentation:** [English](https://github.com/fgilde/Nextended/blob/main/docs/projects/aspire-localai.md) · [Deutsch](https://github.com/fgilde/Nextended/blob/main/docs/de/projects/aspire-localai.md) &nbsp;|&nbsp; 🧪 **Runnable sample:** [AiStack.AppHost](https://github.com/fgilde/Nextended/tree/main/Tests/TestProjects/AiStack.AppHost)
+📖 **Documentation:** [English](https://fgilde.github.io/Nextended/projects/aspire-localai) · [Deutsch](https://fgilde.github.io/Nextended/de/projects/aspire-localai) &nbsp;|&nbsp; 🧪 **Runnable sample:** [AiStack.AppHost](https://github.com/fgilde/Nextended/tree/main/Tests/TestProjects/AiStack.AppHost)
 <!-- NEXTENDED:HEADER:END -->
 
 Self-hosted, **OpenAI-compatible multimodal AI** for .NET Aspire — the self-hosted counterpart
@@ -592,8 +592,8 @@ All UIs are dev-time only (`ExcludeFromManifest`).
 ## Links
 
 - 📦 [NuGet package](https://www.nuget.org/packages/Nextended.Aspire.Hosting.LocalAI/)
-- 📖 [Documentation — English](https://github.com/fgilde/Nextended/blob/main/docs/projects/aspire-localai.md)
-- 📖 [Dokumentation — Deutsch](https://github.com/fgilde/Nextended/blob/main/docs/de/projects/aspire-localai.md)
+- 📖 [Documentation — English](https://fgilde.github.io/Nextended/projects/aspire-localai)
+- 📖 [Dokumentation — Deutsch](https://fgilde.github.io/Nextended/de/projects/aspire-localai)
 - 🏠 [Documentation portal](https://fgilde.github.io/Nextended)
 - 🧪 [Runnable sample](https://github.com/fgilde/Nextended/tree/main/Tests/TestProjects/AiStack.AppHost)
 - 🧑‍💻 [Source code](https://github.com/fgilde/Nextended/tree/main/Nextended.Aspire.Hosting.LocalAI)

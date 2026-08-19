@@ -11,7 +11,7 @@
 
 > Grafana, Prometheus, Loki, Tempo, Promtail, cAdvisor, postgres_exporter and the OpenTelemetry Collector as composable resources with auto-provisioned datasources.
 
-📖 **Documentation:** [English](https://github.com/fgilde/Nextended/blob/main/docs/projects/aspire-grafana.md) · [Deutsch](https://github.com/fgilde/Nextended/blob/main/docs/de/projects/aspire-grafana.md) &nbsp;|&nbsp; 🧪 **Runnable sample:** [Grafana.AppHost](https://github.com/fgilde/Nextended/tree/main/Tests/TestProjects/Grafana.AppHost)
+📖 **Documentation:** [English](https://fgilde.github.io/Nextended/projects/aspire-grafana) · [Deutsch](https://fgilde.github.io/Nextended/de/projects/aspire-grafana) &nbsp;|&nbsp; 🧪 **Runnable sample:** [Grafana.AppHost](https://github.com/fgilde/Nextended/tree/main/Tests/TestProjects/Grafana.AppHost)
 <!-- NEXTENDED:HEADER:END -->
 
 Grafana observability stack for .NET Aspire — Grafana, Prometheus, Loki, Tempo, Promtail, cAdvisor, postgres_exporter and OpenTelemetry Collector as composable container resources. Datasources are auto-provisioned, all YAML configs are generated at application start from the actual resource names — no hardcoded config files, and the fluent calls work in any order.
@@ -137,8 +137,8 @@ that derives the Postgres connection from a Supabase stack:
 ## Links
 
 - 📦 [NuGet package](https://www.nuget.org/packages/Nextended.Aspire.Hosting.Grafana/)
-- 📖 [Documentation — English](https://github.com/fgilde/Nextended/blob/main/docs/projects/aspire-grafana.md)
-- 📖 [Dokumentation — Deutsch](https://github.com/fgilde/Nextended/blob/main/docs/de/projects/aspire-grafana.md)
+- 📖 [Documentation — English](https://fgilde.github.io/Nextended/projects/aspire-grafana)
+- 📖 [Dokumentation — Deutsch](https://fgilde.github.io/Nextended/de/projects/aspire-grafana)
 - 🏠 [Documentation portal](https://fgilde.github.io/Nextended)
 - 🧪 [Runnable sample](https://github.com/fgilde/Nextended/tree/main/Tests/TestProjects/Grafana.AppHost)
 - 🧑‍💻 [Source code](https://github.com/fgilde/Nextended/tree/main/Nextended.Aspire.Hosting.Grafana)

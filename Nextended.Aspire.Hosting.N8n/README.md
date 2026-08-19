@@ -11,7 +11,7 @@
 
 > The n8n workflow-automation platform as an Aspire resource, with Postgres persistence, workflow import and a typed client for triggering workflows from .NET.
 
-📖 **Documentation:** [English](https://github.com/fgilde/Nextended/blob/main/docs/projects/aspire-n8n.md) · [Deutsch](https://github.com/fgilde/Nextended/blob/main/docs/de/projects/aspire-n8n.md) &nbsp;|&nbsp; 🧪 **Runnable sample:** [N8n.AppHost](https://github.com/fgilde/Nextended/tree/main/Tests/TestProjects/N8n.AppHost)
+📖 **Documentation:** [English](https://fgilde.github.io/Nextended/projects/aspire-n8n) · [Deutsch](https://fgilde.github.io/Nextended/de/projects/aspire-n8n) &nbsp;|&nbsp; 🧪 **Runnable sample:** [N8n.AppHost](https://github.com/fgilde/Nextended/tree/main/Tests/TestProjects/N8n.AppHost)
 <!-- NEXTENDED:HEADER:END -->
 
 A first-class [.NET Aspire](https://learn.microsoft.com/dotnet/aspire/) integration for
@@ -371,8 +371,8 @@ Override the image with `WithImage("n8nio/n8n", "<tag>")` or `WithImageTag("<tag
 ## Links
 
 - 📦 [NuGet package](https://www.nuget.org/packages/Nextended.Aspire.Hosting.N8n/)
-- 📖 [Documentation — English](https://github.com/fgilde/Nextended/blob/main/docs/projects/aspire-n8n.md)
-- 📖 [Dokumentation — Deutsch](https://github.com/fgilde/Nextended/blob/main/docs/de/projects/aspire-n8n.md)
+- 📖 [Documentation — English](https://fgilde.github.io/Nextended/projects/aspire-n8n)
+- 📖 [Dokumentation — Deutsch](https://fgilde.github.io/Nextended/de/projects/aspire-n8n)
 - 🏠 [Documentation portal](https://fgilde.github.io/Nextended)
 - 🧪 [Runnable sample](https://github.com/fgilde/Nextended/tree/main/Tests/TestProjects/N8n.AppHost)
 - 🧑‍💻 [Source code](https://github.com/fgilde/Nextended/tree/main/Nextended.Aspire.Hosting.N8n)

@@ -1,13 +1,9 @@
 ---
-layout: default
 title: Nextended.Aspire
-parent: Projects
-nav_order: 11
 ---
-
 # Nextended.Aspire
 
-🇩🇪 [Diese Seite auf Deutsch](https://github.com/fgilde/Nextended/blob/main/docs/de/projects/aspire.md)
+🇩🇪 [Diese Seite auf Deutsch](/de/projects/aspire)
 
 Extensions for .NET Aspire distributed application framework.
 

@@ -2,7 +2,7 @@
 <#
 .SYNOPSIS
     Renders every package listing, README header/footer and the docs-site icon from
-    one source of truth: docs/_data/packages.json.
+    one source of truth: docs/data/packages.json.
 
 .DESCRIPTION
     Nextended ships 18 NuGet packages. Keeping the package table, the framework
@@ -15,8 +15,7 @@
       * root README.md .......... HEADER + full PACKAGES table + FOOTER
       * <Package>/README.md ..... HEADER + FOOTER (the body in between is hand-written
                                   and never touched)
-      * docs/assets/icon.png .... copy of the single root icon.png, for the Jekyll site
-      * docs/_config.yml ........ favicon/logo reference (only if absent)
+      * docs/public/icon.png .... copy of the single root icon.png, served by VitePress
 
     Everything it writes lives between HTML comment markers:
 
@@ -28,9 +27,9 @@
     never invents structure, so hand-written prose is safe.
 
     The documentation site does NOT use this script for its listings: docs/index.md
-    and docs/projects/README.md (plus the German mirror) render the same
-    docs/_data/packages.json through Liquid at build time, so they are always current
-    without a generator step.
+    and docs/projects/index.md (plus the German mirror under docs/de) import the same
+    docs/data/packages.json and render it with Vue at build time, so they are always
+    current without a generator step.
 
 .PARAMETER Check
     Validate and report drift without writing anything. Exit code 1 when a package is
@@ -38,11 +37,11 @@
     exist, or when any generated block is out of date. Use this in CI.
 
 .PARAMETER SkipIcon
-    Do not copy the root icon.png into docs/assets/.
+    Do not copy the root icon.png into docs/public/.
 
 .NOTES
-    The data file format (docs/_data/packages.json) is JSON rather than YAML on
-    purpose: Jekyll and PowerShell both parse JSON with zero extra dependencies.
+    The data file format (docs/data/packages.json) is JSON rather than YAML on
+    purpose: VitePress and PowerShell both parse JSON with zero extra dependencies.
     It therefore cannot carry comments, so the field reference lives here:
 
       meta.repo          repository base URL
@@ -61,7 +60,7 @@
 
 .EXAMPLE
     pwsh tools/Update-PackageDocs.ps1
-    Regenerate every block. Run this after editing docs/_data/packages.json or after
+    Regenerate every block. Run this after editing docs/data/packages.json or after
     replacing icon.png.
 
 .EXAMPLE
@@ -79,7 +78,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 $repoRoot = Split-Path -Parent $PSScriptRoot
-$dataFile = Join-Path $repoRoot 'docs/_data/packages.json'
+$dataFile = Join-Path $repoRoot 'docs/data/packages.json'
 
 # ---------------------------------------------------------------------------
 # -IfNeeded: the mode the MSBuild target (Directory.Build.targets) uses.
@@ -160,7 +159,7 @@ $listed = @($packages | ForEach-Object { $_.name })
 foreach ($name in $onDisk) {
     if ($ignoredProjects -contains $name) { continue }
     if ($listed -notcontains $name) {
-        $problems.Add("Project '$name' has a csproj but no entry in docs/_data/packages.json.")
+        $problems.Add("Project '$name' has a csproj but no entry in docs/data/packages.json.")
     }
 }
 foreach ($name in $listed) {
@@ -188,8 +187,11 @@ foreach ($pkg in $packages) {
 # ---------------------------------------------------------------------------
 
 function Get-NuGetUrl([string] $name) { "https://www.nuget.org/packages/$name/" }
-function Get-DocsUrlEn([object] $pkg) { "$($meta.repo)/blob/main/docs/projects/$($pkg.slug).md" }
-function Get-DocsUrlDe([object] $pkg) { "$($meta.repo)/blob/main/docs/de/projects/$($pkg.slug).md" }
+# Point at the published VitePress site, not at the markdown source on GitHub. A reader who
+# follows a "Documentation" link from nuget.org wants the rendered page with its navigation,
+# search and language switch — not a raw .md file.
+function Get-DocsUrlEn([object] $pkg) { "$($meta.docsSite)/projects/$($pkg.slug)" }
+function Get-DocsUrlDe([object] $pkg) { "$($meta.docsSite)/de/projects/$($pkg.slug)" }
 function Get-SourceUrl([object] $pkg) { "$($meta.repo)/tree/main/$($pkg.name)" }
 function Get-SampleUrl([object] $pkg) { "$($meta.repo)/tree/main/$($pkg.sample)" }
 
@@ -442,7 +444,7 @@ if (Test-Path $rootReadme) {
 }
 
 # ---------------------------------------------------------------------------
-# Icon — one source file, copied where a copy is unavoidable (Jekyll assets)
+# Icon — one source file, copied where a copy is unavoidable (the VitePress public dir)
 # ---------------------------------------------------------------------------
 
 if (-not $SkipIcon) {
@@ -450,7 +452,7 @@ if (-not $SkipIcon) {
     if (-not (Test-Path $iconSource)) {
         $problems.Add("Icon source not found: $($meta.iconSource)")
     } else {
-        $iconTarget = Join-Path $repoRoot 'docs/assets/icon.png'
+        $iconTarget = Join-Path $repoRoot 'docs/public/icon.png'
         $targetDir = Split-Path -Parent $iconTarget
         if (-not (Test-Path $targetDir)) {
             if (-not $Check) { New-Item -ItemType Directory -Path $targetDir -Force | Out-Null }
@@ -463,10 +465,10 @@ if (-not $SkipIcon) {
 
         if ($sourceHash -ne $targetHash) {
             if ($Check) {
-                $staleFiles.Add('docs/assets/icon.png')
+                $staleFiles.Add('docs/public/icon.png')
             } else {
                 Copy-Item -LiteralPath $iconSource -Destination $iconTarget -Force
-                $writtenFiles.Add('docs/assets/icon.png')
+                $writtenFiles.Add('docs/public/icon.png')
             }
         }
     }

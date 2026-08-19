@@ -11,7 +11,7 @@
 
 > Blazor helpers — IBrowserFile extensions (bytes, data URLs, downloads), a hierarchical model for browsing inside uploaded zip/tar/rar archives, MIME-type detection and component-parameter reflection.
 
-📖 **Documentation:** [English](https://github.com/fgilde/Nextended/blob/main/docs/projects/blazor.md) · [Deutsch](https://github.com/fgilde/Nextended/blob/main/docs/de/projects/blazor.md)
+📖 **Documentation:** [English](https://fgilde.github.io/Nextended/projects/blazor) · [Deutsch](https://fgilde.github.io/Nextended/de/projects/blazor)
 <!-- NEXTENDED:HEADER:END -->
 
 ## Installation
@@ -173,8 +173,8 @@ Useful when parameters arrive from configuration or JSON and you want to avoid a
 ## Links
 
 - 📦 [NuGet package](https://www.nuget.org/packages/Nextended.Blazor/)
-- 📖 [Documentation — English](https://github.com/fgilde/Nextended/blob/main/docs/projects/blazor.md)
-- 📖 [Dokumentation — Deutsch](https://github.com/fgilde/Nextended/blob/main/docs/de/projects/blazor.md)
+- 📖 [Documentation — English](https://fgilde.github.io/Nextended/projects/blazor)
+- 📖 [Dokumentation — Deutsch](https://fgilde.github.io/Nextended/de/projects/blazor)
 - 🏠 [Documentation portal](https://fgilde.github.io/Nextended)
 - 🧑‍💻 [Source code](https://github.com/fgilde/Nextended/tree/main/Nextended.Blazor)
 - 🐛 [Report an issue](https://github.com/fgilde/Nextended/issues)

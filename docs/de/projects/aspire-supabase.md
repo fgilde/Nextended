@@ -1,26 +1,12 @@
 ---
-layout: default
 title: Nextended.Aspire.Hosting.Supabase
-parent: Projekte
-grand_parent: Deutsch
-nav_order: 12
 ---
-
 # Nextended.Aspire.Hosting.Supabase
-{: .no_toc }
 
-🇬🇧 [This page in English](https://github.com/fgilde/Nextended/blob/main/docs/projects/aspire-supabase.md)
+🇬🇧 [This page in English](/projects/aspire-supabase)
 
 Der komplette Supabase-Stack — Postgres, Auth (GoTrue), REST, Realtime, Storage, Studio, Kong und Edge Functions — als eine kombinierbare Aspire-Ressource.
-{: .fs-5 .fw-300 }
-
 [![NuGet](https://img.shields.io/nuget/v/Nextended.Aspire.Hosting.Supabase.svg)](https://www.nuget.org/packages/Nextended.Aspire.Hosting.Supabase/)
-
-## Inhalt
-{: .no_toc .text-delta }
-
-1. TOC
-{:toc}
 
 ---
 
@@ -37,9 +23,7 @@ Der komplette Supabase-Stack — Postgres, Auth (GoTrue), REST, Realtime, Storag
 Die **vollständige Referenz** — alle Typen, Builder, Optionen und ausführlich kommentierte
 Codebeispiele — steht auf der englischen Seite:
 
-[📖 Nextended.Aspire.Hosting.Supabase — vollständige Referenz (englisch)](https://github.com/fgilde/Nextended/blob/main/docs/projects/aspire-supabase.md)
-{: .fs-5 }
-
+[📖 Nextended.Aspire.Hosting.Supabase — vollständige Referenz (englisch)](/projects/aspire-supabase)
 Ebenso ausführlich und ebenfalls englisch ist das Paket-README:
 
 [📄 Nextended.Aspire.Hosting.Supabase/README.md](https://github.com/fgilde/Nextended/blob/main/Nextended.Aspire.Hosting.Supabase/README.md)
@@ -75,7 +59,7 @@ Cross-platform
 ## Links
 
 - 📦 [NuGet-Paket](https://www.nuget.org/packages/Nextended.Aspire.Hosting.Supabase/)
-- 📖 [Vollständige Referenz (englisch)](https://github.com/fgilde/Nextended/blob/main/docs/projects/aspire-supabase.md)
+- 📖 [Vollständige Referenz (englisch)](/projects/aspire-supabase)
 - 🧑‍💻 [Quellcode](https://github.com/fgilde/Nextended/tree/main/Nextended.Aspire.Hosting.Supabase)
 - 📄 [Paket-README](https://github.com/fgilde/Nextended/blob/main/Nextended.Aspire.Hosting.Supabase/README.md)
 - 🐛 [Fehler melden](https://github.com/fgilde/Nextended/issues)

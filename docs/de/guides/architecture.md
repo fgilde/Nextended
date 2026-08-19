@@ -1,26 +1,13 @@
 ---
-layout: default
 title: Architektur
-parent: Deutsch
-nav_order: 3
 ---
-
 # Architekturüberblick
-{: .no_toc }
 
-🇬🇧 [This page in English](../../guides/architecture.md)
+🇬🇧 [This page in English](/guides/architecture.md)
 
 Wie die Pakete zusammenhängen, welche Entwurfsentscheidungen sie prägen und wo im Repository was
 liegt.
-{: .fs-5 .fw-300 }
 
-## Inhalt
-{: .no_toc .text-delta }
-
-1. TOC
-{:toc}
-
----
 
 ## Aufbau der Sammlung
 
@@ -50,7 +37,7 @@ nur zur Buildzeit:
 ```
 
 Die vollständige Matrix mit Zielframeworks und Plattformen steht in der
-[Projektübersicht](../projects/README.md).
+[Projektübersicht](/projects/).
 
 ## Leitgedanken
 
@@ -101,7 +88,7 @@ Nextended.sln
 ├─ Nextended.Aspire*/            .NET-Aspire-Hosting-Integrationen
 ├─ Tests/                        Unit-Tests und die ausführbaren Beispielprojekte
 ├─ docs/                         Dokumentationssite (englisch), docs/de (deutsch)
-│  └─ _data/packages.json        einzige Quelle der Wahrheit für alle Paketlisten
+│  └─ data/packages.json        einzige Quelle der Wahrheit für alle Paketlisten
 └─ tools/Update-PackageDocs.ps1  erzeugt Listen, README-Blöcke und das Doku-Icon
 ```
 
@@ -124,7 +111,7 @@ Pakete stillschweigend das Root-README an nuget.org aus.
 ### Generierte Dokumentationsteile
 
 Paketlisten, README-Kopf- und Fußbereiche sowie das Icon der Doku-Site werden erzeugt, nicht gepflegt.
-Quelle ist `docs/_data/packages.json`; die Doku-Site liest sie über Liquid direkt, die READMEs über
+Quelle ist `docs/data/packages.json`; die Doku-Site liest sie über Liquid direkt, die READMEs über
 `tools/Update-PackageDocs.ps1`. Der Generator schlägt fehl, wenn ein Paket in der Datei fehlt oder
 umgekehrt — die Listen können also nicht mehr auseinanderlaufen.
 
@@ -147,6 +134,6 @@ Tests/
 
 ## Links
 
-- [Alle Pakete](../projects/README.md)
+- [Alle Pakete](/projects/)
 - [Installation](installation.md)
 - [Typische Anwendungsfälle](../examples/common-use-cases.md)

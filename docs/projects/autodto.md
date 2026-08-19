@@ -1,10 +1,6 @@
 ---
-layout: default
 title: Nextended.AutoDto
-parent: Projects
-nav_order: 4
 ---
-
 # Nextended.AutoDto
 
 Automatic DTO generation support library for Nextended.CodeGen.

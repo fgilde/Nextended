@@ -11,7 +11,7 @@
 
 > Entity Framework Core extensions — graph loading (LoadGraphAsync, IncludeAll, MultiInclude), declarative include definitions, paging, dynamic sorting and bulk operations.
 
-📖 **Documentation:** [English](https://github.com/fgilde/Nextended/blob/main/docs/projects/ef.md) · [Deutsch](https://github.com/fgilde/Nextended/blob/main/docs/de/projects/ef.md)
+📖 **Documentation:** [English](https://fgilde.github.io/Nextended/projects/ef) · [Deutsch](https://fgilde.github.io/Nextended/de/projects/ef)
 <!-- NEXTENDED:HEADER:END -->
 
 ## Installation
@@ -201,8 +201,8 @@ change-tracker operations on the InMemory provider, so the same code runs in uni
 ## Links
 
 - 📦 [NuGet package](https://www.nuget.org/packages/Nextended.EF/)
-- 📖 [Documentation — English](https://github.com/fgilde/Nextended/blob/main/docs/projects/ef.md)
-- 📖 [Dokumentation — Deutsch](https://github.com/fgilde/Nextended/blob/main/docs/de/projects/ef.md)
+- 📖 [Documentation — English](https://fgilde.github.io/Nextended/projects/ef)
+- 📖 [Dokumentation — Deutsch](https://fgilde.github.io/Nextended/de/projects/ef)
 - 🏠 [Documentation portal](https://fgilde.github.io/Nextended)
 - 🧑‍💻 [Source code](https://github.com/fgilde/Nextended/tree/main/Nextended.EF)
 - 🐛 [Report an issue](https://github.com/fgilde/Nextended/issues)

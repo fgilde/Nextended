@@ -1,11 +1,6 @@
 ---
-layout: default
 title: Guides
-nav_order: 4
-has_children: true
-permalink: /guides
 ---
-
 # Guides
 
 Step-by-step guides for getting started with Nextended.

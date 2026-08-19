@@ -1,10 +1,6 @@
 ---
-layout: default
 title: Class Mapping
-parent: API Reference
-nav_order: 3
 ---
-
 # Class Mapping
 
 Nextended.Core provides a powerful object-to-object mapping system that allows you to convert between different types without external dependencies like AutoMapper. The class mapping feature is lightweight, flexible, and supports a wide range of conversion scenarios.
@@ -744,7 +740,7 @@ The test suite includes verified examples of:
 
 #### Advanced Features
 - **TestInterface**: Creating instances of interfaces dynamically
-- **TestSystemInterface**: Mapping to system interfaces like IList<T>
+- **TestSystemInterface**: Mapping to system interfaces like `IList<T>`
 - **TestString**: String to char array and list conversions
 
 #### Custom Converters

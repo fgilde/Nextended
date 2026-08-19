@@ -11,7 +11,7 @@
 
 > ASP.NET Core utilities — zero-config OData (AddODataAuto), composable IQueryable OData appliers, strongly typed controller URLs, streaming download helpers and a background executor that can replay a captured request.
 
-📖 **Documentation:** [English](https://github.com/fgilde/Nextended/blob/main/docs/projects/web.md) · [Deutsch](https://github.com/fgilde/Nextended/blob/main/docs/de/projects/web.md)
+📖 **Documentation:** [English](https://fgilde.github.io/Nextended/projects/web) · [Deutsch](https://fgilde.github.io/Nextended/de/projects/web)
 <!-- NEXTENDED:HEADER:END -->
 
 ## Installation
@@ -226,8 +226,8 @@ Looking for permission-aware response shaping instead? That is
 ## Links
 
 - 📦 [NuGet package](https://www.nuget.org/packages/Nextended.Web/)
-- 📖 [Documentation — English](https://github.com/fgilde/Nextended/blob/main/docs/projects/web.md)
-- 📖 [Dokumentation — Deutsch](https://github.com/fgilde/Nextended/blob/main/docs/de/projects/web.md)
+- 📖 [Documentation — English](https://fgilde.github.io/Nextended/projects/web)
+- 📖 [Dokumentation — Deutsch](https://fgilde.github.io/Nextended/de/projects/web)
 - 🏠 [Documentation portal](https://fgilde.github.io/Nextended)
 - 🧑‍💻 [Source code](https://github.com/fgilde/Nextended/tree/main/Nextended.Web)
 - 🐛 [Report an issue](https://github.com/fgilde/Nextended/issues)

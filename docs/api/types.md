@@ -1,10 +1,6 @@
 ---
-layout: default
 title: Custom Types
-parent: API Reference
-nav_order: 2
 ---
-
 # Custom Types Reference
 
 This page documents the custom types provided by Nextended.Core.
@@ -144,7 +140,7 @@ Console.WriteLine($"Age: {age} years");
 
 ---
 
-## BaseId<T>
+## `BaseId<T>`
 
 **Namespace**: `Nextended.Core.Types`
 
@@ -202,7 +198,7 @@ var user = new User { Id = userId };
 
 ---
 
-## SuperType<TType>
+## `SuperType<TType>`
 
 **Namespace**: `Nextended.Core.Types`
 
@@ -256,7 +252,7 @@ var cars = vehicles.Where(v => v.Type == VehicleType.Car);
 
 ---
 
-## Range<T>
+## `Range<T>`
 
 **Namespace**: `Nextended.Core.Types`
 
@@ -352,17 +348,17 @@ var gbpPrice = new Money(75m, Currency.GBP);
 
 ---
 
-## SimpleRange<T>
+## `SimpleRange<T>`
 
 **Namespace**: `Nextended.Core.Types`
 
-A simplified version of Range<T> for common scenarios.
+A simplified version of `Range<T>` for common scenarios.
 
 Similar to `Range<T>` but with simplified API for common use cases.
 
 ---
 
-## Hierarchical<T>
+## `Hierarchical<T>`
 
 **Namespace**: `Nextended.Core.Types`
 
@@ -436,7 +432,7 @@ var topLevel = laptops.Parent.Parent; // electronics
    if (Date.Today > startDate) // Clean comparison
    ```
 
-### BaseId<T>
+### `BaseId<T>`
 
 1. **Create specific ID types for each entity**:
    ```csharp
@@ -445,7 +441,7 @@ var topLevel = laptops.Parent.Parent; // electronics
    // Now UserId and OrderId are not interchangeable
    ```
 
-### Range<T>
+### `Range<T>`
 
 1. **Validate ranges before use**:
    ```csharp

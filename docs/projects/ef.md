@@ -1,13 +1,9 @@
 ---
-layout: default
 title: Nextended.EF
-parent: Projects
-nav_order: 3
 ---
-
 # Nextended.EF
 
-🇩🇪 [Diese Seite auf Deutsch](https://github.com/fgilde/Nextended/blob/main/docs/de/projects/ef.md)
+🇩🇪 [Diese Seite auf Deutsch](/de/projects/ef)
 
 Entity Framework Core extensions: graph loading, declarative includes,
 paging & sorting, query-comfort helpers, DbContext utilities and bulk operations.

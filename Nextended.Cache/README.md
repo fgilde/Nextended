@@ -11,7 +11,7 @@
 
 > Expression-based caching — automatic cache keys from method expressions, CacheProvider with condition-based invalidation, thread-safe AddOrGetExisting.
 
-📖 **Documentation:** [English](https://github.com/fgilde/Nextended/blob/main/docs/projects/cache.md) · [Deutsch](https://github.com/fgilde/Nextended/blob/main/docs/de/projects/cache.md)
+📖 **Documentation:** [English](https://fgilde.github.io/Nextended/projects/cache) · [Deutsch](https://fgilde.github.io/Nextended/de/projects/cache)
 <!-- NEXTENDED:HEADER:END -->
 
 ## Installation
@@ -185,8 +185,8 @@ var cache = new CacheProvider(
 ## Links
 
 - 📦 [NuGet package](https://www.nuget.org/packages/Nextended.Cache/)
-- 📖 [Documentation — English](https://github.com/fgilde/Nextended/blob/main/docs/projects/cache.md)
-- 📖 [Dokumentation — Deutsch](https://github.com/fgilde/Nextended/blob/main/docs/de/projects/cache.md)
+- 📖 [Documentation — English](https://fgilde.github.io/Nextended/projects/cache)
+- 📖 [Dokumentation — Deutsch](https://fgilde.github.io/Nextended/de/projects/cache)
 - 🏠 [Documentation portal](https://fgilde.github.io/Nextended)
 - 🧑‍💻 [Source code](https://github.com/fgilde/Nextended/tree/main/Nextended.Cache)
 - 🐛 [Report an issue](https://github.com/fgilde/Nextended/issues)

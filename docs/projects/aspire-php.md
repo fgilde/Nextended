@@ -1,25 +1,12 @@
 ---
-layout: default
 title: Nextended.Aspire.Hosting.Php
-parent: Projects
-nav_order: 18
 ---
-
 # Nextended.Aspire.Hosting.Php
-{: .no_toc }
 
 Run PHP endpoints inside your Aspire stack — a docroot folder or a single router script served by PHP's built-in web server, with php.ini settings as fluent options.
-{: .fs-5 .fw-300 }
-
 [![NuGet](https://img.shields.io/nuget/v/Nextended.Aspire.Hosting.Php.svg)](https://www.nuget.org/packages/Nextended.Aspire.Hosting.Php/)
 
-🇩🇪 [Diese Seite auf Deutsch](https://github.com/fgilde/Nextended/blob/main/docs/de/projects/aspire-php.md)
-
-## Table of contents
-{: .no_toc .text-delta }
-
-1. TOC
-{:toc}
+🇩🇪 [Diese Seite auf Deutsch](/de/projects/aspire-php)
 
 ---
 

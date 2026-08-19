@@ -1,26 +1,13 @@
 ---
-layout: default
 title: Typische Anwendungsfälle
-parent: Deutsch
-nav_order: 4
 ---
-
 # Typische Anwendungsfälle
-{: .no_toc }
 
-🇬🇧 [This page in English](../../examples/common-use-cases.md)
+🇬🇧 [This page in English](/examples/common-use-cases.md)
 
 Aufgabenorientierte Beispiele quer über die Pakete. Alle gezeigten Methodennamen sind gegen den
 Quellcode geprüft.
-{: .fs-5 .fw-300 }
 
-## Inhalt
-{: .no_toc .text-delta }
-
-1. TOC
-{:toc}
-
----
 
 ## Objekte abbilden, ohne einen Mapper einzurichten
 
@@ -62,7 +49,6 @@ var copy = order.CloneDeep();
 Referenzen bleiben erhalten, Zyklen sind kein Problem. Was nie mitkopiert werden soll, markieren Sie
 mit `[ClonerIgnore]`.
 
-{: .warning }
 > Die Methode heißt `CloneDeep()`, nicht `DeepClone()`. Ältere Fassungen dieser Dokumentation nannten
 > Methoden, die es nicht gibt — siehe die Hinweise weiter unten.
 
@@ -99,7 +85,6 @@ DateTime.UtcNow.ToISOz();
 DateTime.UtcNow.ToUnixTimeStamp();
 ```
 
-{: .warning }
 > **Nicht vorhanden:** `ToCamelCase()`, `ToSnakeCase()`, `ToKebabCase()`, `DeepClone()`,
 > `AddBusinessDays()`, `IsBusinessDay()`. Diese Namen tauchten in älteren Dokumentationsfassungen auf,
 > existieren im Code aber nicht. Richtig sind `ToCamel()`, `CloneDeep()`, `AddWeekDays()` und
@@ -299,6 +284,6 @@ Console.WriteLine($"{measured.Elapsed} für {measured.Result.Count} Zeilen");
 
 ## Links
 
-- [Alle Pakete](../projects/README.md)
+- [Alle Pakete](/projects/)
 - [Installation](../guides/installation.md)
-- [API-Referenz](../../api/extensions.md) *(englisch)*
+- [API-Referenz](/api/extensions.md) *(englisch)*

@@ -11,7 +11,7 @@
 
 > The complete Supabase stack — Postgres, Auth (GoTrue), REST, Realtime, Storage, Studio, Kong and Edge Functions — as one composable Aspire resource.
 
-📖 **Documentation:** [English](https://github.com/fgilde/Nextended/blob/main/docs/projects/aspire-supabase.md) · [Deutsch](https://github.com/fgilde/Nextended/blob/main/docs/de/projects/aspire-supabase.md) &nbsp;|&nbsp; 🧪 **Runnable sample:** [Supabase.AppHost](https://github.com/fgilde/Nextended/tree/main/Tests/TestProjects/Supabase.AppHost)
+📖 **Documentation:** [English](https://fgilde.github.io/Nextended/projects/aspire-supabase) · [Deutsch](https://fgilde.github.io/Nextended/de/projects/aspire-supabase) &nbsp;|&nbsp; 🧪 **Runnable sample:** [Supabase.AppHost](https://github.com/fgilde/Nextended/tree/main/Tests/TestProjects/Supabase.AppHost)
 <!-- NEXTENDED:HEADER:END -->
 
 A complete Supabase stack integration for .NET Aspire, providing local development with full Supabase functionality including PostgreSQL, Auth (GoTrue), REST API (PostgREST), Storage, Kong API Gateway, Studio Dashboard, and Edge Functions.
@@ -625,8 +625,8 @@ builder.Build().Run();
 ## Links
 
 - 📦 [NuGet package](https://www.nuget.org/packages/Nextended.Aspire.Hosting.Supabase/)
-- 📖 [Documentation — English](https://github.com/fgilde/Nextended/blob/main/docs/projects/aspire-supabase.md)
-- 📖 [Dokumentation — Deutsch](https://github.com/fgilde/Nextended/blob/main/docs/de/projects/aspire-supabase.md)
+- 📖 [Documentation — English](https://fgilde.github.io/Nextended/projects/aspire-supabase)
+- 📖 [Dokumentation — Deutsch](https://fgilde.github.io/Nextended/de/projects/aspire-supabase)
 - 🏠 [Documentation portal](https://fgilde.github.io/Nextended)
 - 🧪 [Runnable sample](https://github.com/fgilde/Nextended/tree/main/Tests/TestProjects/Supabase.AppHost)
 - 🧑‍💻 [Source code](https://github.com/fgilde/Nextended/tree/main/Nextended.Aspire.Hosting.Supabase)

@@ -359,3 +359,8 @@ MigrationBackup/
 
 # Generated observability configs (written at app start by Nextended.Aspire.Hosting.Grafana)
 **/observability/.generated/
+
+# VitePress
+docs/node_modules/
+docs/.vitepress/dist/
+docs/.vitepress/cache/

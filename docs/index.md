@@ -1,61 +1,128 @@
 ---
-layout: default
-title: Home
-nav_order: 1
-description: "Nextended — a .NET library suite: extension methods, custom types, caching, EF Core, ASP.NET Core response filtering, source generation and .NET Aspire hosting integrations"
-permalink: /
+layout: home
+hero:
+  name: Nextended
+  text: .NET libraries that stay out of your way
+  tagline: >
+    Extension methods and custom types, expression-based caching, EF Core graph loading,
+    permission-aware response shaping, a Roslyn source generator and eight .NET Aspire hosting
+    integrations. Independent packages on one small foundation.
+  image:
+    src: /icon.png
+    alt: Nextended
+  actions:
+    - theme: brand
+      text: Get started
+      link: /guides/installation
+    - theme: alt
+      text: All packages
+      link: /projects/
+    - theme: alt
+      text: Source
+      link: https://github.com/fgilde/Nextended
+features:
+  - title: Map objects without a mapper
+    details: >
+      Convention-based mapping needs no profile registration. Explicit assignments,
+      ignored members and type converters compose on a settings object when the conventions are
+      not enough.
+    link: /api/class-mapping
+    linkText: Class mapping
+  - title: Types that carry their meaning
+    details: >
+      Money keeps an amount and its currency together at decimal precision. Date is a date with no
+      time component, which removes the "which midnight in which zone" class of bug outright.
+    link: /api/types
+    linkText: Custom types
+  - title: Cache keys you never write
+    details: >
+      Hand over the call you would have made and the key is derived from the declaring type, the
+      method name and the actual argument values. Two call sites can no longer disagree.
+    link: /projects/cache
+    linkText: Caching
+  - title: EF Core without Include chains
+    details: >
+      Walk navigations from a loaded entity, include everything minus named paths, or declare a
+      reusable include definition once and hand it to every query that needs it.
+    link: /projects/ef
+    linkText: Entity Framework
+  - title: One response, many audiences
+    details: >
+      A declarative filter per DTO redacts, masks, rounds, truncates, hashes, prunes and even
+      renames keys before serialization — per request, per user, per permission.
+    link: /projects/responsefilters
+    linkText: Response filters
+  - title: Four generators, one config file
+    details: >
+      DTOs and mapping extensions from your entities, typed classes from JSON and XML, lookup
+      tables from Excel, and documentation from source files. The sample project checks its own
+      generated output in.
+    link: /projects/codegen
+    linkText: Source generation
+  - title: An AppHost without if-cascades
+    details: >
+      Every conditional builder call applies its step when the condition holds and returns the
+      builder untouched when it does not, so the chain stays one chain instead of branching into
+      duplicates.
+    link: /projects/aspire
+    linkText: .NET Aspire
+  - title: Whole stacks as one resource
+    details: >
+      Supabase, n8n, Grafana with its observability stack, a browser database studio, the visual
+      AppHost builder, self-hosted multimodal AI and PHP endpoints — each with a runnable sample
+      AppHost.
+    link: /projects/aspire-supabase
+    linkText: Hosting integrations
+  - title: Nothing when nothing applies
+    details: >
+      The response pipeline analyses a response's type graph once and skips the entire walk when no
+      registered filter can reach it. Metadata-driven property selection resolves at build time,
+      not per request.
+    link: /projects/responsefilters#performance
+    linkText: How it stays cheap
 ---
 
-# Nextended
-{: .no_toc }
+<script setup>
+import data from '@data/packages.json'
 
-🇩🇪 [Diese Seite auf Deutsch](https://github.com/fgilde/Nextended/blob/main/docs/de/index.md)
+const cats = data.categories
+const pkgs = data.packages
+const repo = data.meta.repo
+const base = '/Nextended/'
 
-A suite of {{ site.data.packages.packages | size }} .NET libraries covering extension methods and
-custom types, caching, EF Core, ASP.NET Core, response shaping, source generation and .NET Aspire
-hosting integrations.
-{: .fs-6 .fw-300 }
+const byCat = (id) => pkgs.filter((p) => p.category === id)
+const leaf = (path) => path.split('/').pop()
+const samples = pkgs.filter((p) => p.sample)
+</script>
 
-[![NuGet](https://img.shields.io/nuget/v/Nextended.Core.svg)](https://www.nuget.org/packages/Nextended.Core/)
-[![License](https://img.shields.io/github/license/fgilde/Nextended)](https://github.com/fgilde/Nextended/blob/main/LICENSE)
+## The packages
 
-## Table of contents
-{: .no_toc .text-delta }
+::: info Generated from one file
+This listing, the sidebar and the tables in every README all come from
+[`docs/data/packages.json`](https://github.com/fgilde/Nextended/blob/main/docs/data/packages.json).
+Adding a package there updates every one of them, so they cannot drift apart.
+:::
 
-1. TOC
-{:toc}
+<div v-for="cat in cats" :key="cat.id">
+  <h3>{{ cat.en }}</h3>
+  <table>
+    <thead>
+      <tr><th>Package</th><th>Description</th><th>Sample</th></tr>
+    </thead>
+    <tbody>
+      <tr v-for="p in byCat(cat.id)" :key="p.id">
+        <td><a :href="base + 'projects/' + p.slug"><strong>{{ p.name }}</strong></a></td>
+        <td>{{ p.summary.en }}</td>
+        <td>
+          <a v-if="p.sample" :href="repo + '/tree/main/' + p.sample">{{ leaf(p.sample) }}</a>
+          <span v-else>—</span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>
 
----
-
-## Overview
-
-The packages are independent — take `Nextended.Core` on its own, or add only the Aspire integration
-you need. Everything except `Nextended.CodeGen` builds on `Nextended.Core`.
-
-Originally published as **nExt**, the suite was renamed to Nextended and now targets .NET 8, 9 and 10.
-See the [migration guide](guides/migration.md).
-
-{: .note }
-> The package listings on this site are generated from
-> [`docs/_data/packages.json`](https://github.com/fgilde/Nextended/blob/main/docs/_data/packages.json),
-> so they cannot fall out of step with the repository.
-
-## Packages
-
-{% assign pkgs = site.data.packages.packages %}
-{% assign cats = site.data.packages.categories %}
-{% assign repo = site.data.packages.meta.repo %}
-
-{% for cat in cats %}
-### {{ cat.en }}
-
-| Package | Description | Sample |
-| --- | --- | --- |
-{% for pkg in pkgs %}{% if pkg.category == cat.id %}| **[{{ pkg.name }}](projects/{{ pkg.slug }}.html)** | {{ pkg.summary.en }} | {% if pkg.sample %}[{{ pkg.sample | split: "/" | last }}]({{ repo }}/tree/main/{{ pkg.sample }}){% else %}—{% endif %} |
-{% endif %}{% endfor %}
-{% endfor %}
-
-See the [projects overview](projects/README.md) for frameworks, platforms, dependencies and the
+The [package overview](/projects/) adds target frameworks, platforms, dependencies and the
 dependency graph.
 
 ## Quick start
@@ -85,105 +152,20 @@ var due   = Date.Today.AddDays(30);
 "hello world".ToCamel();          // "helloWorld"
 "MyClassName".SplitByUpperCase(); // "My Class Name"
 DateTime.Today.AddWeekDays(5);    // skips weekends
-DateTime.UtcNow.ToISOz();
 ```
-
-## Documentation
-
-### Guides
-- [Installation](guides/installation.md)
-- [Architecture overview](guides/architecture.md)
-- [Migration from nExt](guides/migration.md)
-
-### Packages
-- [All packages](projects/README.md) — purpose, frameworks, samples and dependency graph
-
-### Examples
-- [Common use cases](examples/common-use-cases.md)
-
-### API reference
-- [Extension methods](api/extensions.md)
-- [Custom types](api/types.md)
-- [Class mapping](api/class-mapping.md)
-- [Helper utilities](api/helpers.md)
-- [Encryption and hashing](api/encryption.md)
-
-## Highlights
-
-### Class mapping without a mapper library
-
-```csharp
-var dto = source.MapTo<TargetDto>();
-
-var settings = ClassMappingSettings.Default
-    .AddAssignment<Source, Target>(s => s.EmailAddress, t => t.Mail)
-    .IgnoreProperties<Source>(s => s.InternalField)
-    .AddConverter<string, DateTime>(DateTime.Parse);
-
-var result = source.MapTo<Target>(settings);
-```
-
-See the [class mapping reference](api/class-mapping.md).
-
-### Response shaping per user
-
-```csharp
-public class OrderFilter : ResponseFilter<OrderDto>
-{
-    public OrderFilter()
-    {
-        Nullify(x => x.TotalCost).When(NotInRole("Finance"));
-        Mask(x => x.CreditCard).KeepFirst(4).KeepLast(4).Always();
-        Remove(x => x.InternalRef).When(NotInRole("Internal"));
-    }
-}
-```
-
-See [Nextended.ResponseFilters](projects/responsefilters.md).
-
-### Compile-time generation
-
-```csharp
-[AutoGenerateDto(Namespace = "MyApp.Contracts")]
-public class Address : EntityBase
-{
-    public string Street { get; set; }
-    public string City { get; set; }
-}
-```
-
-DTOs and mapping extensions are generated at build time. Classes can also be generated from JSON,
-XML and Excel, and documentation from source files. See [Nextended.CodeGen](projects/codegen.md).
-
-### An AppHost without `if` branches
-
-```csharp
-var api = builder.AddProject<Projects.Api>("api")
-    .WithReferenceIf(cache)          // no-op when cache is null
-    .WaitForIf(isLocal, database)
-    .WithEnvironments(smtpOptions);  // flattened to SmtpOptions__Host, …
-```
-
-See [Nextended.Aspire](projects/aspire.md).
 
 ## Runnable samples
 
-{% for pkg in pkgs %}{% if pkg.sample %}- [{{ pkg.sample | split: "/" | last }}]({{ repo }}/tree/main/{{ pkg.sample }}) — {{ pkg.name }}
-{% endif %}{% endfor %}
+Every Aspire integration and the source generator ship with a project you can start:
 
-## Contributing
+<ul>
+  <li v-for="p in samples" :key="p.id">
+    <a :href="repo + '/tree/main/' + p.sample"><code>{{ leaf(p.sample) }}</code></a> — {{ p.name }}
+  </li>
+</ul>
 
-Pull requests are welcome. Package listings, README headers and footers, and this site's icon are
-generated: edit [`docs/_data/packages.json`](https://github.com/fgilde/Nextended/blob/main/docs/_data/packages.json)
-and run `pwsh tools/Update-PackageDocs.ps1` (or `-Check` in CI).
+## Migrating from nExt
 
-## License
-
-GPL-3.0-or-later — see [LICENSE](https://github.com/fgilde/Nextended/blob/main/LICENSE).
-
-## Links
-
-- [Source repository](https://github.com/fgilde/Nextended)
-- [NuGet packages](https://www.nuget.org/packages?q=Nextended)
-- [GitHub issues](https://github.com/fgilde/Nextended/issues)
-- [nExt.Core](https://www.nuget.org/packages/nExt.Core/) — legacy, no longer maintained
+This suite was previously published as **nExt**. Namespaces moved from `nExt.*` to `Nextended.*`;
+the API is otherwise source-compatible. See the [migration guide](/guides/migration). The legacy
+[nExt.Core](https://www.nuget.org/packages/nExt.Core/) package is no longer maintained.

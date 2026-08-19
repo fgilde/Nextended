@@ -11,7 +11,7 @@
 
 > Image processing — aspect-preserving resize, crop, colour replacement, brightness-based foreground picking, thumbnail generation, byte/data-URL conversion and MIME detection from magic bytes.
 
-📖 **Documentation:** [English](https://github.com/fgilde/Nextended/blob/main/docs/projects/imaging.md) · [Deutsch](https://github.com/fgilde/Nextended/blob/main/docs/de/projects/imaging.md)
+📖 **Documentation:** [English](https://fgilde.github.io/Nextended/projects/imaging) · [Deutsch](https://fgilde.github.io/Nextended/de/projects/imaging)
 <!-- NEXTENDED:HEADER:END -->
 
 ## Installation
@@ -181,8 +181,8 @@ var bytes = _cache.ExecuteWithCache(this, self => self.BuildThumbnail(imageId, 2
 ## Links
 
 - 📦 [NuGet package](https://www.nuget.org/packages/Nextended.Imaging/)
-- 📖 [Documentation — English](https://github.com/fgilde/Nextended/blob/main/docs/projects/imaging.md)
-- 📖 [Dokumentation — Deutsch](https://github.com/fgilde/Nextended/blob/main/docs/de/projects/imaging.md)
+- 📖 [Documentation — English](https://fgilde.github.io/Nextended/projects/imaging)
+- 📖 [Dokumentation — Deutsch](https://fgilde.github.io/Nextended/de/projects/imaging)
 - 🏠 [Documentation portal](https://fgilde.github.io/Nextended)
 - 🧑‍💻 [Source code](https://github.com/fgilde/Nextended/tree/main/Nextended.Imaging)
 - 🐛 [Report an issue](https://github.com/fgilde/Nextended/issues)

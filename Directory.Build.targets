@@ -5,7 +5,7 @@
     remember to run tools/Update-PackageDocs.ps1 by hand.
 
     What is generated is described in docs/README.md. The single source of truth is
-    docs/_data/packages.json plus the repository-root icon.png.
+    docs/data/packages.json plus the repository-root icon.png.
 
     Design notes
 

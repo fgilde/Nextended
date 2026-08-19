@@ -11,7 +11,7 @@
 
 > WPF and Windows desktop helpers — a global input-binding manager with hold/sequence matching, DirectInput and XInput gamepad readers, key-bind capture controls, converters, behaviours, markup extensions and runtime-defined PropertyGrid types.
 
-📖 **Documentation:** [English](https://github.com/fgilde/Nextended/blob/main/docs/projects/ui.md) · [Deutsch](https://github.com/fgilde/Nextended/blob/main/docs/de/projects/ui.md)
+📖 **Documentation:** [English](https://fgilde.github.io/Nextended/projects/ui) · [Deutsch](https://fgilde.github.io/Nextended/de/projects/ui)
 <!-- NEXTENDED:HEADER:END -->
 
 ## Installation
@@ -213,8 +213,8 @@ var bitmap = converter.Convert(myControl, typeof(BitmapSource), null, CultureInf
 ## Links
 
 - 📦 [NuGet package](https://www.nuget.org/packages/Nextended.UI/)
-- 📖 [Documentation — English](https://github.com/fgilde/Nextended/blob/main/docs/projects/ui.md)
-- 📖 [Dokumentation — Deutsch](https://github.com/fgilde/Nextended/blob/main/docs/de/projects/ui.md)
+- 📖 [Documentation — English](https://fgilde.github.io/Nextended/projects/ui)
+- 📖 [Dokumentation — Deutsch](https://fgilde.github.io/Nextended/de/projects/ui)
 - 🏠 [Documentation portal](https://fgilde.github.io/Nextended)
 - 🧑‍💻 [Source code](https://github.com/fgilde/Nextended/tree/main/Nextended.UI)
 - 🐛 [Report an issue](https://github.com/fgilde/Nextended/issues)

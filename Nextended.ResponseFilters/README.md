@@ -11,7 +11,7 @@
 
 > Fluent, provider-agnostic pipeline that redacts, masks, rounds, truncates, hashes, prunes and restructures response DTOs before serialization — per request, per user, per permission.
 
-📖 **Documentation:** [English](https://github.com/fgilde/Nextended/blob/main/docs/projects/responsefilters.md) · [Deutsch](https://github.com/fgilde/Nextended/blob/main/docs/de/projects/responsefilters.md)
+📖 **Documentation:** [English](https://fgilde.github.io/Nextended/projects/responsefilters) · [Deutsch](https://fgilde.github.io/Nextended/de/projects/responsefilters)
 <!-- NEXTENDED:HEADER:END -->
 
 Fluent, attribute-aware response-filtering pipeline for redacting, masking, or transforming object graphs before serialization.
@@ -370,8 +370,8 @@ If you'd rather absorb filter failures (e.g. for a public CMS that must never 50
 ## Links
 
 - 📦 [NuGet package](https://www.nuget.org/packages/Nextended.ResponseFilters/)
-- 📖 [Documentation — English](https://github.com/fgilde/Nextended/blob/main/docs/projects/responsefilters.md)
-- 📖 [Dokumentation — Deutsch](https://github.com/fgilde/Nextended/blob/main/docs/de/projects/responsefilters.md)
+- 📖 [Documentation — English](https://fgilde.github.io/Nextended/projects/responsefilters)
+- 📖 [Dokumentation — Deutsch](https://fgilde.github.io/Nextended/de/projects/responsefilters)
 - 🏠 [Documentation portal](https://fgilde.github.io/Nextended)
 - 🧑‍💻 [Source code](https://github.com/fgilde/Nextended/tree/main/Nextended.ResponseFilters)
 - 🐛 [Report an issue](https://github.com/fgilde/Nextended/issues)

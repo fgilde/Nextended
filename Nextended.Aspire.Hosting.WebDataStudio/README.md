@@ -11,7 +11,7 @@
 
 > WebDataStudio — a browser database studio for PostgreSQL, MySQL, SQL Server, SQLite, Oracle, DuckDB, ClickHouse, MongoDB and Redis — wired to the databases of your stack.
 
-📖 **Documentation:** [English](https://github.com/fgilde/Nextended/blob/main/docs/projects/aspire-webdatastudio.md) · [Deutsch](https://github.com/fgilde/Nextended/blob/main/docs/de/projects/aspire-webdatastudio.md) &nbsp;|&nbsp; 🧪 **Runnable sample:** [WebDataStudio.AppHost](https://github.com/fgilde/Nextended/tree/main/Tests/TestProjects/WebDataStudio.AppHost)
+📖 **Documentation:** [English](https://fgilde.github.io/Nextended/projects/aspire-webdatastudio) · [Deutsch](https://fgilde.github.io/Nextended/de/projects/aspire-webdatastudio) &nbsp;|&nbsp; 🧪 **Runnable sample:** [WebDataStudio.AppHost](https://github.com/fgilde/Nextended/tree/main/Tests/TestProjects/WebDataStudio.AppHost)
 <!-- NEXTENDED:HEADER:END -->
 
 <p align="center">
@@ -183,8 +183,8 @@ dotnet run --project Tests/TestProjects/WebDataStudio.AppHost
 ## Links
 
 - 📦 [NuGet package](https://www.nuget.org/packages/Nextended.Aspire.Hosting.WebDataStudio/)
-- 📖 [Documentation — English](https://github.com/fgilde/Nextended/blob/main/docs/projects/aspire-webdatastudio.md)
-- 📖 [Dokumentation — Deutsch](https://github.com/fgilde/Nextended/blob/main/docs/de/projects/aspire-webdatastudio.md)
+- 📖 [Documentation — English](https://fgilde.github.io/Nextended/projects/aspire-webdatastudio)
+- 📖 [Dokumentation — Deutsch](https://fgilde.github.io/Nextended/de/projects/aspire-webdatastudio)
 - 🏠 [Documentation portal](https://fgilde.github.io/Nextended)
 - 🧪 [Runnable sample](https://github.com/fgilde/Nextended/tree/main/Tests/TestProjects/WebDataStudio.AppHost)
 - 🧑‍💻 [Source code](https://github.com/fgilde/Nextended/tree/main/Nextended.Aspire.Hosting.WebDataStudio)

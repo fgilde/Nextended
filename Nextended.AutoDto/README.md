@@ -19,7 +19,7 @@ dotnet add package Nextended.CodeGen
 
 This package is typically used as a dependency of Nextended.CodeGen. For comprehensive usage examples and documentation, please refer to:
 
-- [Nextended.CodeGen Documentation](https://github.com/fgilde/Nextended/blob/main/docs/projects/codegen.md)
+- [Nextended.CodeGen Documentation](https://fgilde.github.io/Nextended/projects/codegen)
 - [Nextended.CodeGen README](https://github.com/fgilde/Nextended/blob/main/Nextended.CodeGen/README.md)
 
 ## Quick Example
@@ -43,7 +43,7 @@ var dto = user.ToDto();
 ## Documentation
 
 For comprehensive documentation, see:
-- 📚 [CodeGen Documentation](https://github.com/fgilde/Nextended/blob/main/docs/projects/codegen.md)
+- 📚 [CodeGen Documentation](https://fgilde.github.io/Nextended/projects/codegen)
 - 🏠 [Main Documentation Portal](https://fgilde.github.io/Nextended/)
 
 ## Supported Frameworks
@@ -58,7 +58,7 @@ For comprehensive documentation, see:
 ## Links
 
 - [NuGet Package](https://www.nuget.org/packages/Nextended.AutoDto/)
-- [Documentation](https://github.com/fgilde/Nextended/blob/main/docs/projects/autodto.md)
+- [Documentation](https://fgilde.github.io/Nextended/projects/autodto)
 - [Source Code](https://github.com/fgilde/Nextended/tree/main/Nextended.AutoDto)
 - [Report Issues](https://github.com/fgilde/Nextended/issues)
 

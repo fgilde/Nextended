@@ -1,26 +1,12 @@
 ---
-layout: default
 title: Nextended.UI
-parent: Projekte
-grand_parent: Deutsch
-nav_order: 8
 ---
-
 # Nextended.UI
-{: .no_toc }
 
-🇬🇧 [This page in English](https://github.com/fgilde/Nextended/blob/main/docs/projects/ui.md)
+🇬🇧 [This page in English](/projects/ui)
 
 WPF- und Windows-Desktop-Helfer — globaler Input-Binding-Manager mit Hold- und Sequenz-Erkennung, DirectInput- und XInput-Gamepad-Reader, Steuerelemente zum Erfassen von Tastenkombinationen, Converter, Behaviours, Markup-Extensions und zur Laufzeit definierte PropertyGrid-Typen.
-{: .fs-5 .fw-300 }
-
 [![NuGet](https://img.shields.io/nuget/v/Nextended.UI.svg)](https://www.nuget.org/packages/Nextended.UI/)
-
-## Inhalt
-{: .no_toc .text-delta }
-
-1. TOC
-{:toc}
 
 ---
 
@@ -37,9 +23,7 @@ WPF- und Windows-Desktop-Helfer — globaler Input-Binding-Manager mit Hold- und
 Die **vollständige Referenz** — alle Typen, Builder, Optionen und ausführlich kommentierte
 Codebeispiele — steht auf der englischen Seite:
 
-[📖 Nextended.UI — vollständige Referenz (englisch)](https://github.com/fgilde/Nextended/blob/main/docs/projects/ui.md)
-{: .fs-5 }
-
+[📖 Nextended.UI — vollständige Referenz (englisch)](/projects/ui)
 Ebenso ausführlich und ebenfalls englisch ist das Paket-README:
 
 [📄 Nextended.UI/README.md](https://github.com/fgilde/Nextended/blob/main/Nextended.UI/README.md)
@@ -63,7 +47,7 @@ Windows
 ## Links
 
 - 📦 [NuGet-Paket](https://www.nuget.org/packages/Nextended.UI/)
-- 📖 [Vollständige Referenz (englisch)](https://github.com/fgilde/Nextended/blob/main/docs/projects/ui.md)
+- 📖 [Vollständige Referenz (englisch)](/projects/ui)
 - 🧑‍💻 [Quellcode](https://github.com/fgilde/Nextended/tree/main/Nextended.UI)
 - 📄 [Paket-README](https://github.com/fgilde/Nextended/blob/main/Nextended.UI/README.md)
 - 🐛 [Fehler melden](https://github.com/fgilde/Nextended/issues)

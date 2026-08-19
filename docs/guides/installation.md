@@ -1,10 +1,6 @@
 ---
-layout: default
 title: Installation
-parent: Guides
-nav_order: 1
 ---
-
 # Installation Guide
 
 ## Prerequisites
@@ -295,4 +291,4 @@ If generated code is not appearing:
 - Review the [Architecture Overview](architecture.md)
 - Explore [Common Use Cases](../examples/common-use-cases.md)
 - Check out the [API Reference](../api/extensions.md)
-- Read individual [Project Documentation](../projects/README.md)
+- Read individual [Project Documentation](/projects/)

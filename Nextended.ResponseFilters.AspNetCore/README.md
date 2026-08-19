@@ -11,7 +11,7 @@
 
 > ASP.NET Core adapter for Nextended.ResponseFilters — registers the pipeline as a global IAsyncResultFilter and replays structural edits against the serialized JSON tree.
 
-📖 **Documentation:** [English](https://github.com/fgilde/Nextended/blob/main/docs/projects/responsefilters-aspnetcore.md) · [Deutsch](https://github.com/fgilde/Nextended/blob/main/docs/de/projects/responsefilters-aspnetcore.md)
+📖 **Documentation:** [English](https://fgilde.github.io/Nextended/projects/responsefilters-aspnetcore) · [Deutsch](https://fgilde.github.io/Nextended/de/projects/responsefilters-aspnetcore)
 <!-- NEXTENDED:HEADER:END -->
 
 ASP.NET Core adapter for [Nextended.ResponseFilters](../Nextended.ResponseFilters/README.md). Wires the response-filter pipeline into MVC as a global `IAsyncResultFilter` — every `ObjectResult.Value` runs through the configured filters before serialization.
@@ -131,8 +131,8 @@ The result filter is registered globally via `MvcOptions.Filters.AddService<Resp
 ## Links
 
 - 📦 [NuGet package](https://www.nuget.org/packages/Nextended.ResponseFilters.AspNetCore/)
-- 📖 [Documentation — English](https://github.com/fgilde/Nextended/blob/main/docs/projects/responsefilters-aspnetcore.md)
-- 📖 [Dokumentation — Deutsch](https://github.com/fgilde/Nextended/blob/main/docs/de/projects/responsefilters-aspnetcore.md)
+- 📖 [Documentation — English](https://fgilde.github.io/Nextended/projects/responsefilters-aspnetcore)
+- 📖 [Dokumentation — Deutsch](https://fgilde.github.io/Nextended/de/projects/responsefilters-aspnetcore)
 - 🏠 [Documentation portal](https://fgilde.github.io/Nextended)
 - 🧑‍💻 [Source code](https://github.com/fgilde/Nextended/tree/main/Nextended.ResponseFilters.AspNetCore)
 - 🐛 [Report an issue](https://github.com/fgilde/Nextended/issues)

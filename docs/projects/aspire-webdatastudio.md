@@ -1,13 +1,9 @@
 ---
-layout: default
 title: Nextended.Aspire.Hosting.WebDataStudio
-parent: Projects
-nav_order: 15
 ---
-
 # Nextended.Aspire.Hosting.WebDataStudio
 
-🇩🇪 [Diese Seite auf Deutsch](https://github.com/fgilde/Nextended/blob/main/docs/de/projects/aspire-webdatastudio.md)
+🇩🇪 [Diese Seite auf Deutsch](/de/projects/aspire-webdatastudio)
 
 A [.NET Aspire](https://learn.microsoft.com/dotnet/aspire/) integration for
 [WebDataStudio](https://fgilde.github.io/WebDataStudio/) — a browser-based database studio for

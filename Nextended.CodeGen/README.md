@@ -11,7 +11,7 @@
 
 > Roslyn source generator — DTOs and interfaces from your entities, strongly typed classes from JSON/XML, lookup tables from Excel, and documentation from source files.
 
-📖 **Documentation:** [English](https://github.com/fgilde/Nextended/blob/main/docs/projects/codegen.md) · [Deutsch](https://github.com/fgilde/Nextended/blob/main/docs/de/projects/codegen.md) &nbsp;|&nbsp; 🧪 **Runnable sample:** [CodeGenSample](https://github.com/fgilde/Nextended/tree/main/Tests/TestProjects/CodeGenSample)
+📖 **Documentation:** [English](https://fgilde.github.io/Nextended/projects/codegen) · [Deutsch](https://fgilde.github.io/Nextended/de/projects/codegen) &nbsp;|&nbsp; 🧪 **Runnable sample:** [CodeGenSample](https://github.com/fgilde/Nextended/tree/main/Tests/TestProjects/CodeGenSample)
 <!-- NEXTENDED:HEADER:END -->
 
 Compile-time source code generation from various sources including classes, JSON, XML, Excel files, and now also raw source files for documentation purposes.
@@ -277,8 +277,8 @@ Please have a look at this sample project to see how to use the code generation 
 ## Links
 
 - 📦 [NuGet package](https://www.nuget.org/packages/Nextended.CodeGen/)
-- 📖 [Documentation — English](https://github.com/fgilde/Nextended/blob/main/docs/projects/codegen.md)
-- 📖 [Dokumentation — Deutsch](https://github.com/fgilde/Nextended/blob/main/docs/de/projects/codegen.md)
+- 📖 [Documentation — English](https://fgilde.github.io/Nextended/projects/codegen)
+- 📖 [Dokumentation — Deutsch](https://fgilde.github.io/Nextended/de/projects/codegen)
 - 🏠 [Documentation portal](https://fgilde.github.io/Nextended)
 - 🧪 [Runnable sample](https://github.com/fgilde/Nextended/tree/main/Tests/TestProjects/CodeGenSample)
 - 🧑‍💻 [Source code](https://github.com/fgilde/Nextended/tree/main/Nextended.CodeGen)

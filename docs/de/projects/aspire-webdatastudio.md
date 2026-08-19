@@ -1,26 +1,12 @@
 ---
-layout: default
 title: Nextended.Aspire.Hosting.WebDataStudio
-parent: Projekte
-grand_parent: Deutsch
-nav_order: 15
 ---
-
 # Nextended.Aspire.Hosting.WebDataStudio
-{: .no_toc }
 
-🇬🇧 [This page in English](https://github.com/fgilde/Nextended/blob/main/docs/projects/aspire-webdatastudio.md)
+🇬🇧 [This page in English](/projects/aspire-webdatastudio)
 
 WebDataStudio — ein Browser-Datenbankstudio für PostgreSQL, MySQL, SQL Server, SQLite, Oracle, DuckDB, ClickHouse, MongoDB und Redis — verdrahtet mit den Datenbanken Ihres Stacks.
-{: .fs-5 .fw-300 }
-
 [![NuGet](https://img.shields.io/nuget/v/Nextended.Aspire.Hosting.WebDataStudio.svg)](https://www.nuget.org/packages/Nextended.Aspire.Hosting.WebDataStudio/)
-
-## Inhalt
-{: .no_toc .text-delta }
-
-1. TOC
-{:toc}
 
 ---
 
@@ -37,9 +23,7 @@ WebDataStudio — ein Browser-Datenbankstudio für PostgreSQL, MySQL, SQL Server
 Die **vollständige Referenz** — alle Typen, Builder, Optionen und ausführlich kommentierte
 Codebeispiele — steht auf der englischen Seite:
 
-[📖 Nextended.Aspire.Hosting.WebDataStudio — vollständige Referenz (englisch)](https://github.com/fgilde/Nextended/blob/main/docs/projects/aspire-webdatastudio.md)
-{: .fs-5 }
-
+[📖 Nextended.Aspire.Hosting.WebDataStudio — vollständige Referenz (englisch)](/projects/aspire-webdatastudio)
 Ebenso ausführlich und ebenfalls englisch ist das Paket-README:
 
 [📄 Nextended.Aspire.Hosting.WebDataStudio/README.md](https://github.com/fgilde/Nextended/blob/main/Nextended.Aspire.Hosting.WebDataStudio/README.md)
@@ -73,7 +57,7 @@ Cross-platform
 ## Links
 
 - 📦 [NuGet-Paket](https://www.nuget.org/packages/Nextended.Aspire.Hosting.WebDataStudio/)
-- 📖 [Vollständige Referenz (englisch)](https://github.com/fgilde/Nextended/blob/main/docs/projects/aspire-webdatastudio.md)
+- 📖 [Vollständige Referenz (englisch)](/projects/aspire-webdatastudio)
 - 🧑‍💻 [Quellcode](https://github.com/fgilde/Nextended/tree/main/Nextended.Aspire.Hosting.WebDataStudio)
 - 📄 [Paket-README](https://github.com/fgilde/Nextended/blob/main/Nextended.Aspire.Hosting.WebDataStudio/README.md)
 - 🐛 [Fehler melden](https://github.com/fgilde/Nextended/issues)

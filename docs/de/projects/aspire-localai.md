@@ -1,26 +1,12 @@
 ---
-layout: default
 title: Nextended.Aspire.Hosting.LocalAI
-parent: Projekte
-grand_parent: Deutsch
-nav_order: 17
 ---
-
 # Nextended.Aspire.Hosting.LocalAI
-{: .no_toc }
 
-🇬🇧 [This page in English](https://github.com/fgilde/Nextended/blob/main/docs/projects/aspire-localai.md)
+🇬🇧 [This page in English](/projects/aspire-localai)
 
 Selbst gehostete, OpenAI-kompatible multimodale KI — Bildgenerierung, Text-to-Speech, Speech-to-Text und Video — mit Galerie-Modellverwaltung, GPU-Unterstützung und Open WebUI.
-{: .fs-5 .fw-300 }
-
 [![NuGet](https://img.shields.io/nuget/v/Nextended.Aspire.Hosting.LocalAI.svg)](https://www.nuget.org/packages/Nextended.Aspire.Hosting.LocalAI/)
-
-## Inhalt
-{: .no_toc .text-delta }
-
-1. TOC
-{:toc}
 
 ---
 
@@ -37,9 +23,7 @@ Selbst gehostete, OpenAI-kompatible multimodale KI — Bildgenerierung, Text-to-
 Die **vollständige Referenz** — alle Typen, Builder, Optionen und ausführlich kommentierte
 Codebeispiele — steht auf der englischen Seite:
 
-[📖 Nextended.Aspire.Hosting.LocalAI — vollständige Referenz (englisch)](https://github.com/fgilde/Nextended/blob/main/docs/projects/aspire-localai.md)
-{: .fs-5 }
-
+[📖 Nextended.Aspire.Hosting.LocalAI — vollständige Referenz (englisch)](/projects/aspire-localai)
 Ebenso ausführlich und ebenfalls englisch ist das Paket-README:
 
 [📄 Nextended.Aspire.Hosting.LocalAI/README.md](https://github.com/fgilde/Nextended/blob/main/Nextended.Aspire.Hosting.LocalAI/README.md)
@@ -74,7 +58,7 @@ Cross-platform
 ## Links
 
 - 📦 [NuGet-Paket](https://www.nuget.org/packages/Nextended.Aspire.Hosting.LocalAI/)
-- 📖 [Vollständige Referenz (englisch)](https://github.com/fgilde/Nextended/blob/main/docs/projects/aspire-localai.md)
+- 📖 [Vollständige Referenz (englisch)](/projects/aspire-localai)
 - 🧑‍💻 [Quellcode](https://github.com/fgilde/Nextended/tree/main/Nextended.Aspire.Hosting.LocalAI)
 - 📄 [Paket-README](https://github.com/fgilde/Nextended/blob/main/Nextended.Aspire.Hosting.LocalAI/README.md)
 - 🐛 [Fehler melden](https://github.com/fgilde/Nextended/issues)

@@ -11,7 +11,7 @@
 
 > Conditional AppHost builder extensions — WithReferenceIf / WaitForIf / WithExplicitStartIf, strongly typed environment variables from config objects, HTTPS dev-cert wiring, Docker guards, GitHub-source resources and npm app discovery.
 
-📖 **Documentation:** [English](https://github.com/fgilde/Nextended/blob/main/docs/projects/aspire.md) · [Deutsch](https://github.com/fgilde/Nextended/blob/main/docs/de/projects/aspire.md)
+📖 **Documentation:** [English](https://fgilde.github.io/Nextended/projects/aspire) · [Deutsch](https://fgilde.github.io/Nextended/de/projects/aspire)
 <!-- NEXTENDED:HEADER:END -->
 
 ## Installation
@@ -215,8 +215,8 @@ Ready-made resources built on this package, each with a runnable AppHost sample:
 ## Links
 
 - 📦 [NuGet package](https://www.nuget.org/packages/Nextended.Aspire/)
-- 📖 [Documentation — English](https://github.com/fgilde/Nextended/blob/main/docs/projects/aspire.md)
-- 📖 [Dokumentation — Deutsch](https://github.com/fgilde/Nextended/blob/main/docs/de/projects/aspire.md)
+- 📖 [Documentation — English](https://fgilde.github.io/Nextended/projects/aspire)
+- 📖 [Dokumentation — Deutsch](https://fgilde.github.io/Nextended/de/projects/aspire)
 - 🏠 [Documentation portal](https://fgilde.github.io/Nextended)
 - 🧑‍💻 [Source code](https://github.com/fgilde/Nextended/tree/main/Nextended.Aspire)
 - 🐛 [Report an issue](https://github.com/fgilde/Nextended/issues)

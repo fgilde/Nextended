@@ -11,7 +11,7 @@
 
 > Run PHP endpoints inside your Aspire stack — a docroot folder or a single router script served by PHP's built-in web server, with php.ini settings as fluent options.
 
-📖 **Documentation:** [English](https://github.com/fgilde/Nextended/blob/main/docs/projects/aspire-php.md) · [Deutsch](https://github.com/fgilde/Nextended/blob/main/docs/de/projects/aspire-php.md) &nbsp;|&nbsp; 🧪 **Runnable sample:** [Php.AppHost](https://github.com/fgilde/Nextended/tree/main/Tests/TestProjects/Php.AppHost)
+📖 **Documentation:** [English](https://fgilde.github.io/Nextended/projects/aspire-php) · [Deutsch](https://fgilde.github.io/Nextended/de/projects/aspire-php) &nbsp;|&nbsp; 🧪 **Runnable sample:** [Php.AppHost](https://github.com/fgilde/Nextended/tree/main/Tests/TestProjects/Php.AppHost)
 <!-- NEXTENDED:HEADER:END -->
 
 Run PHP endpoints inside your .NET Aspire stack — a folder or a single `.php` file, served by
@@ -138,8 +138,8 @@ builder.AddPhp("mailer", "./php/send-mail.php");
 ## Links
 
 - 📦 [NuGet package](https://www.nuget.org/packages/Nextended.Aspire.Hosting.Php/)
-- 📖 [Documentation — English](https://github.com/fgilde/Nextended/blob/main/docs/projects/aspire-php.md)
-- 📖 [Dokumentation — Deutsch](https://github.com/fgilde/Nextended/blob/main/docs/de/projects/aspire-php.md)
+- 📖 [Documentation — English](https://fgilde.github.io/Nextended/projects/aspire-php)
+- 📖 [Dokumentation — Deutsch](https://fgilde.github.io/Nextended/de/projects/aspire-php)
 - 🏠 [Documentation portal](https://fgilde.github.io/Nextended)
 - 🧪 [Runnable sample](https://github.com/fgilde/Nextended/tree/main/Tests/TestProjects/Php.AppHost)
 - 🧑‍💻 [Source code](https://github.com/fgilde/Nextended/tree/main/Nextended.Aspire.Hosting.Php)

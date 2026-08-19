@@ -1,25 +1,12 @@
 ---
-layout: default
 title: Nextended.ResponseFilters.AspNetCore
-parent: Projects
-nav_order: 6
 ---
-
 # Nextended.ResponseFilters.AspNetCore
-{: .no_toc }
 
 ASP.NET Core adapter for Nextended.ResponseFilters — registers the pipeline as a global IAsyncResultFilter and replays structural edits against the serialized JSON tree.
-{: .fs-5 .fw-300 }
-
 [![NuGet](https://img.shields.io/nuget/v/Nextended.ResponseFilters.AspNetCore.svg)](https://www.nuget.org/packages/Nextended.ResponseFilters.AspNetCore/)
 
-🇩🇪 [Diese Seite auf Deutsch](https://github.com/fgilde/Nextended/blob/main/docs/de/projects/responsefilters-aspnetcore.md)
-
-## Table of contents
-{: .no_toc .text-delta }
-
-1. TOC
-{:toc}
+🇩🇪 [Diese Seite auf Deutsch](/de/projects/responsefilters-aspnetcore)
 
 ---
 

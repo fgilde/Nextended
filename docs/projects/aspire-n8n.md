@@ -1,13 +1,9 @@
 ---
-layout: default
 title: Nextended.Aspire.Hosting.N8n
-parent: Projects
-nav_order: 13
 ---
-
 # Nextended.Aspire.Hosting.N8n
 
-🇩🇪 [Diese Seite auf Deutsch](https://github.com/fgilde/Nextended/blob/main/docs/de/projects/aspire-n8n.md)
+🇩🇪 [Diese Seite auf Deutsch](/de/projects/aspire-n8n)
 
 A first-class [.NET Aspire](https://learn.microsoft.com/dotnet/aspire/) integration for
 [n8n](https://n8n.io) — the fair-code workflow-automation platform. With one `AddN8n("n8n")` call

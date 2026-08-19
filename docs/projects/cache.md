@@ -1,13 +1,9 @@
 ---
-layout: default
 title: Nextended.Cache
-parent: Projects
-nav_order: 2
 ---
-
 # Nextended.Cache
 
-🇩🇪 [Diese Seite auf Deutsch](https://github.com/fgilde/Nextended/blob/main/docs/de/projects/cache.md)
+🇩🇪 [Diese Seite auf Deutsch](/de/projects/cache)
 
 Caching utilities and extensions for simplified caching operations in .NET applications.
 

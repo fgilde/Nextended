@@ -1,10 +1,6 @@
 ---
-layout: default
 title: Extension Methods
-parent: API Reference
-nav_order: 1
 ---
-
 # Extension Methods Reference
 
 This page provides an overview of the extension methods available in Nextended.Core.
@@ -63,7 +59,7 @@ Located in `Nextended.Core.Extensions.DateTimeExtensions`
 | `StartOfMonth()` | Returns start of month |
 | `EndOfMonth()` | Returns end of month |
 
-## Collection Extensions (IEnumerable<T>)
+## Collection Extensions (`IEnumerable<T>`)
 
 Located in `Nextended.Core.Extensions.EnumerableExtensions`
 

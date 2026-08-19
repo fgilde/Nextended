@@ -1,13 +1,9 @@
 ---
-layout: default
 title: Nextended.Core
-parent: Projects
-nav_order: 1
 ---
-
 # Nextended.Core
 
-🇩🇪 [Diese Seite auf Deutsch](https://github.com/fgilde/Nextended/blob/main/docs/de/projects/core.md)
+🇩🇪 [Diese Seite auf Deutsch](/de/projects/core)
 
 The foundation library providing essential extension methods, custom types, and utilities for .NET development.
 

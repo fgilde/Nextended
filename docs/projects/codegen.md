@@ -1,13 +1,9 @@
 ---
-layout: default
 title: Nextended.CodeGen
-parent: Projects
-nav_order: 10
 ---
-
 # Nextended.CodeGen
 
-🇩🇪 [Diese Seite auf Deutsch](https://github.com/fgilde/Nextended/blob/main/docs/de/projects/codegen.md)
+🇩🇪 [Diese Seite auf Deutsch](/de/projects/codegen)
 
 Compile-time source code generation from various sources including classes, JSON, XML, and Excel files.
 
@@ -1440,8 +1436,8 @@ Complete reference for generating classes from Excel spreadsheets.
 | `GenerateModelClass` | bool | No | Generate the model/record class (default: true) |
 | `GenerateStaticTable` | bool | No | Generate static lookup class with data (default: false) |
 | `GenerateAllCollection` | bool | No | Generate collection of all records (default: false) |
-| `ColumnMappings` | Dictionary<string,string> | No | Map Excel column names to property names |
-| `PropertyTypeOverrides` | Dictionary<string,string> | No | Override property types |
+| `ColumnMappings` | `Dictionary<string,string>` | No | Map Excel column names to property names |
+| `PropertyTypeOverrides` | `Dictionary<string,string>` | No | Override property types |
 | `OutputPath` | string | No | Output directory for generated files |
 
 #### Excel Generation Examples

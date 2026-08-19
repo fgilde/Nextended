@@ -1,25 +1,12 @@
 ---
-layout: default
 title: Nextended.Aspire.Hosting.Grafana
-parent: Projects
-nav_order: 14
 ---
-
 # Nextended.Aspire.Hosting.Grafana
-{: .no_toc }
 
 Grafana, Prometheus, Loki, Tempo, Promtail, cAdvisor, postgres_exporter and the OpenTelemetry Collector as composable resources with auto-provisioned datasources.
-{: .fs-5 .fw-300 }
-
 [![NuGet](https://img.shields.io/nuget/v/Nextended.Aspire.Hosting.Grafana.svg)](https://www.nuget.org/packages/Nextended.Aspire.Hosting.Grafana/)
 
-🇩🇪 [Diese Seite auf Deutsch](https://github.com/fgilde/Nextended/blob/main/docs/de/projects/aspire-grafana.md)
-
-## Table of contents
-{: .no_toc .text-delta }
-
-1. TOC
-{:toc}
+🇩🇪 [Diese Seite auf Deutsch](/de/projects/aspire-grafana)
 
 ---
 

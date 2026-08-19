@@ -1,13 +1,9 @@
 ---
-layout: default
 title: Nextended.Web
-parent: Projects
-nav_order: 4
 ---
-
 # Nextended.Web
 
-🇩🇪 [Diese Seite auf Deutsch](https://github.com/fgilde/Nextended/blob/main/docs/de/projects/web.md)
+🇩🇪 [Diese Seite auf Deutsch](/de/projects/web)
 
 ASP.NET Core and web application helpers, extensions, and utilities.
 

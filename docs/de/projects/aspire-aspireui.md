@@ -1,26 +1,12 @@
 ---
-layout: default
 title: Nextended.Aspire.Hosting.AspireUI
-parent: Projekte
-grand_parent: Deutsch
-nav_order: 16
 ---
-
 # Nextended.Aspire.Hosting.AspireUI
-{: .no_toc }
 
-🇬🇧 [This page in English](https://github.com/fgilde/Nextended/blob/main/docs/projects/aspire-aspireui.md)
+🇬🇧 [This page in English](/projects/aspire-aspireui)
 
 AspireUI — der visuelle AppHost-Builder — als Ressource im eigenen Aspire-Stack, mit optional vorangelegtem Admin-Benutzer und einem Starter-Stack aus Ihren Projektpfaden.
-{: .fs-5 .fw-300 }
-
 [![NuGet](https://img.shields.io/nuget/v/Nextended.Aspire.Hosting.AspireUI.svg)](https://www.nuget.org/packages/Nextended.Aspire.Hosting.AspireUI/)
-
-## Inhalt
-{: .no_toc .text-delta }
-
-1. TOC
-{:toc}
 
 ---
 
@@ -37,9 +23,7 @@ AspireUI — der visuelle AppHost-Builder — als Ressource im eigenen Aspire-St
 Die **vollständige Referenz** — alle Typen, Builder, Optionen und ausführlich kommentierte
 Codebeispiele — steht auf der englischen Seite:
 
-[📖 Nextended.Aspire.Hosting.AspireUI — vollständige Referenz (englisch)](https://github.com/fgilde/Nextended/blob/main/docs/projects/aspire-aspireui.md)
-{: .fs-5 }
-
+[📖 Nextended.Aspire.Hosting.AspireUI — vollständige Referenz (englisch)](/projects/aspire-aspireui)
 Ebenso ausführlich und ebenfalls englisch ist das Paket-README:
 
 [📄 Nextended.Aspire.Hosting.AspireUI/README.md](https://github.com/fgilde/Nextended/blob/main/Nextended.Aspire.Hosting.AspireUI/README.md)
@@ -73,7 +57,7 @@ Cross-platform
 ## Links
 
 - 📦 [NuGet-Paket](https://www.nuget.org/packages/Nextended.Aspire.Hosting.AspireUI/)
-- 📖 [Vollständige Referenz (englisch)](https://github.com/fgilde/Nextended/blob/main/docs/projects/aspire-aspireui.md)
+- 📖 [Vollständige Referenz (englisch)](/projects/aspire-aspireui)
 - 🧑‍💻 [Quellcode](https://github.com/fgilde/Nextended/tree/main/Nextended.Aspire.Hosting.AspireUI)
 - 📄 [Paket-README](https://github.com/fgilde/Nextended/blob/main/Nextended.Aspire.Hosting.AspireUI/README.md)
 - 🐛 [Fehler melden](https://github.com/fgilde/Nextended/issues)

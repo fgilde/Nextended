@@ -1,25 +1,12 @@
 ---
-layout: default
 title: Nextended.Aspire.Hosting.LocalAI
-parent: Projects
-nav_order: 17
 ---
-
 # Nextended.Aspire.Hosting.LocalAI
-{: .no_toc }
 
 Self-hosted, OpenAI-compatible multimodal AI — image generation, text-to-speech, speech-to-text and video — with gallery model management, GPU support and Open WebUI.
-{: .fs-5 .fw-300 }
-
 [![NuGet](https://img.shields.io/nuget/v/Nextended.Aspire.Hosting.LocalAI.svg)](https://www.nuget.org/packages/Nextended.Aspire.Hosting.LocalAI/)
 
-🇩🇪 [Diese Seite auf Deutsch](https://github.com/fgilde/Nextended/blob/main/docs/de/projects/aspire-localai.md)
-
-## Table of contents
-{: .no_toc .text-delta }
-
-1. TOC
-{:toc}
+🇩🇪 [Diese Seite auf Deutsch](/de/projects/aspire-localai)
 
 ---
 

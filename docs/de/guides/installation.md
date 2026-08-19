@@ -1,26 +1,23 @@
 ---
-layout: default
 title: Installation
-parent: Deutsch
-nav_order: 2
 ---
 
-# Installation
-{: .no_toc }
+<script setup>
+import data from '@data/packages.json'
 
-🇬🇧 [This page in English](../../guides/installation.md)
+const cats = data.categories
+const pkgs = data.packages
+const base = '/Nextended/'
+const byCat = (id) => pkgs.filter((p) => p.category === id)
+</script>
+
+# Installation
+
+🇬🇧 [This page in English](/guides/installation.md)
 
 Wie Sie die Nextended-Pakete einbinden, welche Zielframeworks unterstützt werden und worauf Sie bei
 den plattformgebundenen Paketen achten müssen.
-{: .fs-5 .fw-300 }
 
-## Inhalt
-{: .no_toc .text-delta }
-
-1. TOC
-{:toc}
-
----
 
 ## Voraussetzungen
 
@@ -52,28 +49,23 @@ zwischen Nextended-Paketen innerhalb einer Anwendung.
 
 ## Welches Paket wofür
 
-{% assign pkgs = site.data.packages.packages %}
-{% assign cats = site.data.packages.categories %}
-
-{% for cat in cats %}
-### {{ cat.de }}
-
-{% for pkg in pkgs %}{% if pkg.category == cat.id %}
-`dotnet add package {{ pkg.name }}`
-: {{ pkg.summary.de }} — [Dokumentation](../projects/{{ pkg.slug }}.html)
-
-{% endif %}{% endfor %}
-{% endfor %}
+<div v-for="cat in cats" :key="cat.id">
+  <h3>{{ cat.de }}</h3>
+  <ul>
+    <li v-for="p in byCat(cat.id)" :key="p.id">
+      <code>dotnet add package {{ p.name }}</code><br>
+      {{ p.summary.de }} — <a :href="base + 'de/projects/' + p.slug">Dokumentation</a>
+    </li>
+  </ul>
+</div>
 
 ## Plattformhinweise
 
-{: .warning }
 > **`Nextended.Imaging`** baut auf `System.Drawing.Common` auf. Microsoft unterstützt das ab .NET 7
 > nur noch unter **Windows**; unter Linux und macOS werfen die `System.Drawing`-Typen
 > `PlatformNotSupportedException`. Für plattformübergreifende Bildverarbeitung greifen Sie zu
 > ImageSharp oder SkiaSharp.
 
-{: .warning }
 > **`Nextended.UI`** hat Windows-Zielframeworks (`net8.0-windows` und höher) und referenziert WPF.
 > Es lässt sich außerhalb von Windows nicht kompilieren.
 
@@ -130,7 +122,7 @@ Kompiliert und läuft das, ist die Einbindung korrekt.
 ## Von nExt migrieren
 
 Die Sammlung erschien früher als `nExt.*`. Die Namespaces heißen jetzt `Nextended.*`, die API ist
-ansonsten quellkompatibel. Siehe den [Migrationsleitfaden](../../guides/migration.md) *(englisch)*.
+ansonsten quellkompatibel. Siehe den [Migrationsleitfaden](/guides/migration.md) *(englisch)*.
 Das Altpaket [nExt.Core](https://www.nuget.org/packages/nExt.Core/) wird nicht mehr gepflegt.
 
 ## Pakete selbst bauen
@@ -150,6 +142,6 @@ eine temporäre lokale Quelle bereit — eine Version, ein Durchlauf, kein Warte
 
 ## Links
 
-- [Alle Pakete](../projects/README.md)
+- [Alle Pakete](/projects/)
 - [Typische Anwendungsfälle](../examples/common-use-cases.md)
 - [GitHub Issues](https://github.com/fgilde/Nextended/issues)

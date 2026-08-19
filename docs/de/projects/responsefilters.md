@@ -1,29 +1,15 @@
 ---
-layout: default
 title: Nextended.ResponseFilters
-parent: Projekte
-grand_parent: Deutsch
-nav_order: 5
 ---
-
 # Nextended.ResponseFilters
-{: .no_toc }
 
-🇬🇧 [This page in English](https://github.com/fgilde/Nextended/blob/main/docs/projects/responsefilters.md)
+🇬🇧 [This page in English](/projects/responsefilters)
 
 Eine providerunabhängige Fluent-Pipeline, die Response-DTOs vor der Serialisierung schwärzt,
 maskiert, rundet, kürzt, hasht, ausdünnt und umstrukturiert — pro Request, pro Benutzer, pro
 Berechtigung.
-{: .fs-5 .fw-300 }
-
 [![NuGet](https://img.shields.io/nuget/v/Nextended.ResponseFilters.svg)](https://www.nuget.org/packages/Nextended.ResponseFilters/)
 [![NuGet](https://img.shields.io/nuget/v/Nextended.ResponseFilters.AspNetCore.svg?label=AspNetCore)](https://www.nuget.org/packages/Nextended.ResponseFilters.AspNetCore/)
-
-## Inhalt
-{: .no_toc .text-delta }
-
-1. TOC
-{:toc}
 
 ---
 

@@ -11,7 +11,7 @@
 
 > AspireUI — the visual AppHost builder — as a resource inside your own Aspire stack, with an optional pre-seeded admin user and a starter stack built from your project paths.
 
-📖 **Documentation:** [English](https://github.com/fgilde/Nextended/blob/main/docs/projects/aspire-aspireui.md) · [Deutsch](https://github.com/fgilde/Nextended/blob/main/docs/de/projects/aspire-aspireui.md) &nbsp;|&nbsp; 🧪 **Runnable sample:** [AspireUI.AppHost](https://github.com/fgilde/Nextended/tree/main/Tests/TestProjects/AspireUI.AppHost)
+📖 **Documentation:** [English](https://fgilde.github.io/Nextended/projects/aspire-aspireui) · [Deutsch](https://fgilde.github.io/Nextended/de/projects/aspire-aspireui) &nbsp;|&nbsp; 🧪 **Runnable sample:** [AspireUI.AppHost](https://github.com/fgilde/Nextended/tree/main/Tests/TestProjects/AspireUI.AppHost)
 <!-- NEXTENDED:HEADER:END -->
 
 Run [AspireUI](https://github.com/fgilde/AspireUI) — the visual .NET Aspire AppHost builder — as a
@@ -102,8 +102,8 @@ This adds the `ghcr.io/fgilde/aspireui` container with:
 ## Links
 
 - 📦 [NuGet package](https://www.nuget.org/packages/Nextended.Aspire.Hosting.AspireUI/)
-- 📖 [Documentation — English](https://github.com/fgilde/Nextended/blob/main/docs/projects/aspire-aspireui.md)
-- 📖 [Dokumentation — Deutsch](https://github.com/fgilde/Nextended/blob/main/docs/de/projects/aspire-aspireui.md)
+- 📖 [Documentation — English](https://fgilde.github.io/Nextended/projects/aspire-aspireui)
+- 📖 [Dokumentation — Deutsch](https://fgilde.github.io/Nextended/de/projects/aspire-aspireui)
 - 🏠 [Documentation portal](https://fgilde.github.io/Nextended)
 - 🧪 [Runnable sample](https://github.com/fgilde/Nextended/tree/main/Tests/TestProjects/AspireUI.AppHost)
 - 🧑‍💻 [Source code](https://github.com/fgilde/Nextended/tree/main/Nextended.Aspire.Hosting.AspireUI)

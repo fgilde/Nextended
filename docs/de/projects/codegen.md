@@ -1,26 +1,12 @@
 ---
-layout: default
 title: Nextended.CodeGen
-parent: Projekte
-grand_parent: Deutsch
-nav_order: 10
 ---
-
 # Nextended.CodeGen
-{: .no_toc }
 
-🇬🇧 [This page in English](https://github.com/fgilde/Nextended/blob/main/docs/projects/codegen.md)
+🇬🇧 [This page in English](/projects/codegen)
 
 Roslyn-Source-Generator — DTOs und Interfaces aus Ihren Entities, stark typisierte Klassen aus JSON/XML, Lookup-Tabellen aus Excel und Dokumentation aus Quelldateien.
-{: .fs-5 .fw-300 }
-
 [![NuGet](https://img.shields.io/nuget/v/Nextended.CodeGen.svg)](https://www.nuget.org/packages/Nextended.CodeGen/)
-
-## Inhalt
-{: .no_toc .text-delta }
-
-1. TOC
-{:toc}
 
 ---
 
@@ -37,9 +23,7 @@ Roslyn-Source-Generator — DTOs und Interfaces aus Ihren Entities, stark typisi
 Die **vollständige Referenz** — alle Typen, Builder, Optionen und ausführlich kommentierte
 Codebeispiele — steht auf der englischen Seite:
 
-[📖 Nextended.CodeGen — vollständige Referenz (englisch)](https://github.com/fgilde/Nextended/blob/main/docs/projects/codegen.md)
-{: .fs-5 }
-
+[📖 Nextended.CodeGen — vollständige Referenz (englisch)](/projects/codegen)
 Ebenso ausführlich und ebenfalls englisch ist das Paket-README:
 
 [📄 Nextended.CodeGen/README.md](https://github.com/fgilde/Nextended/blob/main/Nextended.CodeGen/README.md)
@@ -73,7 +57,7 @@ Build-time (analyzer)
 ## Links
 
 - 📦 [NuGet-Paket](https://www.nuget.org/packages/Nextended.CodeGen/)
-- 📖 [Vollständige Referenz (englisch)](https://github.com/fgilde/Nextended/blob/main/docs/projects/codegen.md)
+- 📖 [Vollständige Referenz (englisch)](/projects/codegen)
 - 🧑‍💻 [Quellcode](https://github.com/fgilde/Nextended/tree/main/Nextended.CodeGen)
 - 📄 [Paket-README](https://github.com/fgilde/Nextended/blob/main/Nextended.CodeGen/README.md)
 - 🐛 [Fehler melden](https://github.com/fgilde/Nextended/issues)

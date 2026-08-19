@@ -1,25 +1,12 @@
 ---
-layout: default
 title: Nextended.Aspire.Hosting.AspireUI
-parent: Projects
-nav_order: 16
 ---
-
 # Nextended.Aspire.Hosting.AspireUI
-{: .no_toc }
 
 AspireUI — the visual AppHost builder — as a resource inside your own Aspire stack, with an optional pre-seeded admin user and a starter stack built from your project paths.
-{: .fs-5 .fw-300 }
-
 [![NuGet](https://img.shields.io/nuget/v/Nextended.Aspire.Hosting.AspireUI.svg)](https://www.nuget.org/packages/Nextended.Aspire.Hosting.AspireUI/)
 
-🇩🇪 [Diese Seite auf Deutsch](https://github.com/fgilde/Nextended/blob/main/docs/de/projects/aspire-aspireui.md)
-
-## Table of contents
-{: .no_toc .text-delta }
-
-1. TOC
-{:toc}
+🇩🇪 [Diese Seite auf Deutsch](/de/projects/aspire-aspireui)
 
 ---
 
