@@ -69,7 +69,7 @@ Most functionality remains the same. The primary change is the namespace:
 ```csharp
 using nExt.Extensions;
 
-var result = myString.ToCamelCase();
+var result = myString.ToCamel();
 var dto = source.MapTo<TargetDto>();
 ```
 
@@ -77,7 +77,7 @@ var dto = source.MapTo<TargetDto>();
 ```csharp
 using Nextended.Core.Extensions;
 
-var result = myString.ToCamelCase(); // Same API
+var result = myString.ToCamel(); // Same API
 var dto = source.MapTo<TargetDto>();  // Same API
 ```
 

@@ -2,10 +2,12 @@
 layout: default
 title: Nextended.Aspire.Hosting.WebDataStudio
 parent: Projects
-nav_order: 14
+nav_order: 15
 ---
 
 # Nextended.Aspire.Hosting.WebDataStudio
+
+🇩🇪 [Diese Seite auf Deutsch](https://github.com/fgilde/Nextended/blob/main/docs/de/projects/aspire-webdatastudio.md)
 
 A [.NET Aspire](https://learn.microsoft.com/dotnet/aspire/) integration for
 [WebDataStudio](https://fgilde.github.io/WebDataStudio/) — a browser-based database studio for
@@ -85,6 +87,7 @@ variables it does.
 | `.WithReference(resource, connectionName?, engine?, readOnly?, group?, color?)` | Attach any resource with a connection string. |
 | `.WithConnection(name, connectionString, engine, …)` | Attach a database outside the stack. Also accepts a `ReferenceExpression`. |
 | `.WithLogin(user, password)` | Guard the studio. Both halves also accept a `ParameterResource`. |
+| `.WithTitle(name)` | Name in the studio's header and browser tab. Defaults to the resource name; `null` leaves it unnamed. |
 | `.WithReadOnly(readOnly = true)` | Every connection read-only, enforced in the driver. |
 | `.WithQueryTimeout(TimeSpan)` | Default statement timeout. |
 | `.WithMaxRows(int)` | Default row cap per result. |
@@ -115,6 +118,7 @@ var studio = builder.AddWebDataStudio();
 studio.Resource.HttpEndpoint;       // the endpoint serving the studio
 studio.Resource.ConnectionNames;    // labels of everything attached, in order
 studio.Resource.Username;           // null while there is no login
+studio.Resource.Title;              // the name shown in the studio, resource name by default
 ```
 
 ## Notes
@@ -140,6 +144,13 @@ studio.Resource.Username;           // null while there is no login
 
 - [Nextended.Aspire](aspire.md) — the shared Aspire helpers
 - [Nextended.Aspire.Hosting.N8n](aspire-n8n.md), [Supabase](aspire-supabase.md) — other hosting integrations
+
+## The sample AppHost
+
+`Tests/TestProjects/WebDataStudio.AppHost` runs PostgreSQL, SQL Server, MongoDB and Redis behind
+three studios — the shared one, a named one for analytics and a locked-down one with a login — and
+seeds PostgreSQL with a small shop schema (customers, products, orders, order items and a view) so
+the studio has real data in it on the first start.
 
 ## Links
 

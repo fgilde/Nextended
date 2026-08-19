@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
   <Import Project="..\Shared.props" />
 
   <PropertyGroup>
@@ -6,12 +6,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <IsPackable>true</IsPackable>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-    <PackReadMe>false</PackReadMe>
     <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
-  <ItemGroup>
-    <None Include="README.md" Pack="true" PackagePath="README.md" />
-  </ItemGroup>
 
   <PropertyGroup>
     <Description>Run AspireUI — the visual .NET Aspire AppHost builder — as a resource inside your own Aspire stack. Adds the ghcr.io/fgilde/aspireui container with an HTTP endpoint, optional pre-seeded admin user and a starter stack built from your project paths.</Description>

@@ -7,6 +7,8 @@ nav_order: 8
 
 # Nextended.UI
 
+🇩🇪 [Diese Seite auf Deutsch](https://github.com/fgilde/Nextended/blob/main/docs/de/projects/ui.md)
+
 WPF and Windows Forms utilities for desktop application development.
 
 ## Overview

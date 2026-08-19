@@ -7,6 +7,8 @@ nav_order: 13
 
 # Nextended.Aspire.Hosting.N8n
 
+🇩🇪 [Diese Seite auf Deutsch](https://github.com/fgilde/Nextended/blob/main/docs/de/projects/aspire-n8n.md)
+
 A first-class [.NET Aspire](https://learn.microsoft.com/dotnet/aspire/) integration for
 [n8n](https://n8n.io) — the fair-code workflow-automation platform. With one `AddN8n("n8n")` call
 you get a fully wired n8n instance with a PostgreSQL backend, sensible self-hosting defaults,

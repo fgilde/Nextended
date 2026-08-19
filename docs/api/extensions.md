@@ -17,10 +17,8 @@ Located in `Nextended.Core.Extensions.StringExtensions`
 
 | Method | Description | Example |
 |--------|-------------|---------|
-| `ToCamelCase()` | Converts to camelCase | `"hello world"` → `"helloWorld"` |
+| `ToCamel()` | Converts to camelCase | `"hello world"` → `"helloWorld"` |
 | `ToPascalCase()` | Converts to PascalCase | `"hello world"` → `"HelloWorld"` |
-| `ToSnakeCase()` | Converts to snake_case | `"HelloWorld"` → `"hello_world"` |
-| `ToKebabCase()` | Converts to kebab-case | `"HelloWorld"` → `"hello-world"` |
 
 ### Validation
 
@@ -49,8 +47,8 @@ Located in `Nextended.Core.Extensions.DateTimeExtensions`
 
 | Method | Description |
 |--------|-------------|
-| `AddBusinessDays(int days)` | Adds business days (skips weekends) |
-| `IsBusinessDay()` | Checks if date is a business day |
+| `AddWeekDays(int days)` | Adds week days (skips weekends) |
+| `IsWeekday()` | Checks if the date is a week day (`IsWeekend()` is the inverse) |
 | `IsWeekend()` | Checks if date is weekend |
 | `NextBusinessDay()` | Gets next business day |
 
@@ -114,7 +112,7 @@ See the [Class Mapping Reference](class-mapping.md) for comprehensive documentat
 
 | Method | Description |
 |--------|-------------|
-| `DeepClone()` | Creates deep copy of object |
+| `CloneDeep()` | Creates a deep copy of the object (namespace `Nextended.Core.DeepClone`) |
 | `ShallowClone()` | Creates shallow copy of object |
 
 ### Reflection
@@ -194,7 +192,7 @@ Located in `Nextended.Core.Extensions.SerializationHelper`
 using Nextended.Core.Extensions;
 
 string text = "hello world";
-string camelCase = text.ToCamelCase();     // "helloWorld"
+string camelCase = text.ToCamel();         // "helloWorld"
 string pascalCase = text.ToPascalCase();   // "HelloWorld"
 bool isEmail = "test@example.com".IsValidEmail(); // true
 ```

@@ -6,240 +6,111 @@ has_children: true
 permalink: /projects
 ---
 
-# Nextended Projects
+# Nextended packages
+{: .no_toc }
 
-This document provides an overview of all projects in the Nextended solution.
+🇩🇪 [Diese Seite auf Deutsch](https://github.com/fgilde/Nextended/blob/main/docs/de/projects/README.md)
 
-## Core Libraries
+Every package in the Nextended suite, its purpose, its runnable sample and its documentation page.
+{: .fs-5 .fw-300 }
 
-### [Nextended.Core](core.md)
-**Description**: The foundation library providing essential extension methods and custom types.
+{: .note }
+> This overview is generated at build time from
+> [`docs/_data/packages.json`](https://github.com/fgilde/Nextended/blob/main/docs/_data/packages.json),
+> the single source of truth for every package listing in this repository. Adding a package there
+> updates this page, the German mirror, the root README and all package READMEs — the last via
+> `pwsh tools/Update-PackageDocs.ps1`.
 
-**Key Features**:
-- Extensive extension methods for built-in .NET types
-- Custom types (Money, Date, BaseId, SuperType, Range)
-- Object mapping and cloning
-- Serialization helpers
+## Table of contents
+{: .no_toc .text-delta }
 
-**NuGet**: [Nextended.Core](https://www.nuget.org/packages/Nextended.Core/)
-
----
-
-### [Nextended.Cache](cache.md)
-**Description**: Caching utilities and extensions for simplified caching operations.
-
-**Key Features**:
-- Unified caching provider interface
-- Extensions for IMemoryCache
-- Automatic cache expiration management
-
-**NuGet**: [Nextended.Cache](https://www.nuget.org/packages/Nextended.Cache/)
+1. TOC
+{:toc}
 
 ---
 
-### [Nextended.EF](ef.md)
-**Description**: Entity Framework Core extensions for enhanced database operations.
+{% assign pkgs = site.data.packages.packages %}
+{% assign cats = site.data.packages.categories %}
+{% assign repo = site.data.packages.meta.repo %}
 
-**Key Features**:
-- Graph loading (`LoadGraphAsync`, `IncludeAll`, `MultiInclude`)
-- Declarative, reusable include definitions (`IncludeDefinitionFor<T>`, attribute-driven, composable, glob/regex filters)
-- Query helpers: `WhereContains`, `WhereKeyMatches`, `WhereBetween`, `WhereIn`, `WhereIf`, `ExistsAsync`
-- Paging & dynamic sorting: `Page`, `ToPagedResultAsync`, `OrderByMember(s)`, `PagedResult<T>`
-- Conditional includes/tracking: `IncludeIf`, `AsTrackingIf`, `AsNoTrackingIf`
-- DbContext helpers: PK inspection, `DetachAll`, `GetOrAddAsync` / `GetOrCreateAsync`
-- Bulk ops: `BulkInsertAsync`, `BulkDeleteWhereAsync`, `UpsertAsync` / `UpsertRangeAsync` (with InMemory fallback)
+{% for cat in cats %}
+## {{ cat.en }}
 
-**NuGet**: [Nextended.EF](https://www.nuget.org/packages/Nextended.EF/)
+{% for pkg in pkgs %}{% if pkg.category == cat.id %}
+### [{{ pkg.name }}]({{ pkg.slug }}.html)
 
----
+{{ pkg.summary.en }}
 
-## UI Libraries
+| | |
+| --- | --- |
+| **NuGet** | [{{ pkg.name }}](https://www.nuget.org/packages/{{ pkg.name }}/) |
+| **Install** | `dotnet add package {{ pkg.name }}` |
+| **Frameworks** | {% for fw in pkg.frameworks %}`{{ fw }}`{% unless forloop.last %}, {% endunless %}{% endfor %} |
+| **Platform** | {{ pkg.platform }} |
+| **Dependencies** | {% if pkg.dependencies.size == 0 %}none{% else %}{% for dep in pkg.dependencies %}{{ dep }}{% unless forloop.last %}, {% endunless %}{% endfor %}{% endif %} |
+| **Source** | [{{ pkg.name }}]({{ repo }}/tree/main/{{ pkg.name }}) |{% if pkg.sample %}
+| **Runnable sample** | [{{ pkg.sample | split: "/" | last }}]({{ repo }}/tree/main/{{ pkg.sample }}) |{% endif %}
+| **Documentation** | [English]({{ pkg.slug }}.html) · [Deutsch]({{ repo }}/blob/main/docs/de/projects/{{ pkg.slug }}.md) |
 
-### [Nextended.Blazor](blazor.md)
-**Description**: Blazor-specific helpers, components, and extensions.
-
-**Key Features**:
-- Blazor component utilities
-- JavaScript interop helpers
-- Navigation and localization extensions
-
-**NuGet**: [Nextended.Blazor](https://www.nuget.org/packages/Nextended.Blazor/)
+{% endif %}{% endfor %}
+{% endfor %}
 
 ---
 
-### [Nextended.UI](ui.md)
-**Description**: WPF and Windows Forms utilities for desktop applications.
+## Quick reference matrix
 
-**Key Features**:
-- ViewUtility for UI operations
-- WPF behaviors and templates
-- ViewModel base classes
-- Theming support
+| Package | Frameworks | Platform | Dependencies |
+| --- | --- | --- | --- |
+{% for pkg in pkgs %}| [{{ pkg.name }}]({{ pkg.slug }}.html) | {% for fw in pkg.frameworks %}`{{ fw }}`{% unless forloop.last %}, {% endunless %}{% endfor %} | {{ pkg.platform }} | {% if pkg.dependencies.size == 0 %}none{% else %}{% for dep in pkg.dependencies %}{{ dep }}{% unless forloop.last %}, {% endunless %}{% endfor %}{% endif %} |
+{% endfor %}
 
-**NuGet**: [Nextended.UI](https://www.nuget.org/packages/Nextended.UI/)
-**Platform**: Windows only
+## Dependency graph
 
----
+```
+Nextended.Core ─┬─ Nextended.Cache ─── Nextended.Imaging
+                ├─ Nextended.EF ────── Nextended.Web
+                ├─ Nextended.Blazor
+                ├─ Nextended.UI
+                ├─ Nextended.ResponseFilters ─── Nextended.ResponseFilters.AspNetCore
+                └─ Nextended.Aspire ─┬─ Nextended.Aspire.Hosting.N8n
+                                     ├─ Nextended.Aspire.Hosting.LocalAI
+                                     └─ Nextended.Aspire.Hosting.Supabase ─┐
+                                                                           │
+Nextended.Aspire.Hosting.Grafana ──────────────────────────────────────────┘
 
-### [Nextended.Web](web.md)
-**Description**: ASP.NET Core and web application helpers.
+standalone (Aspire.Hosting.AppHost only):
+  Nextended.Aspire.Hosting.WebDataStudio
+  Nextended.Aspire.Hosting.AspireUI
+  Nextended.Aspire.Hosting.Php
 
-**Key Features**:
-- Controller extensions
-- HTTP utilities
-- OData helpers
-- Web-specific extensions
-
-**NuGet**: [Nextended.Web](https://www.nuget.org/packages/Nextended.Web/)
-
----
-
-## ASP.NET Core Add-ons
-
-### [Nextended.ResponseFilters](responsefilters.md)
-**Description**: Fluent, attribute-aware pipeline that mutates response DTOs (redact, mask, hash, round, truncate, transform, filter collections) before serialization.
-
-**Key Features**:
-- `ResponseFilter<T>` base class with FluentValidation-style rule builders (`Nullify`, `Mask`, `Hash`, `Round`, `Truncate`, `RemoveItems`, `Take`, `Apply`, …)
-- Full predicate matrix (sync/async, no-arg/ctx-aware/instance-aware)
-- Compiled property accessors, type-graph cache, cycle detection
-- ASP.NET Core adapter ships as `Nextended.ResponseFilters.AspNetCore`
-
-**NuGet**: [Nextended.ResponseFilters](https://www.nuget.org/packages/Nextended.ResponseFilters/), [Nextended.ResponseFilters.AspNetCore](https://www.nuget.org/packages/Nextended.ResponseFilters.AspNetCore/)
-
----
-
-## Specialized Libraries
-
-### [Nextended.Imaging](imaging.md)
-**Description**: Image processing and manipulation utilities.
-
-**Key Features**:
-- Comprehensive ImageHelper class
-- Image format conversions
-- Dimension handling
-- Cached image processing
-
-**NuGet**: [Nextended.Imaging](https://www.nuget.org/packages/Nextended.Imaging/)
-
----
-
-### [Nextended.CodeGen](codegen.md)
-**Description**: Compile-time source code generation from various sources.
-
-**Key Features**:
-- DTO generation from attributes
-- Class generation from JSON/XML
-- Excel-to-class generation
-- Roslyn source generator
-
-**NuGet**: [Nextended.CodeGen](https://www.nuget.org/packages/Nextended.CodeGen/)
-
----
-
-### [Nextended.Aspire](aspire.md)
-**Description**: Extensions for .NET Aspire distributed applications.
-
-**Key Features**:
-- Conditional dependency configuration
-- Environment variable management
-- Docker runtime checks
-- Endpoint configuration helpers
-
-**NuGet**: [Nextended.Aspire](https://www.nuget.org/packages/Nextended.Aspire/)
-
----
-
-### [Nextended.Aspire.Hosting.Supabase](aspire-supabase.md)
-**Description**: Full Supabase stack as a single Aspire resource — Postgres, GoTrue, PostgREST, Storage, Kong, Studio, Edge Functions.
-
-**Key Features**:
-- One-line `AddSupabase("supabase")` spins up the complete stack
-- Per-sub-resource fluent configuration (`ConfigureDatabase`, `ConfigureAuth`, …)
-- Schema/data/storage/edge-function sync from remote Supabase projects
-- Local SQL migrations, pre-registered dev users, dashboard "Clear All Data" command
-- Azure Container Apps deployment via `azd`
-
-**NuGet**: [Nextended.Aspire.Hosting.Supabase](https://www.nuget.org/packages/Nextended.Aspire.Hosting.Supabase/)
-
----
-
-### [Nextended.Aspire.Hosting.N8n](aspire-n8n.md)
-**Description**: The [n8n](https://n8n.io) workflow-automation platform as a single Aspire resource — n8n, PostgreSQL backend, optional Redis + workers.
-
-**Key Features**:
-- One-line `AddN8n("n8n")` with an auto-created PostgreSQL backend and sensible self-hosting defaults
-- Bring your own database (`WithDatabase`) or use bundled SQLite (`WithSqlite`)
-- Queue mode with Redis and scalable worker containers (`WithQueueMode`)
-- Basic auth, encryption key, webhook/editor URLs, timezone, workflow/credential import
-- Lightweight `N8nApiClient` for services + Azure Container Apps deployment via `azd`
-
-**NuGet**: [Nextended.Aspire.Hosting.N8n](https://www.nuget.org/packages/Nextended.Aspire.Hosting.N8n/)
-
----
-
-### [Nextended.Aspire.Hosting.WebDataStudio](aspire-webdatastudio.md)
-**Description**: [WebDataStudio](https://fgilde.github.io/WebDataStudio/) — a browser-based database studio for nine engines — as an Aspire resource, wired to the databases of your stack.
-
-**Key Features**:
-- `WithWebDataStudio()` on any resource with a connection string: PostgreSQL, MySQL, SQL Server, SQLite, Oracle, DuckDB, ClickHouse, MongoDB, Redis
-- One shared studio by default, several by name, or one you build yourself with `AddWebDataStudio`
-- Engine detected from the resource type; connections labelled, grouped, coloured and optionally read-only
-- Login, read-only mode, row caps, statement timeout, session limits and the secret key from the app host
-- Passwords and keys as Aspire parameters, so nothing lands in the manifest
-
-**NuGet**: [Nextended.Aspire.Hosting.WebDataStudio](https://www.nuget.org/packages/Nextended.Aspire.Hosting.WebDataStudio/)
-
----
-
-### [Nextended.AutoDto](autodto.md)
-**Description**: Automatic DTO generation support library.
-
-**Key Features**:
-- DTO generation infrastructure
-- Works with Nextended.CodeGen
-
-**NuGet**: [Nextended.AutoDto](https://www.nuget.org/packages/Nextended.AutoDto/)
-
----
-
-## Quick Reference Matrix
-
-| Project | Target | Platform | Dependencies |
-|---------|--------|----------|--------------|
-| Nextended.Core | .NET Standard 2.0+, .NET 8/9/10 | Cross-platform | None |
-| Nextended.Cache | .NET 8/9/10 | Cross-platform | Core |
-| Nextended.EF | .NET 8/9/10 | Cross-platform | Core, EF Core |
-| Nextended.Blazor | .NET 8/9/10 | Browser | Core, Blazor |
-| Nextended.UI | .NET 8/9/10 | Windows | Core, WPF |
-| Nextended.Web | .NET 8/9/10 | Cross-platform | Core, EF, ASP.NET |
-| Nextended.ResponseFilters | .NET 8/9/10 | Cross-platform | Core |
-| Nextended.ResponseFilters.AspNetCore | .NET 8/9/10 | Cross-platform | ResponseFilters, ASP.NET |
-| Nextended.Imaging | .NET 8/9/10 | Cross-platform | Core, Cache |
-| Nextended.CodeGen | .NET Standard 2.0 | Build-time | Roslyn |
-| Nextended.Aspire | .NET 8/9/10 | Cross-platform | Aspire |
-| Nextended.Aspire.Hosting.Supabase | .NET 8/9/10 | Cross-platform | Aspire |
-| Nextended.Aspire.Hosting.N8n | .NET 8/9/10 | Cross-platform | Aspire, PostgreSQL, Redis |
-| Nextended.Aspire.Hosting.WebDataStudio | .NET 8/9/10 | Cross-platform | Aspire |
-| Nextended.AutoDto | .NET Standard 2.0 | Build-time | Roslyn |
-
-## Installation
-
-Install any package via NuGet:
-
-```bash
-dotnet add package [PackageName]
+build-time only:
+  Nextended.CodeGen  (consumes the attributes from Nextended.Core)
 ```
 
-For example:
-```bash
-dotnet add package Nextended.Core
-dotnet add package Nextended.Blazor
-```
+## Which package do I need?
 
-## Getting Help
+| I want to … | Package |
+| --- | --- |
+| Map objects without a mapper library | [Nextended.Core](core.html) |
+| Work with money, date-only values or typed ids | [Nextended.Core](core.html) |
+| Build a faceted search over `IQueryable<T>` | [Nextended.Core](core.html) |
+| Cache a method call without inventing a cache key | [Nextended.Cache](cache.html) |
+| Load an EF Core graph without writing `Include` chains | [Nextended.EF](ef.html) |
+| Page and sort by a client-supplied string | [Nextended.EF](ef.html) |
+| Expose OData without writing an EDM model | [Nextended.Web](web.html) |
+| Run work after the response has been sent | [Nextended.Web](web.html) |
+| Hide, mask or rename response fields per user | [Nextended.ResponseFilters](responsefilters.html) |
+| Do that in an MVC app | [Nextended.ResponseFilters.AspNetCore](responsefilters-aspnetcore.html) |
+| Let users browse inside an uploaded zip in Blazor | [Nextended.Blazor](blazor.html) |
+| Global shortcuts and gamepads in a WPF app | [Nextended.UI](ui.html) |
+| Resize, crop or sniff images on Windows | [Nextended.Imaging](imaging.html) |
+| Generate DTOs, or classes from JSON/XML/Excel | [Nextended.CodeGen](codegen.html) |
+| Remove `if` branches from my Aspire AppHost | [Nextended.Aspire](aspire.html) |
+| Run Supabase, n8n, Grafana, PHP or LocalAI in Aspire | the matching `Nextended.Aspire.Hosting.*` package |
 
-- Check individual project documentation for detailed information
-- Visit the [Examples](../examples/common-use-cases.md) section for code samples
-- Review the [API Reference](../api/extensions.md) for detailed API documentation
-- Submit issues on [GitHub](https://github.com/fgilde/Nextended/issues)
+## Getting help
+
+- [Examples](../examples/common-use-cases.md) — task-oriented code samples
+- [API reference](../api/extensions.md) — the detailed extension and type reference
+- [Installation guide](../guides/installation.md)
+- [GitHub issues](https://github.com/fgilde/Nextended/issues)

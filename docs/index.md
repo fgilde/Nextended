@@ -2,164 +2,188 @@
 layout: default
 title: Home
 nav_order: 1
-description: "Nextended - A comprehensive .NET library suite providing powerful extension methods, types, and utilities"
+description: "Nextended — a .NET library suite: extension methods, custom types, caching, EF Core, ASP.NET Core response filtering, source generation and .NET Aspire hosting integrations"
 permalink: /
 ---
 
 # Nextended
+{: .no_toc }
+
+🇩🇪 [Diese Seite auf Deutsch](https://github.com/fgilde/Nextended/blob/main/docs/de/index.md)
+
+A suite of {{ site.data.packages.packages | size }} .NET libraries covering extension methods and
+custom types, caching, EF Core, ASP.NET Core, response shaping, source generation and .NET Aspire
+hosting integrations.
+{: .fs-6 .fw-300 }
 
 [![NuGet](https://img.shields.io/nuget/v/Nextended.Core.svg)](https://www.nuget.org/packages/Nextended.Core/)
-[![License](https://img.shields.io/github/license/fgilde/Nextended)](LICENSE)
+[![License](https://img.shields.io/github/license/fgilde/Nextended)](https://github.com/fgilde/Nextended/blob/main/LICENSE)
 
-Welcome to Nextended - a comprehensive suite of .NET libraries providing powerful extension methods, custom types, utilities, and code generation tools to enhance your .NET development experience.
+## Table of contents
+{: .no_toc .text-delta }
+
+1. TOC
+{:toc}
+
+---
 
 ## Overview
 
-Nextended is a collection of libraries designed to simplify and accelerate .NET development across various platforms and frameworks. Originally known as "nExt", the library was updated and renamed to Nextended with full support for modern .NET versions.
+The packages are independent — take `Nextended.Core` on its own, or add only the Aspire integration
+you need. Everything except `Nextended.CodeGen` builds on `Nextended.Core`.
 
-## 📦 Package Ecosystem
+Originally published as **nExt**, the suite was renamed to Nextended and now targets .NET 8, 9 and 10.
+See the [migration guide](guides/migration.md).
 
-The Nextended suite consists of multiple specialized packages, each serving a specific purpose:
+{: .note }
+> The package listings on this site are generated from
+> [`docs/_data/packages.json`](https://github.com/fgilde/Nextended/blob/main/docs/_data/packages.json),
+> so they cannot fall out of step with the repository.
 
-### Core Libraries
+## Packages
 
-- **[Nextended.Core](projects/core.md)** - The foundation library with essential extension methods and custom types
-- **[Nextended.Cache](projects/cache.md)** - Caching utilities and extensions
-- **[Nextended.EF](projects/ef.md)** - Entity Framework Core extensions
+{% assign pkgs = site.data.packages.packages %}
+{% assign cats = site.data.packages.categories %}
+{% assign repo = site.data.packages.meta.repo %}
 
-### UI Libraries
+{% for cat in cats %}
+### {{ cat.en }}
 
-- **[Nextended.Blazor](projects/blazor.md)** - Blazor-specific helpers and components
-- **[Nextended.UI](projects/ui.md)** - WPF and Windows Forms utilities
-- **[Nextended.Web](projects/web.md)** - ASP.NET Core and web application helpers
+| Package | Description | Sample |
+| --- | --- | --- |
+{% for pkg in pkgs %}{% if pkg.category == cat.id %}| **[{{ pkg.name }}](projects/{{ pkg.slug }}.html)** | {{ pkg.summary.en }} | {% if pkg.sample %}[{{ pkg.sample | split: "/" | last }}]({{ repo }}/tree/main/{{ pkg.sample }}){% else %}—{% endif %} |
+{% endif %}{% endfor %}
+{% endfor %}
 
-### ASP.NET Core add-ons
+See the [projects overview](projects/README.md) for frameworks, platforms, dependencies and the
+dependency graph.
 
-- **[Nextended.ResponseFilters](projects/responsefilters.md)** - Fluent, attribute-aware pipeline for redacting, masking and transforming response DTOs before serialization (incl. ASP.NET Core adapter)
-
-### Specialized Libraries
-
-- **[Nextended.Imaging](projects/imaging.md)** - Image processing and manipulation utilities
-- **[Nextended.CodeGen](projects/codegen.md)** - Source code generation tools (attributes, JSON/Excel to classes, DTO generation)
-- **[Nextended.Aspire](projects/aspire.md)** - .NET Aspire framework extensions for distributed applications
-- **[Nextended.Aspire.Hosting.Supabase](projects/aspire-supabase.md)** - Complete Supabase stack (Postgres, Auth, REST, Storage, Studio, Edge Functions) as an Aspire resource
-- **[Nextended.Aspire.Hosting.N8n](projects/aspire-n8n.md)** - The n8n workflow-automation platform as an Aspire resource
-- **[Nextended.Aspire.Hosting.WebDataStudio](projects/aspire-webdatastudio.md)** - WebDataStudio, a browser-based database studio, wired to the databases of your stack
-- **[Nextended.AutoDto](projects/autodto.md)** - Automatic DTO generation utilities
-
-## 🚀 Quick Start
-
-### Installation
-
-Install the core package via NuGet:
+## Quick start
 
 ```bash
 dotnet add package Nextended.Core
 ```
 
-Or install specific packages based on your needs:
-
-```bash
-dotnet add package Nextended.Blazor
-dotnet add package Nextended.EF
-dotnet add package Nextended.CodeGen
-```
-
-### Basic Usage
-
 ```csharp
 using Nextended.Core.Extensions;
 using Nextended.Core.Types;
+using Nextended.Core.DeepClone;
 
-// Use powerful extension methods
-var user = new User { FirstName = "John", LastName = "Doe" };
+// Object mapping — no profiles, no configuration
 var userDto = user.MapTo<UserDto>();
+var userDtos = users.MapElementsTo<UserDto>();
 
-// Work with custom types
+// Deep clone, references preserved
+var copy = order.CloneDeep();
+
+// Types that carry their meaning
 var price = new Money(99.99m, Currency.USD);
-var today = Date.Today;
+var due   = Date.Today.AddDays(30);
+
+// Extension methods
+"hello world".ToPascalCase();     // "HelloWorld"
+"hello world".ToCamel();          // "helloWorld"
+"MyClassName".SplitByUpperCase(); // "My Class Name"
+DateTime.Today.AddWeekDays(5);    // skips weekends
+DateTime.UtcNow.ToISOz();
 ```
 
-## 📚 Documentation
+## Documentation
 
-### Getting Started
-- [Installation Guide](guides/installation.md)
-- [Architecture Overview](guides/architecture.md)
+### Guides
+- [Installation](guides/installation.md)
+- [Architecture overview](guides/architecture.md)
 - [Migration from nExt](guides/migration.md)
 
-### Projects
-- [All Projects Overview](projects/README.md)
-- Browse individual project documentation in the [projects](projects/) folder
+### Packages
+- [All packages](projects/README.md) — purpose, frameworks, samples and dependency graph
 
 ### Examples
-- [Common Use Cases](examples/common-use-cases.md)
-- [Class Mapping Examples](examples/class-mapping.md)
-- [Custom Types Examples](examples/custom-types.md)
-- [Code Generation Examples](examples/code-generation.md)
+- [Common use cases](examples/common-use-cases.md)
 
-### API Reference
-- [Extension Methods Reference](api/extensions.md)
-- [Custom Types Reference](api/types.md)
-- [Class Mapping Reference](api/class-mapping.md)
-- [Helper Utilities Reference](api/helpers.md)
-- [Encryption & Security Reference](api/encryption.md)
+### API reference
+- [Extension methods](api/extensions.md)
+- [Custom types](api/types.md)
+- [Class mapping](api/class-mapping.md)
+- [Helper utilities](api/helpers.md)
+- [Encryption and hashing](api/encryption.md)
 
-## 🎯 Key Features
+## Highlights
 
-### Extension Methods
-Nextended.Core provides extensive extension methods for:
-- String manipulation
-- DateTime operations
-- Collection operations (LINQ enhancements)
-- Type reflection and conversion
-- Object mapping and cloning
-- Task and async utilities
-- And many more...
+### Class mapping without a mapper library
 
-### Custom Types
-Powerful custom types that solve common problems:
-- **Money** - Precise decimal type for financial calculations
-- **Date** - Date-only type without time components
-- **BaseId** - Generic strongly-typed ID wrapper
-- **SuperType** - Advanced entity type with subtype relationships
-- **Range** - Generic range type for intervals
-
-### Class Mapping
-Fast and flexible object mapping without external dependencies:
 ```csharp
-// Simple mapping
-var dto = sourceObject.MapTo<TargetDto>();
+var dto = source.MapTo<TargetDto>();
 
-// Advanced mapping with settings
 var settings = ClassMappingSettings.Default
+    .AddAssignment<Source, Target>(s => s.EmailAddress, t => t.Mail)
     .IgnoreProperties<Source>(s => s.InternalField)
     .AddConverter<string, DateTime>(DateTime.Parse);
+
 var result = source.MapTo<Target>(settings);
 ```
 
-See the [Class Mapping Reference](api/class-mapping.md) for complete documentation, examples, and usage scenarios.
+See the [class mapping reference](api/class-mapping.md).
 
-### Code Generation
-Generate code at compile-time from various sources:
-- Auto-generate DTOs from your domain models
-- Create strongly-typed classes from JSON/XML configuration files
-- Generate data classes from Excel spreadsheets
-- Full compile-time validation and IntelliSense support
+### Response shaping per user
 
-## 🤝 Contributing
+```csharp
+public class OrderFilter : ResponseFilter<OrderDto>
+{
+    public OrderFilter()
+    {
+        Nullify(x => x.TotalCost).When(NotInRole("Finance"));
+        Mask(x => x.CreditCard).KeepFirst(4).KeepLast(4).Always();
+        Remove(x => x.InternalRef).When(NotInRole("Internal"));
+    }
+}
+```
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+See [Nextended.ResponseFilters](projects/responsefilters.md).
 
-## 📄 License
+### Compile-time generation
 
-This project is licensed under the MIT License - see the [LICENSE](../LICENSE) file for details.
+```csharp
+[AutoGenerateDto(Namespace = "MyApp.Contracts")]
+public class Address : EntityBase
+{
+    public string Street { get; set; }
+    public string City { get; set; }
+}
+```
 
-## 🔗 Links
+DTOs and mapping extensions are generated at build time. Classes can also be generated from JSON,
+XML and Excel, and documentation from source files. See [Nextended.CodeGen](projects/codegen.md).
 
-- [Source Repository](https://github.com/fgilde/Nextended)
-- [NuGet Package (Nextended.Core)](https://www.nuget.org/packages/Nextended.Core/)
-- [Legacy Package (nExt.Core - no longer updated)](https://www.nuget.org/packages/nExt.Core/)
+### An AppHost without `if` branches
 
-## 📬 Support
+```csharp
+var api = builder.AddProject<Projects.Api>("api")
+    .WithReferenceIf(cache)          // no-op when cache is null
+    .WaitForIf(isLocal, database)
+    .WithEnvironments(smtpOptions);  // flattened to SmtpOptions__Host, …
+```
 
-For issues, questions, or feature requests, please use the [GitHub Issues](https://github.com/fgilde/Nextended/issues) page.
+See [Nextended.Aspire](projects/aspire.md).
+
+## Runnable samples
+
+{% for pkg in pkgs %}{% if pkg.sample %}- [{{ pkg.sample | split: "/" | last }}]({{ repo }}/tree/main/{{ pkg.sample }}) — {{ pkg.name }}
+{% endif %}{% endfor %}
+
+## Contributing
+
+Pull requests are welcome. Package listings, README headers and footers, and this site's icon are
+generated: edit [`docs/_data/packages.json`](https://github.com/fgilde/Nextended/blob/main/docs/_data/packages.json)
+and run `pwsh tools/Update-PackageDocs.ps1` (or `-Check` in CI).
+
+## License
+
+GPL-3.0-or-later — see [LICENSE](https://github.com/fgilde/Nextended/blob/main/LICENSE).
+
+## Links
+
+- [Source repository](https://github.com/fgilde/Nextended)
+- [NuGet packages](https://www.nuget.org/packages?q=Nextended)
+- [GitHub issues](https://github.com/fgilde/Nextended/issues)
+- [nExt.Core](https://www.nuget.org/packages/nExt.Core/) — legacy, no longer maintained

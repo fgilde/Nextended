@@ -1,0 +1,100 @@
+name: Docs sync
+
+# Keeps the generated documentation blocks correct without anyone running a script by hand.
+#
+#   Pull request  -> verify only. Fails when a generated block, a package listing or the docs
+#                    icon is out of date, and tells the contributor which command fixes it.
+#   Push to main  -> regenerate and commit the result. This is the layer that makes "always
+#                    up to date" true even when a change lands without a local build.
+#
+# What is generated is described in docs/README.md. The single source of truth is
+# docs/_data/packages.json plus the repository-root icon.png.
+#
+# No loop risk: the commit this workflow makes only touches generated files, so the follow-up
+# run finds nothing stale and commits nothing.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'docs/_data/packages.json'
+      - 'icon.png'
+      - 'tools/Update-PackageDocs.ps1'
+      - '**/README.md'
+      - '**/*.csproj'
+      - '.github/workflows/docs-sync.yml'
+  pull_request:
+    paths:
+      - 'docs/_data/packages.json'
+      - 'icon.png'
+      - 'tools/Update-PackageDocs.ps1'
+      - '**/README.md'
+      - '**/*.csproj'
+      - '.github/workflows/docs-sync.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: docs-sync-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Verify (pull request)
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify generated docs are up to date
+        shell: pwsh
+        run: |
+          ./tools/Update-PackageDocs.ps1 -Check
+          if ($LASTEXITCODE -ne 0) {
+              Write-Host '::error::Generated documentation is out of date or inconsistent.'
+              Write-Host '::error::Run  pwsh tools/Update-PackageDocs.ps1  and commit the result.'
+              exit 1
+          }
+
+  sync:
+    name: Regenerate and commit
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # A normal GITHUB_TOKEN push does not retrigger other workflows. That is fine here:
+          # pages.yml already runs for docs/** on the same push, and nothing else depends on
+          # the generated blocks.
+          persist-credentials: true
+
+      - name: Regenerate
+        shell: pwsh
+        run: |
+          ./tools/Update-PackageDocs.ps1
+          # Exit code 1 means a consistency problem (a package missing from packages.json, a
+          # missing docs page). Surface it — but only after the writable parts were updated.
+          if ($LASTEXITCODE -ne 0) {
+              Write-Host '::warning::Generator reported consistency problems, see the log above.'
+          }
+
+      - name: Commit if anything changed
+        shell: bash
+        run: |
+          if [[ -z "$(git status --porcelain)" ]]; then
+            echo "Nothing to do — generated docs already up to date."
+            exit 0
+          fi
+
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add -A
+          git commit -m "chore(docs): regenerate package listings, README blocks and docs icon"
+          git push
+
+      - name: Fail if consistency problems remain
+        shell: pwsh
+        run: ./tools/Update-PackageDocs.ps1 -Check

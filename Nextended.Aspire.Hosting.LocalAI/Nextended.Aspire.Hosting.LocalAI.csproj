@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
   <Import Project="..\Shared.props" />
 
   <PropertyGroup>
@@ -6,12 +6,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <IsPackable>true</IsPackable>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-    <PackReadMe>false</PackReadMe>
     <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
-  <ItemGroup>
-    <None Include="README.md" Pack="true" PackagePath="README.md" />
-  </ItemGroup>
 
   <PropertyGroup>
     <Description>Self-hosted, OpenAI-compatible multimodal AI for .NET Aspire — a LocalAI-based container resource for image generation, text-to-speech, speech-to-text and video generation, with gallery model management, GPU support and Open WebUI. The self-hosted counterpart of AddOllama for everything beyond text.</Description>

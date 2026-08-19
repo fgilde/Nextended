@@ -36,7 +36,7 @@ Most functionality is provided through extension methods, making the API discove
 
 ```csharp
 // Extensions naturally extend existing types
-string result = myString.ToCamelCase();
+string result = myString.ToCamel();
 var mapped = sourceObject.MapTo<TargetType>();
 ```
 
@@ -183,7 +183,7 @@ Used throughout for discoverability and ease of use:
 ```csharp
 public static class StringExtensions
 {
-    public static string ToCamelCase(this string value) 
+    public static string ToCamel(this string value) 
     { 
         // Implementation
     }

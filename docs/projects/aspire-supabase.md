@@ -7,6 +7,8 @@ nav_order: 12
 
 # Nextended.Aspire.Hosting.Supabase
 
+🇩🇪 [Diese Seite auf Deutsch](https://github.com/fgilde/Nextended/blob/main/docs/de/projects/aspire-supabase.md)
+
 Complete Supabase stack integration for .NET Aspire — PostgreSQL, GoTrue auth, PostgREST, Storage, Kong gateway, Studio dashboard, and Edge Functions, all wired up with sensible defaults for local development and Azure Container Apps deployment.
 
 ## Overview

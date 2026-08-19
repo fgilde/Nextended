@@ -8,7 +8,6 @@
     <TargetFramework>netstandard2.0</TargetFramework>
     <LangVersion>latest</LangVersion>
     <Nullable>enable</Nullable>
-    <PackReadMe>false</PackReadMe>
 
     <!-- Source‑Generator‑Flags -->
     <IsRoslynComponent>true</IsRoslynComponent>
@@ -48,9 +47,6 @@
   </ItemGroup>
 
   <!-- ─────────────  Zusatzdateien fürs NuGet  ───────────── -->
-  <ItemGroup>
-    <None Include="README.md" Pack="true" PackagePath="README.md" />
-  </ItemGroup>
 
   <!-- ─────────────  Alles aus bin\* in analyzers/dotnet/cs packen  ─────────────
        Muss über TargetsForTfmSpecificContentInPackage laufen: ein <None Include="$(OutputPath)\*.dll">

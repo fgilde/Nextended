@@ -2,10 +2,12 @@
 layout: default
 title: Nextended.Blazor
 parent: Projects
-nav_order: 6
+nav_order: 7
 ---
 
 # Nextended.Blazor
+
+🇩🇪 [Diese Seite auf Deutsch](https://github.com/fgilde/Nextended/blob/main/docs/de/projects/blazor.md)
 
 Blazor-specific helpers, extensions, and utilities for building modern web applications.
 

@@ -2,10 +2,12 @@
 layout: default
 title: Nextended.Core
 parent: Projects
-nav_order: 2
+nav_order: 1
 ---
 
 # Nextended.Core
+
+🇩🇪 [Diese Seite auf Deutsch](https://github.com/fgilde/Nextended/blob/main/docs/de/projects/core.md)
 
 The foundation library providing essential extension methods, custom types, and utilities for .NET development.
 
@@ -26,7 +28,7 @@ dotnet add package Nextended.Core
 Nextended.Core provides extensive extension methods for built-in .NET types:
 
 #### String Extensions
-- Case conversions (ToCamelCase, ToPascalCase, ToSnakeCase)
+- Case conversions (`ToCamel`, `ToPascalCase`, `Capitalize`, `Uncapitalize`)
 - Validation helpers (IsNullOrEmpty, IsNullOrWhiteSpace)
 - String manipulation (Truncate, Remove, Replace patterns)
 - Encoding/Decoding utilities
@@ -35,20 +37,19 @@ Nextended.Core provides extensive extension methods for built-in .NET types:
 using Nextended.Core.Extensions;
 
 string text = "hello world";
-string camelCase = text.ToCamelCase();     // "helloWorld"
+string camelCase = text.ToCamel();         // "helloWorld"
 string pascalCase = text.ToPascalCase();   // "HelloWorld"
-string snakeCase = text.ToSnakeCase();     // "hello_world"
 ```
 
 #### DateTime Extensions
-- Date calculations (AddBusinessDays, IsWeekend, IsBusinessDay)
+- Date calculations (`AddWeekDays`, `IsWeekend`, `IsWeekday`, `FirstDayOfMonth`, `LastDayOfMonth`)
 - Date comparisons and ranges
 - Formatting helpers
 - Time zone conversions
 
 ```csharp
 DateTime date = DateTime.Now;
-DateTime nextBusinessDay = date.AddBusinessDays(5);
+DateTime nextWeekDay = date.AddWeekDays(5);
 bool isWeekend = date.IsWeekend();
 ```
 
@@ -88,7 +89,7 @@ var properties = type.GetPublicProperties();
 
 ```csharp
 var original = new MyClass { Name = "Test" };
-var clone = original.DeepClone();
+var clone = original.CloneDeep();
 
 object value = myObject.GetPropertyValue("PropertyName");
 

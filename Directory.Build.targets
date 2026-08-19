@@ -1,0 +1,43 @@
+<Project>
+
+  <!--
+    Keeps the generated documentation blocks in sync on every local build, so nobody has to
+    remember to run tools/Update-PackageDocs.ps1 by hand.
+
+    What is generated is described in docs/README.md. The single source of truth is
+    docs/_data/packages.json plus the repository-root icon.png.
+
+    Design notes
+
+    * This file is auto-imported into EVERY project (including tests and samples). The target is
+      scoped to Nextended.Core, the root of the dependency tree, so building anything in the
+      solution triggers it.
+
+    * Nextended.Core multi-targets net8.0/net9.0/net10.0, and a ProjectReference build invokes
+      its inner builds per TFM. MSBuild offers no clean "once per build" hook there, so the
+      run-once logic lives in the script instead: -IfNeeded returns immediately when the stamp
+      file is newer than every input, and takes a named mutex otherwise so concurrent inner
+      builds serialise rather than writing the same files at once.
+
+    * ContinueOnError="WarnAndContinue" is deliberate. Documentation generation must never be
+      able to break a build: on a machine without pwsh, or in a sandbox that blocks process
+      start, you get a warning instead of a failed compile. The authoritative check is the
+      docs-sync GitHub workflow.
+
+    * Escape hatches:
+        dotnet build -p:NextendedSkipDocsSync=true      (once)
+        setx NextendedSkipDocsSync true                 (permanently, per machine)
+  -->
+
+  <Target Name="NextendedSyncPackageDocs"
+          AfterTargets="Build"
+          Condition="'$(MSBuildProjectName)' == 'Nextended.Core' And '$(NextendedSkipDocsSync)' != 'true'">
+
+    <Exec Command="pwsh -NoProfile -NonInteractive -ExecutionPolicy Bypass -File &quot;$(MSBuildThisFileDirectory)tools\Update-PackageDocs.ps1&quot; -IfNeeded"
+          WorkingDirectory="$(MSBuildThisFileDirectory)"
+          ContinueOnError="WarnAndContinue"
+          StandardOutputImportance="normal" />
+
+  </Target>
+
+</Project>

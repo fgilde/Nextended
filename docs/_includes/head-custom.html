@@ -1,3 +1,13 @@
 <!-- Custom head content for Nextended documentation -->
 <meta name="description" content="{{ page.description | default: site.description }}">
 <meta name="keywords" content=".NET, C#, extensions, utilities, library, nextended">
+
+<!-- The ONE icon: docs/assets/icon.png is a copy of the repository-root icon.png,
+     refreshed by tools/Update-PackageDocs.ps1. Replace the root file and re-run the
+     generator — favicon, social preview, NuGet packages and every README follow. -->
+<link rel="icon" type="image/png" href="{{ '/assets/icon.png' | relative_url }}">
+<link rel="apple-touch-icon" href="{{ '/assets/icon.png' | relative_url }}">
+<meta property="og:image" content="{{ '/assets/icon.png' | absolute_url }}">
+<meta property="og:title" content="{{ page.title | default: site.title }}">
+<meta property="og:description" content="{{ page.description | default: site.description }}">
+<meta name="twitter:card" content="summary">

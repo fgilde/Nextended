@@ -12,6 +12,12 @@
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <LangVersion>latest</LangVersion>
+    <Description>
+      Foundation library of the Nextended suite: extension methods for strings, dates, collections,
+      types, objects and tasks; custom types (Money, Date, BaseId, SuperType, Range); class mapping
+      and deep clone without external dependencies; encryption and hashing helpers; and the
+      attributes consumed by the Nextended.CodeGen source generator.
+    </Description>
   </PropertyGroup>
 
   <ItemGroup>

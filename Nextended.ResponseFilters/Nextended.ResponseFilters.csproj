@@ -1,11 +1,10 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
   <Import Project="..\Shared.props" />
 
   <PropertyGroup>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <ImplicitUsings>enable</ImplicitUsings>
     <IsPackable>true</IsPackable>
-    <PackReadMe>false</PackReadMe>
 
     <PackageReadmeFile>README.md</PackageReadmeFile>
 
@@ -46,8 +45,5 @@
       </_ProjectReferencesWithVersions>
     </ItemGroup>
   </Target>-->
-  <ItemGroup>
-    <None Include="README.md" Pack="true" PackagePath="README.md" />
-  </ItemGroup>
 
 </Project>

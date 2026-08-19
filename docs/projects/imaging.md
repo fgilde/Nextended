@@ -2,10 +2,12 @@
 layout: default
 title: Nextended.Imaging
 parent: Projects
-nav_order: 3
+nav_order: 9
 ---
 
 # Nextended.Imaging
+
+🇩🇪 [Diese Seite auf Deutsch](https://github.com/fgilde/Nextended/blob/main/docs/de/projects/imaging.md)
 
 Image processing and manipulation utilities for .NET applications.
 

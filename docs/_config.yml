@@ -16,12 +16,24 @@ search:
   rel_url: true
   button: true
 
-# Aux links for the upper right navigation
+# Logo shown next to the site title. docs/assets/icon.png is a copy of the
+# repository-root icon.png, kept in sync by tools/Update-PackageDocs.ps1.
+logo: "/assets/icon.png"
+
+# Aux links for the upper right navigation.
+# The language pair is the site-wide switcher; individual pages additionally link
+# to their counterpart in the other language at the top of the page.
 aux_links:
-  "Nextended on GitHub":
+  "🇬🇧 English":
+    - "/Nextended/"
+  "🇩🇪 Deutsch":
+    - "/Nextended/de/"
+  "GitHub":
     - "https://github.com/fgilde/Nextended"
-  "NuGet Package":
-    - "https://www.nuget.org/packages/Nextended.Core/"
+  "NuGet":
+    - "https://www.nuget.org/packages?q=Nextended"
+
+aux_links_new_tab: false
 
 # Footer content
 footer_content: 'Copyright &copy; Nextended. Distributed under the <a href="https://github.com/fgilde/Nextended/blob/main/LICENSE">GPL-3.0-or-later License</a>.'

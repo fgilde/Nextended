@@ -16,14 +16,23 @@
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageIcon>icon.png</PackageIcon>
   </PropertyGroup>
+  <!-- Every package ships its OWN README. Before this was centralised, nine packages
+       (Core, EF, Web, Cache, Blazor, UI, Imaging, Aspire, AutoDto) silently shipped the
+       repository root README to nuget.org because only the other ten opted out via
+       PackReadMe=false and declared their own <None Include="README.md" />.
+       Now the rule lives in exactly one place: the project-local README.md wins, and the
+       root README is only a fallback for a project that has none. -->
+  <PropertyGroup Condition="'$(PackReadMe)' == 'true' And Exists('$(MSBuildProjectDirectory)\README.md')">
+    <NextendedReadmePath>$(MSBuildProjectDirectory)\README.md</NextendedReadmePath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(PackReadMe)' == 'true' And !Exists('$(MSBuildProjectDirectory)\README.md')">
+    <NextendedReadmePath>$(MSBuildThisFileDirectory)README.md</NextendedReadmePath>
+  </PropertyGroup>
+
   <ItemGroup>
-    <None Include="..\icon.png">
-      <Pack>True</Pack>
-      <PackagePath>\</PackagePath>
-    </None>
-    <None Include="..\README.md" Condition="'$(PackReadMe)' == 'true'"> 
-      <Pack>True</Pack>
-      <PackagePath>\</PackagePath>
-    </None>
+    <!-- The ONE icon: swap $(MSBuildThisFileDirectory)icon.png and every package,
+         README and the docs site follow (see tools/Update-PackageDocs.ps1). -->
+    <None Include="$(MSBuildThisFileDirectory)icon.png" Pack="true" PackagePath="icon.png" />
+    <None Include="$(NextendedReadmePath)" Condition="'$(NextendedReadmePath)' != ''" Pack="true" PackagePath="README.md" />
   </ItemGroup>
 </Project>

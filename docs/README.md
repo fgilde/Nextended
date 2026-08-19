@@ -1,103 +1,72 @@
-# Nextended Documentation
+# Nextended documentation
 
-Welcome to the Nextended documentation!
+The published site: **<https://fgilde.github.io/Nextended/>**
 
-## 🌐 Online Documentation
+- 🇬🇧 English — [`index.md`](index.md)
+- 🇩🇪 Deutsch — [`de/index.md`](de/index.md)
 
-The documentation is available online at: **https://fgilde.github.io/Nextended/**
-
-## 📁 Documentation Structure
+## Structure
 
 ```
 docs/
-├── index.md                    # Main documentation portal
-├── _config.yml                 # GitHub Pages configuration
-│
-├── guides/                     # User guides
-│   ├── installation.md         # Installation and setup guide
-│   ├── architecture.md         # Solution architecture overview
-│   └── migration.md            # Migration from nExt to Nextended
-│
-├── projects/                   # Project-specific documentation
-│   ├── README.md               # Projects overview
-│   ├── core.md                 # Nextended.Core documentation
-│   ├── blazor.md               # Nextended.Blazor documentation
-│   ├── cache.md                # Nextended.Cache documentation
-│   ├── ef.md                   # Nextended.EF documentation
-│   ├── imaging.md              # Nextended.Imaging documentation
-│   ├── ui.md                   # Nextended.UI documentation
-│   ├── web.md                  # Nextended.Web documentation
-│   ├── aspire.md               # Nextended.Aspire documentation
-│   ├── codegen.md              # Nextended.CodeGen documentation
-│   └── autodto.md              # Nextended.AutoDto documentation
-│
-├── examples/                   # Usage examples
-│   └── common-use-cases.md     # Real-world examples and use cases
-│
-└── api/                        # API reference
-    ├── extensions.md           # Extension methods reference
-    ├── types.md                # Custom types reference
-    ├── class-mapping.md        # Class mapping reference
-    ├── helpers.md              # Helper utilities reference
-    └── encryption.md           # Encryption and security reference
+├─ index.md                  English home
+├─ _config.yml               just-the-docs configuration, logo, language switcher
+├─ _data/packages.json       SINGLE SOURCE OF TRUTH for every package listing
+├─ _includes/head-custom.html favicon / social preview, both from assets/icon.png
+├─ assets/icon.png           generated copy of the repository-root icon.png
+├─ guides/                   installation, architecture, migration (English)
+├─ api/                      extension, type, mapping, helper, encryption reference (English)
+├─ examples/                 task-oriented samples (English)
+├─ projects/                 one page per package (English)
+└─ de/                       German mirror
+   ├─ index.md
+   ├─ guides/                installation, architecture
+   ├─ examples/              typische Anwendungsfälle
+   └─ projects/              one page per package
 ```
 
-## 📖 Quick Links
+## What is generated, and what is written by hand
 
-- [Installation Guide](guides/installation.md)
-- [Architecture Overview](guides/architecture.md)
-- [All Projects](projects/README.md)
-- [Common Use Cases](examples/common-use-cases.md)
-- [Extension Methods API](api/extensions.md)
-- [Custom Types API](api/types.md)
-- [Class Mapping API](api/class-mapping.md)
-- [Helper Utilities API](api/helpers.md)
-- [Encryption & Security API](api/encryption.md)
+**Generated — do not edit by hand:**
 
-## 🚀 GitHub Pages Setup
+| Target | Produced by | From |
+| --- | --- | --- |
+| Package tables in `index.md`, `projects/README.md` and their German counterparts | Jekyll / Liquid at build time | `_data/packages.json` |
+| `assets/icon.png` | `tools/Update-PackageDocs.ps1` | root `icon.png` |
+| The `NEXTENDED:HEADER` / `NEXTENDED:PACKAGES` / `NEXTENDED:FOOTER` blocks in every README | `tools/Update-PackageDocs.ps1` | `_data/packages.json` |
 
-The documentation is automatically deployed to GitHub Pages using GitHub Actions.
+Everything else is hand-written prose.
 
-### Setup Instructions
+## Adding or changing a package
 
-1. **Enable GitHub Pages** in repository settings:
-   - Go to Settings → Pages
-   - Source: GitHub Actions
-   - The workflow in `.github/workflows/pages.yml` will handle deployment
+1. Add or edit the entry in [`_data/packages.json`](_data/packages.json).
+2. Create `projects/<slug>.md` and `de/projects/<slug>.md`.
+3. Run the generator:
 
-2. **Automatic Deployment**:
-   - Documentation is deployed automatically when changes are pushed to the `main` branch
-   - Only changes to the `docs/` folder trigger deployment
-   - Manual deployment can be triggered via the Actions tab
-
-3. **Jekyll Theme**:
-   - Theme: `just-the-docs` (ReadTheDocs-like styling)
-   - Built-in search functionality
-   - Configured in `_config.yml`
-
-## 🤝 Contributing to Documentation
-
-To improve the documentation:
-
-1. Edit the relevant `.md` files in the `docs/` folder
-2. Preview locally using Jekyll (optional):
    ```bash
-   cd docs
-   bundle exec jekyll serve
+   pwsh tools/Update-PackageDocs.ps1
    ```
-3. Commit and push changes
-4. Documentation will be automatically deployed
 
-## 📝 Documentation Standards
+The generator refuses to finish quietly when a packable project is missing from `packages.json`, when
+`packages.json` names a project that does not exist, or when a package points at a documentation page
+that is not there. In CI, use:
 
-- Use clear, concise language
-- Include code examples where appropriate
-- Link to related documentation
-- Follow the existing structure and style
-- Test all code examples before committing
+```bash
+pwsh tools/Update-PackageDocs.ps1 -Check
+```
 
-## 🔗 External Links
+## Replacing the icon
 
-- [Main Repository](https://github.com/fgilde/Nextended)
-- [NuGet Packages](https://www.nuget.org/packages?q=Nextended)
-- [Report Issues](https://github.com/fgilde/Nextended/issues)
+`icon.png` in the **repository root** is the only copy that matters. Replace it and run the generator:
+the NuGet package icon (via `Package.props`), the logo in every README (via a raw GitHub URL) and the
+site's logo, favicon and social preview (via `assets/icon.png`) all follow.
+
+## Running the site locally
+
+```bash
+cd docs
+bundle exec jekyll serve
+```
+
+The theme is [just-the-docs](https://just-the-docs.github.io/just-the-docs/), pulled in as a remote
+theme, so GitHub Pages builds the site without a committed `Gemfile.lock`.

@@ -19,15 +19,13 @@ using Nextended.Core.Extensions;
 string text = "hello world";
 
 // Convert to different cases
-string camelCase = text.ToCamelCase();     // "helloWorld"
+string camelCase = text.ToCamel();         // "helloWorld"
 string pascalCase = text.ToPascalCase();   // "HelloWorld"
-string snakeCase = text.ToSnakeCase();     // "hello_world"
-string kebabCase = text.ToKebabCase();     // "hello-world"
+string spaced   = "MyClassName".SplitByUpperCase();   // "My Class Name"
 
 // Convert from various formats
 string original = "UserFirstName";
-string snake = original.ToSnakeCase();     // "user_first_name"
-string camel = snake.ToCamelCase();        // "userFirstName"
+string camel = original.ToCamel();         // "userFirstName"
 ```
 
 ### String Validation
@@ -107,7 +105,7 @@ using Nextended.Core.Extensions;
 DateTime today = DateTime.Today;
 
 // Add business days (skips weekends)
-DateTime fiveDaysLater = today.AddBusinessDays(5);
+DateTime fiveDaysLater = today.AddWeekDays(5);
 
 // Check if weekend
 bool isWeekend = today.IsWeekend();
@@ -456,7 +454,7 @@ public class ProductsController : ControllerBase
 ## Next Steps
 
 - Explore [Class Mapping Reference](../api/class-mapping.md)
-- Learn about [Custom Types](custom-types.md)
-- See [Code Generation Examples](code-generation.md)
+- Learn about [Custom Types](../api/types.md)
+- See [Code Generation](../projects/codegen.md)
 - Review [Extension Methods API Reference](../api/extensions.md)
 - Review [Custom Types API Reference](../api/types.md)
