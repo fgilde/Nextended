@@ -243,8 +243,9 @@ function Format-PackageTable([string] $lang) {
 # Compact cross-reference list for a project README, self excluded, collapsed.
 function Format-RelatedPackages([object] $self) {
     $sb = [System.Text.StringBuilder]::new()
-    [void]$sb.AppendLine('<details>')
-    [void]$sb.AppendLine('<summary>All 18 Nextended packages</summary>')
+    # A <details>/<summary> disclosure is HTML and would be shown literally on nuget.org,
+    # so the family list is a plain markdown list introduced by a sentence instead.
+    [void]$sb.AppendLine("The other $(@($packages).Count - 1) packages in the suite:")
     [void]$sb.AppendLine()
 
     foreach ($cat in $categories) {
@@ -262,15 +263,17 @@ function Format-RelatedPackages([object] $self) {
         [void]$sb.AppendLine()
     }
 
-    [void]$sb.AppendLine('</details>')
     $sb.ToString().TrimEnd()
 }
 
 function Format-ProjectHeader([object] $pkg) {
     $sb = [System.Text.StringBuilder]::new()
-    [void]$sb.AppendLine("<p align=""center"">")
-    [void]$sb.AppendLine("  <img src=""$($meta.iconRawUrl)"" alt=""Nextended"" width=""110"" height=""110"">")
-    [void]$sb.AppendLine('</p>')
+    # Markdown image, NOT HTML. nuget.org renders README files as CommonMark and does not
+    # support raw HTML: a <p align="center"><img ...> block is shown as literal text there,
+    # even though GitHub renders it fine. Centring is not expressible in CommonMark, so the
+    # logo simply sits left-aligned — a visible logo beats a centred code snippet.
+    # The URL must also be on nuget.org's image allow-list; raw.githubusercontent.com is.
+    [void]$sb.AppendLine("![Nextended]($($meta.iconRawUrl))")
     [void]$sb.AppendLine()
     [void]$sb.AppendLine("# $($pkg.name)")
     [void]$sb.AppendLine()
@@ -280,6 +283,24 @@ function Format-ProjectHeader([object] $pkg) {
     [void]$sb.AppendLine()
     [void]$sb.AppendLine("> $($pkg.summary.en)")
     [void]$sb.AppendLine()
+
+    # The software this package hosts: its own logo and a screenshot, so the reader sees what they
+    # are about to run. Both are markdown images from raw.githubusercontent.com — the only image
+    # host nuget.org renders that also serves these assets with the right content type.
+    if ($pkg.PSObject.Properties.Name -contains 'product' -and $pkg.product) {
+        $prod = $pkg.product
+        [void]$sb.AppendLine()
+        if ($prod.PSObject.Properties.Name -contains 'logo' -and $prod.logo) {
+            [void]$sb.AppendLine("[![$($prod.name)]($($prod.logo))]($($prod.site))")
+            [void]$sb.AppendLine()
+        }
+        if ($prod.PSObject.Properties.Name -contains 'screenshot' -and $prod.screenshot) {
+            [void]$sb.AppendLine("[![$($prod.name) screenshot]($($prod.screenshot))]($($prod.site))")
+            [void]$sb.AppendLine()
+        }
+        [void]$sb.AppendLine("Runs **[$($prod.name)]($($prod.site))** as an Aspire resource.")
+        [void]$sb.AppendLine()
+    }
 
     $nav = "📖 **Documentation:** [English]($(Get-DocsUrlEn $pkg)) · [Deutsch]($(Get-DocsUrlDe $pkg))"
     if (Test-HasSample $pkg) {

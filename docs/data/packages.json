@@ -5,16 +5,38 @@
     "iconSource": "icon.png",
     "iconRawUrl": "https://raw.githubusercontent.com/fgilde/Nextended/main/icon.png"
   },
-
   "categories": [
-    { "id": "core",    "en": "Core libraries",             "de": "Kernbibliotheken" },
-    { "id": "data",    "en": "Data access",                "de": "Datenzugriff" },
-    { "id": "web",     "en": "ASP.NET Core & web",         "de": "ASP.NET Core & Web" },
-    { "id": "ui",      "en": "UI libraries",               "de": "UI-Bibliotheken" },
-    { "id": "tooling", "en": "Code generation & tooling",  "de": "Codegenerierung & Werkzeuge" },
-    { "id": "aspire",  "en": ".NET Aspire hosting",        "de": ".NET Aspire Hosting" }
+    {
+      "id": "core",
+      "en": "Core libraries",
+      "de": "Kernbibliotheken"
+    },
+    {
+      "id": "data",
+      "en": "Data access",
+      "de": "Datenzugriff"
+    },
+    {
+      "id": "web",
+      "en": "ASP.NET Core & web",
+      "de": "ASP.NET Core & Web"
+    },
+    {
+      "id": "ui",
+      "en": "UI libraries",
+      "de": "UI-Bibliotheken"
+    },
+    {
+      "id": "tooling",
+      "en": "Code generation & tooling",
+      "de": "Codegenerierung & Werkzeuge"
+    },
+    {
+      "id": "aspire",
+      "en": ".NET Aspire hosting",
+      "de": ".NET Aspire Hosting"
+    }
   ],
-
   "packages": [
     {
       "id": "core",
@@ -22,7 +44,13 @@
       "category": "core",
       "slug": "core",
       "platform": "Cross-platform",
-      "frameworks": ["netstandard2.0", "netstandard2.1", "net8.0", "net9.0", "net10.0"],
+      "frameworks": [
+        "netstandard2.0",
+        "netstandard2.1",
+        "net8.0",
+        "net9.0",
+        "net10.0"
+      ],
       "dependencies": [],
       "summary": {
         "en": "Foundation library — extension methods, custom types (Money, Date, BaseId, SuperType), class mapping, deep clone, encryption, hashing and the code-generation attributes.",
@@ -35,8 +63,14 @@
       "category": "core",
       "slug": "cache",
       "platform": "Cross-platform",
-      "frameworks": ["net8.0", "net9.0", "net10.0"],
-      "dependencies": ["Nextended.Core"],
+      "frameworks": [
+        "net8.0",
+        "net9.0",
+        "net10.0"
+      ],
+      "dependencies": [
+        "Nextended.Core"
+      ],
       "summary": {
         "en": "Expression-based caching — automatic cache keys from method expressions, CacheProvider with condition-based invalidation, thread-safe AddOrGetExisting.",
         "de": "Ausdrucksbasiertes Caching — automatische Cache-Keys aus Methodenausdrücken, CacheProvider mit bedingter Invalidierung, thread-sicheres AddOrGetExisting."
@@ -48,8 +82,15 @@
       "category": "data",
       "slug": "ef",
       "platform": "Cross-platform",
-      "frameworks": ["net8.0", "net9.0", "net10.0"],
-      "dependencies": ["Nextended.Core", "Microsoft.EntityFrameworkCore"],
+      "frameworks": [
+        "net8.0",
+        "net9.0",
+        "net10.0"
+      ],
+      "dependencies": [
+        "Nextended.Core",
+        "Microsoft.EntityFrameworkCore"
+      ],
       "summary": {
         "en": "Entity Framework Core extensions — graph loading (LoadGraphAsync, IncludeAll, MultiInclude), declarative include definitions, paging, dynamic sorting and bulk operations.",
         "de": "Entity-Framework-Core-Erweiterungen — Graph-Laden (LoadGraphAsync, IncludeAll, MultiInclude), deklarative Include-Definitionen, Paging, dynamisches Sortieren und Bulk-Operationen."
@@ -61,8 +102,16 @@
       "category": "web",
       "slug": "web",
       "platform": "Cross-platform",
-      "frameworks": ["net8.0", "net9.0", "net10.0"],
-      "dependencies": ["Nextended.Core", "Nextended.EF", "Microsoft.AspNetCore.OData"],
+      "frameworks": [
+        "net8.0",
+        "net9.0",
+        "net10.0"
+      ],
+      "dependencies": [
+        "Nextended.Core",
+        "Nextended.EF",
+        "Microsoft.AspNetCore.OData"
+      ],
       "summary": {
         "en": "ASP.NET Core utilities — zero-config OData (AddODataAuto), composable IQueryable OData appliers, strongly typed controller URLs, streaming download helpers and a background executor that can replay a captured request.",
         "de": "ASP.NET-Core-Werkzeuge — OData ohne Konfiguration (AddODataAuto), kombinierbare OData-Applier für IQueryable, typisierte Controller-URLs, Streaming-Download-Helfer und ein Background-Executor, der einen aufgezeichneten Request erneut abspielen kann."
@@ -74,8 +123,14 @@
       "category": "web",
       "slug": "responsefilters",
       "platform": "Cross-platform",
-      "frameworks": ["net8.0", "net9.0", "net10.0"],
-      "dependencies": ["Nextended.Core"],
+      "frameworks": [
+        "net8.0",
+        "net9.0",
+        "net10.0"
+      ],
+      "dependencies": [
+        "Nextended.Core"
+      ],
       "summary": {
         "en": "Fluent, provider-agnostic pipeline that redacts, masks, rounds, truncates, hashes, prunes and restructures response DTOs before serialization — per request, per user, per permission.",
         "de": "Providerunabhängige Fluent-Pipeline, die Response-DTOs vor der Serialisierung schwärzt, maskiert, rundet, kürzt, hasht, ausdünnt und umstrukturiert — pro Request, pro Benutzer, pro Berechtigung."
@@ -87,8 +142,14 @@
       "category": "web",
       "slug": "responsefilters-aspnetcore",
       "platform": "Cross-platform",
-      "frameworks": ["net8.0", "net9.0", "net10.0"],
-      "dependencies": ["Nextended.ResponseFilters"],
+      "frameworks": [
+        "net8.0",
+        "net9.0",
+        "net10.0"
+      ],
+      "dependencies": [
+        "Nextended.ResponseFilters"
+      ],
       "summary": {
         "en": "ASP.NET Core adapter for Nextended.ResponseFilters — registers the pipeline as a global IAsyncResultFilter and replays structural edits against the serialized JSON tree.",
         "de": "ASP.NET-Core-Adapter für Nextended.ResponseFilters — registriert die Pipeline als globalen IAsyncResultFilter und spielt strukturelle Änderungen auf den serialisierten JSON-Baum zurück."
@@ -100,8 +161,15 @@
       "category": "ui",
       "slug": "blazor",
       "platform": "Cross-platform",
-      "frameworks": ["net8.0", "net9.0", "net10.0"],
-      "dependencies": ["Nextended.Core", "Microsoft.AspNetCore.Components.Web"],
+      "frameworks": [
+        "net8.0",
+        "net9.0",
+        "net10.0"
+      ],
+      "dependencies": [
+        "Nextended.Core",
+        "Microsoft.AspNetCore.Components.Web"
+      ],
       "summary": {
         "en": "Blazor helpers — IBrowserFile extensions (bytes, data URLs, downloads), a hierarchical model for browsing inside uploaded zip/tar/rar archives, MIME-type detection and component-parameter reflection.",
         "de": "Blazor-Helfer — IBrowserFile-Erweiterungen (Bytes, Data-URLs, Downloads), ein hierarchisches Modell zum Navigieren in hochgeladenen ZIP-/TAR-/RAR-Archiven, MIME-Typ-Erkennung und Reflection über Komponentenparameter."
@@ -113,8 +181,15 @@
       "category": "ui",
       "slug": "ui",
       "platform": "Windows",
-      "frameworks": ["net8.0-windows", "net9.0-windows", "net10.0-windows"],
-      "dependencies": ["Nextended.Core", "Microsoft.Xaml.Behaviors.Wpf"],
+      "frameworks": [
+        "net8.0-windows",
+        "net9.0-windows",
+        "net10.0-windows"
+      ],
+      "dependencies": [
+        "Nextended.Core",
+        "Microsoft.Xaml.Behaviors.Wpf"
+      ],
       "summary": {
         "en": "WPF and Windows desktop helpers — a global input-binding manager with hold/sequence matching, DirectInput and XInput gamepad readers, key-bind capture controls, converters, behaviours, markup extensions and runtime-defined PropertyGrid types.",
         "de": "WPF- und Windows-Desktop-Helfer — globaler Input-Binding-Manager mit Hold- und Sequenz-Erkennung, DirectInput- und XInput-Gamepad-Reader, Steuerelemente zum Erfassen von Tastenkombinationen, Converter, Behaviours, Markup-Extensions und zur Laufzeit definierte PropertyGrid-Typen."
@@ -126,8 +201,16 @@
       "category": "tooling",
       "slug": "imaging",
       "platform": "Windows",
-      "frameworks": ["net8.0", "net9.0", "net10.0"],
-      "dependencies": ["Nextended.Core", "Nextended.Cache", "System.Drawing.Common"],
+      "frameworks": [
+        "net8.0",
+        "net9.0",
+        "net10.0"
+      ],
+      "dependencies": [
+        "Nextended.Core",
+        "Nextended.Cache",
+        "System.Drawing.Common"
+      ],
       "summary": {
         "en": "Image processing — aspect-preserving resize, crop, colour replacement, brightness-based foreground picking, thumbnail generation, byte/data-URL conversion and MIME detection from magic bytes.",
         "de": "Bildverarbeitung — seitenverhältnistreues Skalieren, Zuschneiden, Farbersetzung, helligkeitsbasierte Vordergrundfarbwahl, Thumbnail-Erzeugung, Byte-/Data-URL-Konvertierung und MIME-Erkennung über Magic Bytes."
@@ -139,8 +222,14 @@
       "category": "tooling",
       "slug": "codegen",
       "platform": "Build-time (analyzer)",
-      "frameworks": ["netstandard2.0"],
-      "dependencies": ["Nextended.Core", "Microsoft.CodeAnalysis.CSharp", "ClosedXML"],
+      "frameworks": [
+        "netstandard2.0"
+      ],
+      "dependencies": [
+        "Nextended.Core",
+        "Microsoft.CodeAnalysis.CSharp",
+        "ClosedXML"
+      ],
       "sample": "Tests/TestProjects/CodeGenSample",
       "summary": {
         "en": "Roslyn source generator — DTOs and interfaces from your entities, strongly typed classes from JSON/XML, lookup tables from Excel, and documentation from source files.",
@@ -153,8 +242,15 @@
       "category": "aspire",
       "slug": "aspire",
       "platform": "Cross-platform",
-      "frameworks": ["net8.0", "net9.0", "net10.0"],
-      "dependencies": ["Nextended.Core", "Aspire.Hosting.AppHost"],
+      "frameworks": [
+        "net8.0",
+        "net9.0",
+        "net10.0"
+      ],
+      "dependencies": [
+        "Nextended.Core",
+        "Aspire.Hosting.AppHost"
+      ],
       "summary": {
         "en": "Conditional AppHost builder extensions — WithReferenceIf / WaitForIf / WithExplicitStartIf, strongly typed environment variables from config objects, HTTPS dev-cert wiring, Docker guards, GitHub-source resources and npm app discovery.",
         "de": "Konditionale AppHost-Builder-Erweiterungen — WithReferenceIf / WaitForIf / WithExplicitStartIf, typisierte Umgebungsvariablen aus Konfigurationsobjekten, HTTPS-Dev-Cert-Anbindung, Docker-Guards, GitHub-Source-Ressourcen und npm-App-Erkennung."
@@ -166,8 +262,16 @@
       "category": "aspire",
       "slug": "aspire-supabase",
       "platform": "Cross-platform",
-      "frameworks": ["net8.0", "net9.0", "net10.0"],
-      "dependencies": ["Nextended.Aspire", "Nextended.Aspire.Hosting.Grafana", "Aspire.Hosting.PostgreSQL"],
+      "frameworks": [
+        "net8.0",
+        "net9.0",
+        "net10.0"
+      ],
+      "dependencies": [
+        "Nextended.Aspire",
+        "Nextended.Aspire.Hosting.Grafana",
+        "Aspire.Hosting.PostgreSQL"
+      ],
       "sample": "Tests/TestProjects/Supabase.AppHost",
       "summary": {
         "en": "The complete Supabase stack — Postgres, Auth (GoTrue), REST, Realtime, Storage, Studio, Kong and Edge Functions — as one composable Aspire resource.",
@@ -180,12 +284,25 @@
       "category": "aspire",
       "slug": "aspire-n8n",
       "platform": "Cross-platform",
-      "frameworks": ["net8.0", "net9.0", "net10.0"],
-      "dependencies": ["Nextended.Aspire", "Aspire.Hosting.PostgreSQL"],
+      "frameworks": [
+        "net8.0",
+        "net9.0",
+        "net10.0"
+      ],
+      "dependencies": [
+        "Nextended.Aspire",
+        "Aspire.Hosting.PostgreSQL"
+      ],
       "sample": "Tests/TestProjects/N8n.AppHost",
       "summary": {
         "en": "The n8n workflow-automation platform as an Aspire resource, with Postgres persistence, workflow import and a typed client for triggering workflows from .NET.",
         "de": "Die Workflow-Automatisierung n8n als Aspire-Ressource — mit Postgres-Persistenz, Workflow-Import und typisiertem Client zum Auslösen von Workflows aus .NET."
+      },
+      "product": {
+        "name": "n8n",
+        "site": "https://n8n.io/",
+        "logo": "https://raw.githubusercontent.com/n8n-io/n8n/master/assets/n8n-logo.png",
+        "screenshot": "https://raw.githubusercontent.com/n8n-io/n8n/master/assets/n8n-screenshot-readme.png"
       }
     },
     {
@@ -194,12 +311,24 @@
       "category": "aspire",
       "slug": "aspire-grafana",
       "platform": "Cross-platform",
-      "frameworks": ["net8.0", "net9.0", "net10.0"],
-      "dependencies": ["Aspire.Hosting.AppHost", "Aspire.Hosting.PostgreSQL"],
+      "frameworks": [
+        "net8.0",
+        "net9.0",
+        "net10.0"
+      ],
+      "dependencies": [
+        "Aspire.Hosting.AppHost",
+        "Aspire.Hosting.PostgreSQL"
+      ],
       "sample": "Tests/TestProjects/Grafana.AppHost",
       "summary": {
         "en": "Grafana, Prometheus, Loki, Tempo, Promtail, cAdvisor, postgres_exporter and the OpenTelemetry Collector as composable resources with auto-provisioned datasources.",
         "de": "Grafana, Prometheus, Loki, Tempo, Promtail, cAdvisor, postgres_exporter und den OpenTelemetry Collector als kombinierbare Ressourcen mit automatisch bereitgestellten Datenquellen."
+      },
+      "product": {
+        "name": "Grafana",
+        "site": "https://grafana.com/",
+        "logo": "https://raw.githubusercontent.com/grafana/grafana/main/docs/logo-horizontal.png"
       }
     },
     {
@@ -208,12 +337,24 @@
       "category": "aspire",
       "slug": "aspire-webdatastudio",
       "platform": "Cross-platform",
-      "frameworks": ["net8.0", "net9.0", "net10.0"],
-      "dependencies": ["Aspire.Hosting.AppHost"],
+      "frameworks": [
+        "net8.0",
+        "net9.0",
+        "net10.0"
+      ],
+      "dependencies": [
+        "Aspire.Hosting.AppHost"
+      ],
       "sample": "Tests/TestProjects/WebDataStudio.AppHost",
       "summary": {
         "en": "WebDataStudio — a browser database studio for PostgreSQL, MySQL, SQL Server, SQLite, Oracle, DuckDB, ClickHouse, MongoDB and Redis — wired to the databases of your stack.",
         "de": "WebDataStudio — ein Browser-Datenbankstudio für PostgreSQL, MySQL, SQL Server, SQLite, Oracle, DuckDB, ClickHouse, MongoDB und Redis — verdrahtet mit den Datenbanken Ihres Stacks."
+      },
+      "product": {
+        "name": "WebDataStudio",
+        "site": "https://fgilde.github.io/WebDataStudio/",
+        "logo": "https://raw.githubusercontent.com/fgilde/WebDataStudio/master/docs/assets/logo.svg",
+        "screenshot": "https://raw.githubusercontent.com/fgilde/WebDataStudio/master/docs/assets/screenshots/admin-light.png"
       }
     },
     {
@@ -222,12 +363,24 @@
       "category": "aspire",
       "slug": "aspire-aspireui",
       "platform": "Cross-platform",
-      "frameworks": ["net8.0", "net9.0", "net10.0"],
-      "dependencies": ["Aspire.Hosting.AppHost"],
+      "frameworks": [
+        "net8.0",
+        "net9.0",
+        "net10.0"
+      ],
+      "dependencies": [
+        "Aspire.Hosting.AppHost"
+      ],
       "sample": "Tests/TestProjects/AspireUI.AppHost",
       "summary": {
         "en": "AspireUI — the visual AppHost builder — as a resource inside your own Aspire stack, with an optional pre-seeded admin user and a starter stack built from your project paths.",
         "de": "AspireUI — der visuelle AppHost-Builder — als Ressource im eigenen Aspire-Stack, mit optional vorangelegtem Admin-Benutzer und einem Starter-Stack aus Ihren Projektpfaden."
+      },
+      "product": {
+        "name": "AspireUI",
+        "site": "https://fgilde.github.io/AspireUI/",
+        "logo": "https://raw.githubusercontent.com/fgilde/AspireUI/master/docs/aspireui_transparent.svg",
+        "screenshot": "https://raw.githubusercontent.com/fgilde/AspireUI/master/docs/screenshots/overview.png"
       }
     },
     {
@@ -236,12 +389,25 @@
       "category": "aspire",
       "slug": "aspire-localai",
       "platform": "Cross-platform",
-      "frameworks": ["net8.0", "net9.0", "net10.0"],
-      "dependencies": ["Nextended.Aspire", "Aspire.Hosting.AppHost"],
+      "frameworks": [
+        "net8.0",
+        "net9.0",
+        "net10.0"
+      ],
+      "dependencies": [
+        "Nextended.Aspire",
+        "Aspire.Hosting.AppHost"
+      ],
       "sample": "Tests/TestProjects/AiStack.AppHost",
       "summary": {
         "en": "Self-hosted, OpenAI-compatible multimodal AI — image generation, text-to-speech, speech-to-text and video — with gallery model management, GPU support and Open WebUI.",
         "de": "Selbst gehostete, OpenAI-kompatible multimodale KI — Bildgenerierung, Text-to-Speech, Speech-to-Text und Video — mit Galerie-Modellverwaltung, GPU-Unterstützung und Open WebUI."
+      },
+      "product": {
+        "name": "LocalAI",
+        "site": "https://localai.io/",
+        "logo": "https://raw.githubusercontent.com/mudler/LocalAI/master/docs/assets/images/logos/logo.png",
+        "screenshot": "https://raw.githubusercontent.com/mudler/LocalAI/master/docs/assets/images/localai_screenshot.png"
       }
     },
     {
@@ -250,8 +416,14 @@
       "category": "aspire",
       "slug": "aspire-php",
       "platform": "Cross-platform",
-      "frameworks": ["net8.0", "net9.0", "net10.0"],
-      "dependencies": ["Aspire.Hosting.AppHost"],
+      "frameworks": [
+        "net8.0",
+        "net9.0",
+        "net10.0"
+      ],
+      "dependencies": [
+        "Aspire.Hosting.AppHost"
+      ],
       "sample": "Tests/TestProjects/Php.AppHost",
       "summary": {
         "en": "Run PHP endpoints inside your Aspire stack — a docroot folder or a single router script served by PHP's built-in web server, with php.ini settings as fluent options.",
