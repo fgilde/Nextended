@@ -90,32 +90,17 @@ public static partial class DistributedApplicationBuilderExtensions
     {
         return builder.WaitForIf(dependency is { Resource: IResourceWithParent }, dependency!);
     }
-    
-
 
     public static IResourceBuilder<T> WaitForIf<T>(
         this IResourceBuilder<T> builder,
         bool condition,
         params IResourceBuilder<IResource>?[] resources
     )
-        where T : IResourceWithWaitSupport
-    {
-        if (condition)
-        {
-            foreach (IResourceBuilder<IResource>? resourceBuilder in resources)
-            {
-                if (resourceBuilder != null)
-                {
-                    builder.WaitFor(resourceBuilder);
-                }
-            }
-        }
-        return builder;
-    }
+        where T : IResourceWithWaitSupport => builder.When(condition, b => b.WaitForAll(resources));
 
     public static IResourceBuilder<T> WaitForIf<T>(this IResourceBuilder<T> builder, bool condition, IResourceBuilder<IResource> dependency) where T : IResourceWithWaitSupport
     {
-        return condition? builder.WaitFor(dependency) : builder;
+        return condition ? builder.WaitFor(dependency) : builder;
     }
 
     public static IResourceBuilder<T> WaitForCompletionIf<T>(this IResourceBuilder<T> builder, IResourceBuilder<IResource>? dependency) where T : IResourceWithWaitSupport
@@ -296,7 +281,14 @@ public static partial class DistributedApplicationBuilderExtensions
         var key = string.Join("__", caller.Split('.').Skip(1).ToArray());
         return builder.WithEnvironment(key, value);
     }
-    
+
+    public static IResourceBuilder<T> WaitForAll<T>(
+        this IResourceBuilder<T> builder,
+        params IResourceBuilder<IResource>?[] resources
+    )
+        where T : IResourceWithWaitSupport =>
+        resources.Where(x => x != null).Aggregate(builder, ResourceBuilderExtensions.WaitFor);
+
     public static IResourceBuilder<T> WaitForIf<T>(
         this IResourceBuilder<T> builder,
         IResourceBuilder<IResource>[]? dependencies)
@@ -309,6 +301,7 @@ public static partial class DistributedApplicationBuilderExtensions
         }
         return builder;
     }
+
 
     public static IResourceBuilder<T> WaitForCompletionIf<T>(
         this IResourceBuilder<T> builder,
