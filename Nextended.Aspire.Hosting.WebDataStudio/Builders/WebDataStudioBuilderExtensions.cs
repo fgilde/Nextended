@@ -37,7 +37,7 @@ public static class WebDataStudioBuilderExtensions
 
         var resource = new WebDataStudioResource(name) { Title = name };
 
-        return builder.AddResource(resource)
+        var studio = builder.AddResource(resource)
             .WithImage(image ?? WebDataStudioResource.DefaultImage, tag ?? WebDataStudioResource.DefaultTag)
             // The default tag is a rolling "latest"; re-pull so a stale local image cannot pin an old build.
             .WithImagePullPolicy(ImagePullPolicy.Always)
@@ -48,9 +48,45 @@ public static class WebDataStudioBuilderExtensions
             // The resource name is what the dashboard calls this studio; showing the same name in
             // the studio itself is what tells three of them apart.
             .WithEnvironment("WDS_TITLE", name)
-            // Per-instance volume: two studios in one stack must not share saved connections.
-            .WithVolume($"webdatastudio-data-{name}", "/data")
             .WithHttpHealthCheck("/api/auth/me", endpointName: WebDataStudioResource.HttpEndpointName);
+
+        // A named volume locally, nothing when published. Aspire turns a volume into an Azure
+        // Files share on Container Apps, and the studio keeps its connections, history and
+        // layouts in SQLite — which on an SMB share either crawls or blocks outright, taking
+        // every request that touches it with it. A deployed studio therefore starts with an
+        // empty, container-local /data; connections attached here come from the environment on
+        // every start anyway. Ask for persistence explicitly with WithDataVolume() if the share
+        // is known to behave.
+        if (builder.ExecutionContext.IsRunMode)
+            studio.WithVolume($"webdatastudio-data-{name}", "/data");
+
+        WarnAboutAnonymousPublish(builder, resource);
+
+        return studio;
+    }
+
+    /// A studio reachable from the internet without a login would hand every visitor full access
+    /// to the databases behind it. Nothing here blocks the deploy — that is the app host's call —
+    /// but it must not happen quietly.
+    private static void WarnAboutAnonymousPublish(
+        IDistributedApplicationBuilder builder, WebDataStudioResource resource)
+    {
+        if (!builder.ExecutionContext.IsPublishMode) return;
+
+        builder.Eventing.Subscribe<BeforeStartEvent>((_, _) =>
+        {
+            var hasLogin = resource.Username is not null;
+            var isExternal = resource.Annotations.OfType<EndpointAnnotation>()
+                .Any(endpoint => endpoint.IsExternal);
+
+            if (!hasLogin && isExternal)
+                Console.Error.WriteLine(
+                    $"WebDataStudio '{resource.Name}' is published with an external endpoint and no " +
+                    "login. Anyone who finds the URL gets full access to every attached database — " +
+                    "add WithLogin(user, password) (and WithReadOnly() if that is enough).");
+
+            return Task.CompletedTask;
+        });
     }
 
     /// <summary>

@@ -110,11 +110,44 @@ studio.WithReference(clickhouse, engine: WebDataStudioEngine.ClickHouse);
   `_COLOR` are rejected: the studio reads those as settings for another connection.
 - Without `WithLogin` there is no login screen. That is the right default while the studio only
   listens on your machine — put a login on it before you expose the endpoint.
-- Each studio gets its own named volume, so two studios in one stack never share saved connections.
+- Each studio gets its own named volume while you run locally, so two studios in one stack never
+  share saved connections. A **published** studio gets no volume — see below.
 - The studio shows its resource name in its header and browser tab, so three of them in one stack
   are told apart at a glance. `WithTitle` changes it, `WithTitle(null)` removes it.
 - The studio image is `ghcr.io/fgilde/webdatastudio` and is always re-pulled, because the default
   tag is a rolling `latest`.
+
+## Deploying it
+
+Everything the studio needs in Azure is generated for you: a user-assigned managed identity, a
+database user for that identity (`CREATE USER … db_owner`) on every Azure SQL database you
+reference, a Key Vault role where the connection string lives in a secret, and the connection
+strings themselves as environment variables. The studio image reads Entra connection strings
+(`Authentication=Active Directory Default`) and picks the identity up from `AZURE_CLIENT_ID`,
+which Container Apps sets.
+
+Three things are your call:
+
+```csharp
+var studio = builder.AddWebDataStudio("admin-studio")
+    .WithExternalHttpEndpoints()                    // otherwise it is only reachable inside the environment
+    .WithLogin("admin", studioPassword)             // mandatory once the endpoint is public
+    .WithReference(db, connectionName: "SHOP");
+```
+
+- **The endpoint is internal by default.** `WithExternalHttpEndpoints()` publishes it.
+- **A public studio without a login hands every visitor `db_owner`.** Add `WithLogin`, and
+  `WithReadOnly()` if reading is enough. Publishing an external endpoint without a login prints a
+  warning; it does not stop the deploy.
+- **A published studio has no persistent storage.** Aspire maps a named volume to an Azure Files
+  share, and the studio keeps connections, history and layouts in SQLite — which on an SMB share
+  either crawls or blocks outright. Connections attached in the app host come from the environment
+  on every start and are unaffected; anything a user saves in the UI lives until the next restart.
+  `WithDataVolume("name")` opts back in if you know your share behaves, and `WithSecretKey` keeps
+  stored connections readable across replacements of it.
+
+`GET /api/health` on the deployed studio answers with the version, the commit it was built from
+and whether its storage is usable — the quickest way to tell a stale image from a broken mount.
 
 ## The sample
 
