@@ -93,6 +93,7 @@ builder.AddWebDataStudio("studio")
 | `.WithSavedQueriesFromDirectory(path)` | Mount a folder of `.sql` files and import them as saved queries at start. |
 | `.WithSeedScript(path)` | Run a seed script once per connection — a file, or `{CONNECTION}.sql` per connection. |
 | `.WithSchemaSnapshots(path?)` | Snapshot every connection's schema on start and report the drift since the last one. |
+| `.WithSharedResults(ttl?, isPublic?, maxRows?)` | Let people keep a result and share it as a link. Off by default. |
 | `.WithAlertWebhook(url, interval?, minSeverity?, connections?)` | Post new health findings — missing indexes, tables without a key, bloat — to Slack, Teams or any webhook. |
 | `.WithMcpTools(WebDataStudioMcpTools.SchemaOnly)` | Narrow the endpoint to named tools. `ReadOnly` and `SchemaOnly` are ready-made sets. |
 | `.WithoutAssistantTools()` | Keep the studio's own assistant from using those MCP tools. |
@@ -166,6 +167,17 @@ studio
 
 `WithoutColumnMasking()` turns the guessing off and masks only what you named. Anything somebody
 later sets from the studio's column menu wins over these, because they were looking at the data.
+
+## Sharing a result
+
+```csharp
+studio.WithSharedResults(ttl: TimeSpan.FromDays(3), isPublic: false);
+```
+
+A result grows a **Share** button, and the link shows the rows as they were — a snapshot, not a
+query: it cannot run anything, and masking is applied before the rows are stored, so a masked column
+stays masked in that link. `isPublic: true` lets anybody with the link open it without signing in,
+which is the point of a link and a decision worth making on purpose.
 
 ## Alerts
 

@@ -88,6 +88,12 @@ public sealed class WebDataStudioResource(string name) : ContainerResource(name)
     /// <summary>Columns the studio leaves alone, from <c>WithUnmaskedColumns</c>.</summary>
     public IReadOnlyCollection<string> UnmaskedColumns => UnmaskedColumnList;
 
+    /// <summary>Whether results can be shared as links, from <c>WithSharedResults</c>.</summary>
+    public bool SharingEnabled { get; internal set; }
+
+    /// <summary>Whether such a link opens without signing in.</summary>
+    public bool SharingIsPublic { get; internal set; }
+
     /// <summary>The scheduled queries, from <c>WithScheduledQueries</c>.</summary>
     public IReadOnlyList<ScheduledStudioQuery> Schedule => ScheduleList;
 

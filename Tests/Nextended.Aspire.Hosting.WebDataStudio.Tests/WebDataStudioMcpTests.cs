@@ -371,6 +371,47 @@ public class WebDataStudioMcpTests
         Assert.DoesNotContain("WDS_SCHEDULE_FILE", keys);
     }
 
+    // --- shared results ---------------------------------------------------------------------
+
+    [Fact]
+    public async Task SharingIsOffUntilItIsAskedFor()
+    {
+        var keys = await EnvKeysOf(Add().Resource);
+
+        Assert.DoesNotContain("WDS_SHARE_ENABLED", keys);
+        Assert.False(Add().Resource.SharingEnabled);
+    }
+
+    [Fact]
+    public async Task SharingCarriesItsSettings()
+    {
+        var studio = Add().WithSharedResults(TimeSpan.FromDays(3), isPublic: true, maxRows: 250);
+
+        var env = await EnvOf(studio.Resource);
+
+        Assert.Equal("true", env["WDS_SHARE_ENABLED"]);
+        Assert.Equal("true", env["WDS_SHARE_PUBLIC"]);
+        Assert.Equal("72", env["WDS_SHARE_TTL_HOURS"]);
+        Assert.Equal("250", env["WDS_SHARE_MAX_ROWS"]);
+        Assert.True(studio.Resource.SharingIsPublic);
+    }
+
+    [Fact]
+    public async Task APrivateShareSaysNothingAboutBeingPublic()
+    {
+        var env = await EnvOf(Add().WithSharedResults().Resource);
+
+        Assert.Equal("true", env["WDS_SHARE_ENABLED"]);
+        Assert.DoesNotContain("WDS_SHARE_PUBLIC", env.Keys);
+    }
+
+    [Fact]
+    public void ALinkThatExpiresWithinTheHourThrows()
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            Add().WithSharedResults(TimeSpan.FromMinutes(10)));
+    }
+
     // --- masking ----------------------------------------------------------------------------
 
     [Fact]

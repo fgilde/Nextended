@@ -78,6 +78,55 @@ public static class WebDataStudioOpsExtensions
         return builder.WithEnvironment("WDS_SCHEMA_SNAPSHOT_DIR", path);
     }
 
+    /// <summary>
+    /// Lets people keep a result and share it as a link — "here is what I am seeing", without a
+    /// screenshot. Off unless this is called.
+    /// </summary>
+    /// <param name="builder">The studio.</param>
+    /// <param name="ttl">How long a link lives. Default seven days.</param>
+    /// <param name="isPublic">
+    /// <c>true</c> lets anybody with the link open it, without signing in — which is the point of a
+    /// link, and a decision worth making on purpose. <c>false</c> (the default) keeps it behind the
+    /// studio's login.
+    /// </param>
+    /// <param name="maxRows">Rows a link keeps. Default 1000, capped at 10000.</param>
+    /// <remarks>
+    /// A link is a snapshot: it shows the rows as they were, cannot run anything, and cannot show
+    /// more than the person who made it could see — masked columns are masked before the rows are
+    /// stored. Only reading statements can be shared.
+    /// </remarks>
+    public static IResourceBuilder<WebDataStudioResource> WithSharedResults(
+        this IResourceBuilder<WebDataStudioResource> builder, TimeSpan? ttl = null,
+        bool isPublic = false, int? maxRows = null)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        builder.Resource.SharingEnabled = true;
+        builder.Resource.SharingIsPublic = isPublic;
+
+        builder.WithEnvironment("WDS_SHARE_ENABLED", "true");
+        if (isPublic) builder.WithEnvironment("WDS_SHARE_PUBLIC", "true");
+
+        if (ttl is { } lifetime)
+        {
+            if (lifetime < TimeSpan.FromHours(1))
+                throw new ArgumentOutOfRangeException(nameof(ttl), lifetime,
+                    "a link that expires within the hour is not a link anybody can use");
+
+            builder.WithEnvironment("WDS_SHARE_TTL_HOURS",
+                ((int)lifetime.TotalHours).ToString(System.Globalization.CultureInfo.InvariantCulture));
+        }
+
+        if (maxRows is { } rows)
+        {
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(rows);
+            builder.WithEnvironment("WDS_SHARE_MAX_ROWS",
+                rows.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        }
+
+        return builder;
+    }
+
     private static IResourceBuilder<WebDataStudioResource> WithAlertSettings(
         this IResourceBuilder<WebDataStudioResource> builder, TimeSpan? interval,
         string? minSeverity, string[] connections)
