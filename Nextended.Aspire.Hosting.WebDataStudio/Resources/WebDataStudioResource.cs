@@ -88,6 +88,12 @@ public sealed class WebDataStudioResource(string name) : ContainerResource(name)
     /// <summary>Columns the studio leaves alone, from <c>WithUnmaskedColumns</c>.</summary>
     public IReadOnlyCollection<string> UnmaskedColumns => UnmaskedColumnList;
 
+    /// <summary>
+    /// The name the studio reports as in traces and metrics, from <c>WithOpenTelemetry</c>. Null
+    /// when it reports nothing.
+    /// </summary>
+    public string? TelemetryServiceName { get; internal set; }
+
     /// <summary>Whether results can be shared as links, from <c>WithSharedResults</c>.</summary>
     public bool SharingEnabled { get; internal set; }
 

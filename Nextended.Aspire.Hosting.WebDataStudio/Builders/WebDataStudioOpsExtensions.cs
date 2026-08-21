@@ -127,6 +127,76 @@ public static class WebDataStudioOpsExtensions
         return builder;
     }
 
+    /// <summary>
+    /// Sends the studio's traces and metrics to an OTLP collector — the same place the rest of the
+    /// stack reports to, so a slow query in the studio sits next to a slow query in the app.
+    /// </summary>
+    /// <param name="builder">The studio.</param>
+    /// <param name="endpoint">
+    /// The collector's OTLP endpoint. Omit it and the studio takes whatever the app host already
+    /// injected: Aspire's own dashboard, usually.
+    /// </param>
+    /// <param name="serviceName">
+    /// Name to report as. Defaults to the resource name, so three studios are told apart.
+    /// </param>
+    public static IResourceBuilder<WebDataStudioResource> WithOpenTelemetry(
+        this IResourceBuilder<WebDataStudioResource> builder, string? endpoint = null,
+        string? serviceName = null)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        builder.Resource.TelemetryServiceName = serviceName ?? builder.Resource.Name;
+        builder.WithEnvironment("OTEL_SERVICE_NAME", builder.Resource.TelemetryServiceName);
+
+        if (endpoint is { Length: > 0 })
+            builder.WithEnvironment("OTEL_EXPORTER_OTLP_ENDPOINT", endpoint);
+
+        return builder;
+    }
+
+    /// <summary>
+    /// The same, pointed at a collector running in this stack — Nextended's Grafana/OTel stack, or
+    /// any resource with an endpoint that speaks OTLP.
+    /// </summary>
+    /// <param name="builder">The studio.</param>
+    /// <param name="collector">The collector resource.</param>
+    /// <param name="serviceName">Name to report as. Defaults to the resource name.</param>
+    /// <param name="endpointName">Endpoint of the collector to use, when it has several.</param>
+    public static IResourceBuilder<WebDataStudioResource> WithOpenTelemetry<TCollector>(
+        this IResourceBuilder<WebDataStudioResource> builder, IResourceBuilder<TCollector> collector,
+        string? serviceName = null, string? endpointName = null)
+        where TCollector : IResource, IResourceWithEndpoints
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(collector);
+
+        builder.Resource.TelemetryServiceName = serviceName ?? builder.Resource.Name;
+
+        var names = collector.Resource.Annotations.OfType<EndpointAnnotation>()
+            .Select(annotation => annotation.Name)
+            .ToList();
+
+        if (names.Count == 0)
+            throw new InvalidOperationException(
+                $"'{collector.Resource.Name}' has no endpoint to send telemetry to; pass the URL " +
+                "to WithOpenTelemetry instead.");
+
+        var name = endpointName is { Length: > 0 }
+            ? endpointName
+            : names.FirstOrDefault(candidate =>
+                candidate.Equals("otlp-grpc", StringComparison.OrdinalIgnoreCase)
+                || candidate.Equals("grpc", StringComparison.OrdinalIgnoreCase)
+                || candidate.Equals("otlp", StringComparison.OrdinalIgnoreCase))
+              ?? names[0];
+
+        var dependency = builder.ApplicationBuilder.CreateResourceBuilder<IResource>(collector.Resource);
+
+        return builder
+            .WithEnvironment("OTEL_SERVICE_NAME", builder.Resource.TelemetryServiceName)
+            .WithEnvironment("OTEL_EXPORTER_OTLP_ENDPOINT", collector.GetEndpoint(name))
+            .WaitFor(dependency);
+    }
+
     private static IResourceBuilder<WebDataStudioResource> WithAlertSettings(
         this IResourceBuilder<WebDataStudioResource> builder, TimeSpan? interval,
         string? minSeverity, string[] connections)

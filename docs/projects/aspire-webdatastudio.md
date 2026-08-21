@@ -97,6 +97,7 @@ variables it does.
 | `.WithSavedQueriesFromDirectory(path)` | Mount a folder of `.sql` files and import them as saved queries at start. |
 | `.WithSeedScript(path)` | Run a seed script once per connection — a file, or `{CONNECTION}.sql` per connection. |
 | `.WithSchemaSnapshots(path?)` | Snapshot every connection's schema on start and report the drift since the last one. |
+| `.WithOpenTelemetry(collector \| url?, serviceName?)` | Send the studio's traces and metrics to an OTLP collector — a resource in the stack, or a URL. |
 | `.WithSharedResults(ttl?, isPublic?, maxRows?)` | Let people keep a result and share it as a link. Off by default. |
 | `.WithAlertWebhook(url, interval?, minSeverity?, connections?)` | Post new health findings — missing indexes, tables without a key, bloat — to Slack, Teams or any webhook. |
 | `.WithMcpTools(WebDataStudioMcpTools.SchemaOnly)` | Narrow the endpoint to named tools. `ReadOnly` and `SchemaOnly` are ready-made sets. |
@@ -207,6 +208,19 @@ A result grows a **Share** button, and the link shows the rows as they were — 
 query: it cannot run anything, and masking is applied before the rows are stored, so a masked column
 stays masked in that link. `isPublic: true` lets anybody with the link open it without signing in,
 which is the point of a link and a decision worth making on purpose.
+
+## Traces and metrics
+
+```csharp
+var collector = builder.AddOpenTelemetryCollector("otel");   // Nextended.Aspire.Hosting.Grafana
+
+studio.WithOpenTelemetry(collector);        // or WithOpenTelemetry("http://collector:4317")
+```
+
+The studio then reports its own work to the same collector as the rest of the stack: a span per run
+(`query.execute`, tagged with engine, rows and outcome), a span per MCP tool call, and counters for
+statements, rows and tool calls. It reports as the resource's name unless you say otherwise, so three
+studios are told apart, and it waits for the collector so the first traces are not thrown away.
 
 ## Alerts
 

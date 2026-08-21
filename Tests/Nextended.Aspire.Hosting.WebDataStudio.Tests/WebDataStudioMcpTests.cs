@@ -412,6 +412,68 @@ public class WebDataStudioMcpTests
             Add().WithSharedResults(TimeSpan.FromMinutes(10)));
     }
 
+    // --- telemetry --------------------------------------------------------------------------
+
+    [Fact]
+    public async Task TelemetryReportsAsTheResourceName()
+    {
+        var studio = DistributedApplication.CreateBuilder()
+            .AddWebDataStudio("analytics-studio").WithOpenTelemetry("http://collector:4317");
+
+        var env = await EnvOf(studio.Resource);
+
+        Assert.Equal("analytics-studio", env["OTEL_SERVICE_NAME"]);
+        Assert.Equal("http://collector:4317", env["OTEL_EXPORTER_OTLP_ENDPOINT"]);
+        Assert.Equal("analytics-studio", studio.Resource.TelemetryServiceName);
+    }
+
+    /// Without an endpoint the studio takes whatever the app host injected, so only the name is set.
+    [Fact]
+    public async Task WithoutAnEndpointOnlyTheNameIsSet()
+    {
+        var env = await EnvOf(Add().WithOpenTelemetry(serviceName: "studio-a").Resource);
+
+        Assert.Equal("studio-a", env["OTEL_SERVICE_NAME"]);
+        Assert.DoesNotContain("OTEL_EXPORTER_OTLP_ENDPOINT", env.Keys);
+    }
+
+    [Fact]
+    public async Task ACollectorInTheStackBecomesTheEndpoint()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+        var collector = builder.AddResource(new FakeModelServer("otel"))
+            .WithEndpoint(targetPort: 4317, name: "otlp-grpc", scheme: "http");
+
+        var studio = builder.AddWebDataStudio().WithOpenTelemetry(collector);
+
+        var keys = await EnvKeysOf(studio.Resource);
+        var waits = studio.Resource.Annotations.OfType<WaitAnnotation>().ToList();
+
+        Assert.Contains("OTEL_EXPORTER_OTLP_ENDPOINT", keys);
+        Assert.Contains(waits, wait => wait.Resource.Name == "otel");
+    }
+
+    [Fact]
+    public void ACollectorWithNoEndpointSaysWhatToDoInstead()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+        var collector = builder.AddResource(new FakeModelServer("nowhere"));
+
+        var error = Assert.Throws<InvalidOperationException>(() =>
+            builder.AddWebDataStudio().WithOpenTelemetry(collector));
+
+        Assert.Contains("pass the URL", error.Message);
+    }
+
+    [Fact]
+    public async Task WithoutTheCallNothingIsReported()
+    {
+        var keys = await EnvKeysOf(Add().Resource);
+
+        Assert.DoesNotContain("OTEL_SERVICE_NAME", keys);
+        Assert.Null(Add().Resource.TelemetryServiceName);
+    }
+
     // --- masking ----------------------------------------------------------------------------
 
     [Fact]
