@@ -27,8 +27,39 @@ public sealed class WebDataStudioResource(string name) : ContainerResource(name)
     /// <summary>The HTTP endpoint serving the studio.</summary>
     public EndpointReference HttpEndpoint => new(this, HttpEndpointName);
 
-    /// <summary>Login name, when one was configured with <c>WithLogin</c>. Null means anonymous access.</summary>
+    /// <summary>Login name of the first account, when one was configured. Null means anonymous access.</summary>
     public string? Username { get; internal set; }
+
+    /// <summary>
+    /// The accounts configured with <c>WithLogin</c> and <c>WithUser</c>, in the order they were
+    /// added. Passwords are not here: they go to the container and nowhere else.
+    /// </summary>
+    public IReadOnlyList<StudioAccount> Accounts => [.. _accounts.Select(a => a.Account)];
+
+    private readonly List<(StudioAccount Account, object Secret)> _accounts = [];
+
+    internal IReadOnlyList<(StudioAccount Account, object Secret)> AccountsWithSecrets => _accounts;
+
+    /// True the first time, so the environment callback is registered exactly once.
+    internal bool ClaimEnvironmentHook()
+    {
+        if (_environmentHooked) return false;
+        _environmentHooked = true;
+        return true;
+    }
+
+    private bool _environmentHooked;
+
+    internal void AddAccount(StudioAccount account, object secret)
+    {
+        // Adding the same name twice means "I changed my mind about that account", not two accounts
+        // that shadow each other.
+        _accounts.RemoveAll(existing =>
+            existing.Account.Name.Equals(account.Name, StringComparison.OrdinalIgnoreCase));
+
+        _accounts.Add((account, secret));
+        Username ??= account.Name;
+    }
 
     /// <summary>
     /// The name the studio shows in its header and browser tab. Defaults to the resource name, so

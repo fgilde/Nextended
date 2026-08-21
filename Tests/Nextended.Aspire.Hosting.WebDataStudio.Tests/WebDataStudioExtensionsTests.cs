@@ -112,6 +112,98 @@ public class WebDataStudioExtensionsTests
         Assert.Equal("change-me-please", env["WDS_PASSWORD"]);
     }
 
+    /// Two calls mean two people can sign in. Before this, the second call silently replaced the
+    /// first and only the last account existed.
+    [Fact]
+    public async Task WithLogin_TwiceAddsBothAccounts()
+    {
+        var studio = Add()
+            .WithLogin("hans", "hans")
+            .WithLogin("pete", "pete");
+
+        var env = await EnvOf(studio.Resource);
+
+        Assert.Equal("hans:admin:hans;pete:admin:pete", env["WDS_USERS"]);
+        Assert.DoesNotContain("WDS_USER", env.Keys);
+        Assert.Equal(["hans", "pete"], studio.Resource.Accounts.Select(a => a.Name));
+        // The first one stays the name the publish warning talks about.
+        Assert.Equal("hans", studio.Resource.Username);
+    }
+
+    [Fact]
+    public async Task WithUser_CarriesTheRoleAndTheConnections()
+    {
+        var studio = Add()
+            .WithLogin("ada", "one")
+            .WithUser("grace", "two", StudioRoles.Viewer, "shop", "warehouse")
+            .WithUser("eve", "three", StudioRoles.Editor);
+
+        var env = await EnvOf(studio.Resource);
+
+        Assert.Equal("ada:admin:one;grace:viewer:two:shop,warehouse;eve:editor:three",
+            env["WDS_USERS"]);
+    }
+
+    [Fact]
+    public void WithUser_RefusesARoleTheStudioDoesNotHave()
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(() => Add().WithUser("ada", "one", "wizard"));
+    }
+
+    /// Saying the same name twice is a correction, not two accounts that shadow each other.
+    [Fact]
+    public async Task TheSameNameTwiceKeepsTheLastOne()
+    {
+        var studio = Add()
+            .WithLogin("ada", "old")
+            .WithLogin("ada", "new");
+
+        var env = await EnvOf(studio.Resource);
+
+        Assert.Equal("ada", env["WDS_USER"]);
+        Assert.Equal("new", env["WDS_PASSWORD"]);
+        Assert.Single(studio.Resource.Accounts);
+    }
+
+    /// One admin account is what the single-account variables were made for, and what every app
+    /// host that already uses WithLogin writes today.
+    [Fact]
+    public async Task OneAdminStillUsesTheSingleAccountVariables()
+    {
+        var env = await EnvOf(Add().WithLogin("admin", "secret").Resource);
+
+        Assert.Equal("admin", env["WDS_USER"]);
+        Assert.Equal("secret", env["WDS_PASSWORD"]);
+        Assert.DoesNotContain("WDS_USERS", env.Keys);
+    }
+
+    [Fact]
+    public async Task AViewerAloneBecomesAUsersEntry()
+    {
+        var env = await EnvOf(Add().WithUser("grace", "two").Resource);
+
+        Assert.Equal("grace:viewer:two", env["WDS_USERS"]);
+        Assert.DoesNotContain("WDS_USER", env.Keys);
+    }
+
+    /// A parameterised password must stay a reference: resolved at start, never in the manifest.
+    [Fact]
+    public async Task AParameterPasswordKeepsItsReferenceInsideTheUsersList()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+        var password = builder.AddParameter("grace-password", secret: true);
+        var studio = builder.AddWebDataStudio()
+            .WithLogin("ada", "one")
+            .WithUser("grace", password, StudioRoles.Editor);
+
+        var keys = await EnvKeysOf(studio.Resource);
+        var plain = await EnvOf(studio.Resource);
+
+        Assert.Contains("WDS_USERS", keys);
+        // Not a plain string, because half of it is resolved later.
+        Assert.DoesNotContain("WDS_USERS", plain.Keys);
+    }
+
     [Fact]
     public async Task WithoutLogin_NothingGuardsTheStudio()
     {

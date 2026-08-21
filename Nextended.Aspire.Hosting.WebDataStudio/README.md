@@ -80,7 +80,8 @@ builder.AddWebDataStudio("studio")
 | `AddWebDataStudio(name = "webdatastudio", port?, image?, tag?)` | Add the studio container: HTTP endpoint, health check, per-instance data volume. |
 | `.WithReference(resource, connectionName?, engine?, readOnly?, group?, color?)` | Attach any resource that has a connection string. |
 | `.WithConnection(name, connectionString, engine, …)` | Attach a database that is not part of the stack. Also takes a `ReferenceExpression`. |
-| `.WithLogin(user, password)` | Guard the studio with a login. Both halves also accept an Aspire `ParameterResource`. |
+| `.WithLogin(user, password)` | Guard the studio with a login, as an admin. **Chain it for more accounts** — two calls mean two people can sign in. Both halves also accept an Aspire `ParameterResource`. |
+| `.WithUser(user, password, role, connections…)` | One account with a role (`StudioRoles.Admin`, `Editor`, `Viewer`) and, optionally, the connections it may see. The password also takes a `ParameterResource`. |
 | `.WithTitle(name)` | Name shown in the studio's header and browser tab. Defaults to the resource name; `null` leaves it unnamed. |
 | `.WithReadOnly(readOnly = true)` | Make every connection read-only, enforced in the driver. |
 | `.WithQueryTimeout(TimeSpan)` | Default statement timeout. |
@@ -110,6 +111,24 @@ studio.WithReference(clickhouse, engine: WebDataStudioEngine.ClickHouse);
   `_COLOR` are rejected: the studio reads those as settings for another connection.
 - Without `WithLogin` there is no login screen. That is the right default while the studio only
   listens on your machine — put a login on it before you expose the endpoint.
+- **Several accounts:** chain `WithLogin`/`WithUser`. One plain admin still writes `WDS_USER` and
+  `WDS_PASSWORD`; more than one — or one with a role — writes `WDS_USERS`, which is
+  `name:role:secret[:conn,conn]` per account separated by `;`. Saying the same name twice replaces
+  that account rather than adding a second one with the same login.
+
+```csharp
+var studio = builder.AddWebDataStudio()
+    .WithReference(shop)
+    .WithReference(warehouse)
+    .WithLogin("hans", "hans")                                        // admin
+    .WithLogin("pete", "pete")                                        // admin as well
+    .WithUser("grace", "read-only", StudioRoles.Viewer, "shop")       // sees shop, read-only
+    .WithUser("eve", evePassword, StudioRoles.Editor);                // may write, may not administer
+```
+
+  Roles: `admin` reaches the administration panel, `editor` may read and write, `viewer` gets every
+  connection read-only. A connection an account may not see does not exist for it — not in the
+  explorer, and not by guessing its id.
 - Each studio gets its own named volume while you run locally, so two studios in one stack never
   share saved connections. A **published** studio gets no volume — see below.
 - The studio shows its resource name in its header and browser tab, so three of them in one stack

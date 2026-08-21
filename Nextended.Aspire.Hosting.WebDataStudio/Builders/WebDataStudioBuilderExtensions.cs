@@ -93,6 +93,11 @@ public static class WebDataStudioBuilderExtensions
     /// Guards the studio with a login. Without one there is no login screen at all, which is the
     /// sensible default while the studio only listens on your machine.
     /// </summary>
+    /// <remarks>
+    /// Chaining this adds accounts rather than replacing them: two calls mean two people can sign
+    /// in. The first account is an <c>admin</c>; use <see cref="WithUser(IResourceBuilder{WebDataStudioResource}, string, string, string, string[])"/>
+    /// for anything else. Calling it twice with the same name replaces that one account.
+    /// </remarks>
     public static IResourceBuilder<WebDataStudioResource> WithLogin(
         this IResourceBuilder<WebDataStudioResource> builder, string username, string password)
     {
@@ -100,10 +105,7 @@ public static class WebDataStudioBuilderExtensions
         ArgumentException.ThrowIfNullOrWhiteSpace(username);
         ArgumentException.ThrowIfNullOrWhiteSpace(password);
 
-        builder.Resource.Username = username;
-        return builder
-            .WithEnvironment("WDS_USER", username)
-            .WithEnvironment("WDS_PASSWORD", password);
+        return builder.WithAccount(new StudioAccount(username, StudioRoles.Admin, []), password);
     }
 
     /// <summary>
@@ -118,10 +120,8 @@ public static class WebDataStudioBuilderExtensions
         ArgumentNullException.ThrowIfNull(password);
         ArgumentException.ThrowIfNullOrWhiteSpace(username);
 
-        builder.Resource.Username = username;
-        return builder
-            .WithEnvironment("WDS_USER", username)
-            .WithEnvironment("WDS_PASSWORD", password);
+        return builder.WithAccount(
+            new StudioAccount(username, StudioRoles.Admin, []), password.Resource);
     }
 
     /// <summary>Guards the studio with a login where both halves come from Aspire parameters.</summary>
@@ -134,11 +134,133 @@ public static class WebDataStudioBuilderExtensions
         ArgumentNullException.ThrowIfNull(username);
         ArgumentNullException.ThrowIfNull(password);
 
+        // A parameterised name cannot be part of a WDS_USERS entry — the whole entry is one string,
+        // and the studio's own single-account variables are the honest way to carry it.
         builder.Resource.Username = username.Resource.Name;
         return builder
             .WithEnvironment("WDS_USER", username)
             .WithEnvironment("WDS_PASSWORD", password);
     }
+
+    /// <summary>
+    /// Adds one account with a role, and optionally the connections it may see. Empty means all of
+    /// them; a connection an account may not see does not exist for it at all.
+    /// </summary>
+    /// <param name="builder">The studio.</param>
+    /// <param name="username">The login name.</param>
+    /// <param name="password">The password, in clear text. Use the parameter overload to keep it out of source control.</param>
+    /// <param name="role">
+    /// <see cref="StudioRoles.Admin"/>, <see cref="StudioRoles.Editor"/> or
+    /// <see cref="StudioRoles.Viewer"/>. Defaults to <c>viewer</c>, because that is the role that
+    /// cannot do damage if the call was a guess.
+    /// </param>
+    /// <param name="connections">Names of the connections this account may see. None means all.</param>
+    public static IResourceBuilder<WebDataStudioResource> WithUser(
+        this IResourceBuilder<WebDataStudioResource> builder, string username, string password,
+        string role = StudioRoles.Viewer, params string[] connections)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrWhiteSpace(username);
+        ArgumentException.ThrowIfNullOrWhiteSpace(password);
+
+        return builder.WithAccount(
+            new StudioAccount(username, Role(role), connections ?? []), password);
+    }
+
+    /// <summary>Adds one account with a role and a password from an Aspire parameter.</summary>
+    public static IResourceBuilder<WebDataStudioResource> WithUser(
+        this IResourceBuilder<WebDataStudioResource> builder, string username,
+        IResourceBuilder<ParameterResource> password,
+        string role = StudioRoles.Viewer, params string[] connections)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(password);
+        ArgumentException.ThrowIfNullOrWhiteSpace(username);
+
+        return builder.WithAccount(
+            new StudioAccount(username, Role(role), connections ?? []), password.Resource);
+    }
+
+    private static string Role(string role)
+    {
+        var normalised = role?.Trim().ToLowerInvariant();
+
+        // A typo must fail loudly here rather than quietly become a viewer in the container.
+        if (!StudioRoles.All.Contains(normalised))
+            throw new ArgumentOutOfRangeException(nameof(role), role,
+                $"role has to be one of {string.Join(", ", StudioRoles.All)}");
+
+        return normalised!;
+    }
+
+    /// <summary>
+    /// Records an account and makes sure the environment is written once, from the whole list.
+    /// The variables cannot be set per call: a second account has to turn <c>WDS_USER</c> into a
+    /// <c>WDS_USERS</c> entry, and an environment variable already appended cannot be taken back.
+    /// </summary>
+    private static IResourceBuilder<WebDataStudioResource> WithAccount(
+        this IResourceBuilder<WebDataStudioResource> builder, StudioAccount account, object secret)
+    {
+        builder.Resource.AddAccount(account, secret);
+
+        if (!builder.Resource.ClaimEnvironmentHook()) return builder;
+
+        return builder.WithEnvironment(context =>
+        {
+            var accounts = builder.Resource.AccountsWithSecrets;
+            if (accounts.Count == 0) return;
+
+            // One plain admin account is what WDS_USER/WDS_PASSWORD were made for, and what every
+            // existing app host already writes.
+            if (accounts.Count == 1
+                && accounts[0].Account.Role == StudioRoles.Admin
+                && accounts[0].Account.Connections.Count == 0)
+            {
+                context.EnvironmentVariables["WDS_USER"] = accounts[0].Account.Name;
+                context.EnvironmentVariables["WDS_PASSWORD"] = Secret(accounts[0].Secret);
+                return;
+            }
+
+            // Several accounts, or one with a role: name:role:secret[:conn,conn], separated by ';'.
+            // Plain passwords compose into a plain string; a parameter has to stay a reference, so
+            // that it is resolved at start and never lands in the manifest.
+            var parameterised = accounts.Any(entry => entry.Secret is ParameterResource);
+
+            if (!parameterised)
+            {
+                context.EnvironmentVariables["WDS_USERS"] = string.Join(";",
+                    accounts.Select(entry => Entry(entry.Account, (string)entry.Secret)));
+                return;
+            }
+
+            var users = new ReferenceExpressionBuilder();
+            var first = true;
+
+            foreach (var (studioAccount, secretValue) in accounts)
+            {
+                if (!first) users.AppendLiteral(";");
+                first = false;
+
+                users.AppendLiteral($"{studioAccount.Name}:{studioAccount.Role}:");
+
+                if (secretValue is ParameterResource parameter) users.AppendFormatted(parameter);
+                else users.AppendLiteral((string)secretValue);
+
+                if (studioAccount.Connections.Count > 0)
+                    users.AppendLiteral($":{string.Join(",", studioAccount.Connections)}");
+            }
+
+            context.EnvironmentVariables["WDS_USERS"] = users.Build();
+        });
+    }
+
+    /// One `name:role:secret[:conn,conn]` entry.
+    private static string Entry(StudioAccount account, string secret) =>
+        $"{account.Name}:{account.Role}:{secret}" +
+        (account.Connections.Count > 0 ? $":{string.Join(",", account.Connections)}" : "");
+
+    private static object Secret(object secret) =>
+        secret is ParameterResource parameter ? parameter : (string)secret;
 
     /// <summary>
     /// Sets the name the studio shows in its header and browser tab. Without this it uses the
