@@ -293,6 +293,41 @@ public class WebDataStudioMcpTests
         Assert.Null(Add().Resource.SchemaSnapshotPath);
     }
 
+    // --- files that ship with the stack -----------------------------------------------------
+
+    [Fact]
+    public async Task SavedQueriesAreMountedReadOnlyAndPointedAt()
+    {
+        var studio = Add().WithSavedQueriesFromDirectory("./queries");
+
+        var env = await EnvOf(studio.Resource);
+        var mount = Assert.Single(studio.Resource.Annotations.OfType<ContainerMountAnnotation>()
+            .Where(m => m.Target == "/data/queries"));
+
+        Assert.Equal("/data/queries", env["WDS_SAVED_QUERIES_DIR"]);
+        Assert.True(mount.IsReadOnly);
+        Assert.Equal("./queries", studio.Resource.SavedQueriesPath);
+    }
+
+    [Fact]
+    public async Task ASeedFolderAndASeedFileMountDifferently()
+    {
+        var folder = await EnvOf(Add().WithSeedScript("./seed").Resource);
+        var file = await EnvOf(Add().WithSeedScript("./seed/shop.sql").Resource);
+
+        Assert.Equal("/data/seed", folder["WDS_SEED_SQL"]);
+        Assert.Equal("/data/seed/seed.sql", file["WDS_SEED_SQL"]);
+    }
+
+    [Fact]
+    public async Task WithoutTheCallsNeitherIsSet()
+    {
+        var keys = await EnvKeysOf(Add().Resource);
+
+        Assert.DoesNotContain("WDS_SAVED_QUERIES_DIR", keys);
+        Assert.DoesNotContain("WDS_SEED_SQL", keys);
+    }
+
     // --- masking ----------------------------------------------------------------------------
 
     [Fact]

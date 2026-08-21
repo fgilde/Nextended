@@ -88,6 +88,12 @@ public sealed class WebDataStudioResource(string name) : ContainerResource(name)
     /// <summary>Columns the studio leaves alone, from <c>WithUnmaskedColumns</c>.</summary>
     public IReadOnlyCollection<string> UnmaskedColumns => UnmaskedColumnList;
 
+    /// <summary>Folder of <c>.sql</c> files imported as saved queries, from <c>WithSavedQueriesFromDirectory</c>.</summary>
+    public string? SavedQueriesPath { get; internal set; }
+
+    /// <summary>Seed script or folder, from <c>WithSeedScript</c>.</summary>
+    public string? SeedScriptPath { get; internal set; }
+
     /// <summary>
     /// Where schema snapshots are written, from <c>WithSchemaSnapshots</c>. Null means none are.
     /// </summary>

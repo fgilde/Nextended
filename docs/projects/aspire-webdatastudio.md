@@ -93,6 +93,8 @@ variables it does.
 | `.WithUnmaskedColumns("token_type")` | Leave these alone, whatever it thinks. |
 | `.WithoutColumnMasking()` | Turn the heuristic off, leaving only the columns you named. |
 | `.WithMcpEndpoint(path?, key?, allowWrite?)` | Serve the studio as an MCP server for AI agents. Read-only unless `allowWrite`. |
+| `.WithSavedQueriesFromDirectory(path)` | Mount a folder of `.sql` files and import them as saved queries at start. |
+| `.WithSeedScript(path)` | Run a seed script once per connection — a file, or `{CONNECTION}.sql` per connection. |
 | `.WithSchemaSnapshots(path?)` | Snapshot every connection's schema on start and report the drift since the last one. |
 | `.WithAlertWebhook(url, interval?, minSeverity?, connections?)` | Post new health findings — missing indexes, tables without a key, bloat — to Slack, Teams or any webhook. |
 | `.WithMcpTools(WebDataStudioMcpTools.SchemaOnly)` | Narrow the endpoint to named tools. `ReadOnly` and `SchemaOnly` are ready-made sets. |
@@ -205,6 +207,22 @@ missing indexes, tables without a primary key, bloat — to the webhook. The pay
 what Slack, Mattermost, Discord and Teams render; the findings ride along structured, each with the
 statement that would fix it. Only new findings are sent, and a failed post is retried on the next
 sweep.
+
+## Queries and data that ship with the stack
+
+```csharp
+builder.AddWebDataStudio()
+    .WithReference(shop)
+    .WithSavedQueriesFromDirectory("./queries")   // .sql files -> the Saved panel
+    .WithSeedScript("./seed");                    // SHOP.sql -> run once on SHOP
+```
+
+Both folders are mounted read-only and read at start. Saved queries are imported idempotently — a
+restart replaces rather than duplicates — and a file may name its connection and folder in comments
+(`-- wds:connection SHOP`, `-- wds:folder Ops`).
+
+A seed script runs **once per content**: editing it makes it run again, restarting does not. It never
+runs on a read-only connection, and never on one marked as production.
 
 ## Schema drift
 
