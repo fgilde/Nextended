@@ -88,6 +88,11 @@ public sealed class WebDataStudioResource(string name) : ContainerResource(name)
     /// <summary>Columns the studio leaves alone, from <c>WithUnmaskedColumns</c>.</summary>
     public IReadOnlyCollection<string> UnmaskedColumns => UnmaskedColumnList;
 
+    /// <summary>The scheduled queries, from <c>WithScheduledQueries</c>.</summary>
+    public IReadOnlyList<ScheduledStudioQuery> Schedule => ScheduleList;
+
+    internal List<ScheduledStudioQuery> ScheduleList { get; } = [];
+
     /// <summary>Folder of <c>.sql</c> files imported as saved queries, from <c>WithSavedQueriesFromDirectory</c>.</summary>
     public string? SavedQueriesPath { get; internal set; }
 

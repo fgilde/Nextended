@@ -93,6 +93,7 @@ variables it does.
 | `.WithUnmaskedColumns("token_type")` | Leave these alone, whatever it thinks. |
 | `.WithoutColumnMasking()` | Turn the heuristic off, leaving only the columns you named. |
 | `.WithMcpEndpoint(path?, key?, allowWrite?)` | Serve the studio as an MCP server for AI agents. Read-only unless `allowWrite`. |
+| `.WithScheduledQueries(jobs…)` | Run reading queries on a schedule and write each result as a file. |
 | `.WithSavedQueriesFromDirectory(path)` | Mount a folder of `.sql` files and import them as saved queries at start. |
 | `.WithSeedScript(path)` | Run a seed script once per connection — a file, or `{CONNECTION}.sql` per connection. |
 | `.WithSchemaSnapshots(path?)` | Snapshot every connection's schema on start and report the drift since the last one. |
@@ -223,6 +224,21 @@ restart replaces rather than duplicates — and a file may name its connection a
 
 A seed script runs **once per content**: editing it makes it run again, restarting does not. It never
 runs on a read-only connection, and never on one marked as production.
+
+## Scheduled reports
+
+```csharp
+studio.WithScheduledQueries(
+    new ScheduledStudioQuery("orders-per-day", "SHOP",
+        "SELECT date(created_at) AS day, count(*) FROM orders GROUP BY 1", DailyAtUtc: "03:00"),
+    new ScheduledStudioQuery("queue-depth", "SHOP",
+        "SELECT count(*) FROM jobs WHERE state = 'pending'", EveryMinutes: 15, Format: "json"));
+```
+
+The schedule is generated as a file and mounted read-only, so it lives in the app host rather than in
+a volume somebody has to remember. Results land in `/data/exports` on the studio's own volume, masked
+like every other export. Only reading statements run, and a job that says neither `EveryMinutes` nor
+`DailyAtUtc` throws here rather than never running.
 
 ## Schema drift
 

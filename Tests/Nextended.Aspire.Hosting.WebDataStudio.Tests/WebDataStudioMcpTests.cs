@@ -301,8 +301,8 @@ public class WebDataStudioMcpTests
         var studio = Add().WithSavedQueriesFromDirectory("./queries");
 
         var env = await EnvOf(studio.Resource);
-        var mount = Assert.Single(studio.Resource.Annotations.OfType<ContainerMountAnnotation>()
-            .Where(m => m.Target == "/data/queries"));
+        var mount = Assert.Single(studio.Resource.Annotations.OfType<ContainerMountAnnotation>(),
+            m => m.Target == "/data/queries");
 
         Assert.Equal("/data/queries", env["WDS_SAVED_QUERIES_DIR"]);
         Assert.True(mount.IsReadOnly);
@@ -326,6 +326,49 @@ public class WebDataStudioMcpTests
 
         Assert.DoesNotContain("WDS_SAVED_QUERIES_DIR", keys);
         Assert.DoesNotContain("WDS_SEED_SQL", keys);
+    }
+
+    // --- scheduled queries ------------------------------------------------------------------
+
+    [Fact]
+    public async Task ScheduledQueriesBecomeAMountedFile()
+    {
+        var studio = Add().WithScheduledQueries(
+            new ScheduledStudioQuery("nightly", "SHOP", "SELECT 1", DailyAtUtc: "03:00"),
+            new ScheduledStudioQuery("often", "SHOP", "SELECT 2", EveryMinutes: 15, Format: "json"));
+
+        var env = await EnvOf(studio.Resource);
+        var mount = Assert.Single(studio.Resource.Annotations.OfType<ContainerMountAnnotation>(),
+            m => m.Target == "/data/schedule/schedule.json");
+
+        Assert.Equal("/data/schedule/schedule.json", env["WDS_SCHEDULE_FILE"]);
+        Assert.Equal("/data/exports", env["WDS_SCHEDULE_OUTPUT_DIR"]);
+        Assert.True(mount.IsReadOnly);
+
+        // The file the studio will read really holds both jobs.
+        var written = await File.ReadAllTextAsync(mount.Source!);
+        Assert.Contains("nightly", written);
+        Assert.Contains("\"everyMinutes\": 15", written);
+        Assert.Equal(2, studio.Resource.Schedule.Count);
+    }
+
+    [Fact]
+    public void AJobThatWouldNeverRunThrows()
+    {
+        Assert.Throws<ArgumentException>(() =>
+            Add().WithScheduledQueries(new ScheduledStudioQuery("nowhen", "SHOP", "SELECT 1")));
+
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            Add().WithScheduledQueries(
+                new ScheduledStudioQuery("too-often", "SHOP", "SELECT 1", EveryMinutes: 0)));
+    }
+
+    [Fact]
+    public async Task WithoutJobsNothingIsScheduled()
+    {
+        var keys = await EnvKeysOf(Add().WithScheduledQueries().Resource);
+
+        Assert.DoesNotContain("WDS_SCHEDULE_FILE", keys);
     }
 
     // --- masking ----------------------------------------------------------------------------
