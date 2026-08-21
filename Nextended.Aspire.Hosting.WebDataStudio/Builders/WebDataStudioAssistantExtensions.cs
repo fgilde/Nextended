@@ -125,8 +125,28 @@ public static class WebDataStudioAssistantExtensions
     }
 
     /// <summary>
-    /// The same as <see cref="WithAssistant{TServer}"/>, named for the server most people reach for
-    /// first. Use it with <c>builder.AddOllama(...)</c> from the CommunityToolkit, and give it a
+    /// A model server in this stack whose key comes from an Aspire parameter — a hosted gateway
+    /// somebody put in front of it, say.
+    /// </summary>
+    public static IResourceBuilder<WebDataStudioResource> WithAssistant<TServer>(
+        this IResourceBuilder<WebDataStudioResource> builder, IResourceBuilder<TServer> server,
+        string model, IResourceBuilder<ParameterResource> apiKey, string? path = null,
+        string? endpointName = null)
+        where TServer : IResource, IResourceWithEndpoints
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(server);
+        ArgumentNullException.ThrowIfNull(apiKey);
+        ArgumentException.ThrowIfNullOrWhiteSpace(model);
+
+        builder.WithAssistant(server, model, apiKey: (string?)null, path, endpointName);
+
+        return builder.WithEnvironment("WDS_ASSIST_KEY", apiKey);
+    }
+
+    /// <summary>
+    /// The same as <see cref="WithAssistant{TServer}(IResourceBuilder{WebDataStudioResource}, IResourceBuilder{TServer}, string, string?, string?, string?)"/>,
+    /// named for the server most people reach for first. Use it with <c>builder.AddOllama(...)</c> from the CommunityToolkit, and give it a
     /// model that Ollama has been told to pull.
     /// </summary>
     /// <example>
@@ -143,7 +163,7 @@ public static class WebDataStudioAssistantExtensions
         this IResourceBuilder<WebDataStudioResource> builder, IResourceBuilder<TServer> ollama,
         string model = "llama3.2", string? endpointName = null)
         where TServer : IResource, IResourceWithEndpoints =>
-        builder.WithAssistant(ollama, model, apiKey: null, path: null, endpointName: endpointName);
+        builder.WithAssistant(ollama, model, apiKey: (string?)null, path: null, endpointName: endpointName);
 
     /// <summary>
     /// The same for a LocalAI instance, which serves the OpenAI API at the same path. Pass the

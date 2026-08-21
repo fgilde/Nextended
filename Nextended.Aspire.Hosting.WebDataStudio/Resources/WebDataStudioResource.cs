@@ -77,6 +77,25 @@ public sealed class WebDataStudioResource(string name) : ContainerResource(name)
     public bool McpAllowsWrite { get; internal set; }
 
     /// <summary>
+    /// Whether the MCP endpoint was given a key. A studio with accounts refuses to serve MCP
+    /// without one, so this is what the app host warns about.
+    /// </summary>
+    public bool McpHasKey { get; internal set; }
+
+    /// <summary>Columns masked on top of the studio's own word list, from <c>WithMaskedColumns</c>.</summary>
+    public IReadOnlyCollection<string> MaskedColumns => MaskedColumnList;
+
+    /// <summary>Columns the studio leaves alone, from <c>WithUnmaskedColumns</c>.</summary>
+    public IReadOnlyCollection<string> UnmaskedColumns => UnmaskedColumnList;
+
+    internal SortedSet<string> MaskedColumnList { get; } = new(StringComparer.OrdinalIgnoreCase);
+
+    internal SortedSet<string> UnmaskedColumnList { get; } = new(StringComparer.OrdinalIgnoreCase);
+
+    /// True once the app-host warning about a missing MCP key has been subscribed.
+    internal bool WarnedAboutMcpKey { get; set; }
+
+    /// <summary>
     /// The name the studio shows in its header and browser tab. Defaults to the resource name, so
     /// three studios in one stack are told apart at a glance; <c>WithTitle</c> overrides it and
     /// <c>WithTitle(null)</c> leaves the studio unnamed.

@@ -46,6 +46,8 @@ builder.AddWebDataStudio("admin-studio")
     .WithLogin("hans", "hans")
     .WithLogin("pete", "pete")
     .WithReadOnly()
+    .WithMcpEndpoint("mcp", allowWrite: false)   // Studio als MCP-Server
+    .WithClaudeAssistant(builder.AddParameter("anthropic-key", secret: true))
     .WithSessionLimits(maxSessions: 4, idleTimeout: TimeSpan.FromMinutes(2))
     .WithReference(shop, connectionName: "SHOP_PROD", group: "Production", color: "#e03131")
     .WithReference(orders, connectionName: "ORDERS_PROD", group: "Production", color: "#e03131")

@@ -1,5 +1,6 @@
 using Aspire.Hosting;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Eventing;
 
 namespace Nextended.Aspire.Hosting.WebDataStudio;
 
@@ -41,15 +42,16 @@ public static class WebDataStudioMcpExtensions
 
         builder.Resource.McpPath = Normalise(path);
         builder.Resource.McpAllowsWrite = allowWrite;
+        builder.Resource.McpHasKey = apiKey is { Length: > 0 };
 
         builder
             .WithEnvironment("WDS_MCP_ENABLED", "true")
             .WithEnvironment("WDS_MCP_PATH", builder.Resource.McpPath);
 
         if (allowWrite) builder.WithEnvironment("WDS_MCP_ALLOW_WRITE", "true");
-        if (apiKey is { Length: > 0 }) builder.WithEnvironment("WDS_MCP_KEY", apiKey);
+        if (builder.Resource.McpHasKey) builder.WithEnvironment("WDS_MCP_KEY", apiKey!);
 
-        return builder;
+        return builder.WarnAboutTheMissingKey();
     }
 
     /// <summary>
@@ -65,6 +67,7 @@ public static class WebDataStudioMcpExtensions
 
         builder.Resource.McpPath = Normalise(path);
         builder.Resource.McpAllowsWrite = allowWrite;
+        builder.Resource.McpHasKey = true;
 
         builder
             .WithEnvironment("WDS_MCP_ENABLED", "true")
@@ -77,6 +80,15 @@ public static class WebDataStudioMcpExtensions
     }
 
     /// <summary>
+    /// The same, written the way it reads in an app host: the path first, then the parameter that
+    /// holds the key.
+    /// </summary>
+    public static IResourceBuilder<WebDataStudioResource> WithMcpEndpoint(
+        this IResourceBuilder<WebDataStudioResource> builder, string? path,
+        IResourceBuilder<ParameterResource> apiKey, bool allowWrite = false) =>
+        builder.WithMcpEndpoint(apiKey, path, allowWrite);
+
+    /// <summary>
     /// Keeps the studio's own assistant from using the MCP tools. Without this it uses them
     /// whenever both the assistant and the MCP endpoint are configured — the same registry and the
     /// same rules, so the answer comes from the database rather than from a guess.
@@ -87,6 +99,45 @@ public static class WebDataStudioMcpExtensions
         ArgumentNullException.ThrowIfNull(builder);
         return builder.WithEnvironment("WDS_ASSIST_TOOLS", "false");
     }
+
+    /// <summary>
+    /// A studio with accounts refuses to serve MCP without a key of its own — the endpoint sits
+    /// outside the login screen, so without one it would be a way past it. The studio says so in its
+    /// log; this says it in the app host, where it can still be fixed before anything starts.
+    /// </summary>
+    private static IResourceBuilder<WebDataStudioResource> WarnAboutTheMissingKey(
+        this IResourceBuilder<WebDataStudioResource> builder)
+    {
+        // Registered once, and it reads the resource at start — so the order of the calls in the
+        // app host does not matter: WithLogin after WithMcpEndpoint is still caught.
+        if (!builder.Resource.WarnedAboutMcpKey)
+        {
+            builder.Resource.WarnedAboutMcpKey = true;
+
+            builder.ApplicationBuilder.Eventing.Subscribe<BeforeStartEvent>((_, _) =>
+            {
+                if (MissingKeyWarning(builder.Resource) is { } warning)
+                    Console.Error.WriteLine(warning);
+
+                return Task.CompletedTask;
+            });
+        }
+
+        return builder;
+    }
+
+    /// <summary>
+    /// What is wrong with this studio's MCP configuration, or null when nothing is. The app host
+    /// prints it before anything starts; it is public so a test or a health check can ask the same
+    /// question without starting an application.
+    /// </summary>
+    public static string? MissingKeyWarning(WebDataStudioResource resource) =>
+        resource.McpPath is not null && !resource.McpHasKey && resource.Username is not null
+            ? $"WebDataStudio '{resource.Name}' has a login and an MCP endpoint without a key, so " +
+              "the studio will refuse to serve MCP: an agent has no cookie, and without a key of " +
+              "its own the endpoint would be a way past the login. Pass one to WithMcpEndpoint " +
+              "(a parameter keeps it out of source control)."
+            : null;
 
     private static string Normalise(string? path)
     {

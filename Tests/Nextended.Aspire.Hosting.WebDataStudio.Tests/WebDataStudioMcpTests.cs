@@ -1,5 +1,6 @@
 using Aspire.Hosting;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Eventing;
 using Xunit;
 
 namespace Nextended.Aspire.Hosting.WebDataStudio.Tests;
@@ -30,6 +31,9 @@ public class WebDataStudioMcpTests
 
         return context.EnvironmentVariables.Keys;
     }
+
+    /// A stand-in for Ollama, LocalAI or anything else with an HTTP endpoint.
+    private sealed class FakeModelServer(string name) : ContainerResource(name), IResourceWithEndpoints;
 
     private static IResourceBuilder<WebDataStudioResource> Add() =>
         DistributedApplication.CreateBuilder().AddWebDataStudio();
@@ -94,12 +98,146 @@ public class WebDataStudioMcpTests
         Assert.DoesNotContain("WDS_MCP_KEY", plain.Keys);
     }
 
+    /// The app host warns before anything starts: the studio would refuse to serve MCP, and a
+    /// warning here can still be acted on. The rule is a pure function, so it is tested as one.
+    [Fact]
+    public void ALoginWithoutAnMcpKeyIsWarnedAbout()
+    {
+        var studio = Add().WithMcpEndpoint().WithLogin("ada", "one");
+
+        var warning = WebDataStudioMcpExtensions.MissingKeyWarning(studio.Resource);
+
+        Assert.NotNull(warning);
+        Assert.Contains("refuse to serve MCP", warning);
+        Assert.False(studio.Resource.McpHasKey);
+    }
+
+    /// The order of the calls must not matter: WithLogin can come first.
+    [Fact]
+    public void TheOrderOfTheCallsDoesNotMatter()
+    {
+        var studio = Add().WithLogin("ada", "one").WithMcpEndpoint();
+
+        Assert.NotNull(WebDataStudioMcpExtensions.MissingKeyWarning(studio.Resource));
+    }
+
+    [Fact]
+    public void WithAKeyThereIsNoWarning()
+    {
+        var studio = Add().WithMcpEndpoint("/mcp", "k").WithLogin("ada", "one");
+
+        Assert.Null(WebDataStudioMcpExtensions.MissingKeyWarning(studio.Resource));
+    }
+
+    [Fact]
+    public void WithoutALoginThereIsNothingToWarnAbout()
+    {
+        var studio = Add().WithMcpEndpoint();
+
+        Assert.Null(WebDataStudioMcpExtensions.MissingKeyWarning(studio.Resource));
+    }
+
+    [Fact]
+    public async Task APathAndAParameterKeyReadInThatOrder()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+        var key = builder.AddParameter("mcp-key", secret: true);
+        var studio = builder.AddWebDataStudio().WithMcpEndpoint("/agents", key, allowWrite: true);
+
+        var keys = await EnvKeysOf(studio.Resource);
+        var plain = await EnvOf(studio.Resource);
+
+        Assert.Equal("/agents", plain["WDS_MCP_PATH"]);
+        Assert.Equal("true", plain["WDS_MCP_ALLOW_WRITE"]);
+        Assert.Contains("WDS_MCP_KEY", keys);
+        Assert.DoesNotContain("WDS_MCP_KEY", plain.Keys);
+        Assert.True(studio.Resource.McpHasKey);
+    }
+
+    [Fact]
+    public async Task AModelServerCanTakeAParameterKey()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+        var key = builder.AddParameter("gateway-key", secret: true);
+        var server = builder.AddResource(new FakeModelServer("vllm")).WithHttpEndpoint(targetPort: 8000);
+
+        var studio = builder.AddWebDataStudio().WithAssistant(server, "mixtral", key);
+
+        var keys = await EnvKeysOf(studio.Resource);
+        var plain = await EnvOf(studio.Resource);
+
+        Assert.Contains("WDS_ASSIST_KEY", keys);
+        Assert.DoesNotContain("WDS_ASSIST_KEY", plain.Keys);
+        Assert.Equal("mixtral", plain["WDS_ASSIST_MODEL"]);
+    }
+
+    [Fact]
+    public async Task AzureCanTakeAParameterKey()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+        var key = builder.AddParameter("azure-key", secret: true);
+        var studio = builder.AddWebDataStudio()
+            .WithAzureOpenAiAssistant("my-openai", "gpt4o-deploy", key);
+
+        var keys = await EnvKeysOf(studio.Resource);
+        var plain = await EnvOf(studio.Resource);
+
+        Assert.Contains("WDS_ASSIST_KEY", keys);
+        Assert.Contains("api-version=", plain["WDS_ASSIST_ENDPOINT"]);
+    }
+
     [Fact]
     public async Task TheAssistantsToolsCanBeTurnedOff()
     {
         var env = await EnvOf(Add().WithMcpEndpoint().WithoutAssistantTools().Resource);
 
         Assert.Equal("false", env["WDS_ASSIST_TOOLS"]);
+    }
+
+    // --- masking ----------------------------------------------------------------------------
+
+    [Fact]
+    public async Task MaskedAndUnmaskedColumnsBecomeTheirLists()
+    {
+        var studio = Add()
+            .WithMaskedColumns("ssn", "iban")
+            .WithUnmaskedColumns("token_type");
+
+        var env = await EnvOf(studio.Resource);
+
+        Assert.Equal("iban,ssn", env["WDS_MASK_EXTRA"]);
+        Assert.Equal("token_type", env["WDS_MASK_NEVER"]);
+        Assert.Equal(["iban", "ssn"], studio.Resource.MaskedColumns);
+    }
+
+    /// Chaining adds up: two calls are two lists joined, not the second one winning.
+    [Fact]
+    public async Task ChainingAddsToTheList()
+    {
+        var env = await EnvOf(Add()
+            .WithMaskedColumns("ssn")
+            .WithMaskedColumns("iban", "  ")
+            .Resource);
+
+        Assert.Equal("iban,ssn", env["WDS_MASK_EXTRA"]);
+    }
+
+    [Fact]
+    public async Task TheHeuristicCanBeTurnedOff()
+    {
+        var env = await EnvOf(Add().WithoutColumnMasking().WithMaskedColumns("ssn").Resource);
+
+        Assert.Equal("false", env["WDS_MASK_DEFAULT"]);
+        Assert.Equal("ssn", env["WDS_MASK_EXTRA"]);
+    }
+
+    [Fact]
+    public async Task WithoutTheCallsNothingIsSet()
+    {
+        var keys = await EnvKeysOf(Add().Resource);
+
+        Assert.DoesNotContain("WDS_MASK_EXTRA", keys);
+        Assert.DoesNotContain("WDS_MASK_DEFAULT", keys);
     }
 
     // --- the hosted providers ---------------------------------------------------------------

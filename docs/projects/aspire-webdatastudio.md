@@ -89,6 +89,9 @@ variables it does.
 | `.WithAssistant(server, model, …)` | Point the studio's optional assistance at a model server in the stack, a URL, a `ReferenceExpression`, or a URL with a `ParameterResource` key. |
 | `.WithOllamaAssistant(ollama, model)` / `.WithLocalAiAssistant(localai, model)` | The same, named for the two servers people reach for first. |
 | `.WithClaudeAssistant(key)`, `.WithChatGptAssistant(key)`, `.WithOpenRouterAssistant(key)`, `.WithGroqAssistant(key)`, `.WithMistralAssistant(key)`, `.WithDeepSeekAssistant(key)`, `.WithGeminiAssistant(key)`, `.WithAzureOpenAiAssistant(…)` | The hosted providers, one call each. |
+| `.WithMaskedColumns("ssn", "iban")` | Mask these columns as well, whatever the studio's name heuristic thinks. Chaining adds to the list. |
+| `.WithUnmaskedColumns("token_type")` | Leave these alone, whatever it thinks. |
+| `.WithoutColumnMasking()` | Turn the heuristic off, leaving only the columns you named. |
 | `.WithMcpEndpoint(path?, key?, allowWrite?)` | Serve the studio as an MCP server for AI agents. Read-only unless `allowWrite`. |
 | `.WithoutAssistantTools()` | Keep the studio's own assistant from using the MCP tools. |
 | `.WithTitle(name)` | Name in the studio's header and browser tab. Defaults to the resource name; `null` leaves it unnamed. |
@@ -174,6 +177,18 @@ For a hosted model there is one call per provider, so nobody has to look a URL u
 | `.WithOllamaAssistant(ollama, model?)` / `.WithLocalAiAssistant(localai, model)` | a model server in your own stack | `llama3.2` / — |
 
 Every key also takes an Aspire `ParameterResource`, which is how it stays out of the manifest.
+
+## Masked columns
+
+```csharp
+studio
+    .WithMaskedColumns("ssn", "customer_note")
+    .WithUnmaskedColumns("token_type");
+```
+
+The studio masks columns whose names say they hold a secret before the values leave the server;
+these two calls correct that guess for a schema it reads wrong, and `WithoutColumnMasking()` turns
+the guessing off entirely. What somebody sets from the studio's column menu wins over them.
 
 ## The studio as an MCP server
 

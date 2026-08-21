@@ -141,9 +141,27 @@ public static class WebDataStudioProviderExtensions
         ArgumentException.ThrowIfNullOrWhiteSpace(resourceName);
         ArgumentException.ThrowIfNullOrWhiteSpace(deployment);
 
-        var endpoint = $"https://{resourceName}.openai.azure.com/openai/deployments/{deployment}" +
-                       $"/chat/completions?api-version={apiVersion}";
-
-        return builder.WithAssistant(endpoint, deployment, apiKey);
+        return builder.WithAssistant(
+            AzureEndpoint(resourceName, deployment, apiVersion), deployment, apiKey);
     }
+
+    /// <summary>The same, with the key from an Aspire parameter.</summary>
+    public static IResourceBuilder<WebDataStudioResource> WithAzureOpenAiAssistant(
+        this IResourceBuilder<WebDataStudioResource> builder, string resourceName,
+        string deployment, IResourceBuilder<ParameterResource> apiKey,
+        string apiVersion = "2024-10-21")
+    {
+        ArgumentNullException.ThrowIfNull(apiKey);
+        ArgumentException.ThrowIfNullOrWhiteSpace(resourceName);
+        ArgumentException.ThrowIfNullOrWhiteSpace(deployment);
+
+        return builder.WithAssistant(
+            AzureEndpoint(resourceName, deployment, apiVersion), apiKey, deployment);
+    }
+
+    /// Azure puts the deployment in the path and the api-version in the query — the part people
+    /// get wrong by hand.
+    private static string AzureEndpoint(string resourceName, string deployment, string apiVersion) =>
+        $"https://{resourceName}.openai.azure.com/openai/deployments/{deployment}" +
+        $"/chat/completions?api-version={apiVersion}";
 }

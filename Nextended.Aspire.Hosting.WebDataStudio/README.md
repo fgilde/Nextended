@@ -85,6 +85,9 @@ builder.AddWebDataStudio("studio")
 | `.WithAssistant(server, model, …)` | Point the studio's optional assistance at a model server in the stack — Ollama, LocalAI, vLLM, llama.cpp. Also takes a URL, a `ReferenceExpression` or a `ParameterResource` key. |
 | `.WithOllamaAssistant(ollama, model)` / `.WithLocalAiAssistant(localai, model)` | The same, named for the two servers people reach for first. |
 | `.WithClaudeAssistant(key)`, `.WithChatGptAssistant(key)`, `.WithOpenRouterAssistant(key)`, `.WithGroqAssistant(key)`, `.WithMistralAssistant(key)`, `.WithDeepSeekAssistant(key)`, `.WithGeminiAssistant(key)`, `.WithAzureOpenAiAssistant(resource, deployment, key)` | The hosted providers, one call each: the right URL and a sensible default model. |
+| `.WithMaskedColumns("ssn", "iban")` | Mask these columns as well, whatever the studio's name heuristic thinks. Chaining adds to the list. |
+| `.WithUnmaskedColumns("token_type")` | Leave these alone, whatever it thinks. |
+| `.WithoutColumnMasking()` | Turn the heuristic off, leaving only the columns you named. |
 | `.WithMcpEndpoint(path?, key?, allowWrite?)` | Serve the studio as an **MCP server**, so Claude Code, Claude Desktop, VS Code or Cursor can reach its databases. Read-only unless `allowWrite`. |
 | `.WithoutAssistantTools()` | Keep the studio's own assistant from using those MCP tools. |
 | `.WithTitle(name)` | Name shown in the studio's header and browser tab. Defaults to the resource name; `null` leaves it unnamed. |
@@ -143,6 +146,20 @@ What leaves the studio is the statement or the question, and — only when the u
 on in the dialog — the table and column names of the connection. Never a row of data. Nothing the
 model answers is executed: a suggested statement lands in the editor and goes through the same run
 and preview as anything typed by hand.
+
+## Masked columns
+
+The studio masks columns whose names say they hold a secret — `password`, `api_key`, `iban` — before
+the values leave the server. For a schema it reads wrong, correct it here rather than per person:
+
+```csharp
+studio
+    .WithMaskedColumns("ssn", "customer_note")   // mask these too
+    .WithUnmaskedColumns("token_type");          // and leave this one alone
+```
+
+`WithoutColumnMasking()` turns the guessing off and masks only what you named. Anything somebody
+later sets from the studio's column menu wins over these, because they were looking at the data.
 
 ## The studio as an MCP server
 
