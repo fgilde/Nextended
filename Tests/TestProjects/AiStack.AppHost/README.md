@@ -7,10 +7,28 @@ A demo/reference Aspire AppHost that starts three services and wires them togeth
 | `ollama`  | Native Ollama LLM/embedding server                     | Ollama node      |
 | `localai` | Self-hosted **OpenAI-compatible** multimodal API       | OpenAI node      |
 | `n8n`     | Low-code automation (auto-provisions its own Postgres) | —                |
+| `studio`  | WebDataStudio on the Postgres database, with its assistance on Ollama | — |
 
 ```bash
 dotnet run   # Docker required
 ```
+
+## The database studio
+
+```csharp
+builder.AddWebDataStudio("studio")
+    .WithReference(db)
+    .WithOllamaAssistant(ollama, "llama3.2");
+```
+
+That is the whole configuration. The studio's *explain this statement* and *draft SQL* buttons then
+talk to the Ollama container next door — the statement or the question never leaves the machine, and
+nothing the model answers is executed: a suggested statement lands in the editor, where it goes
+through the same preview as anything typed by hand.
+
+`WithLocalAiAssistant(localai, "qwen3-8b")` points it at LocalAI instead, and
+`WithAssistant("https://api.openai.com/v1/chat/completions", "gpt-4o", key)` at a hosted model.
+Without any of these calls the studio has no assistance at all — no button, no calls.
 
 ## How the wiring works
 

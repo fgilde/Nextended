@@ -82,6 +82,8 @@ builder.AddWebDataStudio("studio")
 | `.WithConnection(name, connectionString, engine, …)` | Attach a database that is not part of the stack. Also takes a `ReferenceExpression`. |
 | `.WithLogin(user, password)` | Guard the studio with a login, as an admin. **Chain it for more accounts** — two calls mean two people can sign in. Both halves also accept an Aspire `ParameterResource`. |
 | `.WithUser(user, password, role, connections…)` | One account with a role (`StudioRoles.Admin`, `Editor`, `Viewer`) and, optionally, the connections it may see. The password also takes a `ParameterResource`. |
+| `.WithAssistant(server, model, …)` | Point the studio's optional assistance at a model server in the stack — Ollama, LocalAI, vLLM, llama.cpp. Also takes a URL, a `ReferenceExpression` or a `ParameterResource` key. |
+| `.WithOllamaAssistant(ollama, model)` / `.WithLocalAiAssistant(localai, model)` | The same, named for the two servers people reach for first. |
 | `.WithTitle(name)` | Name shown in the studio's header and browser tab. Defaults to the resource name; `null` leaves it unnamed. |
 | `.WithReadOnly(readOnly = true)` | Make every connection read-only, enforced in the driver. |
 | `.WithQueryTimeout(TimeSpan)` | Default statement timeout. |
@@ -91,6 +93,36 @@ builder.AddWebDataStudio("studio")
 | `.WithDataVolume(name?)` / `.WithDataBindMount(path)` | Put the studio's own data somewhere else. |
 | `resource.WithWebDataStudio(configure?, studioName?, connectionName?, engine?)` | Attach from the database's side, creating or reusing the studio. |
 | `resource.WithWebDataStudio(studio, …)` | Attach to a studio you built yourself. |
+
+## The optional assistance
+
+The studio can explain a statement and draft one from a question. It is **off unless configured**:
+no endpoint means no button, no calls, and `/api/health` reports `assist: false`.
+
+Point it at a model server in the same stack, and the conversation never leaves the machine:
+
+```csharp
+var ollama = builder.AddOllama("ollama").WithDataVolume();   // CommunityToolkit
+ollama.AddModel("llama3.2");
+
+builder.AddWebDataStudio()
+    .WithReference(shop)
+    .WithOllamaAssistant(ollama, "llama3.2");                // waits for Ollama, uses its endpoint
+```
+
+LocalAI works the same way — `WithLocalAiAssistant(localai, "qwen3-8b")` — and so does anything else
+that speaks the OpenAI chat-completions shape (`WithAssistant(server, model, path: "/v1/chat/completions")`).
+For a hosted model, give it the URL and keep the key out of source control:
+
+```csharp
+studio.WithAssistant("https://api.openai.com/v1/chat/completions",
+    builder.AddParameter("assist-key", secret: true), model: "gpt-4o-mini");
+```
+
+What leaves the studio is the statement or the question, and — only when the user turns the switch
+on in the dialog — the table and column names of the connection. Never a row of data. Nothing the
+model answers is executed: a suggested statement lands in the editor and goes through the same run
+and preview as anything typed by hand.
 
 ## Engines
 

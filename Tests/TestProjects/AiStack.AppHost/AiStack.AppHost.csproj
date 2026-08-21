@@ -22,9 +22,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- The two Nextended hosting extensions this demo wires together, plus n8n. -->
+    <!-- The Nextended hosting extensions this demo wires together: n8n, LocalAI, WebDataStudio. -->
     <ProjectReference Include="..\..\..\Nextended.Aspire.Hosting.N8n\Nextended.Aspire.Hosting.N8n.csproj" IsAspireProjectResource="false" />
     <ProjectReference Include="..\..\..\Nextended.Aspire.Hosting.LocalAI\Nextended.Aspire.Hosting.LocalAI.csproj" IsAspireProjectResource="false" />
+    <ProjectReference Include="..\..\..\Nextended.Aspire.Hosting.WebDataStudio\Nextended.Aspire.Hosting.WebDataStudio.csproj" IsAspireProjectResource="false" />
   </ItemGroup>
 
 </Project>

@@ -2,6 +2,7 @@ using Aspire.Hosting.ApplicationModel;
 using Nextended.Aspire;
 using Nextended.Aspire.Hosting.LocalAI;
 using Nextended.Aspire.Hosting.N8n.Builders;
+using Nextended.Aspire.Hosting.WebDataStudio;
 
 
 var builder = DistributedApplication.CreateBuilder(args);
@@ -54,6 +55,15 @@ var db = pg.AddDatabase("havewadb", "havewa");
 
 var dbUrl = ReferenceExpression.Create(
     $"postgresql://postgres:{pg.Resource.PasswordParameter}@{pg.Resource.PrimaryEndpoint.Property(EndpointProperty.Host)}:{pg.Resource.PrimaryEndpoint.Property(EndpointProperty.Port)}/havewa");
+
+// The database studio, with its assistance pointed at the Ollama in this stack: the statement or
+// the question goes to a container next door, so nothing about it leaves the machine. Swap
+// WithOllamaAssistant for WithLocalAiAssistant(localai, "qwen3-8b") to use LocalAI instead.
+builder.AddWebDataStudio("studio")
+    .WithReference(db)
+    .WithOllamaAssistant(ollama, "llama3.2")
+    .WithLogin("hans", "hans")
+    .WithUser("grace", "grace", StudioRoles.Viewer);
 
 builder.AddGithubRepository("havewa", "https://github.com/fgilde/hausverwaltung")
     .WithHttpEndpoint(targetPort: 3000)

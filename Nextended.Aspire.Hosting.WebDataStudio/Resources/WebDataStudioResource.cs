@@ -62,6 +62,12 @@ public sealed class WebDataStudioResource(string name) : ContainerResource(name)
     }
 
     /// <summary>
+    /// The model the optional assistance uses, when it was configured with <c>WithAssistant</c>.
+    /// Null means the studio has no assistance at all: no button, no calls.
+    /// </summary>
+    public string? AssistantModel { get; internal set; }
+
+    /// <summary>
     /// The name the studio shows in its header and browser tab. Defaults to the resource name, so
     /// three studios in one stack are told apart at a glance; <c>WithTitle</c> overrides it and
     /// <c>WithTitle(null)</c> leaves the studio unnamed.
