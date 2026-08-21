@@ -89,6 +89,7 @@ builder.AddWebDataStudio("studio")
 | `.WithUnmaskedColumns("token_type")` | Leave these alone, whatever it thinks. |
 | `.WithoutColumnMasking()` | Turn the heuristic off, leaving only the columns you named. |
 | `.WithMcpEndpoint(path?, key?, allowWrite?)` | Serve the studio as an **MCP server**, so Claude Code, Claude Desktop, VS Code or Cursor can reach its databases. Read-only unless `allowWrite`. |
+| `.WithAlertWebhook(url, interval?, minSeverity?, connections?)` | Post new health findings — missing indexes, tables without a key, bloat — to Slack, Teams or any webhook. |
 | `.WithMcpTools(WebDataStudioMcpTools.SchemaOnly)` | Narrow the endpoint to named tools. `ReadOnly` and `SchemaOnly` are ready-made sets. |
 | `.WithoutAssistantTools()` | Keep the studio's own assistant from using those MCP tools. |
 | `.WithTitle(name)` | Name shown in the studio's header and browser tab. Defaults to the resource name; `null` leaves it unnamed. |
@@ -161,6 +162,19 @@ studio
 
 `WithoutColumnMasking()` turns the guessing off and masks only what you named. Anything somebody
 later sets from the studio's column menu wins over these, because they were looking at the data.
+
+## Alerts
+
+```csharp
+studio.WithAlertWebhook(builder.AddParameter("slack-webhook", secret: true),
+    interval: TimeSpan.FromHours(2), minSeverity: "warning");
+```
+
+The studio runs the analysis behind its health report on that interval and posts what is **new** —
+missing indexes, tables without a primary key, bloat — to the webhook. The payload's `text` field is
+what Slack, Mattermost, Discord and Teams render; the findings ride along structured, each with the
+statement that would fix it. Only new findings are sent, and a failed post is retried on the next
+sweep.
 
 ## The studio as an MCP server
 

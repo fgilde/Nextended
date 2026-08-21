@@ -226,6 +226,53 @@ public class WebDataStudioMcpTests
         Assert.DoesNotContain("WDS_MCP_TOOLS", keys);
     }
 
+    // --- alerts -----------------------------------------------------------------------------
+
+    [Fact]
+    public async Task TheAlertWebhookAndItsSettings()
+    {
+        var env = await EnvOf(Add()
+            .WithAlertWebhook("https://hooks.example.com/x", TimeSpan.FromHours(2), "info", "SHOP")
+            .Resource);
+
+        Assert.Equal("https://hooks.example.com/x", env["WDS_ALERT_WEBHOOK"]);
+        Assert.Equal("120", env["WDS_ALERT_INTERVAL_MINUTES"]);
+        Assert.Equal("info", env["WDS_ALERT_MIN_SEVERITY"]);
+        Assert.Equal("SHOP", env["WDS_ALERT_CONNECTIONS"]);
+    }
+
+    [Fact]
+    public async Task WithoutTheCallNothingIsWatched()
+    {
+        var keys = await EnvKeysOf(Add().Resource);
+
+        Assert.DoesNotContain("WDS_ALERT_WEBHOOK", keys);
+    }
+
+    [Fact]
+    public void ANonsenseSeverityOrIntervalThrows()
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            Add().WithAlertWebhook("https://x", minSeverity: "shouting"));
+
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            Add().WithAlertWebhook("https://x", interval: TimeSpan.FromSeconds(5)));
+    }
+
+    [Fact]
+    public async Task TheWebhookCanComeFromAParameter()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+        var hook = builder.AddParameter("slack-webhook", secret: true);
+        var studio = builder.AddWebDataStudio().WithAlertWebhook(hook);
+
+        var keys = await EnvKeysOf(studio.Resource);
+        var plain = await EnvOf(studio.Resource);
+
+        Assert.Contains("WDS_ALERT_WEBHOOK", keys);
+        Assert.DoesNotContain("WDS_ALERT_WEBHOOK", plain.Keys);
+    }
+
     // --- masking ----------------------------------------------------------------------------
 
     [Fact]
