@@ -46,10 +46,7 @@ builder.AddWebDataStudio("admin-studio")
     .WithLogin("hans", "hans")
     .WithLogin("pete", "pete")
     .WithReadOnly()
-    .WithMcpEndpoint("mcp", allowWrite: false)   // Studio als MCP-Server
-    // The key comes from a parameter, so it stays out of source control: set it with
-    //   dotnet user-secrets set Parameters:anthropic-key sk-ant-…
-    .WithClaudeAssistant(builder.AddParameter("anthropic-key", secret: true))
+    .WithMcpEndpoint("mcp", studioPassword)   // Studio als MCP-Server
     .WithSessionLimits(maxSessions: 4, idleTimeout: TimeSpan.FromMinutes(2))
     .WithReference(shop, connectionName: "SHOP_PROD", group: "Production", color: "#e03131")
     .WithReference(orders, connectionName: "ORDERS_PROD", group: "Production", color: "#e03131")
