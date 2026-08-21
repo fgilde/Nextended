@@ -194,6 +194,38 @@ public class WebDataStudioMcpTests
         Assert.Equal("false", env["WDS_ASSIST_TOOLS"]);
     }
 
+    [Fact]
+    public async Task TheToolsCanBeNarrowed()
+    {
+        var studio = Add().WithMcpEndpoint().WithMcpTools(WebDataStudioMcpTools.SchemaOnly);
+
+        var env = await EnvOf(studio.Resource);
+
+        Assert.Contains("describe_object", env["WDS_MCP_TOOLS"]);
+        Assert.DoesNotContain("run_query", env["WDS_MCP_TOOLS"]);
+        Assert.Contains("list_tables", studio.Resource.McpTools);
+    }
+
+    [Fact]
+    public async Task NarrowingTwiceAddsUp()
+    {
+        var env = await EnvOf(Add()
+            .WithMcpEndpoint()
+            .WithMcpTools(WebDataStudioMcpTools.ListTables)
+            .WithMcpTools(WebDataStudioMcpTools.RunQuery)
+            .Resource);
+
+        Assert.Equal("list_tables,run_query", env["WDS_MCP_TOOLS"]);
+    }
+
+    [Fact]
+    public async Task NamingNoToolsLeavesThemAll()
+    {
+        var keys = await EnvKeysOf(Add().WithMcpEndpoint().WithMcpTools().Resource);
+
+        Assert.DoesNotContain("WDS_MCP_TOOLS", keys);
+    }
+
     // --- masking ----------------------------------------------------------------------------
 
     [Fact]

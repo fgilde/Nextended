@@ -89,6 +89,7 @@ builder.AddWebDataStudio("studio")
 | `.WithUnmaskedColumns("token_type")` | Leave these alone, whatever it thinks. |
 | `.WithoutColumnMasking()` | Turn the heuristic off, leaving only the columns you named. |
 | `.WithMcpEndpoint(path?, key?, allowWrite?)` | Serve the studio as an **MCP server**, so Claude Code, Claude Desktop, VS Code or Cursor can reach its databases. Read-only unless `allowWrite`. |
+| `.WithMcpTools(WebDataStudioMcpTools.SchemaOnly)` | Narrow the endpoint to named tools. `ReadOnly` and `SchemaOnly` are ready-made sets. |
 | `.WithoutAssistantTools()` | Keep the studio's own assistant from using those MCP tools. |
 | `.WithTitle(name)` | Name shown in the studio's header and browser tab. Defaults to the resource name; `null` leaves it unnamed. |
 | `.WithReadOnly(readOnly = true)` | Make every connection read-only, enforced in the driver. |
@@ -176,11 +177,13 @@ var studio = builder.AddWebDataStudio()
     .WithClaudeAssistant(anthropicKey);       // and the studio's own assistant uses the same tools
 ```
 
-The agent gets `list_connections`, `list_objects`, `describe_object`, `browse_rows` and `run_query`
+The agent gets `list_connections`, `list_tables`, `list_objects`, `describe_object`, `browse_rows`, `run_query`, `explain_plan`, `health_report`, `server_activity` and `redis_value`
 — and with `allowWrite: true` also `preview_script` and `apply_script`, in that order, so a write is
 always shown before it runs. Masking, read-only connections and the row cap apply to an agent
 exactly as they do to a person. The studio's header carries a dialog with the URL and ready-to-paste
 client configuration once the endpoint is on.
+
+`WithMcpTools(WebDataStudioMcpTools.SchemaOnly)` narrows it to the tools you want an agent to have — a whitelist, enforced on the call as well as the listing.
 
 **A studio with accounts requires the key.** The MCP endpoint sits outside the login screen — an
 agent has no cookie — so the studio refuses to serve it without one rather than opening a way past

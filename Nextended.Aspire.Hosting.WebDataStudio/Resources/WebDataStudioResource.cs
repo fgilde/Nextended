@@ -88,6 +88,11 @@ public sealed class WebDataStudioResource(string name) : ContainerResource(name)
     /// <summary>Columns the studio leaves alone, from <c>WithUnmaskedColumns</c>.</summary>
     public IReadOnlyCollection<string> UnmaskedColumns => UnmaskedColumnList;
 
+    /// <summary>The tools the MCP endpoint is narrowed to, from <c>WithMcpTools</c>. Empty means all.</summary>
+    public IReadOnlyCollection<string> McpTools => McpToolList;
+
+    internal SortedSet<string> McpToolList { get; } = new(StringComparer.OrdinalIgnoreCase);
+
     internal SortedSet<string> MaskedColumnList { get; } = new(StringComparer.OrdinalIgnoreCase);
 
     internal SortedSet<string> UnmaskedColumnList { get; } = new(StringComparer.OrdinalIgnoreCase);

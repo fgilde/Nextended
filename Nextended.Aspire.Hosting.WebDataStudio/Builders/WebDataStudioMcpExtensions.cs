@@ -89,6 +89,34 @@ public static class WebDataStudioMcpExtensions
         builder.WithMcpEndpoint(apiKey, path, allowWrite);
 
     /// <summary>
+    /// Narrows the endpoint to these tools. A whitelist: a tool added in a later version of the
+    /// studio does not appear on an endpoint somebody deliberately narrowed.
+    /// </summary>
+    /// <param name="builder">The studio.</param>
+    /// <param name="tools">
+    /// Tool names — see <see cref="WebDataStudioMcpTools"/> for the ones that exist. Nothing given
+    /// means every tool the endpoint has.
+    /// </param>
+    public static IResourceBuilder<WebDataStudioResource> WithMcpTools(
+        this IResourceBuilder<WebDataStudioResource> builder, params string[] tools)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        var named = (tools ?? [])
+            .Where(tool => !string.IsNullOrWhiteSpace(tool))
+            .Select(tool => tool.Trim())
+            .ToList();
+
+        if (named.Count == 0) return builder;
+
+        foreach (var tool in named) builder.Resource.McpToolList.Add(tool);
+
+        return builder.WithEnvironment(context =>
+            context.EnvironmentVariables["WDS_MCP_TOOLS"] =
+                string.Join(",", builder.Resource.McpToolList));
+    }
+
+    /// <summary>
     /// Keeps the studio's own assistant from using the MCP tools. Without this it uses them
     /// whenever both the assistant and the MCP endpoint are configured — the same registry and the
     /// same rules, so the answer comes from the database rather than from a guess.

@@ -93,6 +93,7 @@ variables it does.
 | `.WithUnmaskedColumns("token_type")` | Leave these alone, whatever it thinks. |
 | `.WithoutColumnMasking()` | Turn the heuristic off, leaving only the columns you named. |
 | `.WithMcpEndpoint(path?, key?, allowWrite?)` | Serve the studio as an MCP server for AI agents. Read-only unless `allowWrite`. |
+| `.WithMcpTools(WebDataStudioMcpTools.SchemaOnly)` | Narrow the endpoint to named tools. `ReadOnly` and `SchemaOnly` are ready-made sets. |
 | `.WithoutAssistantTools()` | Keep the studio's own assistant from using the MCP tools. |
 | `.WithTitle(name)` | Name in the studio's header and browser tab. Defaults to the resource name; `null` leaves it unnamed. |
 | `.WithReadOnly(readOnly = true)` | Every connection read-only, enforced in the driver. |
@@ -211,12 +212,18 @@ builder.AddWebDataStudio()
 | `describe_object` | columns, indexes, keys, triggers — and which columns are masked |
 | `browse_rows` | a page of rows, masked and capped |
 | `run_query` | one reading statement, masked and capped |
+| `explain_plan` | the query plan for a statement |
+| `health_report` | the studio's analysis, each finding with its fix |
+| `server_activity` | what is running, and who waits on whom |
+| `redis_value` | one Redis key |
 | `preview_script` / `apply_script` | only with `allowWrite: true`: a write is shown, then applied by its hash |
 
 The rules are the studio's own: a read-only connection stays read-only, a masked column stays
 masked, `run_query` refuses anything that writes (including a read with a second statement behind
 it), and a tool call returns at most 200 rows. **A studio with accounts requires the key**, because
 the MCP endpoint sits outside the login screen.
+
+`WithMcpTools(WebDataStudioMcpTools.SchemaOnly)` narrows the endpoint to named tools — a whitelist, enforced on the call as well as the listing.
 
 The studio's header shows a plug icon once the endpoint is on, with the URL and ready-to-paste
 configuration for Claude Code, Claude Desktop, VS Code and Cursor. And when both MCP and an
