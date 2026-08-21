@@ -10,7 +10,7 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <Description>Run WebDataStudio — a browser-based database studio for PostgreSQL, MySQL, SQL Server, SQLite, Oracle, DuckDB, ClickHouse, MongoDB and Redis — inside your Aspire stack. Attach any resource with a connection string via WithWebDataStudio() or WithReference(), share one studio across databases or run several, and configure login, read-only mode, row caps and pooling from the app host.</Description>
+    <Description>Run WebDataStudio — a browser-based database studio for PostgreSQL, MySQL, SQL Server, SQLite, Oracle, DuckDB, ClickHouse, MongoDB and Redis — inside your Aspire stack. Attach any resource with a connection string via WithWebDataStudio() or WithReference(), share one studio across databases or run several, add accounts with roles, point its optional SQL assistant at Claude, ChatGPT, OpenRouter or a local Ollama, and serve it as an MCP server for AI agents — all from the app host.</Description>
     <PackageTags>Aspire, extensions, webdatastudio, database, sql, postgresql, mysql, sqlserver, mongodb, redis, tooling</PackageTags>
   </PropertyGroup>
 

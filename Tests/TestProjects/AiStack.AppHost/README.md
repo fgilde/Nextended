@@ -26,9 +26,21 @@ talk to the Ollama container next door — the statement or the question never l
 nothing the model answers is executed: a suggested statement lands in the editor, where it goes
 through the same preview as anything typed by hand.
 
-`WithLocalAiAssistant(localai, "qwen3-8b")` points it at LocalAI instead, and
-`WithAssistant("https://api.openai.com/v1/chat/completions", "gpt-4o", key)` at a hosted model.
-Without any of these calls the studio has no assistance at all — no button, no calls.
+`WithLocalAiAssistant(localai, "qwen3-8b")` points it at LocalAI instead, and there is one call per
+hosted provider — `WithClaudeAssistant(key)`, `WithChatGptAssistant(key)`,
+`WithOpenRouterAssistant(key)`, `WithGroqAssistant(key)`, … — so nobody has to look a URL up.
+Without any of these calls the studio has no assistance at all: no button, no calls.
+
+`WithMcpEndpoint(apiKey: "local-dev-key")` additionally serves the same capabilities over MCP, so
+Claude Code, Claude Desktop, VS Code or Cursor can work with this Postgres too:
+
+```bash
+claude mcp add --transport http webdatastudio http://localhost:<studio-port>/mcp \
+  --header "Authorization: Bearer local-dev-key"
+```
+
+It is read-only unless `allowWrite: true`, and the studio's header carries a dialog with the URL and
+the configuration for each client.
 
 ## How the wiring works
 

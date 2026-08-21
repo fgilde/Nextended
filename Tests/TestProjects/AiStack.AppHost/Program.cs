@@ -62,6 +62,9 @@ var dbUrl = ReferenceExpression.Create(
 builder.AddWebDataStudio("studio")
     .WithReference(db)
     .WithOllamaAssistant(ollama, "llama3.2")
+    // …and the same tools offered over MCP, so Claude Code or Cursor can use this database too.
+    // Read-only: pass allowWrite: true to let an agent change data through a previewed script.
+    .WithMcpEndpoint(apiKey: "local-dev-key")
     .WithLogin("hans", "hans")
     .WithUser("grace", "grace", StudioRoles.Viewer);
 

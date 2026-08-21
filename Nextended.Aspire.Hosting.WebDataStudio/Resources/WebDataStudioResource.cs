@@ -68,6 +68,15 @@ public sealed class WebDataStudioResource(string name) : ContainerResource(name)
     public string? AssistantModel { get; internal set; }
 
     /// <summary>
+    /// Path the studio serves MCP on, when <c>WithMcpEndpoint</c> was called. Null means the studio
+    /// is not an MCP server.
+    /// </summary>
+    public string? McpPath { get; internal set; }
+
+    /// <summary>Whether the MCP endpoint may change data, through a preview and its hash.</summary>
+    public bool McpAllowsWrite { get; internal set; }
+
+    /// <summary>
     /// The name the studio shows in its header and browser tab. Defaults to the resource name, so
     /// three studios in one stack are told apart at a glance; <c>WithTitle</c> overrides it and
     /// <c>WithTitle(null)</c> leaves the studio unnamed.

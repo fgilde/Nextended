@@ -7,7 +7,7 @@
 [![Downloads](https://img.shields.io/nuget/dt/Nextended.Aspire.Hosting.WebDataStudio.svg)](https://www.nuget.org/packages/Nextended.Aspire.Hosting.WebDataStudio/)
 [![License](https://img.shields.io/github/license/fgilde/Nextended)](https://github.com/fgilde/Nextended/blob/main/LICENSE)
 
-> WebDataStudio — a browser database studio for PostgreSQL, MySQL, SQL Server, SQLite, Oracle, DuckDB, ClickHouse, MongoDB and Redis — wired to the databases of your stack.
+> WebDataStudio — a browser database studio for PostgreSQL, MySQL, SQL Server, SQLite, Oracle, DuckDB, ClickHouse, MongoDB and Redis — wired to the databases of your stack, with accounts and roles, an optional SQL assistant, and an MCP endpoint for AI agents.
 
 
 [![WebDataStudio](https://raw.githubusercontent.com/fgilde/WebDataStudio/master/docs/assets/logo.svg)](https://fgilde.github.io/WebDataStudio/)
@@ -84,6 +84,9 @@ builder.AddWebDataStudio("studio")
 | `.WithUser(user, password, role, connections…)` | One account with a role (`StudioRoles.Admin`, `Editor`, `Viewer`) and, optionally, the connections it may see. The password also takes a `ParameterResource`. |
 | `.WithAssistant(server, model, …)` | Point the studio's optional assistance at a model server in the stack — Ollama, LocalAI, vLLM, llama.cpp. Also takes a URL, a `ReferenceExpression` or a `ParameterResource` key. |
 | `.WithOllamaAssistant(ollama, model)` / `.WithLocalAiAssistant(localai, model)` | The same, named for the two servers people reach for first. |
+| `.WithClaudeAssistant(key)`, `.WithChatGptAssistant(key)`, `.WithOpenRouterAssistant(key)`, `.WithGroqAssistant(key)`, `.WithMistralAssistant(key)`, `.WithDeepSeekAssistant(key)`, `.WithGeminiAssistant(key)`, `.WithAzureOpenAiAssistant(resource, deployment, key)` | The hosted providers, one call each: the right URL and a sensible default model. |
+| `.WithMcpEndpoint(path?, key?, allowWrite?)` | Serve the studio as an **MCP server**, so Claude Code, Claude Desktop, VS Code or Cursor can reach its databases. Read-only unless `allowWrite`. |
+| `.WithoutAssistantTools()` | Keep the studio's own assistant from using those MCP tools. |
 | `.WithTitle(name)` | Name shown in the studio's header and browser tab. Defaults to the resource name; `null` leaves it unnamed. |
 | `.WithReadOnly(readOnly = true)` | Make every connection read-only, enforced in the driver. |
 | `.WithQueryTimeout(TimeSpan)` | Default statement timeout. |
@@ -112,17 +115,62 @@ builder.AddWebDataStudio()
 
 LocalAI works the same way — `WithLocalAiAssistant(localai, "qwen3-8b")` — and so does anything else
 that speaks the OpenAI chat-completions shape (`WithAssistant(server, model, path: "/v1/chat/completions")`).
-For a hosted model, give it the URL and keep the key out of source control:
+
+For a hosted model there is one call per provider, so nobody has to look a URL up:
 
 ```csharp
-studio.WithAssistant("https://api.openai.com/v1/chat/completions",
-    builder.AddParameter("assist-key", secret: true), model: "gpt-4o-mini");
+studio.WithClaudeAssistant(builder.AddParameter("anthropic-key", secret: true));
+studio.WithChatGptAssistant(openAiKey, "gpt-4o");
+studio.WithOpenRouterAssistant(openRouterKey, "anthropic/claude-sonnet-4.5");
+studio.WithAzureOpenAiAssistant("my-openai", "gpt4o-deploy", azureKey);
 ```
+
+| Call | Provider | Default model |
+|------|----------|---------------|
+| `.WithClaudeAssistant(key, model?)` | Anthropic, through their OpenAI-compatible endpoint | `claude-sonnet-4-5` |
+| `.WithChatGptAssistant(key, model?)` | OpenAI | `gpt-4o-mini` |
+| `.WithOpenRouterAssistant(key, model?)` | OpenRouter — the model name carries the provider | `anthropic/claude-sonnet-4.5` |
+| `.WithGroqAssistant(key, model?)` | Groq | `llama-3.3-70b-versatile` |
+| `.WithMistralAssistant(key, model?)` | Mistral | `mistral-large-latest` |
+| `.WithDeepSeekAssistant(key, model?)` | DeepSeek | `deepseek-chat` |
+| `.WithGeminiAssistant(key, model?)` | Google, through their OpenAI-compatible endpoint | `gemini-2.5-flash` |
+| `.WithAzureOpenAiAssistant(resource, deployment, key, apiVersion?)` | Azure OpenAI — builds the deployment URL for you | the deployment name |
+| `.WithOllamaAssistant(ollama, model?)` / `.WithLocalAiAssistant(localai, model)` | a model server in your own stack | `llama3.2` / — |
+
+Every key also takes an Aspire `ParameterResource`, which is how it stays out of the manifest.
 
 What leaves the studio is the statement or the question, and — only when the user turns the switch
 on in the dialog — the table and column names of the connection. Never a row of data. Nothing the
 model answers is executed: a suggested statement lands in the editor and goes through the same run
 and preview as anything typed by hand.
+
+## The studio as an MCP server
+
+`WithMcpEndpoint()` makes the studio answer the [Model Context
+Protocol](https://modelcontextprotocol.io), so an agent can use its databases — Claude Code, Claude
+Desktop, VS Code, Cursor, anything that speaks MCP:
+
+```csharp
+var mcpKey = builder.AddParameter("mcp-key", secret: true);
+
+var studio = builder.AddWebDataStudio()
+    .WithReference(shop)
+    .WithMcpEndpoint(mcpKey)                  // read-only
+    .WithClaudeAssistant(anthropicKey);       // and the studio's own assistant uses the same tools
+```
+
+The agent gets `list_connections`, `list_objects`, `describe_object`, `browse_rows` and `run_query`
+— and with `allowWrite: true` also `preview_script` and `apply_script`, in that order, so a write is
+always shown before it runs. Masking, read-only connections and the row cap apply to an agent
+exactly as they do to a person. The studio's header carries a dialog with the URL and ready-to-paste
+client configuration once the endpoint is on.
+
+**A studio with accounts requires the key.** The MCP endpoint sits outside the login screen — an
+agent has no cookie — so the studio refuses to serve it without one rather than opening a way past
+the login.
+
+When both the MCP endpoint and an assistant are configured, the studio's own assistant uses the same
+tools and answers from the database instead of guessing. `WithoutAssistantTools()` turns that off.
 
 ## Engines
 
@@ -257,7 +305,7 @@ The other 17 packages in the suite:
 - [Nextended.Aspire.Hosting.Supabase](https://github.com/fgilde/Nextended/blob/main/Nextended.Aspire.Hosting.Supabase/README.md) — The complete Supabase stack — Postgres, Auth (GoTrue), REST, Realtime, Storage, Studio, Kong and Edge Functions — as one composable Aspire resource.
 - [Nextended.Aspire.Hosting.N8n](https://github.com/fgilde/Nextended/blob/main/Nextended.Aspire.Hosting.N8n/README.md) — The n8n workflow-automation platform as an Aspire resource, with Postgres persistence, workflow import and a typed client for triggering workflows from .NET.
 - [Nextended.Aspire.Hosting.Grafana](https://github.com/fgilde/Nextended/blob/main/Nextended.Aspire.Hosting.Grafana/README.md) — Grafana, Prometheus, Loki, Tempo, Promtail, cAdvisor, postgres_exporter and the OpenTelemetry Collector as composable resources with auto-provisioned datasources.
-- **Nextended.Aspire.Hosting.WebDataStudio** — WebDataStudio — a browser database studio for PostgreSQL, MySQL, SQL Server, SQLite, Oracle, DuckDB, ClickHouse, MongoDB and Redis — wired to the databases of your stack. _(this package)_
+- **Nextended.Aspire.Hosting.WebDataStudio** — WebDataStudio — a browser database studio for PostgreSQL, MySQL, SQL Server, SQLite, Oracle, DuckDB, ClickHouse, MongoDB and Redis — wired to the databases of your stack, with accounts and roles, an optional SQL assistant, and an MCP endpoint for AI agents. _(this package)_
 - [Nextended.Aspire.Hosting.AspireUI](https://github.com/fgilde/Nextended/blob/main/Nextended.Aspire.Hosting.AspireUI/README.md) — AspireUI — the visual AppHost builder — as a resource inside your own Aspire stack, with an optional pre-seeded admin user and a starter stack built from your project paths.
 - [Nextended.Aspire.Hosting.LocalAI](https://github.com/fgilde/Nextended/blob/main/Nextended.Aspire.Hosting.LocalAI/README.md) — Self-hosted, OpenAI-compatible multimodal AI — image generation, text-to-speech, speech-to-text and video — with gallery model management, GPU support and Open WebUI.
 - [Nextended.Aspire.Hosting.Php](https://github.com/fgilde/Nextended/blob/main/Nextended.Aspire.Hosting.Php/README.md) — Run PHP endpoints inside your Aspire stack — a docroot folder or a single router script served by PHP's built-in web server, with php.ini settings as fluent options.

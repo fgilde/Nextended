@@ -355,8 +355,8 @@
       ],
       "sample": "Tests/TestProjects/WebDataStudio.AppHost",
       "summary": {
-        "en": "WebDataStudio — a browser database studio for PostgreSQL, MySQL, SQL Server, SQLite, Oracle, DuckDB, ClickHouse, MongoDB and Redis — wired to the databases of your stack.",
-        "de": "WebDataStudio — ein Browser-Datenbankstudio für PostgreSQL, MySQL, SQL Server, SQLite, Oracle, DuckDB, ClickHouse, MongoDB und Redis — verdrahtet mit den Datenbanken Ihres Stacks."
+        "en": "WebDataStudio — a browser database studio for PostgreSQL, MySQL, SQL Server, SQLite, Oracle, DuckDB, ClickHouse, MongoDB and Redis — wired to the databases of your stack, with accounts and roles, an optional SQL assistant, and an MCP endpoint for AI agents.",
+        "de": "WebDataStudio — ein Browser-Datenbankstudio für PostgreSQL, MySQL, SQL Server, SQLite, Oracle, DuckDB, ClickHouse, MongoDB und Redis — verdrahtet mit den Datenbanken Ihres Stacks, mit Konten und Rollen, optionalem SQL-Assistenten und einem MCP-Endpunkt für KI-Agenten."
       },
       "product": {
         "name": "WebDataStudio",

@@ -43,6 +43,8 @@ builder.AddWebDataStudio("admin-studio")
     // Each studio shows its resource name in its header and browser tab; this one says more.
     .WithTitle("Production · read only")
     .WithLogin("admin", studioPassword)
+    .WithLogin("hans", "hans")
+    .WithLogin("pete", "pete")
     .WithReadOnly()
     .WithSessionLimits(maxSessions: 4, idleTimeout: TimeSpan.FromMinutes(2))
     .WithReference(shop, connectionName: "SHOP_PROD", group: "Production", color: "#e03131")
