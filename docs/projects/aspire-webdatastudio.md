@@ -93,6 +93,7 @@ variables it does.
 | `.WithUnmaskedColumns("token_type")` | Leave these alone, whatever it thinks. |
 | `.WithoutColumnMasking()` | Turn the heuristic off, leaving only the columns you named. |
 | `.WithMcpEndpoint(path?, key?, allowWrite?)` | Serve the studio as an MCP server for AI agents. Read-only unless `allowWrite`. |
+| `.WithSchemaSnapshots(path?)` | Snapshot every connection's schema on start and report the drift since the last one. |
 | `.WithAlertWebhook(url, interval?, minSeverity?, connections?)` | Post new health findings — missing indexes, tables without a key, bloat — to Slack, Teams or any webhook. |
 | `.WithMcpTools(WebDataStudioMcpTools.SchemaOnly)` | Narrow the endpoint to named tools. `ReadOnly` and `SchemaOnly` are ready-made sets. |
 | `.WithoutAssistantTools()` | Keep the studio's own assistant from using the MCP tools. |
@@ -204,6 +205,20 @@ missing indexes, tables without a primary key, bloat — to the webhook. The pay
 what Slack, Mattermost, Discord and Teams render; the findings ride along structured, each with the
 statement that would fix it. Only new findings are sent, and a failed post is retried on the next
 sweep.
+
+## Schema drift
+
+```csharp
+studio.WithSchemaSnapshots();          // /data/snapshots, on the studio's own volume
+```
+
+The studio writes a snapshot of every connection's schema shortly after start and reports what moved
+since the last one — tables added or removed, and per table which columns, indexes and foreign keys
+came or went. It lands on `GET /api/schema/{connection}/drift`, in the log, and in a message when
+`WithAlertWebhook` is configured. `POST /api/schema/snapshot` takes one now.
+
+This is not a migration tool: it catches the drift a migration tool cannot see, like the column
+somebody added by hand on staging.
 
 ## The studio as an MCP server
 

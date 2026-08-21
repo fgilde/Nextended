@@ -88,6 +88,11 @@ public sealed class WebDataStudioResource(string name) : ContainerResource(name)
     /// <summary>Columns the studio leaves alone, from <c>WithUnmaskedColumns</c>.</summary>
     public IReadOnlyCollection<string> UnmaskedColumns => UnmaskedColumnList;
 
+    /// <summary>
+    /// Where schema snapshots are written, from <c>WithSchemaSnapshots</c>. Null means none are.
+    /// </summary>
+    public string? SchemaSnapshotPath { get; internal set; }
+
     /// <summary>The tools the MCP endpoint is narrowed to, from <c>WithMcpTools</c>. Empty means all.</summary>
     public IReadOnlyCollection<string> McpTools => McpToolList;
 

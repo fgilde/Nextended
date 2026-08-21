@@ -54,6 +54,30 @@ public static class WebDataStudioOpsExtensions
         return builder.WithAlertSettings(interval, minSeverity, connections);
     }
 
+    /// <summary>
+    /// Writes a snapshot of every connection's schema on start and says what moved since the last
+    /// one — a column added by hand, an index a migration dropped on the way past.
+    /// </summary>
+    /// <param name="builder">The studio.</param>
+    /// <param name="path">
+    /// Directory inside the container. Defaults to <c>/data/snapshots</c>, which is on the studio's
+    /// own volume and therefore survives a restart.
+    /// </param>
+    /// <remarks>
+    /// The drift is on <c>GET /api/schema/{connection}/drift</c>, in the log, and — when
+    /// <see cref="WithAlertWebhook(IResourceBuilder{WebDataStudioResource}, string, TimeSpan?, string?, string[])"/>
+    /// is configured — in a message.
+    /// </remarks>
+    public static IResourceBuilder<WebDataStudioResource> WithSchemaSnapshots(
+        this IResourceBuilder<WebDataStudioResource> builder, string path = "/data/snapshots")
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+
+        builder.Resource.SchemaSnapshotPath = path;
+        return builder.WithEnvironment("WDS_SCHEMA_SNAPSHOT_DIR", path);
+    }
+
     private static IResourceBuilder<WebDataStudioResource> WithAlertSettings(
         this IResourceBuilder<WebDataStudioResource> builder, TimeSpan? interval,
         string? minSeverity, string[] connections)

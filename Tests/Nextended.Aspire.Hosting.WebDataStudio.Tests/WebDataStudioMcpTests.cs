@@ -273,6 +273,26 @@ public class WebDataStudioMcpTests
         Assert.DoesNotContain("WDS_ALERT_WEBHOOK", plain.Keys);
     }
 
+    [Fact]
+    public async Task SchemaSnapshotsGoToTheDataVolumeByDefault()
+    {
+        var studio = Add().WithSchemaSnapshots();
+
+        var env = await EnvOf(studio.Resource);
+
+        Assert.Equal("/data/snapshots", env["WDS_SCHEMA_SNAPSHOT_DIR"]);
+        Assert.Equal("/data/snapshots", studio.Resource.SchemaSnapshotPath);
+    }
+
+    [Fact]
+    public async Task WithoutTheCallNoSnapshotsAreWritten()
+    {
+        var keys = await EnvKeysOf(Add().Resource);
+
+        Assert.DoesNotContain("WDS_SCHEMA_SNAPSHOT_DIR", keys);
+        Assert.Null(Add().Resource.SchemaSnapshotPath);
+    }
+
     // --- masking ----------------------------------------------------------------------------
 
     [Fact]
