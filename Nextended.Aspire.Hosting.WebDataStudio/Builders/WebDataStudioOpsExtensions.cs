@@ -79,6 +79,41 @@ public static class WebDataStudioOpsExtensions
     }
 
     /// <summary>
+    /// Lets people keep a result as a file the studio holds on to — what a table looked like before
+    /// the migration, what the report said last Tuesday — and read it back later without a second
+    /// database to put it in.
+    /// </summary>
+    /// <param name="builder">The studio.</param>
+    /// <param name="path">
+    /// Directory inside the container. Defaults to <c>/data/archives</c>, which is on the studio's
+    /// own volume and therefore survives a restart.
+    /// </param>
+    /// <param name="maxRows">How many rows one archive keeps. Default 100000.</param>
+    /// <remarks>
+    /// The format is NDJSON — a header line, then one row per line — so anything can read it.
+    /// Masked columns are masked in the file: an archive of them would be a way around the masking.
+    /// Archives are on by default in the studio; this call is for putting them somewhere else, or
+    /// for capping their size.
+    /// </remarks>
+    public static IResourceBuilder<WebDataStudioResource> WithArchives(
+        this IResourceBuilder<WebDataStudioResource> builder, string path = "/data/archives",
+        int? maxRows = null)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+
+        if (maxRows is <= 0)
+            throw new ArgumentOutOfRangeException(nameof(maxRows), "an archive holds at least one row");
+
+        builder.Resource.ArchivePath = path;
+        builder.WithEnvironment("WDS_ARCHIVE_DIR", path);
+
+        return maxRows is null
+            ? builder
+            : builder.WithEnvironment("WDS_ARCHIVE_MAX_ROWS", maxRows.Value.ToString(System.Globalization.CultureInfo.InvariantCulture));
+    }
+
+    /// <summary>
     /// Lets people keep a result and share it as a link — "here is what I am seeing", without a
     /// screenshot. Off unless this is called.
     /// </summary>

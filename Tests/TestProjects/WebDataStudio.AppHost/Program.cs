@@ -29,7 +29,11 @@ builder.AddRedis("cache").WithWebDataStudio();
 // Everything analytical in its own window, with the row cap raised for exploratory queries.
 builder.AddMongoDB("mongo").AddDatabase("events")
     .WithWebDataStudio(
-        studio => studio.WithMaxRows(50_000).WithQueryTimeout(TimeSpan.FromMinutes(10)),
+        // Kept results land on the studio's own volume, capped so one archive cannot fill it.
+        studio => studio
+            .WithMaxRows(50_000)
+            .WithQueryTimeout(TimeSpan.FromMinutes(10))
+            .WithArchives(maxRows: 50_000),
         studioName: "analytics-studio");
 
 // --- a third studio, built by hand ----------------------------------------------------------------

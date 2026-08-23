@@ -99,6 +99,7 @@ variables it does.
 | `.WithSchemaSnapshots(path?)` | Snapshot every connection's schema on start and report the drift since the last one. |
 | `.WithOpenTelemetry(collector \| url?, serviceName?)` | Send the studio's traces and metrics to an OTLP collector — a resource in the stack, or a URL. |
 | `.WithSharedResults(ttl?, isPublic?, maxRows?)` | Let people keep a result and share it as a link. Off by default. |
+| `.WithArchives(path?, maxRows?)` | Move or cap the results the studio keeps as files. They are on by default; this decides where and how big. |
 | `.WithAlertWebhook(url, interval?, minSeverity?, connections?)` | Post new health findings — missing indexes, tables without a key, bloat — to Slack, Teams or any webhook. |
 | `.WithMcpTools(WebDataStudioMcpTools.SchemaOnly)` | Narrow the endpoint to named tools. `ReadOnly` and `SchemaOnly` are ready-made sets. |
 | `.WithoutAssistantTools()` | Keep the studio's own assistant from using the MCP tools. |
@@ -265,6 +266,22 @@ The schedule is generated as a file and mounted read-only, so it lives in the ap
 a volume somebody has to remember. Results land in `/data/exports` on the studio's own volume, masked
 like every other export. Only reading statements run, and a job that says neither `EveryMinutes` nor
 `DailyAtUtc` throws here rather than never running.
+
+## Archives
+
+```csharp
+studio.WithArchives();                          // /data/archives, on the studio's own volume
+studio.WithArchives("/mnt/archives", maxRows: 50_000);
+```
+
+A result can be kept as a file the studio holds on to: what a table looked like before the migration,
+what the report said last Tuesday. The panel lists them, opening one shows its rows, and the rows can
+be scripted back out as `INSERT`s for wherever they should go next.
+
+The format is NDJSON — a header line naming the columns and where they came from, then one row per
+line — so anything can read it. Masked columns are masked *in the file*: an archive of them would be a
+way around the masking. Archives work without this call; it is for putting them on a different volume,
+or for capping how much one keeps.
 
 ## Schema drift
 

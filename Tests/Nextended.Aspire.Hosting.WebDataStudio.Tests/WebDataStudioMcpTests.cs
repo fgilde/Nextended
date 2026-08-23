@@ -293,6 +293,42 @@ public class WebDataStudioMcpTests
         Assert.Null(Add().Resource.SchemaSnapshotPath);
     }
 
+    [Fact]
+    public async Task ArchivesGoToTheDataVolumeByDefault()
+    {
+        var studio = Add().WithArchives();
+
+        var env = await EnvOf(studio.Resource);
+
+        Assert.Equal("/data/archives", env["WDS_ARCHIVE_DIR"]);
+        Assert.Equal("/data/archives", studio.Resource.ArchivePath);
+        // No cap unless one was asked for: the studio has its own default.
+        Assert.DoesNotContain("WDS_ARCHIVE_MAX_ROWS", env.Keys);
+    }
+
+    [Fact]
+    public async Task AnArchiveCapReachesTheStudio()
+    {
+        var env = await EnvOf(Add().WithArchives("/mnt/archives", maxRows: 5_000).Resource);
+
+        Assert.Equal("/mnt/archives", env["WDS_ARCHIVE_DIR"]);
+        Assert.Equal("5000", env["WDS_ARCHIVE_MAX_ROWS"]);
+    }
+
+    [Fact]
+    public void AnArchiveThatHoldsNoRowsIsNotAnArchive() =>
+        Assert.Throws<ArgumentOutOfRangeException>(() => Add().WithArchives(maxRows: 0));
+
+    [Fact]
+    public async Task WithoutTheCallArchivesStayWhereTheStudioPutsThem()
+    {
+        // They are on by default in the studio; the call is for moving them or capping them.
+        var keys = await EnvKeysOf(Add().Resource);
+
+        Assert.DoesNotContain("WDS_ARCHIVE_DIR", keys);
+        Assert.Null(Add().Resource.ArchivePath);
+    }
+
     // --- files that ship with the stack -----------------------------------------------------
 
     [Fact]

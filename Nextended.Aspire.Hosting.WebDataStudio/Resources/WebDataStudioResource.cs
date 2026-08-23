@@ -116,6 +116,12 @@ public sealed class WebDataStudioResource(string name) : ContainerResource(name)
     /// </summary>
     public string? SchemaSnapshotPath { get; internal set; }
 
+    /// <summary>
+    /// Where kept results are written, from <c>WithArchives</c>. Null means the default beside the
+    /// application database.
+    /// </summary>
+    public string? ArchivePath { get; internal set; }
+
     /// <summary>The tools the MCP endpoint is narrowed to, from <c>WithMcpTools</c>. Empty means all.</summary>
     public IReadOnlyCollection<string> McpTools => McpToolList;
 
