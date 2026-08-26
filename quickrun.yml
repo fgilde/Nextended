@@ -1,6 +1,6 @@
 # yaml-language-server: $schema=https://fgilde.github.io/QuickRun/quickrun.schema.json
 name: Nextended
-description: "A library monorepo with no single application to start, so this builds it and runs the test project you pick."
+description: "A library monorepo with no single application of its own. Pick one of the sample projects under Tests/TestProjects and this runs it."
 
 requires:
   - tool: dotnet
@@ -10,35 +10,57 @@ requires:
     install: https://github.com/PowerShell/PowerShell
     # Nextended.CodeGen runs UpdateGuid.ps1 through pwsh during the build, and not with
     # ContinueOnError - so without it the build stops rather than skipping a step.
+  - tool: docker
+    install: https://docs.docker.com/get-docker/
+    # Every Aspire sample below starts containers. CodeGenSample is the one that does not.
+    optional: true
 
 inputs:
-  - id: suite
-    label: Test project
+  - id: sample
+    label: Sample project
     type: select
-    description: Which of the test projects to run. The whole solution is the default.
-    default: Nextended.sln
+    description: Which sample under Tests/TestProjects to start.
+    default: Tests/TestProjects/AspireUI.AppHost
     options:
-      - value: Nextended.sln
-        label: Everything
-      - value: Tests/Nextended.Core.Tests
-        label: Core
-      - value: Tests/Nextended.EF.Tests
-        label: Entity Framework
-      - value: Tests/Nextended.ResponseFilters.Tests
-        label: Response filters
-      - value: Tests/Nextended.Aspire.Hosting.AspireUI.Tests
-        label: Aspire hosting — AspireUI
-      - value: Tests/Nextended.Aspire.Hosting.Php.Tests
-        label: Aspire hosting — PHP
-      - value: Tests/Nextended.Aspire.Hosting.WebDataStudio.Tests
-        label: Aspire hosting — WebDataStudio
+      - value: Tests/TestProjects/AspireUI.AppHost
+        label: AspireUI — the dashboard for building Aspire stacks
+      - value: Tests/TestProjects/AiStack.AppHost
+        label: AI stack — Ollama and friends
+      - value: Tests/TestProjects/Supabase.AppHost
+        label: Supabase — the full local stack
+      - value: Tests/TestProjects/Grafana.AppHost
+        label: Grafana — observability
+      - value: Tests/TestProjects/N8n.AppHost
+        label: n8n — workflow automation
+      - value: Tests/TestProjects/Php.AppHost
+        label: PHP — hosting a PHP application
+      - value: Tests/TestProjects/Php.WebDemo
+        label: PHP web demo — the site the PHP host serves
+      - value: Tests/TestProjects/WebDataStudio.AppHost
+        label: WebDataStudio
+      - value: Tests/TestProjects/CodeGenSample
+        label: Code generation — a console sample, no containers
+
+env:
+  # The http launch profile below serves the dashboard over plain http, and Aspire refuses a
+  # non-https applicationUrl unless this says otherwise. The alternative is the https profile plus
+  # `dotnet dev-certs https --trust`, which is a prompt and an elevation on a first run.
+  ASPIRE_ALLOW_UNSECURED_TRANSPORT: "true"
 
 setup:
   - run: dotnet restore Nextended.sln
   - run: dotnet build Nextended.sln -c Release
 
 tasks:
-  - name: test
-    # --no-build, because setup has just built the whole solution: every test project above is part
-    # of it, so whichever one is chosen is already compiled.
-    run: dotnet test ${inputs.suite} -c Release --no-build
+  - name: sample
+    # --no-build, because setup has just built the solution every sample belongs to.
+    run: dotnet run --project ${inputs.sample} -c Release --no-build --launch-profile http
+    # Each sample listens somewhere different - every Aspire host has its own dashboard port between
+    # 15110 and 15160, the PHP demo uses 5311 - so readiness watches the output for an address
+    # rather than naming one.
+    #
+    # Deliberately nothing to open: an Aspire host prints its dashboard and then its OTLP
+    # endpoints, so the last address in the log is the telemetry port, not the dashboard. The line
+    # worth clicking is "Login to the dashboard at ..." with its token, and it is right there in
+    # the log - the same link without that token is only a login prompt.
+    readyWhen: {log: "Login to the dashboard at|Now listening on"}
