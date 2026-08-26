@@ -1,6 +1,6 @@
 # yaml-language-server: $schema=https://fgilde.github.io/QuickRun/quickrun.schema.json
 name: Nextended
-description: "A library monorepo with no single app to start, so this builds everything and runs the tests. The Aspire hosts under Tests/TestProjects are the runnable samples."
+description: "A library monorepo with no single application to start, so this builds it and runs the test project you pick."
 
 requires:
   - tool: dotnet
@@ -8,7 +8,30 @@ requires:
     install: https://dotnet.microsoft.com/download
   - tool: pwsh
     install: https://github.com/PowerShell/PowerShell
-    # Nextended.CodeGen runs UpdateGuid.ps1 through pwsh during the build, without ContinueOnError.
+    # Nextended.CodeGen runs UpdateGuid.ps1 through pwsh during the build, and not with
+    # ContinueOnError - so without it the build stops rather than skipping a step.
+
+inputs:
+  - id: suite
+    label: Test project
+    type: select
+    description: Which of the test projects to run. The whole solution is the default.
+    default: Nextended.sln
+    options:
+      - value: Nextended.sln
+        label: Everything
+      - value: Tests/Nextended.Core.Tests
+        label: Core
+      - value: Tests/Nextended.EF.Tests
+        label: Entity Framework
+      - value: Tests/Nextended.ResponseFilters.Tests
+        label: Response filters
+      - value: Tests/Nextended.Aspire.Hosting.AspireUI.Tests
+        label: Aspire hosting — AspireUI
+      - value: Tests/Nextended.Aspire.Hosting.Php.Tests
+        label: Aspire hosting — PHP
+      - value: Tests/Nextended.Aspire.Hosting.WebDataStudio.Tests
+        label: Aspire hosting — WebDataStudio
 
 setup:
   - run: dotnet restore Nextended.sln
@@ -16,4 +39,6 @@ setup:
 
 tasks:
   - name: test
-    run: dotnet test Nextended.sln -c Release --no-build
+    # --no-build, because setup has just built the whole solution: every test project above is part
+    # of it, so whichever one is chosen is already compiled.
+    run: dotnet test ${inputs.suite} -c Release --no-build
