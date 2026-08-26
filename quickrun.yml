@@ -6,6 +6,9 @@ requires:
   - tool: dotnet
     version: ">=10.0"
     install: https://dotnet.microsoft.com/download
+  - tool: pwsh
+    install: https://github.com/PowerShell/PowerShell
+    # Nextended.CodeGen runs UpdateGuid.ps1 through pwsh during the build, without ContinueOnError.
 
 setup:
   - run: dotnet restore Nextended.sln
