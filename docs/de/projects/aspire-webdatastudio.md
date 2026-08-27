@@ -7,7 +7,7 @@ title: Nextended.Aspire.Hosting.WebDataStudio
 
 🇬🇧 [This page in English](/projects/aspire-webdatastudio)
 
-WebDataStudio — ein Browser-Datenbankstudio für PostgreSQL, MySQL, SQL Server, SQLite, Oracle, DuckDB, ClickHouse, MongoDB und Redis — verdrahtet mit den Datenbanken Ihres Stacks.
+WebDataStudio — ein Browser-Datenbankstudio für PostgreSQL, MySQL, SQL Server, SQLite, Oracle, DuckDB, ClickHouse, MongoDB, Redis und Objektspeicher — verdrahtet mit den Datenbanken Ihres Stacks.
 [![NuGet](https://img.shields.io/nuget/v/Nextended.Aspire.Hosting.WebDataStudio.svg)](https://www.nuget.org/packages/Nextended.Aspire.Hosting.WebDataStudio/)
 
 ---
@@ -20,7 +20,7 @@ dotnet add package Nextended.Aspire.Hosting.WebDataStudio
 
 ## Was das Paket macht
 
-WebDataStudio — ein Browser-Datenbankstudio für PostgreSQL, MySQL, SQL Server, SQLite, Oracle, DuckDB, ClickHouse, MongoDB und Redis — verdrahtet mit den Datenbanken Ihres Stacks.
+WebDataStudio — ein Browser-Datenbankstudio für PostgreSQL, MySQL, SQL Server, SQLite, Oracle, DuckDB, ClickHouse, MongoDB, Redis und Objektspeicher — verdrahtet mit den Datenbanken Ihres Stacks.
 
 Die **vollständige Referenz** — alle Typen, Builder, Optionen und ausführlich kommentierte
 Codebeispiele — steht auf der englischen Seite:

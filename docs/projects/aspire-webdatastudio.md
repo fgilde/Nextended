@@ -9,7 +9,7 @@ title: Nextended.Aspire.Hosting.WebDataStudio
 
 A [.NET Aspire](https://learn.microsoft.com/dotnet/aspire/) integration for
 [WebDataStudio](https://fgilde.github.io/WebDataStudio/) — a browser-based database studio for
-PostgreSQL, MySQL, SQL Server, SQLite, Oracle, DuckDB, ClickHouse, MongoDB and Redis. One call on a
+PostgreSQL, MySQL, SQL Server, SQLite, Oracle, DuckDB, ClickHouse, MongoDB, Redis and object storage. One call on a
 database resource and the studio comes up with that database already configured.
 
 ## Overview
@@ -84,6 +84,8 @@ variables it does.
 | `AddWebDataStudio(name = "webdatastudio", port?, image?, tag?)` | Add the studio container: HTTP endpoint, health check, per-instance data volume. |
 | `.WithReference(resource, connectionName?, engine?, readOnly?, group?, color?)` | Attach any resource with a connection string. |
 | `.WithConnection(name, connectionString, engine, …)` | Attach a database outside the stack. Also accepts a `ReferenceExpression`. |
+| `.WithStorage(name, url, readOnly?, group?, color?)` | Attach object storage by URL: `s3://`, `azblob://`, `gs://`, `file://`. |
+| `.WithBlobStorage(blobs, container?, connectionName?, prefix?, …)` | Attach the blob resource the app host models — Azurite while developing, the real account once deployed. |
 | `.WithLogin(user, password)` | Guard the studio with an admin account. **Chaining adds accounts** rather than replacing them. Both halves also accept a `ParameterResource`. |
 | `.WithUser(user, password, role, connections…)` | One account with a role — `StudioRoles.Admin`, `Editor`, `Viewer` — and, optionally, the connections it may see. |
 | `.WithAssistant(server, model, …)` | Point the studio's optional assistance at a model server in the stack, a URL, a `ReferenceExpression`, or a URL with a `ParameterResource` key. |
@@ -282,6 +284,36 @@ The format is NDJSON — a header line naming the columns and where they came fr
 line — so anything can read it. Masked columns are masked *in the file*: an archive of them would be a
 way around the masking. Archives work without this call; it is for putting them on a different volume,
 or for capping how much one keeps.
+
+## Object storage
+
+```csharp
+var storage = builder.AddAzureStorage("storage").RunAsEmulator();
+var exports = storage.AddBlobs("exports");
+
+studio.WithBlobStorage(exports);                                  // Azurite now, the account later
+studio.WithStorage("LAKE", "s3://bucket/exports?region=eu-central-1");
+studio.WithStorage("DROP", "file:///data/incoming", readOnly: true);
+```
+
+A bucket is a connection like any other: the studio browses containers, prefixes and objects in the
+same tree, one page at a time, and reads a file as a table — a Parquet or a CSV in a bucket opens in
+the data tab with sorting, the filter language, paging and export, through a DuckDB the studio holds.
+
+`WithBlobStorage` takes the blob resource the app host already models and passes its connection
+string through as it is: a connection string for the emulator, the blob service URI once deployed —
+where the studio then uses its own managed identity, because the account name is inside either form.
+`WithStorage` covers everything the app host does not model: `s3://` for AWS, MinIO, R2, Wasabi and
+Ceph (with `?endpoint=` for those), `azblob://account/container`, `gs://bucket`, and `file://` for a
+folder the container can reach.
+
+With no credentials in the URL the studio uses the identity it runs as. Where keys are unavoidable,
+pass them through an Aspire parameter rather than writing them into the app host. `readOnly: true`
+and a production `color:` both refuse every upload and delete, in the server rather than in the UI.
+
+One stated limit: DuckDB reaches Google Cloud Storage over the S3 protocol, which wants HMAC keys
+(`?hmac=…&hmacsecret=…`). With a service account alone the tree, the preview and the download all
+work and a query does not.
 
 ## Schema drift
 
