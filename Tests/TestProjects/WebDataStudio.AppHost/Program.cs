@@ -56,6 +56,12 @@ builder.AddWebDataStudio("admin-studio")
     .WithReference(orders, connectionName: "ORDERS_PROD", group: "Production", color: "#e03131")
     // A database that is not part of this stack at all.
     .WithConnection("LOCAL_FILE", "Data Source=/data/demo.db", WebDataStudioEngine.Sqlite,
-        group: "Scratch");
+        group: "Scratch")
+    // A bucket is a connection too, and a folder is the version of it that needs nothing installed:
+    // the studio browses it and reads a CSV or a Parquet in it as a table. An S3 endpoint or a blob
+    // container is the same call with another URL —
+    //   .WithStorage("LAKE", "s3://bucket/exports?region=eu-central-1")
+    //   .WithBlobStorage(storage.AddBlobs("exports"))   // needs Aspire.Hosting.Azure.Storage
+    .WithStorage("DROP", "file:///data/incoming", group: "Scratch");
 
 builder.Build().Run();
