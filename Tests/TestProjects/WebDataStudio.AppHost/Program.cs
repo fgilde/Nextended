@@ -8,7 +8,7 @@ using Nextended.Aspire.Hosting.WebDataStudio;
 //   * "analytics-studio" — a second studio, picked by name
 //   * "admin-studio"     — built by hand, with a login and read-only connections
 var builder = DistributedApplication.CreateBuilder(args);
-builder.ExecutionContext.
+
 // --- the shared studio ---------------------------------------------------------------------
 // Two databases, one call each, one studio with both connections in it.
 var postgres = builder.AddPostgres("pg")
