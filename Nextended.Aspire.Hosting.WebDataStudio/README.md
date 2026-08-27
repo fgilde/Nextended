@@ -7,7 +7,7 @@
 [![Downloads](https://img.shields.io/nuget/dt/Nextended.Aspire.Hosting.WebDataStudio.svg)](https://www.nuget.org/packages/Nextended.Aspire.Hosting.WebDataStudio/)
 [![License](https://img.shields.io/github/license/fgilde/Nextended)](https://github.com/fgilde/Nextended/blob/main/LICENSE)
 
-> WebDataStudio — a browser database studio for PostgreSQL, MySQL, SQL Server, SQLite, Oracle, DuckDB, ClickHouse, MongoDB, Redis and object storage — wired to the databases of your stack, with accounts and roles, an optional SQL assistant, and an MCP endpoint for AI agents.
+> WebDataStudio — a browser database studio for PostgreSQL, MySQL, SQL Server, SQLite, Oracle, DuckDB, ClickHouse, MongoDB and Redis — wired to the databases of your stack, with accounts and roles, an optional SQL assistant, and an MCP endpoint for AI agents.
 
 
 [![WebDataStudio](https://raw.githubusercontent.com/fgilde/WebDataStudio/master/docs/assets/logo.svg)](https://fgilde.github.io/WebDataStudio/)
@@ -463,7 +463,7 @@ The other 17 packages in the suite:
 - [Nextended.Aspire.Hosting.Supabase](https://github.com/fgilde/Nextended/blob/main/Nextended.Aspire.Hosting.Supabase/README.md) — The complete Supabase stack — Postgres, Auth (GoTrue), REST, Realtime, Storage, Studio, Kong and Edge Functions — as one composable Aspire resource.
 - [Nextended.Aspire.Hosting.N8n](https://github.com/fgilde/Nextended/blob/main/Nextended.Aspire.Hosting.N8n/README.md) — The n8n workflow-automation platform as an Aspire resource, with Postgres persistence, workflow import and a typed client for triggering workflows from .NET.
 - [Nextended.Aspire.Hosting.Grafana](https://github.com/fgilde/Nextended/blob/main/Nextended.Aspire.Hosting.Grafana/README.md) — Grafana, Prometheus, Loki, Tempo, Promtail, cAdvisor, postgres_exporter and the OpenTelemetry Collector as composable resources with auto-provisioned datasources.
-- **Nextended.Aspire.Hosting.WebDataStudio** — WebDataStudio — a browser database studio for PostgreSQL, MySQL, SQL Server, SQLite, Oracle, DuckDB, ClickHouse, MongoDB, Redis and object storage — wired to the databases of your stack, with accounts and roles, an optional SQL assistant, and an MCP endpoint for AI agents. _(this package)_
+- **Nextended.Aspire.Hosting.WebDataStudio** — WebDataStudio — a browser database studio for PostgreSQL, MySQL, SQL Server, SQLite, Oracle, DuckDB, ClickHouse, MongoDB and Redis — wired to the databases of your stack, with accounts and roles, an optional SQL assistant, and an MCP endpoint for AI agents. _(this package)_
 - [Nextended.Aspire.Hosting.AspireUI](https://github.com/fgilde/Nextended/blob/main/Nextended.Aspire.Hosting.AspireUI/README.md) — AspireUI — the visual AppHost builder — as a resource inside your own Aspire stack, with an optional pre-seeded admin user and a starter stack built from your project paths.
 - [Nextended.Aspire.Hosting.LocalAI](https://github.com/fgilde/Nextended/blob/main/Nextended.Aspire.Hosting.LocalAI/README.md) — Self-hosted, OpenAI-compatible multimodal AI — image generation, text-to-speech, speech-to-text and video — with gallery model management, GPU support and Open WebUI.
 - [Nextended.Aspire.Hosting.Php](https://github.com/fgilde/Nextended/blob/main/Nextended.Aspire.Hosting.Php/README.md) — Run PHP endpoints inside your Aspire stack — a docroot folder or a single router script served by PHP's built-in web server, with php.ini settings as fluent options.
