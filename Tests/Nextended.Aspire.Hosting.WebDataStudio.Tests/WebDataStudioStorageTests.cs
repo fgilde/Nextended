@@ -99,6 +99,49 @@ public class WebDataStudioStorageTests
         Assert.Throws<ArgumentException>(() => Add().WithStorage("LAKE", url));
 
     [Fact]
+    public async Task WithSchemas_LimitsWhatAConnectionReads()
+    {
+        var studio = Add().WithStorage("LAKE", "s3://bucket").WithSchemas("shop", "public", "sales");
+
+        var env = await EnvOf(studio.Resource);
+
+        Assert.Equal("public,sales", env["WDS_CONN_SHOP_SCHEMAS"]);
+    }
+
+    [Fact]
+    public async Task WithSchemas_WithNothingNamedReadsEverything()
+    {
+        var studio = Add().WithSchemas("shop");
+
+        // No variable rather than an empty one: empty already means "all of them" in the studio, and
+        // writing it down would only invite the question.
+        Assert.DoesNotContain("WDS_CONN_SHOP_SCHEMAS", (await EnvOf(studio.Resource)).Keys);
+    }
+
+    [Fact]
+    public async Task WithExportTemplates_MountsTheFolderReadOnly()
+    {
+        var directory = Directory.CreateTempSubdirectory("wds-templates").FullName;
+
+        try
+        {
+            var studio = Add().WithExportTemplates(directory);
+
+            var mount = Assert.Single(studio.Resource.Annotations.OfType<ContainerMountAnnotation>(),
+                annotation => annotation.Target == "/data/export-templates");
+
+            // The studio reads these; it does not own them.
+            Assert.True(mount.IsReadOnly);
+            Assert.Equal("/data/export-templates",
+                (await EnvOf(studio.Resource))["WDS_EXPORT_TEMPLATES_DIR"]);
+        }
+        finally
+        {
+            Directory.Delete(directory, true);
+        }
+    }
+
+    [Fact]
     public async Task WithBlobStorage_TakesTheContainerFromTheResourceAndTheAccountFromItsConnection()
     {
         var builder = DistributedApplication.CreateBuilder();

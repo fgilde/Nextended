@@ -12,6 +12,62 @@ public static class WebDataStudioFilesExtensions
 {
     private const string QueriesTarget = "/data/queries";
     private const string SeedTarget = "/data/seed";
+    private const string TemplatesTarget = "/data/export-templates";
+
+    /// <summary>
+    /// Mounts a folder of export templates — an export format written as text with placeholders,
+    /// rather than as code the studio would have to run.
+    /// </summary>
+    /// <param name="builder">The studio.</param>
+    /// <param name="path">A folder of <c>.json</c> templates on your machine.</param>
+    /// <remarks>
+    /// A template has an id, a label, a file extension, a content type and up to three pieces of
+    /// text: a header, a row and a footer. The placeholders are <c>{{table}}</c>,
+    /// <c>{{columns}}</c>, <c>{{values}}</c>, <c>{{index}}</c>, <c>{{comma}}</c> and
+    /// <c>{{col.NAME}}</c>, each of which takes a filter for the escaping that format needs:
+    /// <c>{{values|sql}}</c>, <c>json</c>, <c>csv</c>, <c>html</c>, <c>upper</c>, <c>lower</c>.
+    /// <para>
+    /// A template mounted this way belongs to the deployment: the studio lists it and exports with
+    /// it, and somebody who wants it different saves a copy under another id.
+    /// </para>
+    /// </remarks>
+    public static IResourceBuilder<WebDataStudioResource> WithExportTemplates(
+        this IResourceBuilder<WebDataStudioResource> builder, string path)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+
+        // Read-only: the studio reads these, it does not own them.
+        return builder
+            .WithBindMount(path, TemplatesTarget, isReadOnly: true)
+            .WithEnvironment("WDS_EXPORT_TEMPLATES_DIR", TemplatesTarget);
+    }
+
+    /// <summary>
+    /// Limits which schemas a connection reads at all — the tree, the completion cache, the object
+    /// search and the schema snapshot each walk what they are given, and on a server with five
+    /// thousand tables that is the difference between a tree that opens and one that does not.
+    /// </summary>
+    /// <param name="builder">The studio.</param>
+    /// <param name="connectionName">The connection, as it is named in the studio.</param>
+    /// <param name="schemas">The schemas to read. Nothing given reads all of them.</param>
+    /// <remarks>
+    /// Set here, the scope is the deployment's and the studio cannot widen it. Left unset, somebody
+    /// can choose a scope for their own studio in the connection's properties.
+    /// </remarks>
+    public static IResourceBuilder<WebDataStudioResource> WithSchemas(
+        this IResourceBuilder<WebDataStudioResource> builder, string connectionName,
+        params string[] schemas)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrWhiteSpace(connectionName);
+
+        if (schemas.Length == 0) return builder;
+
+        var name = WebDataStudioNaming.ToVariableSuffix(connectionName);
+
+        return builder.WithEnvironment($"WDS_CONN_{name}_SCHEMAS", string.Join(',', schemas));
+    }
 
     /// <summary>
     /// Imports every <c>.sql</c> file in a folder as a saved query, so a stack ships the five

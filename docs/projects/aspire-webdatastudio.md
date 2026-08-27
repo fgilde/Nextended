@@ -98,6 +98,8 @@ variables it does.
 | `.WithScheduledQueries(jobs…)` | Run reading queries on a schedule and write each result as a file. |
 | `.WithSavedQueriesFromDirectory(path)` | Mount a folder of `.sql` files and import them as saved queries at start. |
 | `.WithSeedScript(path)` | Run a seed script once per connection — a file, or `{CONNECTION}.sql` per connection. |
+| `.WithSchemas(connectionName, schemas…)` | Read only these schemas on that connection. On a server with thousands of tables that is the difference between a tree that opens and one that does not. |
+| `.WithExportTemplates(path)` | Mount a folder of export templates — an export format written as text with placeholders rather than as code. |
 | `.WithSchemaSnapshots(path?)` | Snapshot every connection's schema on start and report the drift since the last one. |
 | `.WithOpenTelemetry(collector \| url?, serviceName?)` | Send the studio's traces and metrics to an OTLP collector — a resource in the stack, or a URL. |
 | `.WithSharedResults(ttl?, isPublic?, maxRows?)` | Let people keep a result and share it as a link. Off by default. |
@@ -314,6 +316,40 @@ and a production `color:` both refuse every upload and delete, in the server rat
 One stated limit: DuckDB reaches Google Cloud Storage over the S3 protocol, which wants HMAC keys
 (`?hmac=…&hmacsecret=…`). With a service account alone the tree, the preview and the download all
 work and a query does not.
+
+## Schemas and export templates
+
+```csharp
+studio.WithSchemas("shop", "public", "sales");     // nothing else is read at all
+studio.WithExportTemplates("./export-templates");  // formats written as text, not as code
+```
+
+`WithSchemas` limits what a connection reads: the tree's first level, the completion cache, the object
+search and the schema snapshot each walk what they are given, and on a server with five thousand
+tables naming two schemas is what keeps the studio quick. Set here it is the deployment's decision and
+the studio cannot widen it; left unset, somebody can choose a scope for their own studio in the
+connection's properties, and empty still means everything.
+
+`WithExportTemplates` mounts a folder of `.json` templates. Each is an id, a label, a file extension,
+a content type and up to three pieces of text — header, row, footer — with `{{table}}`, `{{columns}}`,
+`{{values}}`, `{{index}}`, `{{comma}}` and `{{col.NAME}}` as placeholders, each taking a filter for the
+escaping that format needs (`sql`, `json`, `csv`, `html`, `upper`, `lower`). So an `INSERT` writer is
+three lines of text and nothing the studio has to execute:
+
+```json
+{
+  "id": "inserts", "label": "INSERT statements", "extension": "sql", "contentType": "application/sql",
+  "header": "INSERT INTO {{table}} ({{columns}}) VALUES
+",
+  "row": "  ({{values|sql}}){{comma}}
+",
+  "footer": ";
+"
+}
+```
+
+A mounted template belongs to the deployment: the studio exports with it and cannot edit it, and a
+copy under another id is the way to change one.
 
 ## Schema drift
 
