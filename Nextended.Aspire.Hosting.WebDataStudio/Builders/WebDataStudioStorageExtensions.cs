@@ -53,6 +53,38 @@ public static class WebDataStudioStorageExtensions
     }
 
     /// <summary>
+    /// Attaches object storage whose URL is only known once the stack runs — a MinIO in the same app
+    /// host, whose endpoint and keys are resources rather than literals.
+    /// </summary>
+    /// <param name="builder">The studio.</param>
+    /// <param name="connectionName">Label in the studio, e.g. <c>LAKE</c>.</param>
+    /// <param name="url">The storage URL, built with <see cref="ReferenceExpression.Create"/>.</param>
+    /// <param name="readOnly">Opens it read-only, which refuses every upload and delete.</param>
+    /// <param name="group">Groups the connection in the explorer.</param>
+    /// <param name="color">Tints the connection, e.g. <c>#e03131</c> for production — which also refuses writes.</param>
+    /// <example>
+    /// <code>
+    /// studio.WithStorage("LAKE", ReferenceExpression.Create(
+    ///     $"s3://lake?endpoint={minio.GetEndpoint("api")}&amp;access={user}&amp;secret={password}"));
+    /// </code>
+    /// </example>
+    public static IResourceBuilder<WebDataStudioResource> WithStorage(
+        this IResourceBuilder<WebDataStudioResource> builder,
+        string connectionName,
+        ReferenceExpression url,
+        bool readOnly = false,
+        string? group = null,
+        string? color = null)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(url);
+        ArgumentException.ThrowIfNullOrWhiteSpace(connectionName);
+
+        return builder.WithConnection(connectionName, url, WebDataStudioEngine.Storage,
+            readOnly, group, color);
+    }
+
+    /// <summary>
     /// Attaches a blob container the app host models — Azurite while developing, the real storage
     /// account once deployed — as a storage connection.
     /// </summary>

@@ -36,6 +36,43 @@ builder.Build().Run();
 One studio, three connections, no connection string typed anywhere. Open it from the Aspire
 dashboard and the explorer already lists `SHOP`, `ORDERS` and `CACHE`.
 
+## What you get, in one app host
+
+```csharp
+var builder = DistributedApplication.CreateBuilder(args);
+
+var shop = builder.AddPostgres("pg").AddDatabase("shop");
+var orders = builder.AddSqlServer("sql").AddDatabase("orders");
+var storage = builder.AddAzureStorage("storage").RunAsEmulator();   // Azurite while developing
+
+builder.AddWebDataStudio("studio")
+    .WithReference(shop)                                    // every engine, one call each
+    .WithReference(orders, readOnly: true, color: "#e03131")
+    .WithBlobStorage(storage.AddBlobs("exports"))           // a container, browsable and queryable
+    .WithStorage("LAKE", "s3://lake?region=eu-central-1")   // AWS, MinIO, R2, Wasabi, Ceph
+    .WithStorage("DROP", "file:///data/incoming")           // or just a folder
+    .WithSchemas("shop", "public", "sales")                 // don't read 5000 tables to show 12
+    .WithExportTemplates("export-templates")                // export formats as text, not as code
+    .WithSeedScript("seed")                                 // a fresh stack with data in it
+    .WithSavedQueriesFromDirectory("queries")               // the five queries everybody needs
+    .WithLogin("admin", builder.AddParameter("studio-password", secret: true))
+    .WithMcpEndpoint("mcp")                                 // the studio as a tool for AI agents
+    .WithOllamaAssistant(ollama, "llama3.1");               // optional SQL assistance, local
+
+builder.Build().Run();
+```
+
+And in the studio itself, without any of it being configured here: the object tree and the query
+editor, the data tab with its filter language, **Find data** for "which table has 4711 in it", the
+**Jobs** tab for what the server runs on a schedule (Agent, pg_cron, events), **Capture** for what ran
+in the next minute, a read of every statement before it runs, an interactive Entra sign-in for Azure
+SQL, Synapse and Fabric, and **Add a bucket** for attaching one from the UI rather than from here.
+
+A runnable version of exactly this is in the repository:
+[WebDataStudio.AppHost](https://github.com/fgilde/Nextended/tree/main/Tests/TestProjects/WebDataStudio.AppHost)
+— it starts PostgreSQL, SQL Server, MongoDB, Redis, Azurite and a MinIO with a CSV already in its
+bucket, so the first thing you can do after `dotnet run` is open a file in a bucket as a table.
+
 ## Sharing one studio, or running several
 
 `WithWebDataStudio()` creates the studio on the first call and attaches to it on every one after —
@@ -445,9 +482,12 @@ and whether its storage is usable — the quickest way to tell a stale image fro
 ## The sample
 
 [`Tests/TestProjects/WebDataStudio.AppHost`](https://github.com/fgilde/Nextended/tree/main/Tests/TestProjects/WebDataStudio.AppHost)
-starts PostgreSQL, SQL Server, MongoDB and Redis behind three studios, and seeds the PostgreSQL
-database with a small shop — customers, products, orders, order items and a view — so there is
-something to click around in from the first run.
+starts PostgreSQL, SQL Server, MongoDB, Redis, Azurite and a MinIO behind three studios, and seeds
+the PostgreSQL database with a small shop — customers, products, orders, order items and a view — so
+there is something to click around in from the first run. The MinIO comes up with a bucket and a CSV
+already in it, so opening a file in a bucket as a table is the first thing that can be tried; the
+admin studio adds a login, read-only production connections, an MCP endpoint, a schema scope and a
+folder of export templates.
 
 ```bash
 dotnet run --project Tests/TestProjects/WebDataStudio.AppHost

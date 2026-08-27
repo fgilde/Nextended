@@ -1,0 +1,10 @@
+{
+  "id": "inserts",
+  "label": "INSERT statements",
+  "extension": "sql",
+  "contentType": "application/sql",
+  "separator": ", ",
+  "header": "INSERT INTO {{table}} ({{columns}}) VALUES\n",
+  "row": "  ({{values|sql}}){{comma}}\n",
+  "footer": ";\n"
+}

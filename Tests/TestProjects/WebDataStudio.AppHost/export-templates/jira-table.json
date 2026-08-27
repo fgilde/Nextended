@@ -1,0 +1,9 @@
+{
+  "id": "jira-table",
+  "label": "Jira table",
+  "extension": "txt",
+  "contentType": "text/plain",
+  "separator": "||",
+  "header": "||{{columns}}||\n",
+  "row": "|{{values}}|\n"
+}

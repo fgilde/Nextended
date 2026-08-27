@@ -41,6 +41,43 @@ builder.Build().Run();
 
 One studio resource appears in the dashboard, with `SHOP`, `ORDERS` and `CACHE` in its explorer.
 
+## What you get, in one app host
+
+```csharp
+var builder = DistributedApplication.CreateBuilder(args);
+
+var shop = builder.AddPostgres("pg").AddDatabase("shop");
+var orders = builder.AddSqlServer("sql").AddDatabase("orders");
+var storage = builder.AddAzureStorage("storage").RunAsEmulator();   // Azurite while developing
+
+builder.AddWebDataStudio("studio")
+    .WithReference(shop)                                    // every engine, one call each
+    .WithReference(orders, readOnly: true, color: "#e03131")
+    .WithBlobStorage(storage.AddBlobs("exports"))           // a container, browsable and queryable
+    .WithStorage("LAKE", "s3://lake?region=eu-central-1")   // AWS, MinIO, R2, Wasabi, Ceph
+    .WithStorage("DROP", "file:///data/incoming")           // or just a folder
+    .WithSchemas("shop", "public", "sales")                 // don't read 5000 tables to show 12
+    .WithExportTemplates("export-templates")                // export formats as text, not as code
+    .WithSeedScript("seed")                                 // a fresh stack with data in it
+    .WithSavedQueriesFromDirectory("queries")               // the five queries everybody needs
+    .WithLogin("admin", builder.AddParameter("studio-password", secret: true))
+    .WithMcpEndpoint("mcp")                                 // the studio as a tool for AI agents
+    .WithOllamaAssistant(ollama, "llama3.1");               // optional SQL assistance, local
+
+builder.Build().Run();
+```
+
+And in the studio itself, without any of it being configured here: the object tree and the query
+editor, the data tab with its filter language, **Find data** for "which table has 4711 in it", the
+**Jobs** tab for what the server runs on a schedule (Agent, pg_cron, events), **Capture** for what ran
+in the next minute, a read of every statement before it runs, an interactive Entra sign-in for Azure
+SQL, Synapse and Fabric, and **Add a bucket** for attaching one from the UI rather than from here.
+
+A runnable version of exactly this is in the repository:
+[WebDataStudio.AppHost](https://github.com/fgilde/Nextended/tree/main/Tests/TestProjects/WebDataStudio.AppHost)
+— it starts PostgreSQL, SQL Server, MongoDB, Redis, Azurite and a MinIO with a CSV already in its
+bucket, so the first thing you can do after `dotnet run` is open a file in a bucket as a table.
+
 ## Sharing one studio, or running several
 
 `WithWebDataStudio()` creates the studio the first time and attaches to it every time after. The
@@ -465,10 +502,11 @@ studio.Resource.Title;              // the name shown in the studio, resource na
 
 ## The sample AppHost
 
-`Tests/TestProjects/WebDataStudio.AppHost` runs PostgreSQL, SQL Server, MongoDB and Redis behind
-three studios — the shared one, a named one for analytics and a locked-down one with a login — and
-seeds PostgreSQL with a small shop schema (customers, products, orders, order items and a view) so
-the studio has real data in it on the first start.
+`Tests/TestProjects/WebDataStudio.AppHost` runs PostgreSQL, SQL Server, MongoDB, Redis, Azurite and a
+MinIO — the MinIO with a bucket and a CSV already in it — behind three studios: the shared one, an
+analytics one, and an admin studio with a login, read-only connections, an MCP endpoint, a schema
+scope and a folder of export templates. `dotnet run` in that folder is the fastest way to see what
+this package does.
 
 `Tests/TestProjects/AiStack.AppHost` shows the other half: a studio on that stack's PostgreSQL with
 its assistance pointed at the Ollama running next to it, so *explain this statement* works without

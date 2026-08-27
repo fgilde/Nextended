@@ -99,6 +99,22 @@ public class WebDataStudioStorageTests
         Assert.Throws<ArgumentException>(() => Add().WithStorage("LAKE", url));
 
     [Fact]
+    public async Task WithStorage_TakesAUrlThatIsOnlyKnownOnceTheStackRuns()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+        var keys = builder.AddResource(new FakeBlobResource("keys", "wds-secret"));
+
+        // A MinIO in the same app host: its endpoint and keys are resources, not literals.
+        var studio = builder.AddWebDataStudio()
+            .WithStorage("LAKE", ReferenceExpression.Create(
+                $"s3://lake?access=demo&secret={keys.Resource.ConnectionStringExpression}"));
+
+        Assert.Equal("s3://lake?access=demo&secret=wds-secret",
+            await ValueOf(studio.Resource, "WDS_CONN_LAKE"));
+        Assert.Equal("storage", (await EnvOf(studio.Resource))["WDS_CONN_LAKE_ENGINE"]);
+    }
+
+    [Fact]
     public async Task WithSchemas_LimitsWhatAConnectionReads()
     {
         var studio = Add().WithStorage("LAKE", "s3://bucket").WithSchemas("shop", "public", "sales");
