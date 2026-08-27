@@ -32,6 +32,13 @@ public enum WebDataStudioEngine
 
     /// <summary>Redis and Valkey.</summary>
     Redis,
+
+    /// <summary>
+    /// Object storage: an S3-compatible bucket, Azure Blob Storage, Google Cloud Storage, or a
+    /// folder. The connection string is the storage URL — <c>s3://bucket/prefix</c>,
+    /// <c>azblob://account/container</c>, <c>gs://bucket</c>, <c>file:///data/incoming</c>.
+    /// </summary>
+    Storage,
 }
 
 /// <summary>Maps <see cref="WebDataStudioEngine"/> to the identifiers WebDataStudio expects.</summary>
@@ -49,6 +56,7 @@ public static class WebDataStudioEngineExtensions
         WebDataStudioEngine.ClickHouse => "clickhouse",
         WebDataStudioEngine.MongoDb => "mongodb",
         WebDataStudioEngine.Redis => "redis",
+        WebDataStudioEngine.Storage => "storage",
         _ => throw new ArgumentOutOfRangeException(nameof(engine), engine, "unknown engine"),
     };
 }
