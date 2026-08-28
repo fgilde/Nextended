@@ -6,9 +6,15 @@
   "registrationAllowed": false,
   "loginWithEmailAllowed": true,
   "groups": [
-    { "name": "dba-group" },
-    { "name": "developers" },
-    { "name": "everyone" }
+    {
+      "name": "dba-group"
+    },
+    {
+      "name": "developers"
+    },
+    {
+      "name": "everyone"
+    }
   ],
   "clients": [
     {
@@ -22,14 +28,16 @@
       "directAccessGrantsEnabled": false,
       "serviceAccountsEnabled": false,
       "redirectUris": [
-        "http://localhost:8080/signin-oidc",
-        "http://localhost:8081/signin-oidc",
-        "http://127.0.0.1:*/signin-oidc",
-        "http://localhost:*/signin-oidc"
+        "http://localhost:8082/*",
+        "http://localhost:8080/*",
+        "http://localhost:5005/*",
+        "http://127.0.0.1:8082/*"
       ],
-      "webOrigins": ["*"],
+      "webOrigins": [
+        "*"
+      ],
       "attributes": {
-        "post.logout.redirect.uris": "http://localhost:*/*"
+        "post.logout.redirect.uris": "http://localhost:8082/*##http://localhost:5005/*"
       },
       "protocolMappers": [
         {
@@ -56,8 +64,17 @@
       "email": "alice@example.com",
       "firstName": "Alice",
       "lastName": "Admin",
-      "credentials": [{ "type": "password", "value": "alice", "temporary": false }],
-      "groups": ["/dba-group", "/everyone"]
+      "credentials": [
+        {
+          "type": "password",
+          "value": "alice",
+          "temporary": false
+        }
+      ],
+      "groups": [
+        "/dba-group",
+        "/everyone"
+      ]
     },
     {
       "username": "bob",
@@ -66,8 +83,17 @@
       "email": "bob@example.com",
       "firstName": "Bob",
       "lastName": "Builder",
-      "credentials": [{ "type": "password", "value": "bob", "temporary": false }],
-      "groups": ["/developers", "/everyone"]
+      "credentials": [
+        {
+          "type": "password",
+          "value": "bob",
+          "temporary": false
+        }
+      ],
+      "groups": [
+        "/developers",
+        "/everyone"
+      ]
     },
     {
       "username": "carol",
@@ -76,8 +102,16 @@
       "email": "carol@example.com",
       "firstName": "Carol",
       "lastName": "Curious",
-      "credentials": [{ "type": "password", "value": "carol", "temporary": false }],
-      "groups": ["/everyone"]
+      "credentials": [
+        {
+          "type": "password",
+          "value": "carol",
+          "temporary": false
+        }
+      ],
+      "groups": [
+        "/everyone"
+      ]
     }
   ]
 }

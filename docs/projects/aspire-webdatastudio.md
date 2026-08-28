@@ -221,7 +221,10 @@ builder.AddWebDataStudio("studio")
 ```
 
 - The flow is the authorization code flow with PKCE, and the redirect URI to register with the
-  provider is `https://<the studio>/signin-oidc`.
+  provider is `https://<the studio>/signin-oidc`. A provider checks it exactly, so **pin the
+  studio's port** — `AddWebDataStudio("studio", port: 8082)` — because a port that changes every run
+  cannot be registered anywhere.
+- Needs a studio image that has the feature: it arrived after 1.2.0.
 - **Configuring a provider closes the door.** A studio with a provider and no accounts is not an open
   studio with a login button on it — every API call needs a sign-in.
 - **The role stays the studio's own.** A provider knows its groups; it does not know what an admin may

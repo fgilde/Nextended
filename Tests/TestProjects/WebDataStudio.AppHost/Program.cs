@@ -82,10 +82,14 @@ builder.AddContainer("minio-setup", "minio/mc", "RELEASE.2025-04-16T18-13-26Z")
 // The realm names the client and its secret and puts alice in `dba-group` and bob in `developers`,
 // which is where WithSignInRoles below reads the roles from.
 //
-// Two URLs, one provider: the browser reaches Keycloak on the published port, the studio container
-// reaches it by container name. KC_HOSTNAME is the browser-facing one and the backchannel is left
-// dynamic, so the discovery document hands each side the address it can actually use — and the issuer
-// stays the same for both, which is what the tokens are validated against.
+// **Two addresses, one provider.** The browser reaches Keycloak on the published port; the studio,
+// which runs in a container, reaches it by container name. KC_HOSTNAME is the browser-facing address
+// and the backchannel is left dynamic, so the discovery document hands each side the address it can
+// actually use while the issuer — what the tokens are validated against — stays the same for both.
+//
+// Both ports are pinned on purpose. An issuer and a redirect URI are configuration on the provider's
+// side as well: the realm registers http://localhost:8082/* for this studio, so a studio published on
+// a port that changes every run could not sign anybody in.
 var keycloak = builder.AddContainer("keycloak", "quay.io/keycloak/keycloak", "26.2")
     .WithEnvironment("KC_BOOTSTRAP_ADMIN_USERNAME", "admin")
     .WithEnvironment("KC_BOOTSTRAP_ADMIN_PASSWORD", "admin")
@@ -93,7 +97,6 @@ var keycloak = builder.AddContainer("keycloak", "quay.io/keycloak/keycloak", "26
     .WithEnvironment("KC_HOSTNAME_BACKCHANNEL_DYNAMIC", "true")
     .WithBindMount("keycloak", "/opt/keycloak/data/import")
     .WithArgs("start-dev", "--import-realm")
-    // Pinned rather than published at random: an issuer is part of the configuration on both sides.
     .WithHttpEndpoint(port: 8081, targetPort: 8080, name: "http");
 
 // --- a third studio, built by hand ----------------------------------------------------------------
@@ -137,12 +140,15 @@ builder.AddWebDataStudio("admin-studio")
 // Nothing here knows about accounts: who may sign in — and with which role — is the provider's
 // answer. alice (dba-group) is an admin, bob (developers) may write, carol gets the default role and
 // sees everything read-only. Each password is the name.
-builder.AddWebDataStudio("sso-studio")
+builder.AddWebDataStudio("sso-studio", port: 8082)
     .WithTitle("Signed in with Keycloak")
     .WithReference(shop, connectionName: "SHOP", group: "Shop")
     .WithSingleSignOn(
-        // The container-facing address: this is what the studio fetches the provider's metadata
-        // from, and the document sends the browser to localhost:8081 by itself.
+        // The container-facing address — the studio fetches the provider's metadata from here, and
+        // that document sends the browser to localhost:8081 by itself. Aspire puts the containers on
+        // one network and gives each the resource name as an alias, so "keycloak" resolves from
+        // inside the studio; http://localhost:8081 would be the studio's own localhost and reach
+        // nothing.
         "http://keycloak:8080/realms/webdatastudio",
         "webdatastudio",
         builder.AddParameter("keycloak-secret", "studio-secret", secret: true),
