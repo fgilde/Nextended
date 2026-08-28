@@ -1,0 +1,13 @@
+# Binary by nature: a line-ending conversion turns a PDF or an image into a broken file, and the
+# demo's drop folder holds both on purpose.
+*.pdf binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.zip binary
+*.parquet binary
+*.nupkg binary
+*.dll binary
+*.exe binary

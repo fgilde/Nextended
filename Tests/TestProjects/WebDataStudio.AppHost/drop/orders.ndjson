@@ -1,0 +1,4 @@
+{"id":1,"customer":"ada","status":"shipped","total":129.00,"items":[{"sku":"KB-01","qty":1}]}
+{"id":2,"customer":"ada","status":"new","total":29.70,"items":[{"sku":"CB-04","qty":3}]}
+{"id":3,"customer":"linus","status":"shipped","total":249.99,"items":[{"sku":"MN-03","qty":1}]}
+{"id":4,"customer":"grace","status":"cancelled","total":159.00,"items":[{"sku":"MS-02","qty":2}],"cancelled_reason":"duplicate"}

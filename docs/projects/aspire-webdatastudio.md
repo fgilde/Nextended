@@ -85,10 +85,14 @@ replaced — as one SQL script that `WithSeedScript` can load into the next fres
 
 A runnable version of exactly this is in the repository:
 [WebDataStudio.AppHost](https://github.com/fgilde/Nextended/tree/main/Tests/TestProjects/WebDataStudio.AppHost)
-— it starts PostgreSQL, SQL Server, MongoDB, Redis, Azurite, a MinIO with a CSV already in its
-bucket and a Keycloak with a realm already imported, so the first things you can do after
-`dotnet run` are open a file in a bucket as a table and sign in to a studio as `alice` / `alice`
-without that account existing in the studio at all.
+— it starts PostgreSQL, SQL Server, MongoDB, Redis, Azurite, a MinIO and a Keycloak behind four
+studios, and every one of those comes up with data in it: a shop with a document column, a
+partitioned table, row-level security and 60 000 page views; carriers and 20 000 scans on SQL Server;
+five people worth anonymising in a SQLite file; sessions and telemetry in MongoDB; a key of every
+type in Redis; a bucket with a CSV, an NDJSON and a prefix that reads as one table; and a folder with
+a PDF and a PNG in it. So the first things you can do after `dotnet run` are open a file in a bucket
+as a table and sign in to a studio as `alice` / `alice` without that account existing in the studio
+at all.
 
 ## Sharing one studio, or running several
 

@@ -9,13 +9,46 @@ using Nextended.Aspire.Hosting.WebDataStudio;
 //   * "admin-studio"     — built by hand, with a login and read-only connections
 var builder = DistributedApplication.CreateBuilder(args);
 
+// --- the studio everything shares ----------------------------------------------------------------
+// Created here rather than by the first WithWebDataStudio(), so it can be told the things a studio
+// only learns once: where its seed scripts, saved queries and export templates are.
+//
+// A folder of files is a storage connection too — this one is the demo's `drop` folder, mounted in —
+// so the object preview, "Save as…" and "a file becomes a table" work without a bucket anywhere.
+var studio = builder.AddWebDataStudio()
+    .WithTitle("WebDataStudio demo")
+    // One {CONNECTION}.sql per connection, run once each: SQL Server and the SQLite file below.
+    // PostgreSQL seeds itself through the image's own init folder.
+    .WithSeedScript("seed")
+    // The five queries this demo is about, imported as saved queries at start.
+    .WithSavedQueriesFromDirectory("queries")
+    // Export formats written as text with placeholders rather than as code to run.
+    .WithExportTemplates("export-templates")
+    // Snapshot every connection's schema on start and report the drift since the last one.
+    .WithSchemaSnapshots()
+    // Who did what through this studio.
+    .WithAuditTrail(days: 30)
+    // The studio as a tool for AI agents, read-only.
+    .WithMcpEndpoint("mcp")
+    // A folder of files as a connection: CSV, NDJSON, a JSON document on one line, a PDF, a PNG, and
+    // a prefix of three files with the same columns that read as one table.
+    .WithBindMount("drop", "/data/incoming")
+    .WithStorage("DROP", "file:///data/incoming", group: "Files")
+    // A SQLite file on the studio's own volume — no server, and the connection the development
+    // subset is worth trying on: people, the countries they are in, and notes about them.
+    .WithConnection("SCRATCH", "Data Source=/data/scratch.db", WebDataStudioEngine.Sqlite,
+        group: "Files");
+
 // --- the shared studio ---------------------------------------------------------------------
 // Two databases, one call each, one studio with both connections in it.
 var postgres = builder.AddPostgres("pg")
     // The image runs everything in this folder against POSTGRES_DB the first time it starts, so
     // the seed lands in "shop" rather than in the maintenance database.
     .WithEnvironment("POSTGRES_DB", "shop")
-    // Customers, products, orders, order items and a view — something to actually click around in.
+    // 01-shop.sql is a small shop; 02-showcase.sql is one thing for each of the studio's less
+    // obvious panels — a document column, a partitioned table, a materialised view, a function that
+    // raises a notice, row-level security, geography, a second schema, sixty thousand page views
+    // without the index they want, and a table left dirty on purpose for the data quality rules.
     .WithInitFiles("init");
 
 var shop = postgres.AddDatabase("shop").WithWebDataStudio();
@@ -24,11 +57,40 @@ var sqlServer = builder.AddSqlServer("sql");
 var orders = sqlServer.AddDatabase("orders").WithWebDataStudio();
 
 // A cache is a connection like any other; Redis is detected from the resource type.
-builder.AddRedis("cache").WithWebDataStudio();
+var redis = builder.AddRedis("cache");
+redis.WithWebDataStudio();
+
+// Keys of every type Redis has, so the key browser is not an empty tree. One shot: redis-cli waits
+// for the server and writes, which is the Redis version of a seed script.
+builder.AddContainer("redis-seed", "redis", "8-alpine")
+    .WithEntrypoint("/bin/sh")
+    .WithArgs("-c", """
+        until redis-cli -h cache ping; do sleep 1; done
+        redis-cli -h cache SET greeting 'hello from the demo'
+        redis-cli -h cache SET 'session:ada' '{"account":"ada","pages":14}'
+        redis-cli -h cache EXPIRE 'session:ada' 3600
+        redis-cli -h cache HSET 'customer:1' name 'Ada Lovelace' city London orders 7
+        redis-cli -h cache HSET 'customer:2' name 'Linus Torvalds' city Helsinki orders 4
+        redis-cli -h cache RPUSH 'queue:outgoing' 'INV-1001' 'INV-1002' 'INV-1003'
+        redis-cli -h cache SADD 'tags:beta' ada grace
+        redis-cli -h cache ZADD 'leaderboard' 2310 grace 1204 ada 689 linus
+        redis-cli -h cache SETEX 'lock:import' 600 'held by the importer'
+        redis-cli -h cache DBSIZE
+        """)
+    .WaitFor(redis);
+
+
 
 // --- a second studio, by name ------------------------------------------------------------------
 // Everything analytical in its own window, with the row cap raised for exploratory queries.
-builder.AddMongoDB("mongo").AddDatabase("events")
+var mongo = builder.AddMongoDB("mongo")
+    // The image runs every .js in this folder against MONGO_INITDB_DATABASE on first start:
+    // sessions whose documents agree on their shape, telemetry whose documents do not, and a capped
+    // collection — so the tree has collections with something in them.
+    .WithEnvironment("MONGO_INITDB_DATABASE", "events")
+    .WithBindMount("mongo-init", "/docker-entrypoint-initdb.d");
+
+mongo.AddDatabase("events")
     .WithWebDataStudio(
         // Kept results land on the studio's own volume, capped so one archive cannot fill it.
         studio => studio
@@ -71,6 +133,18 @@ builder.AddContainer("minio-setup", "minio/mc", "RELEASE.2025-04-16T18-13-26Z")
         mc mb -p demo/lake
         printf 'name,city,orders\nada,london,7\ngrace,new york,4\nalan,manchester,9\n' > /tmp/people.csv
         mc cp /tmp/people.csv demo/lake/exports/people.csv
+
+        # A document per line, which is what an export from an event store looks like.
+        printf '{"id":1,"kind":"signup","plan":"pro"}\n{"id":2,"kind":"signup","plan":"free"}\n{"id":3,"kind":"upgrade","plan":"team","seats":12}\n' > /tmp/events.ndjson
+        mc cp /tmp/events.ndjson demo/lake/exports/events.ndjson
+
+        # One prefix, three files with the same columns: the studio reads the whole prefix as one
+        # table, which is the point of a lake laid out by month.
+        for m in 06 07 08; do
+          printf 'month,orders,revenue\n2026-%s,1%s,90%s.50\n' "$m" "$m" "$m" > /tmp/part.csv
+          mc cp /tmp/part.csv "demo/lake/monthly/2026-$m.csv"
+        done
+
         mc ls -r demo/lake
         """)
     .WaitFor(minio);
@@ -117,11 +191,10 @@ builder.AddWebDataStudio("admin-studio")
     .WithSessionLimits(maxSessions: 4, idleTimeout: TimeSpan.FromMinutes(2))
     .WithReference(shop, connectionName: "SHOP_PROD", group: "Production", color: "#e03131")
     .WithReference(orders, connectionName: "ORDERS_PROD", group: "Production", color: "#e03131")
-    // A database that is not part of this stack at all.
-    .WithConnection("LOCAL_FILE", "Data Source=/data/demo.db", WebDataStudioEngine.Sqlite,
-        group: "Scratch")
-    // 3. A folder — the version of a bucket that needs nothing installed at all.
-    .WithStorage("DROP", "file:///data/incoming", group: "Scratch")
+    // 3. A folder — the version of a bucket that needs nothing installed at all. Each studio has
+    //    its own volume, so this one gets the demo's files mounted in as well.
+    .WithBindMount("drop", "/data/incoming")
+    .WithStorage("DROP", "file:///data/incoming", readOnly: true, group: "Files")
     // The Azure emulator, and the MinIO from above with its endpoint and keys resolved at run time.
     .WithBlobStorage(exports, group: "Buckets")
     .WithStorage("LAKE", ReferenceExpression.Create(
@@ -161,5 +234,19 @@ builder.AddWebDataStudio("sso-studio", port: 8082)
         defaultRole: StudioRoles.Viewer)
     .WithAuditTrail(days: 30)
     .WaitFor(keycloak);
+
+// --- reports the studio writes by itself ---------------------------------------------------------
+// Reading statements only, on the studio's own volume under /data/exports. Every two minutes is a
+// demo interval: it is a file you can watch appear rather than something to wait a day for.
+studio.WithScheduledQueries(
+    new ScheduledStudioQuery("order-totals", "SHOP",
+        "SELECT o.id, c.name AS customer, o.status, sum(i.quantity * i.unit_price) AS total "
+        + "FROM orders o JOIN customers c ON c.id = o.customer_id "
+        + "LEFT JOIN order_items i ON i.order_id = o.id GROUP BY o.id, c.name, o.status",
+        EveryMinutes: 2, Format: "csv"),
+    new ScheduledStudioQuery("busiest-paths", "SHOP",
+        "SELECT path, count(*) AS views, round(avg(ms)) AS avg_ms FROM page_views "
+        + "GROUP BY path ORDER BY views DESC",
+        EveryMinutes: 5, Format: "json"));
 
 builder.Build().Run();

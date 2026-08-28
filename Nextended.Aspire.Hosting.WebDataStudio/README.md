@@ -540,15 +540,27 @@ and whether its storage is usable — the quickest way to tell a stale image fro
 ## The sample
 
 [`Tests/TestProjects/WebDataStudio.AppHost`](https://github.com/fgilde/Nextended/tree/main/Tests/TestProjects/WebDataStudio.AppHost)
-starts PostgreSQL, SQL Server, MongoDB, Redis, Azurite, a MinIO and a Keycloak behind four studios,
-and seeds the PostgreSQL database with a small shop — customers, products, orders, order items and a
-view — so there is something to click around in from the first run. The MinIO comes up with a bucket
-and a CSV already in it, so opening a file in a bucket as a table is the first thing that can be
-tried; the admin studio adds a login, read-only production connections, an MCP endpoint, a schema
-scope, a folder of export templates and a year of audit trail; and the fourth studio has no accounts
-at all — it signs people in through the Keycloak, where `alice` is in `dba-group` and becomes an
-admin, `bob` is in `developers` and may write, and `carol` gets the default role and sees everything
-read-only.
+is the demo, and it is meant to have something under every heading in the tree. `dotnet run` starts
+PostgreSQL, SQL Server, MongoDB, Redis, Azurite, a MinIO and a Keycloak behind four studios, and each
+of them comes up with data in it:
+
+| Where | What is in it |
+|---|---|
+| PostgreSQL `SHOP` | A shop — customers, products, orders, items, a view — plus a document column for the JSON shape panel, a partitioned table with its partitions, a materialised view, a function that raises a notice, a trigger, row-level security with two policies, an enum, a domain, a sequence, a role, a second schema, geography for the map, 60 000 page views without the index they want, and an `invoices` table left dirty on purpose for the data quality rules |
+| SQL Server `ORDERS` | Carriers, deliveries and 20 000 scans, seeded by the studio itself from `seed/ORDERS.sql` |
+| SQLite `SCRATCH` | Five people with real-looking names, addresses, salaries and a secret, the countries they are in and notes about them — the connection the development subset is worth trying on |
+| MongoDB `EVENTS` | Sessions whose documents agree on their shape, telemetry whose documents do not, and a capped collection |
+| Redis `CACHE` | A key of every type Redis has: a string, a JSON string with a TTL, two hashes, a list, a set, a sorted set and a lock |
+| MinIO `LAKE` | A CSV, an NDJSON export, and a `monthly/` prefix of three files with the same columns that read as one table |
+| Folder `DROP` | The `drop/` folder mounted in: a CSV, an NDJSON, a JSON document on one line, a Markdown file, a PDF and a PNG — the two that are shown where they lie rather than downloaded |
+| Azurite `EXPORTS` | Empty on purpose: it is the container to try an upload into |
+
+The default studio also gets the five saved queries this demo is about, two scheduled reports it
+writes by itself every couple of minutes, schema snapshots, an audit trail, an MCP endpoint and a
+folder of export templates. The admin studio adds a login, read-only production connections and
+session limits. The fourth studio has no accounts at all — it signs people in through the Keycloak,
+where `alice` is in `dba-group` and becomes an admin, `bob` is in `developers` and may write, and
+`carol` gets the default role and sees everything read-only. Each password is the name.
 
 ```bash
 dotnet run --project Tests/TestProjects/WebDataStudio.AppHost
