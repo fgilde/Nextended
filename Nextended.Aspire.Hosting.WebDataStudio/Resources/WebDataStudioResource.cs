@@ -154,6 +154,12 @@ public sealed class WebDataStudioResource(string name) : ContainerResource(name)
     public string? Title { get; internal set; }
 
     /// <summary>
+    /// The theme the studio starts in, as the studio's own id (<c>ocean</c>, <c>aspire</c>, …).
+    /// Null leaves the studio's default. A person who picks another theme keeps their choice.
+    /// </summary>
+    public string? Theme { get; internal set; }
+
+    /// <summary>
     /// Names of the connections attached to this studio, in the order they were added. These are
     /// the labels the studio shows in its explorer, and the suffixes of its <c>WDS_CONN_*</c>
     /// variables.

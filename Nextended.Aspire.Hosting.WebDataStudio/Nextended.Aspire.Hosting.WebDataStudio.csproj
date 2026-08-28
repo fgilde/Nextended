@@ -16,6 +16,8 @@
 
   <ItemGroup>
     <PackageReference Include="Aspire.Hosting.AppHost" Version="$(AspireVersion)" />
+    <!-- For Enum<T>.DescriptionFor: the theme enum's description is the studio's own theme id. -->
+    <ProjectReference Include="..\Nextended.Aspire\Nextended.Aspire.csproj" />
   </ItemGroup>
 
 </Project>

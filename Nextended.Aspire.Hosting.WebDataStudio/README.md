@@ -157,6 +157,7 @@ builder.AddWebDataStudio("studio")
 | `.WithMcpTools(WebDataStudioMcpTools.SchemaOnly)` | Narrow the endpoint to named tools. `ReadOnly` and `SchemaOnly` are ready-made sets. |
 | `.WithoutAssistantTools()` | Keep the studio's own assistant from using those MCP tools. |
 | `.WithTitle(name)` | Name shown in the studio's header and browser tab. Defaults to the resource name; `null` leaves it unnamed. |
+| `.WithTheme(WebDataStudioTheme.Ocean)` | The theme the studio comes up in — an enum of the studio's own themes, or a string for one this package does not know yet. A person who picks another keeps their choice. |
 | `.WithReadOnly(readOnly = true)` | Make every connection read-only, enforced in the driver. |
 | `.WithQueryTimeout(TimeSpan)` | Default statement timeout. |
 | `.WithMaxRows(int)` | Default row cap per result. |
@@ -165,6 +166,36 @@ builder.AddWebDataStudio("studio")
 | `.WithDataVolume(name?)` / `.WithDataBindMount(path)` | Put the studio's own data somewhere else. |
 | `resource.WithWebDataStudio(configure?, studioName?, connectionName?, engine?)` | Attach from the database's side, creating or reusing the studio. |
 | `resource.WithWebDataStudio(studio, …)` | Attach to a studio you built yourself. |
+
+## The theme it comes up in
+
+```csharp
+builder.AddWebDataStudio("studio")
+    .WithTheme(WebDataStudioTheme.AspireDashboard);
+```
+
+One of `Ocean` (the studio's default), `GitHubDark`, `GitHubLight`, `AspireDashboard`, `Blazor`,
+`Dracula`, `Nord`, `OneDark`, `Monokai`, `Terminal`, `SolarizedDark`, `SolarizedLight`, `NeonGlow`,
+`Synthwave`, `Hologram`, `Nightlife`, `Obsidian`, `Stage`, `Dev`, `LinkHub` or `Kiosk`. Each value
+carries the studio's own theme id as its `[Description]`, so the two lists cannot drift apart, and
+`WithTheme("some-new-theme")` is there for a newer studio image that has one this package does not
+know yet.
+
+It is the **initial** theme, not a lock. Whoever opens the studio may pick another one from the
+header, that choice belongs to their browser and wins over this — and it is never overwritten, so
+raising the deployment's default later still reaches everybody who never picked one. An id the studio
+does not have is ignored (a line in the browser's console), because a stack should not fail to start
+over a colour scheme.
+
+Three studios in one stack, told apart at a glance:
+
+```csharp
+var shop = builder.AddPostgres("pg").AddDatabase("shop");
+
+shop.WithWebDataStudio(s => s.WithTitle("Development").WithTheme(WebDataStudioTheme.Dev));
+shop.WithWebDataStudio(s => s.WithTitle("Production").WithTheme(WebDataStudioTheme.Stage)
+    .WithReadOnly(), studioName: "prod-studio");
+```
 
 ## Signing in with the provider you already have
 

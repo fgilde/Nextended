@@ -1,5 +1,6 @@
 using Aspire.Hosting;
 using Aspire.Hosting.ApplicationModel;
+using Nextended.Aspire.Hosting.WebDataStudio.Resources;
 using Xunit;
 
 namespace Nextended.Aspire.Hosting.WebDataStudio.Tests;
@@ -252,6 +253,48 @@ public class WebDataStudioExtensionsTests
         // The studio reads an empty value as "no name" and shows nothing at all.
         Assert.Null(studio.Resource.Title);
         Assert.Equal("", (await EnvOf(studio.Resource))["WDS_TITLE"]);
+    }
+
+    [Fact]
+    public async Task WithTheme_Enum_WritesTheIdTheStudioUses()
+    {
+        var studio = Add().WithTheme(WebDataStudioTheme.AspireDashboard);
+
+        // The enum's Description is the studio's own id, so the two lists cannot drift apart.
+        Assert.Equal("aspire", studio.Resource.Theme);
+        Assert.Equal("aspire", (await EnvOf(studio.Resource))["WDS_THEME"]);
+    }
+
+    [Fact]
+    public async Task WithTheme_String_IsThereForAThemeThisPackageDoesNotKnowYet()
+    {
+        var studio = Add().WithTheme(" midnight ");
+
+        Assert.Equal("midnight", studio.Resource.Theme);
+        Assert.Equal("midnight", (await EnvOf(studio.Resource))["WDS_THEME"]);
+    }
+
+    [Fact]
+    public async Task WithTheme_Null_LeavesTheStudiosOwnDefault()
+    {
+        var studio = Add().WithTheme(WebDataStudioTheme.Nord).WithTheme((string?)null);
+
+        // A second call has to be able to take the first one back.
+        Assert.Null(studio.Resource.Theme);
+        Assert.Equal("", (await EnvOf(studio.Resource))["WDS_THEME"]);
+    }
+
+    [Fact]
+    public void EveryTheme_HasAnIdOfItsOwn()
+    {
+        var ids = Enum.GetValues<WebDataStudioTheme>()
+            .Select(Nextended.Core.Helper.Enum<WebDataStudioTheme>.DescriptionFor)
+            .ToList();
+
+        // A missing [Description] falls back to the enum name, which would reach the studio as
+        // "AspireDashboard" and be ignored by it. Lower case with dashes is what its ids look like.
+        Assert.All(ids, id => Assert.Matches("^[a-z0-9-]+$", id));
+        Assert.Equal(ids.Count, ids.Distinct().Count());
     }
 
     [Fact]

@@ -1,6 +1,8 @@
 using System.Globalization;
 using Aspire.Hosting;
 using Aspire.Hosting.ApplicationModel;
+using Nextended.Aspire.Hosting.WebDataStudio.Resources;
+using Nextended.Core.Helper;
 
 namespace Nextended.Aspire.Hosting.WebDataStudio;
 
@@ -276,6 +278,47 @@ public static class WebDataStudioBuilderExtensions
         // An empty value is what the studio reads as "no name", so it is set either way — the
         // default from AddWebDataStudio has to be overridable.
         return builder.WithEnvironment("WDS_TITLE", builder.Resource.Title ?? "");
+    }
+
+    /// <summary>
+    /// Sets the theme the studio comes up in — one of the studio's own, by name.
+    /// </summary>
+    /// <remarks>
+    /// Prefer the <see cref="WithTheme(IResourceBuilder{WebDataStudioResource}, WebDataStudioTheme)"/>
+    /// overload; this one exists for a theme a newer studio has and this package does not know yet.
+    /// An id the studio does not recognise is ignored by it, with a line in its log — a stack does
+    /// not fail to start over a colour scheme.
+    /// </remarks>
+    /// <param name="builder">The studio resource.</param>
+    /// <param name="theme">A theme id, e.g. <c>ocean</c>. Null or empty leaves the studio's default.</param>
+    public static IResourceBuilder<WebDataStudioResource> WithTheme(
+        this IResourceBuilder<WebDataStudioResource> builder, string? theme)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        builder.Resource.Theme = string.IsNullOrWhiteSpace(theme) ? null : theme.Trim();
+
+        // Empty is what the studio reads as "no preference", so it is written either way: a second
+        // call has to be able to take the first one back.
+        return builder.WithEnvironment("WDS_THEME", builder.Resource.Theme ?? "");
+    }
+
+    /// <summary>
+    /// Sets the theme the studio comes up in: <c>WithTheme(WebDataStudioTheme.Ocean)</c>.
+    /// </summary>
+    /// <remarks>
+    /// The initial theme only. Whoever opens the studio may pick another, and that choice is theirs
+    /// from then on.
+    /// </remarks>
+    /// <param name="builder">The studio resource.</param>
+    /// <param name="theme">One of the studio's themes.</param>
+    public static IResourceBuilder<WebDataStudioResource> WithTheme(
+        this IResourceBuilder<WebDataStudioResource> builder, WebDataStudioTheme theme)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        // The enum's Description is the studio's id, read by the helper that already exists for it.
+        return builder.WithTheme(Enum<WebDataStudioTheme>.DescriptionFor(theme));
     }
 
     /// <summary>
