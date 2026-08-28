@@ -162,6 +162,7 @@ builder.AddWebDataStudio("studio")
 | `.WithQueryTimeout(TimeSpan)` | Default statement timeout. |
 | `.WithMaxRows(int)` | Default row cap per result. |
 | `.WithSessionLimits(maxSessions?, idleTimeout?)` | Cap open sessions per connection and how long an idle one lives. |
+| `.WithTransactionTimeout(TimeSpan)` | How long a transaction a query tab holds open may sit untouched before the studio rolls it back (default 15 minutes). |
 | `.WithSecretKey(base64)` | Key for the secrets the studio stores; also takes a `ParameterResource`. |
 | `.WithDataVolume(name?)` / `.WithDataBindMount(path)` | Put the studio's own data somewhere else. |
 | `resource.WithWebDataStudio(configure?, studioName?, connectionName?, engine?)` | Attach from the database's side, creating or reusing the studio. |

@@ -383,6 +383,29 @@ public static class WebDataStudioBuilderExtensions
     }
 
     /// <summary>
+    /// How long a transaction a query tab holds open may sit untouched before the studio rolls it
+    /// back. Fifteen minutes by default.
+    /// </summary>
+    /// <remarks>
+    /// A held transaction keeps a session and whatever locks its statements took. A browser that is
+    /// closed outright would otherwise leave both behind, so the studio ends one nobody came back
+    /// to — shorter on a busy production database, longer where people think between statements.
+    /// </remarks>
+    /// <param name="builder">The studio resource.</param>
+    /// <param name="idle">How long an untouched transaction lives. Has to be positive.</param>
+    public static IResourceBuilder<WebDataStudioResource> WithTransactionTimeout(
+        this IResourceBuilder<WebDataStudioResource> builder, TimeSpan idle)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        if (idle <= TimeSpan.Zero)
+            throw new ArgumentOutOfRangeException(nameof(idle), idle, "the timeout has to be positive");
+
+        return builder.WithEnvironment("WDS_TRANSACTION_IDLE_SECONDS",
+            ((int)idle.TotalSeconds).ToString(CultureInfo.InvariantCulture));
+    }
+
+    /// <summary>
     /// Sets the key the studio encrypts stored connection secrets with (base64, 32 bytes). Without
     /// one it generates a key into its data volume — fine locally, but a fixed key is what keeps
     /// stored connections readable when the volume is recreated.

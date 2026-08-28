@@ -298,6 +298,20 @@ public class WebDataStudioExtensionsTests
     }
 
     [Fact]
+    public async Task WithTransactionTimeout_IsWrittenInSeconds()
+    {
+        var studio = Add().WithTransactionTimeout(TimeSpan.FromMinutes(5));
+
+        Assert.Equal("300", (await EnvOf(studio.Resource))["WDS_TRANSACTION_IDLE_SECONDS"]);
+    }
+
+    [Fact]
+    public void WithTransactionTimeout_RefusesATimeoutThatIsNotOne()
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(() => Add().WithTransactionTimeout(TimeSpan.Zero));
+    }
+
+    [Fact]
     public async Task Options_AreWrittenAsTheStudioSpellsThem()
     {
         var studio = Add()
