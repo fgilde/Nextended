@@ -1,0 +1,83 @@
+{
+  "realm": "webdatastudio",
+  "enabled": true,
+  "displayName": "WebDataStudio demo",
+  "sslRequired": "none",
+  "registrationAllowed": false,
+  "loginWithEmailAllowed": true,
+  "groups": [
+    { "name": "dba-group" },
+    { "name": "developers" },
+    { "name": "everyone" }
+  ],
+  "clients": [
+    {
+      "clientId": "webdatastudio",
+      "name": "WebDataStudio",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "secret": "studio-secret",
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "redirectUris": [
+        "http://localhost:8080/signin-oidc",
+        "http://localhost:8081/signin-oidc",
+        "http://127.0.0.1:*/signin-oidc",
+        "http://localhost:*/signin-oidc"
+      ],
+      "webOrigins": ["*"],
+      "attributes": {
+        "post.logout.redirect.uris": "http://localhost:*/*"
+      },
+      "protocolMappers": [
+        {
+          "name": "groups",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-group-membership-mapper",
+          "consentRequired": false,
+          "config": {
+            "full.path": "false",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true",
+            "claim.name": "groups"
+          }
+        }
+      ]
+    }
+  ],
+  "users": [
+    {
+      "username": "alice",
+      "enabled": true,
+      "emailVerified": true,
+      "email": "alice@example.com",
+      "firstName": "Alice",
+      "lastName": "Admin",
+      "credentials": [{ "type": "password", "value": "alice", "temporary": false }],
+      "groups": ["/dba-group", "/everyone"]
+    },
+    {
+      "username": "bob",
+      "enabled": true,
+      "emailVerified": true,
+      "email": "bob@example.com",
+      "firstName": "Bob",
+      "lastName": "Builder",
+      "credentials": [{ "type": "password", "value": "bob", "temporary": false }],
+      "groups": ["/developers", "/everyone"]
+    },
+    {
+      "username": "carol",
+      "enabled": true,
+      "emailVerified": true,
+      "email": "carol@example.com",
+      "firstName": "Carol",
+      "lastName": "Curious",
+      "credentials": [{ "type": "password", "value": "carol", "temporary": false }],
+      "groups": ["/everyone"]
+    }
+  ]
+}

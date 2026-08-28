@@ -56,6 +56,8 @@ builder.AddWebDataStudio("studio")
     .WithSeedScript("seed")                                 // a fresh stack with data in it
     .WithSavedQueriesFromDirectory("queries")               // the five queries everybody needs
     .WithLogin("admin", builder.AddParameter("studio-password", secret: true))
+    .WithSingleSignOn(authority, clientId, oidcSecret)      // or the provider you already have
+    .WithAuditTrail(days: 365)                              // who did what, kept for a year
     .WithMcpEndpoint("mcp")                                 // the studio as a tool for AI agents
     .WithOllamaAssistant(ollama, "llama3.1");               // optional SQL assistance, local
 
@@ -65,13 +67,23 @@ builder.Build().Run();
 And in the studio itself, without any of it being configured here: the object tree and the query
 editor, the data tab with its filter language, **Find data** for "which table has 4711 in it", the
 **Jobs** tab for what the server runs on a schedule (Agent, pg_cron, events), **Capture** for what ran
-in the next minute, a read of every statement before it runs, an interactive Entra sign-in for Azure
-SQL, Synapse and Fabric, and **Add a bucket** for attaching one from the UI rather than from here.
+in the next minute and what the index advisor makes of it, a read of every statement before it runs,
+an interactive Entra sign-in for Azure SQL, Synapse and Fabric, and **Add a bucket** for attaching one
+from the UI rather than from here.
+
+Also without configuration: what is inside a JSON column and the `SELECT` that flattens it, a table
+followed on a timer with the new rows tinted, a file in a bucket turned into a real table, how much
+every table grew since the studio last looked, what this studio keeps running and whether it is
+getting slower, **Data quality** rules that count the rows breaking them and report with the health
+findings, and a **development subset** — these rows, the rows they point at, what is about people
+replaced — as one SQL script that `WithSeedScript` can load into the next fresh stack.
 
 A runnable version of exactly this is in the repository:
 [WebDataStudio.AppHost](https://github.com/fgilde/Nextended/tree/main/Tests/TestProjects/WebDataStudio.AppHost)
-— it starts PostgreSQL, SQL Server, MongoDB, Redis, Azurite and a MinIO with a CSV already in its
-bucket, so the first thing you can do after `dotnet run` is open a file in a bucket as a table.
+— it starts PostgreSQL, SQL Server, MongoDB, Redis, Azurite, a MinIO with a CSV already in its
+bucket and a Keycloak with a realm already imported, so the first things you can do after
+`dotnet run` are open a file in a bucket as a table and sign in to a studio as `alice` / `alice`
+without that account existing in the studio at all.
 
 ## Sharing one studio, or running several
 
@@ -121,6 +133,9 @@ builder.AddWebDataStudio("studio")
 | `.WithBlobStorage(blobs, container?, connectionName?, prefix?, …)` | Attach the blob resource the app host models — Azurite while developing, the real account once deployed. |
 | `.WithLogin(user, password)` | Guard the studio with a login, as an admin. **Chain it for more accounts** — two calls mean two people can sign in. Both halves also accept an Aspire `ParameterResource`. |
 | `.WithUser(user, password, role, connections…)` | One account with a role (`StudioRoles.Admin`, `Editor`, `Viewer`) and, optionally, the connections it may see. The password also takes a `ParameterResource`. |
+| `.WithSingleSignOn(authority, clientId, secret?, label?, scopes…)` | Sign people in through the identity provider you already have — Entra, Keycloak, Auth0, Okta — instead of accounts in the environment. |
+| `.WithSignInRoles(admins?, editors?, viewers?, defaultRole?)` | Which of that provider's groups, roles or addresses get which studio role. |
+| `.WithAuditTrail(days = 90)` / `.WithoutAuditTrail()` | How long the studio keeps its record of who did what — or turn it off for a deployment that keeps its own. |
 | `.WithAssistant(server, model, …)` | Point the studio's optional assistance at a model server in the stack — Ollama, LocalAI, vLLM, llama.cpp. Also takes a URL, a `ReferenceExpression` or a `ParameterResource` key. |
 | `.WithOllamaAssistant(ollama, model)` / `.WithLocalAiAssistant(localai, model)` | The same, named for the two servers people reach for first. |
 | `.WithClaudeAssistant(key)`, `.WithChatGptAssistant(key)`, `.WithOpenRouterAssistant(key)`, `.WithGroqAssistant(key)`, `.WithMistralAssistant(key)`, `.WithDeepSeekAssistant(key)`, `.WithGeminiAssistant(key)`, `.WithAzureOpenAiAssistant(resource, deployment, key)` | The hosted providers, one call each: the right URL and a sensible default model. |
@@ -149,6 +164,43 @@ builder.AddWebDataStudio("studio")
 | `.WithDataVolume(name?)` / `.WithDataBindMount(path)` | Put the studio's own data somewhere else. |
 | `resource.WithWebDataStudio(configure?, studioName?, connectionName?, engine?)` | Attach from the database's side, creating or reusing the studio. |
 | `resource.WithWebDataStudio(studio, …)` | Attach to a studio you built yourself. |
+
+## Signing in with the provider you already have
+
+`WithLogin` and `WithUser` put accounts in the container's environment: fine for one team, wrong for
+a company that already decides who works there somewhere else.
+
+```csharp
+builder.AddWebDataStudio("studio")
+    .WithReference(shop)
+    .WithSingleSignOn(
+        "https://login.microsoftonline.com/<tenant>/v2.0",
+        "00000000-0000-0000-0000-000000000000",
+        builder.AddParameter("oidc-secret", secret: true),
+        label: "Sign in with Entra",
+        "openid", "profile", "email")
+    .WithSignInRoles(admins: ["dba-group"], editors: ["developers"])
+    .WithAuditTrail(days: 365);
+```
+
+- Authorization code flow with PKCE; the redirect URI to register with the provider is
+  `https://<the studio>/signin-oidc`.
+- **Configuring a provider closes the door**: a studio with a provider and no accounts is not an open
+  studio with a login button on it.
+- **The role stays the studio's own.** Matching reads the provider's `roles`, `role`, `groups` and
+  `wids` claims *and* the person's own name, address and UPN, so `admins: ["ada@example.com"]` works
+  in a tenant with no groups. Admin beats editor beats viewer; anybody who matches nothing gets
+  `defaultRole`, a viewer unless said otherwise.
+- A provider **and** accounts can both be configured — the login screen shows the button and the form.
+- An authority on `http://`, a Keycloak in the same app host, is allowed to serve its metadata over
+  plain http and the call sets that for you.
+
+## Who did what
+
+One line per request that changed something or took data out of the building — a statement run, an
+export, a change applied, a request refused — with who asked, against which connection, and what came
+of it. Read in *Administration → Audit*, on by default, 90 days unless another number is asked for.
+Request bodies are never recorded: a connection body carries a password.
 
 ## The optional assistance
 
@@ -388,9 +440,13 @@ var studio = builder.AddWebDataStudio()
     .WithClaudeAssistant(anthropicKey);       // and the studio's own assistant uses the same tools
 ```
 
-The agent gets `list_connections`, `list_tables`, `list_objects`, `describe_object`, `browse_rows`, `run_query`, `explain_plan`, `health_report`, `server_activity` and `redis_value`
-— and with `allowWrite: true` also `preview_script` and `apply_script`, in that order, so a write is
-always shown before it runs. Masking, read-only connections and the row cap apply to an agent
+The agent gets `list_connections`, `list_tables`, `list_objects`, `describe_object`, `browse_rows`,
+`run_query`, `explain_plan`, `health_report`, `server_activity`, `redis_value`, `find_data`,
+`json_shape`, `table_sizes`, `query_stats`, `inspect_sql`, `quality_rules` and `run_quality_rules` —
+and with `allowWrite: true` also `preview_script` and `apply_script`, in that order, so a write is
+always shown before it runs, plus `save_quality_rule`. A bucket needs no tools of its own: object
+storage is a connection like any other, so `list_tables` lists its objects and `browse_rows` reads a
+Parquet file through the reader that opens it. Masking, read-only connections and the row cap apply to an agent
 exactly as they do to a person. The studio's header carries a dialog with the URL and ready-to-paste
 client configuration once the endpoint is on.
 
@@ -482,12 +538,15 @@ and whether its storage is usable — the quickest way to tell a stale image fro
 ## The sample
 
 [`Tests/TestProjects/WebDataStudio.AppHost`](https://github.com/fgilde/Nextended/tree/main/Tests/TestProjects/WebDataStudio.AppHost)
-starts PostgreSQL, SQL Server, MongoDB, Redis, Azurite and a MinIO behind three studios, and seeds
-the PostgreSQL database with a small shop — customers, products, orders, order items and a view — so
-there is something to click around in from the first run. The MinIO comes up with a bucket and a CSV
-already in it, so opening a file in a bucket as a table is the first thing that can be tried; the
-admin studio adds a login, read-only production connections, an MCP endpoint, a schema scope and a
-folder of export templates.
+starts PostgreSQL, SQL Server, MongoDB, Redis, Azurite, a MinIO and a Keycloak behind four studios,
+and seeds the PostgreSQL database with a small shop — customers, products, orders, order items and a
+view — so there is something to click around in from the first run. The MinIO comes up with a bucket
+and a CSV already in it, so opening a file in a bucket as a table is the first thing that can be
+tried; the admin studio adds a login, read-only production connections, an MCP endpoint, a schema
+scope, a folder of export templates and a year of audit trail; and the fourth studio has no accounts
+at all — it signs people in through the Keycloak, where `alice` is in `dba-group` and becomes an
+admin, `bob` is in `developers` and may write, and `carol` gets the default role and sees everything
+read-only.
 
 ```bash
 dotnet run --project Tests/TestProjects/WebDataStudio.AppHost

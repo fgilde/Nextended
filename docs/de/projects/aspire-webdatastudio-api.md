@@ -250,6 +250,8 @@ WebDataStudio — a browser-based database studio — running as a container res
   <br>Where kept results are written, from `WithArchives`. Null means the default beside the application database.
 - `AssistantModel : string { get; }`
   <br>The model the optional assistance uses, when it was configured with `WithAssistant`. Null means the studio has no assistance at all: no button, no calls.
+- `AuditDays : int? { get; }`
+  <br>How many days the studio keeps its record of who did what. Null is the studio's own default of 90; zero means `WithoutAuditTrail` turned it off.
 - `ConnectionNames : IReadOnlyList<string> { get; }`
   <br>Names of the connections attached to this studio, in the order they were added. These are the labels the studio shows in its explorer, and the suffixes of its `WDS_CONN_*` variables.
 - `MaskedColumns : IReadOnlyCollection<string> { get; }`
@@ -274,6 +276,8 @@ WebDataStudio — a browser-based database studio — running as a container res
   <br>Whether results can be shared as links, from `WithSharedResults`.
 - `SharingIsPublic : bool { get; }`
   <br>Whether such a link opens without signing in.
+- `SignInAuthority : string { get; }`
+  <br>The identity provider people sign in through, when one was configured with `WithSingleSignOn`. Null means the studio signs people in itself, or not at all.
 - `TelemetryServiceName : string { get; }`
   <br>The name the studio reports as in traces and metrics, from `WithOpenTelemetry`. Null when it reports nothing.
 - `Title : string { get; }`
@@ -307,6 +311,12 @@ The studio masks columns whose names say they hold a secret — `password`, `api
 `static class`
 
 Scheduled queries, written as a file the studio reads. The file is generated into the app host's output and mounted read-only, so the schedule lives in your app host next to everything else rather than in a volume somebody has to remember.
+
+### `WebDataStudioSignInExtensions`
+
+`static class`
+
+Signing in to the studio with the identity provider the organisation already has, and keeping a record of what was done through it. `WithLogin` and `WithUser` put accounts in the container's environment: fine for one team, wrong for a company that already decides who works there somewhere else. These calls point the studio at that decision instead — Entra, Keycloak, Auth0, Okta, anything speaking OpenID Connect — and the studio never sees a password.
 
 ### `WebDataStudioStorageExtensions`
 

@@ -62,6 +62,18 @@ public sealed class WebDataStudioResource(string name) : ContainerResource(name)
     }
 
     /// <summary>
+    /// The identity provider people sign in through, when one was configured with
+    /// <c>WithSingleSignOn</c>. Null means the studio signs people in itself, or not at all.
+    /// </summary>
+    public string? SignInAuthority { get; internal set; }
+
+    /// <summary>
+    /// How many days the studio keeps its record of who did what. Null is the studio's own default
+    /// of 90; zero means <c>WithoutAuditTrail</c> turned it off.
+    /// </summary>
+    public int? AuditDays { get; internal set; }
+
+    /// <summary>
     /// The model the optional assistance uses, when it was configured with <c>WithAssistant</c>.
     /// Null means the studio has no assistance at all: no button, no calls.
     /// </summary>

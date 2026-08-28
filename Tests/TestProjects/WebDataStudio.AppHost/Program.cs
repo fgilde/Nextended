@@ -75,6 +75,27 @@ builder.AddContainer("minio-setup", "minio/mc", "RELEASE.2025-04-16T18-13-26Z")
         """)
     .WaitFor(minio);
 
+// --- an identity provider in the stack -----------------------------------------------------------
+// The studio can sign people in with the provider a company already has. A Keycloak in the app host
+// is the version of that you can click through on a laptop: it starts with the demo realm imported,
+// so `alice` / `alice` is an admin in the studio without an account existing in the studio at all.
+// The realm names the client and its secret and puts alice in `dba-group` and bob in `developers`,
+// which is where WithSignInRoles below reads the roles from.
+//
+// Two URLs, one provider: the browser reaches Keycloak on the published port, the studio container
+// reaches it by container name. KC_HOSTNAME is the browser-facing one and the backchannel is left
+// dynamic, so the discovery document hands each side the address it can actually use — and the issuer
+// stays the same for both, which is what the tokens are validated against.
+var keycloak = builder.AddContainer("keycloak", "quay.io/keycloak/keycloak", "26.2")
+    .WithEnvironment("KC_BOOTSTRAP_ADMIN_USERNAME", "admin")
+    .WithEnvironment("KC_BOOTSTRAP_ADMIN_PASSWORD", "admin")
+    .WithEnvironment("KC_HOSTNAME", "http://localhost:8081")
+    .WithEnvironment("KC_HOSTNAME_BACKCHANNEL_DYNAMIC", "true")
+    .WithBindMount("keycloak", "/opt/keycloak/data/import")
+    .WithArgs("start-dev", "--import-realm")
+    // Pinned rather than published at random: an issuer is part of the configuration on both sides.
+    .WithHttpEndpoint(port: 8081, targetPort: 8080, name: "http");
+
 // --- a third studio, built by hand ----------------------------------------------------------------
 // A password from a parameter (prompted once, then kept in user secrets), read-only everywhere,
 // and connections labelled and coloured the way an operator wants to see them.
@@ -107,6 +128,32 @@ builder.AddWebDataStudio("admin-studio")
     // search each walk what they are given.
     .WithSchemas("SHOP_PROD", "public")
     // Export formats written as text with placeholders rather than as code to run.
-    .WithExportTemplates("export-templates");
+    .WithExportTemplates("export-templates")
+    // Who did what through this studio, kept for a year: every statement, export and refused
+    // request, readable under Administration -> Audit.
+    .WithAuditTrail(days: 365);
+
+// --- a fourth studio, signed in through the provider ---------------------------------------------
+// Nothing here knows about accounts: who may sign in — and with which role — is the provider's
+// answer. alice (dba-group) is an admin, bob (developers) may write, carol gets the default role and
+// sees everything read-only. Each password is the name.
+builder.AddWebDataStudio("sso-studio")
+    .WithTitle("Signed in with Keycloak")
+    .WithReference(shop, connectionName: "SHOP", group: "Shop")
+    .WithSingleSignOn(
+        // The container-facing address: this is what the studio fetches the provider's metadata
+        // from, and the document sends the browser to localhost:8081 by itself.
+        "http://keycloak:8080/realms/webdatastudio",
+        "webdatastudio",
+        builder.AddParameter("keycloak-secret", "studio-secret", secret: true),
+        label: "Sign in with Keycloak",
+        "openid", "profile", "email")
+    // The provider knows its groups; what an admin may do here is the studio's own decision.
+    .WithSignInRoles(
+        admins: ["dba-group"],
+        editors: ["developers"],
+        defaultRole: StudioRoles.Viewer)
+    .WithAuditTrail(days: 30)
+    .WaitFor(keycloak);
 
 builder.Build().Run();

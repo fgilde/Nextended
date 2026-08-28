@@ -27,6 +27,8 @@
     <None Include="init\**" CopyToOutputDirectory="PreserveNewest" />
     <!-- The export templates are mounted into the studio, so they have to sit next to the binary. -->
     <None Include="export-templates\**" CopyToOutputDirectory="PreserveNewest" />
+    <!-- The realm Keycloak imports on the first start, mounted the same way. -->
+    <None Include="keycloak\**" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>
