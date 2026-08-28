@@ -1,5 +1,6 @@
 using Aspire.Hosting.ApplicationModel;
 using Nextended.Aspire.Hosting.WebDataStudio;
+using Nextended.Aspire.Hosting.WebDataStudio.Resources;
 
 // Test/demo AppHost for the Nextended.Aspire.Hosting.WebDataStudio.
 //
@@ -9,18 +10,9 @@ using Nextended.Aspire.Hosting.WebDataStudio;
 //   * "admin-studio"     — built by hand, with a login and read-only connections
 var builder = DistributedApplication.CreateBuilder(args);
 
-// --- one account for the whole demo --------------------------------------------------------------
-// Everything in here that asks for a name and a password takes these two: the studio's own login,
-// MinIO's root account, the Keycloak administrator, and the people inside the Keycloak realm. One
-// pair to remember while clicking around, and one place to change it.
-//
-// Literal defaults keep the demo runnable with `dotnet run`. In a real app host drop the values and
-// let Aspire prompt for them or read them from user secrets.
+
 var demoUser = builder.AddParameter("demo-user", "admin");
 var demoPassword = builder.AddParameter("demo-password", "change-me-please", secret: true);
-
-// A client secret is not a person's password, so it stays its own parameter — but it goes into the
-// realm the same way, through the environment.
 var clientSecret = builder.AddParameter("keycloak-client-secret", "studio-secret", secret: true);
 
 // --- the studio everything shares ----------------------------------------------------------------
@@ -30,6 +22,7 @@ var clientSecret = builder.AddParameter("keycloak-client-secret", "studio-secret
 // A folder of files is a storage connection too — this one is the demo's `drop` folder, mounted in —
 // so the object preview, "Save as…" and "a file becomes a table" work without a bucket anywhere.
 var studio = builder.AddWebDataStudio()
+    .WithTheme(WebDataStudioTheme.GitHubLight)
     .WithTitle("WebDataStudio demo")
     // One {CONNECTION}.sql per connection, run once each: SQL Server and the SQLite file below.
     // PostgreSQL seeds itself through the image's own init folder.
