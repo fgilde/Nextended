@@ -23,7 +23,7 @@
       "enabled": true,
       "protocol": "openid-connect",
       "publicClient": false,
-      "secret": "studio-secret",
+      "secret": "${WDS_KEYCLOAK_CLIENT_SECRET}",
       "standardFlowEnabled": true,
       "directAccessGrantsEnabled": false,
       "serviceAccountsEnabled": false,
@@ -58,16 +58,16 @@
   ],
   "users": [
     {
-      "username": "alice",
+      "username": "${WDS_DEMO_USER}",
       "enabled": true,
       "emailVerified": true,
-      "email": "alice@example.com",
-      "firstName": "Alice",
+      "email": "admin@example.com",
+      "firstName": "Demo",
       "lastName": "Admin",
       "credentials": [
         {
           "type": "password",
-          "value": "alice",
+          "value": "${WDS_DEMO_PASSWORD}",
           "temporary": false
         }
       ],
@@ -86,7 +86,7 @@
       "credentials": [
         {
           "type": "password",
-          "value": "bob",
+          "value": "${WDS_DEMO_PASSWORD}",
           "temporary": false
         }
       ],
@@ -105,7 +105,7 @@
       "credentials": [
         {
           "type": "password",
-          "value": "carol",
+          "value": "${WDS_DEMO_PASSWORD}",
           "temporary": false
         }
       ],

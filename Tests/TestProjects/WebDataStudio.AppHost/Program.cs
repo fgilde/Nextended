@@ -9,6 +9,20 @@ using Nextended.Aspire.Hosting.WebDataStudio;
 //   * "admin-studio"     — built by hand, with a login and read-only connections
 var builder = DistributedApplication.CreateBuilder(args);
 
+// --- one account for the whole demo --------------------------------------------------------------
+// Everything in here that asks for a name and a password takes these two: the studio's own login,
+// MinIO's root account, the Keycloak administrator, and the people inside the Keycloak realm. One
+// pair to remember while clicking around, and one place to change it.
+//
+// Literal defaults keep the demo runnable with `dotnet run`. In a real app host drop the values and
+// let Aspire prompt for them or read them from user secrets.
+var demoUser = builder.AddParameter("demo-user", "admin");
+var demoPassword = builder.AddParameter("demo-password", "change-me-please", secret: true);
+
+// A client secret is not a person's password, so it stays its own parameter — but it goes into the
+// realm the same way, through the environment.
+var clientSecret = builder.AddParameter("keycloak-client-secret", "studio-secret", secret: true);
+
 // --- the studio everything shares ----------------------------------------------------------------
 // Created here rather than by the first WithWebDataStudio(), so it can be told the things a studio
 // only learns once: where its seed scripts, saved queries and export templates are.
@@ -112,12 +126,9 @@ var exports = storage.AddBlobs("exports");
 
 // 2. MinIO, which is what an S3 endpoint looks like when it is part of your own stack. The URL is
 //    only known once the stack runs, so it is a reference expression rather than a string.
-var minioUser = builder.AddParameter("minio-user", "wds-demo");
-var minioPassword = builder.AddParameter("minio-password", "wds-demo-secret", secret: true);
-
 var minio = builder.AddContainer("minio", "minio/minio", "RELEASE.2025-04-22T22-12-26Z")
-    .WithEnvironment("MINIO_ROOT_USER", minioUser)
-    .WithEnvironment("MINIO_ROOT_PASSWORD", minioPassword)
+    .WithEnvironment("MINIO_ROOT_USER", demoUser)
+    .WithEnvironment("MINIO_ROOT_PASSWORD", demoPassword)
     .WithArgs("server", "/data", "--console-address", ":9001")
     .WithHttpEndpoint(targetPort: 9000, name: "api")
     .WithHttpEndpoint(targetPort: 9001, name: "console");
@@ -126,8 +137,8 @@ var minio = builder.AddContainer("minio", "minio/minio", "RELEASE.2025-04-22T22-
 // waits for the server, makes the bucket and puts a CSV in it.
 builder.AddContainer("minio-setup", "minio/mc", "RELEASE.2025-04-16T18-13-26Z")
     .WithEntrypoint("/bin/sh")
-    .WithEnvironment("MINIO_USER", minioUser)
-    .WithEnvironment("MINIO_PASSWORD", minioPassword)
+    .WithEnvironment("MINIO_USER", demoUser)
+    .WithEnvironment("MINIO_PASSWORD", demoPassword)
     .WithArgs("-c", """
         until mc alias set demo http://minio:9000 "$MINIO_USER" "$MINIO_PASSWORD"; do sleep 1; done
         mc mb -p demo/lake
@@ -165,8 +176,14 @@ builder.AddContainer("minio-setup", "minio/mc", "RELEASE.2025-04-16T18-13-26Z")
 // side as well: the realm registers http://localhost:8082/* for this studio, so a studio published on
 // a port that changes every run could not sign anybody in.
 var keycloak = builder.AddContainer("keycloak", "quay.io/keycloak/keycloak", "26.2")
-    .WithEnvironment("KC_BOOTSTRAP_ADMIN_USERNAME", "admin")
-    .WithEnvironment("KC_BOOTSTRAP_ADMIN_PASSWORD", "admin")
+    // The Keycloak administrator, and — through the realm file's ${...} placeholders, which the
+    // import substitutes from the environment — the people inside the realm as well. So the pair
+    // above signs in to Keycloak's own console and to the studio behind it.
+    .WithEnvironment("KC_BOOTSTRAP_ADMIN_USERNAME", demoUser)
+    .WithEnvironment("KC_BOOTSTRAP_ADMIN_PASSWORD", demoPassword)
+    .WithEnvironment("WDS_DEMO_USER", demoUser)
+    .WithEnvironment("WDS_DEMO_PASSWORD", demoPassword)
+    .WithEnvironment("WDS_KEYCLOAK_CLIENT_SECRET", clientSecret)
     .WithEnvironment("KC_HOSTNAME", "http://localhost:8081")
     .WithEnvironment("KC_HOSTNAME_BACKCHANNEL_DYNAMIC", "true")
     .WithBindMount("keycloak", "/opt/keycloak/data/import")
@@ -174,20 +191,14 @@ var keycloak = builder.AddContainer("keycloak", "quay.io/keycloak/keycloak", "26
     .WithHttpEndpoint(port: 8081, targetPort: 8080, name: "http");
 
 // --- a third studio, built by hand ----------------------------------------------------------------
-// A password from a parameter (prompted once, then kept in user secrets), read-only everywhere,
-// and connections labelled and coloured the way an operator wants to see them.
-// A literal default keeps this demo runnable with `dotnet run`; in a real app host drop the
-// value and let Aspire prompt for it or read it from user secrets.
-var studioPassword = builder.AddParameter("studio-password", "change-me-please", secret: true);
-
+// The same pair as everywhere else, read-only everywhere, and connections labelled and coloured the
+// way an operator wants to see them.
 builder.AddWebDataStudio("admin-studio")
     // Each studio shows its resource name in its header and browser tab; this one says more.
     .WithTitle("Production · read only")
-    .WithLogin("admin", studioPassword)
-    .WithLogin("hans", "hans")
-    .WithLogin("pete", "pete")
+    .WithLogin(demoUser, demoPassword)
     .WithReadOnly()
-    .WithMcpEndpoint("mcp", studioPassword)   // Studio als MCP-Server
+    .WithMcpEndpoint("mcp", demoPassword)     // the studio as an MCP server
     .WithSessionLimits(maxSessions: 4, idleTimeout: TimeSpan.FromMinutes(2))
     .WithReference(shop, connectionName: "SHOP_PROD", group: "Production", color: "#e03131")
     .WithReference(orders, connectionName: "ORDERS_PROD", group: "Production", color: "#e03131")
@@ -198,7 +209,7 @@ builder.AddWebDataStudio("admin-studio")
     // The Azure emulator, and the MinIO from above with its endpoint and keys resolved at run time.
     .WithBlobStorage(exports, group: "Buckets")
     .WithStorage("LAKE", ReferenceExpression.Create(
-        $"s3://lake?endpoint={minio.GetEndpoint("api")}&access={minioUser}&secret={minioPassword}&region=us-east-1"),
+        $"s3://lake?endpoint={minio.GetEndpoint("api")}&access={demoUser}&secret={demoPassword}&region=us-east-1"),
         group: "Buckets")
     // Only these schemas are read on a big server: the tree, the completion cache and the object
     // search each walk what they are given.
@@ -211,8 +222,9 @@ builder.AddWebDataStudio("admin-studio")
 
 // --- a fourth studio, signed in through the provider ---------------------------------------------
 // Nothing here knows about accounts: who may sign in — and with which role — is the provider's
-// answer. alice (dba-group) is an admin, bob (developers) may write, carol gets the default role and
-// sees everything read-only. Each password is the name.
+// answer. The demo account (dba-group) is an admin, bob (developers) may write, and carol is in
+// neither group so she gets the default role and sees everything read-only. All three have the demo
+// password, because the realm file reads it from the environment.
 builder.AddWebDataStudio("sso-studio", port: 8082)
     .WithTitle("Signed in with Keycloak")
     .WithReference(shop, connectionName: "SHOP", group: "Shop")
@@ -224,7 +236,7 @@ builder.AddWebDataStudio("sso-studio", port: 8082)
         // nothing.
         "http://keycloak:8080/realms/webdatastudio",
         "webdatastudio",
-        builder.AddParameter("keycloak-secret", "studio-secret", secret: true),
+        clientSecret,
         label: "Sign in with Keycloak",
         "openid", "profile", "email")
     // The provider knows its groups; what an admin may do here is the studio's own decision.

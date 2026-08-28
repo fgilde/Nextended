@@ -555,6 +555,13 @@ of them comes up with data in it:
 | Folder `DROP` | The `drop/` folder mounted in: a CSV, an NDJSON, a JSON document on one line, a Markdown file, a PDF and a PNG — the two that are shown where they lie rather than downloaded |
 | Azurite `EXPORTS` | Empty on purpose: it is the container to try an upload into |
 
+**One account for the whole demo.** Two parameters — `demo-user` (`admin`) and `demo-password`
+(`change-me-please`) — are what every part of it asks for: the admin studio's login, MinIO's root
+account and its access keys, the Keycloak administrator, and the three people inside the Keycloak
+realm. The realm file carries `${WDS_DEMO_USER}` and `${WDS_DEMO_PASSWORD}` placeholders, which the
+import substitutes from the environment, so changing the parameter changes the sign-in everywhere.
+The Keycloak client secret is its own parameter, because a client secret is not a person's password.
+
 The default studio also gets the five saved queries this demo is about, two scheduled reports it
 writes by itself every couple of minutes, schema snapshots, an audit trail, an MCP endpoint and a
 folder of export templates. The admin studio adds a login, read-only production connections and

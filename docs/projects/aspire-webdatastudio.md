@@ -83,6 +83,13 @@ getting slower, **Data quality** rules that count the rows breaking them and rep
 findings, and a **development subset** — these rows, the rows they point at, what is about people
 replaced — as one SQL script that `WithSeedScript` can load into the next fresh stack.
 
+**One account for the whole demo.** Two parameters — `demo-user` (`admin`) and `demo-password`
+(`change-me-please`) — are what every part of it asks for: the admin studio's login, MinIO's root
+account and its access keys, the Keycloak administrator, and the three people inside the Keycloak
+realm. The realm file carries `${WDS_DEMO_USER}` and `${WDS_DEMO_PASSWORD}` placeholders, which the
+import substitutes from the environment, so changing the parameter changes the sign-in everywhere.
+The Keycloak client secret is its own parameter, because a client secret is not a person's password.
+
 A runnable version of exactly this is in the repository:
 [WebDataStudio.AppHost](https://github.com/fgilde/Nextended/tree/main/Tests/TestProjects/WebDataStudio.AppHost)
 — it starts PostgreSQL, SQL Server, MongoDB, Redis, Azurite, a MinIO and a Keycloak behind four
