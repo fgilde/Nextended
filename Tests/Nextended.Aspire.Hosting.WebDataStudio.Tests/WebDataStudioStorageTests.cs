@@ -135,6 +135,52 @@ public class WebDataStudioStorageTests
     }
 
     [Fact]
+    public async Task WithQualityRules_MountsAFolderTheStudioDoesNotOwn()
+    {
+        var directory = Directory.CreateTempSubdirectory("wds-quality").FullName;
+
+        try
+        {
+            var studio = Add().WithQualityRules(directory);
+
+            var mount = Assert.Single(studio.Resource.Annotations.OfType<ContainerMountAnnotation>(),
+                annotation => annotation.Target == "/data/quality");
+
+            Assert.True(mount.IsReadOnly);
+            Assert.Equal("/data/quality", (await EnvOf(studio.Resource))["WDS_QUALITY_FILE"]);
+        }
+        finally
+        {
+            Directory.Delete(directory, true);
+        }
+    }
+
+    [Fact]
+    public async Task WithQualityRules_KeepsTheNameOfASingleFile()
+    {
+        var directory = Directory.CreateTempSubdirectory("wds-quality-file").FullName;
+        var file = Path.Combine(directory, "rules.json");
+        await File.WriteAllTextAsync(file, "[]");
+
+        try
+        {
+            var studio = Add().WithQualityRules(file);
+
+            // A file mounted as a folder would be read as a folder; the studio has to see the file.
+            Assert.Equal("/data/quality/rules.json",
+                (await EnvOf(studio.Resource))["WDS_QUALITY_FILE"]);
+        }
+        finally
+        {
+            Directory.Delete(directory, true);
+        }
+    }
+
+    [Fact]
+    public void WithQualityRules_RefusesNothingAtAll() =>
+        Assert.Throws<ArgumentException>(() => Add().WithQualityRules("  "));
+
+    [Fact]
     public async Task WithExportTemplates_MountsTheFolderReadOnly()
     {
         var directory = Directory.CreateTempSubdirectory("wds-templates").FullName;

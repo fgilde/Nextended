@@ -13,6 +13,7 @@ public static class WebDataStudioFilesExtensions
     private const string QueriesTarget = "/data/queries";
     private const string SeedTarget = "/data/seed";
     private const string TemplatesTarget = "/data/export-templates";
+    private const string QualityTarget = "/data/quality";
 
     /// <summary>
     /// Mounts a folder of export templates — an export format written as text with placeholders,
@@ -41,6 +42,57 @@ public static class WebDataStudioFilesExtensions
         return builder
             .WithBindMount(path, TemplatesTarget, isReadOnly: true)
             .WithEnvironment("WDS_EXPORT_TEMPLATES_DIR", TemplatesTarget);
+    }
+
+    /// <summary>
+    /// Mounts the data quality rules the deployment owns — rules about the rows rather than about the
+    /// schema, kept in the repository with everything else that has to survive a rollout.
+    /// </summary>
+    /// <param name="builder">The studio.</param>
+    /// <param name="path">A <c>.json</c> file, or a folder of them, on your machine.</param>
+    /// <remarks>
+    /// Each entry names a connection the way a person does — by name — plus a table, a column and a
+    /// kind: <c>NotNull</c>, <c>Unique</c>, <c>Range</c> (<c>"argument": "0..100"</c>),
+    /// <c>Referential</c> (<c>"customers.id"</c>), <c>Freshness</c> (<c>"24h"</c>) or
+    /// <c>Expression</c> (the condition a bad row satisfies).
+    /// <para>
+    /// A rule mounted this way belongs to the deployment: the studio runs it and reports it with the
+    /// health findings, and cannot change or delete it. A rule for a connection this studio does not
+    /// have is skipped with a line in the log rather than breaking the others.
+    /// </para>
+    /// <example>
+    /// <code>
+    /// [
+    ///   {
+    ///     "connection": "SHOP",
+    ///     "schema": "public",
+    ///     "table": "invoices",
+    ///     "column": "customer_id",
+    ///     "kind": "NotNull",
+    ///     "message": "every invoice needs a customer"
+    ///   }
+    /// ]
+    /// </code>
+    /// </example>
+    /// </remarks>
+    public static IResourceBuilder<WebDataStudioResource> WithQualityRules(
+        this IResourceBuilder<WebDataStudioResource> builder, string path)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+
+        // A file rather than a folder keeps its own name inside the container, so the studio reads
+        // exactly what was mounted either way. Asked of the file system rather than of the name: a
+        // folder is allowed to have a dot in it, and "rules.d" is not a file.
+        var isFile = File.Exists(path)
+                     || (!Directory.Exists(path) && Path.GetExtension(path).Length > 0);
+
+        var target = isFile ? $"{QualityTarget}/{Path.GetFileName(path)}" : QualityTarget;
+
+        // Read-only: the studio runs these, it does not own them.
+        return builder
+            .WithBindMount(path, target, isReadOnly: true)
+            .WithEnvironment("WDS_QUALITY_FILE", target);
     }
 
     /// <summary>
