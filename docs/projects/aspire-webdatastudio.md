@@ -98,8 +98,13 @@ partitioned table, row-level security and 60 000 page views; carriers and 20 000
 five people worth anonymising in a SQLite file; sessions and telemetry in MongoDB; a key of every
 type in Redis; a bucket with a CSV, an NDJSON and a prefix that reads as one table; and a folder with
 a PDF and a PNG in it. So the first things you can do after `dotnet run` are open a file in a bucket
-as a table and sign in to a studio as `alice` / `alice` without that account existing in the studio
-at all.
+as a table and sign in to a studio with the demo account (`admin` / `change-me-please`) without that
+account existing in the studio at all.
+
+The two engines without SQL are worth a click as well: **Open data** on a MongoDB collection in the
+analytics studio pages it with a `find`, sorted and filtered by the server, and **Open data** on the
+Redis `db0` or a key prefix lists the keys with their type, TTL, length and memory — the inventory of
+a cache, in a grid that sorts and exports. Both arrived in the studio image after 1.2.0.
 
 ## Sharing one studio, or running several
 

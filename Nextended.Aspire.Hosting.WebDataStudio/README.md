@@ -82,8 +82,8 @@ A runnable version of exactly this is in the repository:
 [WebDataStudio.AppHost](https://github.com/fgilde/Nextended/tree/main/Tests/TestProjects/WebDataStudio.AppHost)
 — it starts PostgreSQL, SQL Server, MongoDB, Redis, Azurite, a MinIO with a CSV already in its
 bucket and a Keycloak with a realm already imported, so the first things you can do after
-`dotnet run` are open a file in a bucket as a table and sign in to a studio as `alice` / `alice`
-without that account existing in the studio at all.
+`dotnet run` are open a file in a bucket as a table and sign in to a studio with the demo account
+(`admin` / `change-me-please`) without that account existing in the studio at all.
 
 ## Sharing one studio, or running several
 
@@ -550,8 +550,8 @@ of them comes up with data in it:
 | PostgreSQL `SHOP` | A shop — customers, products, orders, items, a view — plus a document column for the JSON shape panel, a partitioned table with its partitions, a materialised view, a function that raises a notice, a trigger, row-level security with two policies, an enum, a domain, a sequence, a role, a second schema, geography for the map, 60 000 page views without the index they want, and an `invoices` table left dirty on purpose for the data quality rules |
 | SQL Server `ORDERS` | Carriers, deliveries and 20 000 scans, seeded by the studio itself from `seed/ORDERS.sql` |
 | SQLite `SCRATCH` | Five people with real-looking names, addresses, salaries and a secret, the countries they are in and notes about them — the connection the development subset is worth trying on |
-| MongoDB `EVENTS` | Sessions whose documents agree on their shape, telemetry whose documents do not, and a capped collection |
-| Redis `CACHE` | A key of every type Redis has: a string, a JSON string with a TTL, two hashes, a list, a set, a sorted set and a lock |
+| MongoDB `EVENTS` | Sessions whose documents agree on their shape, telemetry whose documents do not, and a capped collection. **Open data** on one of them pages it with a `find` — sorted and filtered by the server |
+| Redis `CACHE` | A key of every type Redis has: a string, a JSON string with a TTL, two hashes, a list, a set, a sorted set and a lock. **Open data** on `db0` or a key prefix lists the keys with their type, TTL, length and memory; on one key, the table its type makes |
 | MinIO `LAKE` | A CSV, an NDJSON export, and a `monthly/` prefix of three files with the same columns that read as one table |
 | Folder `DROP` | The `drop/` folder mounted in: a CSV, an NDJSON, a JSON document on one line, a Markdown file, a PDF and a PNG — the two that are shown where they lie rather than downloaded |
 | Azurite `EXPORTS` | Empty on purpose: it is the container to try an upload into |
@@ -567,8 +567,9 @@ The default studio also gets the five saved queries this demo is about, two sche
 writes by itself every couple of minutes, schema snapshots, an audit trail, an MCP endpoint and a
 folder of export templates. The admin studio adds a login, read-only production connections and
 session limits. The fourth studio has no accounts at all — it signs people in through the Keycloak,
-where `alice` is in `dba-group` and becomes an admin, `bob` is in `developers` and may write, and
-`carol` gets the default role and sees everything read-only. Each password is the name.
+where the demo account is in `dba-group` and becomes an admin, `bob` is in `developers` and may
+write, and `carol` gets the default role and sees everything read-only. All three use the
+`demo-password` parameter.
 
 ```bash
 dotnet run --project Tests/TestProjects/WebDataStudio.AppHost
