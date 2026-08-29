@@ -95,7 +95,11 @@ var shop = postgres.AddDatabase("shop").WithWebDataStudio();
 // on a wall. Same rows.
 builder.AddGrafana()
     .WithAnonymousAdmin()
-    .WithPostgresDatasource(postgres, name: "Shop", database: "shop");
+    .WithPostgresDatasource(postgres, name: "Shop", database: "shop")
+    // A dashboard on those rows, so "the same database" is something you can see rather than
+    // something this comment claims: Customers and Orders by status are the statements the studio's
+    // own Morning dashboard runs, and the numbers move together.
+    .WithDashboards("grafana-dashboards", "Demo");
 
 var sqlServer = builder.AddSqlServer("sql");
 var orders = sqlServer.AddDatabase("orders").WithWebDataStudio();

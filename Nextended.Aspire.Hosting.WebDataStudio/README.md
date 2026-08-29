@@ -722,8 +722,10 @@ where the demo account is in `dba-group` and becomes an admin, `bob` is in `deve
 write, and `carol` gets the default role and sees everything read-only. All three use the
 `demo-password` parameter.
 
-**Grafana is in the stack too, on the same PostgreSQL.** Neither package knows about the other,
-and neither needs to: the *resource* is what they share.
+**Grafana is in the stack too, on the same PostgreSQL**, with a dashboard on those rows: *Customers*
+and *Orders by status* are the statements the studio's own **Morning** dashboard runs, so the two
+windows show the same numbers moving together. Neither package knows about the other, and
+neither needs to: the *resource* is what they share.
 
 ```csharp
 var postgres = builder.AddPostgres("pg");
@@ -731,7 +733,8 @@ var shop = postgres.AddDatabase("shop").WithWebDataStudio();   // the studio get
 
 builder.AddGrafana()
     .WithAnonymousAdmin()
-    .WithPostgresDatasource(postgres, name: "Shop", database: "shop");   // Grafana gets the server
+    .WithPostgresDatasource(postgres, name: "Shop", database: "shop")   // Grafana gets the server
+    .WithDashboards("grafana-dashboards", "Demo");                     // and a page on those rows
 ```
 
 The credentials come from the resource's own parameters rather than being written down twice, and

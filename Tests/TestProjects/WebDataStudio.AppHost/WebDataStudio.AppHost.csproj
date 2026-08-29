@@ -33,6 +33,8 @@
     <None Include="mongo-init\**" CopyToOutputDirectory="PreserveNewest" />
     <!-- One seed script per connection, for the engines that cannot seed themselves. -->
     <None Include="seed\**" CopyToOutputDirectory="PreserveNewest" />
+    <!-- The Grafana dashboard on the same database, mounted into Grafana's provisioning. -->
+    <None Include="grafana-dashboards\**" CopyToOutputDirectory="PreserveNewest" />
     <!-- The saved queries the studio imports at start. -->
     <None Include="queries\**" CopyToOutputDirectory="PreserveNewest" />
     <!-- Files for the folder-as-a-bucket connection: CSV, NDJSON, JSON, Markdown, a PDF, a PNG. -->

@@ -1,0 +1,109 @@
+{
+  "title": "Shop — the same database the studio has open",
+  "uid": "shop-demo",
+  "tags": ["demo", "webdatastudio"],
+  "timezone": "utc",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "time": { "from": "now-24h", "to": "now" },
+  "panels": [
+    {
+      "type": "text",
+      "title": "",
+      "gridPos": { "h": 3, "w": 24, "x": 0, "y": 0 },
+      "options": {
+        "mode": "markdown",
+        "content": "These are the rows WebDataStudio is showing on the connection called **SHOP**, read through Grafana's own Postgres datasource. Neither package knows about the other — they share the `pg` resource this app host created, and the credentials come from its parameters.\n\nOpen the studio's **Morning** dashboard next to this one: `Customers` and `Orders by status` are the same statements, so the numbers move together."
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Customers",
+      "datasource": { "type": "postgres", "uid": "shop" },
+      "gridPos": { "h": 5, "w": 6, "x": 0, "y": 3 },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "colorMode": "value",
+        "graphMode": "none"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT count(*) AS \"customers\" FROM customers",
+          "datasource": { "type": "postgres", "uid": "shop" }
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "Orders",
+      "datasource": { "type": "postgres", "uid": "shop" },
+      "gridPos": { "h": 5, "w": 6, "x": 6, "y": 3 },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "colorMode": "value",
+        "graphMode": "none"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT count(*) AS \"orders\" FROM orders",
+          "datasource": { "type": "postgres", "uid": "shop" }
+        }
+      ]
+    },
+    {
+      "type": "barchart",
+      "title": "Orders by status",
+      "description": "The studio's Morning dashboard runs this statement too.",
+      "datasource": { "type": "postgres", "uid": "shop" },
+      "gridPos": { "h": 5, "w": 12, "x": 12, "y": 3 },
+      "options": { "xField": "status", "legend": { "showLegend": false } },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT status, count(*) AS \"orders\" FROM orders GROUP BY status ORDER BY status",
+          "datasource": { "type": "postgres", "uid": "shop" }
+        }
+      ]
+    },
+    {
+      "type": "table",
+      "title": "The orders themselves",
+      "datasource": { "type": "postgres", "uid": "shop" },
+      "gridPos": { "h": 10, "w": 12, "x": 0, "y": 8 },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT o.id, c.name AS customer, o.status, o.placed_at FROM orders o JOIN customers c ON c.id = o.customer_id ORDER BY o.id DESC LIMIT 20",
+          "datasource": { "type": "postgres", "uid": "shop" }
+        }
+      ]
+    },
+    {
+      "type": "table",
+      "title": "What each customer has spent",
+      "description": "A join worth keeping — which is what the studio's \"As table\" button is for.",
+      "datasource": { "type": "postgres", "uid": "shop" },
+      "gridPos": { "h": 10, "w": 12, "x": 12, "y": 8 },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT c.name AS customer, count(DISTINCT o.id) AS orders, coalesce(sum(i.quantity * i.unit_price), 0) AS total FROM customers c LEFT JOIN orders o ON o.customer_id = c.id LEFT JOIN order_items i ON i.order_id = o.id GROUP BY c.name ORDER BY total DESC",
+          "datasource": { "type": "postgres", "uid": "shop" }
+        }
+      ]
+    }
+  ]
+}

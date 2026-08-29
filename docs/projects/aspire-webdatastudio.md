@@ -754,7 +754,9 @@ analytics one, and an admin studio with a login, read-only connections, an MCP e
 scope and a folder of export templates. `dotnet run` in that folder is the fastest way to see what
 this package does.
 
-**Grafana is in the stack too, on the same PostgreSQL.** Neither package knows about the other, and
+**Grafana is in the stack too, on the same PostgreSQL**, with a dashboard on those rows: *Customers*
+and *Orders by status* are the statements the studio's own **Morning** dashboard runs, so the two
+windows show the same numbers moving together. Neither package knows about the other, and
 neither needs to: the *resource* is what they share.
 
 ```csharp
@@ -763,7 +765,8 @@ var shop = postgres.AddDatabase("shop").WithWebDataStudio();   // the studio get
 
 builder.AddGrafana()
     .WithAnonymousAdmin()
-    .WithPostgresDatasource(postgres, name: "Shop", database: "shop");   // Grafana gets the server
+    .WithPostgresDatasource(postgres, name: "Shop", database: "shop")   // Grafana gets the server
+    .WithDashboards("grafana-dashboards", "Demo");                     // and a page on those rows
 ```
 
 The credentials come from the resource's own parameters rather than being written down twice, and
