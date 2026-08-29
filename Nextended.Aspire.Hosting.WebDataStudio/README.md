@@ -310,6 +310,11 @@ It carries the seed script's guards and one more: **a table that already exists 
 Nothing is written into a read-only connection, nothing into one coloured red — the studio's
 convention for production — and a restart never overwrites what somebody has been working on.
 
+> **Say `.WaitFor(...)` when the source needs a moment.** The copy runs shortly after the studio
+> starts, and a server that is not up yet has nothing to copy — it is logged, and not tried again.
+> Aspire already has the answer: `.WaitFor(postgres)` on the studio.
+
+
 ## Signing in with the provider you already have
 
 `WithLogin` and `WithUser` put accounts in the container's environment: fine for one team, wrong for
@@ -708,12 +713,30 @@ import substitutes from the environment, so changing the parameter changes the s
 The Keycloak client secret is its own parameter, because a client secret is not a person's password.
 
 The default studio also gets the five saved queries this demo is about, two scheduled reports it
-writes by itself every couple of minutes, schema snapshots, an audit trail, an MCP endpoint and a
-folder of export templates. The admin studio adds a login, read-only production connections and
+writes by itself every couple of minutes, a backup of `SHOP` every ten minutes with three kept,
+`SCRATCH` filled from `SHOP` on the first start — PostgreSQL to SQLite, so the column types are
+approximated and you can see what that looks like — plus schema snapshots, an audit trail, an MCP
+endpoint and a folder of export templates. The admin studio adds a login, read-only production connections and
 session limits. The fourth studio has no accounts at all — it signs people in through the Keycloak,
 where the demo account is in `dba-group` and becomes an admin, `bob` is in `developers` and may
 write, and `carol` gets the default role and sees everything read-only. All three use the
 `demo-password` parameter.
+
+**Grafana is in the stack too, on the same PostgreSQL.** Neither package knows about the other,
+and neither needs to: the *resource* is what they share.
+
+```csharp
+var postgres = builder.AddPostgres("pg");
+var shop = postgres.AddDatabase("shop").WithWebDataStudio();   // the studio gets the database
+
+builder.AddGrafana()
+    .WithAnonymousAdmin()
+    .WithPostgresDatasource(postgres, name: "Shop", database: "shop");   // Grafana gets the server
+```
+
+The credentials come from the resource's own parameters rather than being written down twice, and
+the two tools stay what they are: the studio is for asking a question you have not asked before,
+Grafana is for the answer you want on a wall. Same rows.
 
 ```bash
 dotnet run --project Tests/TestProjects/WebDataStudio.AppHost

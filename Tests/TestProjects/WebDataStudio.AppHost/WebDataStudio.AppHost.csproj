@@ -41,6 +41,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\..\Nextended.Aspire.Hosting.WebDataStudio\Nextended.Aspire.Hosting.WebDataStudio.csproj" IsAspireProjectResource="false" />
+    <!-- Grafana and the studio in one stack: two windows onto the same database resource. -->
+    <ProjectReference Include="..\..\..\Nextended.Aspire.Hosting.Grafana\Nextended.Aspire.Hosting.Grafana.csproj" IsAspireProjectResource="false" />
   </ItemGroup>
 
 </Project>

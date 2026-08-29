@@ -1,4 +1,5 @@
 using Aspire.Hosting.ApplicationModel;
+using Nextended.Aspire.Hosting.Grafana;
 using Nextended.Aspire.Hosting.WebDataStudio;
 using Nextended.Aspire.Hosting.WebDataStudio.Resources;
 
@@ -83,6 +84,18 @@ var postgres = builder.AddPostgres("pg")
     .WithInitFiles("init");
 
 var shop = postgres.AddDatabase("shop").WithWebDataStudio();
+
+// --- the same database, seen the other way -------------------------------------------------------
+// Grafana and the studio are two windows onto one server, and neither package knows about the
+// other: the *resource* is what they share. That is the whole wiring — the studio gets the database
+// through WithWebDataStudio above, Grafana gets the server here, and the credentials come from the
+// resource's own parameters rather than being written down twice.
+//
+// The studio is for asking a question you have not asked before; Grafana is for the answer you want
+// on a wall. Same rows.
+builder.AddGrafana()
+    .WithAnonymousAdmin()
+    .WithPostgresDatasource(postgres, name: "Shop", database: "shop");
 
 var sqlServer = builder.AddSqlServer("sql");
 var orders = sqlServer.AddDatabase("orders").WithWebDataStudio();
@@ -277,5 +290,27 @@ studio.WithScheduledQueries(
         "SELECT path, count(*) AS views, round(avg(ms)) AS avg_ms FROM page_views "
         + "GROUP BY path ORDER BY views DESC",
         EveryMinutes: 5, Format: "json"));
+
+// --- backups nobody has to remember --------------------------------------------------------------
+// Every ten minutes is a demo interval, the way the reports above run every two: it is a file you
+// can watch appear rather than something to wait a day for. The dumping is pg_dump's, which is in
+// the studio's image; three are kept and the older ones go.
+studio.WithBackupSchedule("/data/backups",
+    new StudioBackup("shop", "SHOP", EveryMinutes: 10, Keep: 3),
+    new StudioBackup("shop-schema", "SHOP", EveryMinutes: 30, SchemaOnly: true, Keep: 2));
+
+// --- a scratch database that does not start out empty ---------------------------------------------
+// The other kind of seed: not SQL written down, but tables that already exist on another connection.
+// SHOP is PostgreSQL and SCRATCH is a SQLite file, so this also shows what a copy between two
+// engines does to the column types — each one becomes the nearest thing SQLite has.
+//
+// A table that already exists is left alone, so restarting the stack does not overwrite whatever
+// you did to the copy last time.
+studio.WithSeedFrom(new StudioSeedCopy("SHOP", "SCRATCH",
+        ["customers", "orders"], MaxRows: 200))
+    // The copy runs shortly after the studio starts, and a server that is not up yet has nothing to
+    // copy. Aspire already knows how to say "not before this one is healthy", so nothing in the
+    // studio has to retry.
+    .WaitFor(postgres);
 
 builder.Build().Run();

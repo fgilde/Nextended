@@ -330,6 +330,11 @@ It carries the seed script's guards and one more: **a table that already exists 
 Nothing is written into a read-only connection, nothing into one coloured red — the studio's
 convention for production — and a restart never overwrites what somebody has been working on.
 
+> **Say `.WaitFor(...)` when the source needs a moment.** The copy runs shortly after the studio
+> starts, and a server that is not up yet has nothing to copy — it is logged, and not tried again.
+> Aspire already has the answer: `.WaitFor(postgres)` on the studio.
+
+
 ## Several accounts, with roles
 
 `WithLogin` is additive: two calls mean two people can sign in. `WithUser` adds one with a role and,
@@ -748,6 +753,26 @@ MinIO — the MinIO with a bucket and a CSV already in it — behind three studi
 analytics one, and an admin studio with a login, read-only connections, an MCP endpoint, a schema
 scope and a folder of export templates. `dotnet run` in that folder is the fastest way to see what
 this package does.
+
+**Grafana is in the stack too, on the same PostgreSQL.** Neither package knows about the other, and
+neither needs to: the *resource* is what they share.
+
+```csharp
+var postgres = builder.AddPostgres("pg");
+var shop = postgres.AddDatabase("shop").WithWebDataStudio();   // the studio gets the database
+
+builder.AddGrafana()
+    .WithAnonymousAdmin()
+    .WithPostgresDatasource(postgres, name: "Shop", database: "shop");   // Grafana gets the server
+```
+
+The credentials come from the resource's own parameters rather than being written down twice, and
+the two tools stay what they are: the studio is for asking a question you have not asked before,
+Grafana is for the answer you want on a wall. Same rows.
+
+The default studio also takes a backup of `SHOP` every ten minutes with three kept, and fills
+`SCRATCH` from `SHOP` on the first start — PostgreSQL into SQLite, so the column types are
+approximated and you can see what that looks like.
 
 `Tests/TestProjects/AiStack.AppHost` shows the other half: a studio on that stack's PostgreSQL with
 its assistance pointed at the Ollama running next to it, so *explain this statement* works without
