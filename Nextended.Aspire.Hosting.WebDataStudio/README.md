@@ -149,6 +149,10 @@ builder.AddWebDataStudio("studio")
 | `.WithSchemas(connectionName, schemas…)` | Read only these schemas on that connection. On a server with thousands of tables that is the difference between a tree that opens and one that does not. |
 | `.WithExportTemplates(path)` | Mount a folder of export templates — an export format written as text with placeholders rather than as code. |
 | `.WithQualityRules(path)` | Mount the data quality rules the deployment owns, as JSON: rules about the rows rather than the schema, kept in the repository. |
+| `.WithSavedQueries(params SavedStudioQuery[])` | The same queries written here instead of as files — name, statement, optional folder and connection. |
+| `.WithExportTemplates(params StudioExportTemplate[])` | An export format written in the app host rather than as a `.json` file. |
+| `.WithQualityRules(params StudioQualityRule[])` | Data quality rules written in the app host, typed, instead of hand-kept JSON. |
+| `.WithSeedScript(connection, sql)` | A seed script for one connection, written here rather than as `{CONNECTION}.sql`. |
 | `.WithSchemaSnapshots(path?)` | Snapshot every connection's schema on start and report the drift since the last one. |
 | `.WithOpenTelemetry(collector \| url?, serviceName?)` | Send the studio's traces and metrics to an OTLP collector — a resource in the stack, or a URL. |
 | `.WithSharedResults(ttl?, isPublic?, maxRows?)` | Let people keep a result and share it as a link. Off by default. |
@@ -197,6 +201,41 @@ shop.WithWebDataStudio(s => s.WithTitle("Development").WithTheme(WebDataStudioTh
 shop.WithWebDataStudio(s => s.WithTitle("Production").WithTheme(WebDataStudioTheme.Stage)
     .WithReadOnly(), studioName: "prod-studio");
 ```
+
+## From a folder, or written here — or both
+
+Everything the studio reads from a repository can also be written in the app host:
+
+```csharp
+builder.AddWebDataStudio()
+    // what the repository ships, and a review can catch
+    .WithSavedQueriesFromDirectory("queries")
+    .WithQualityRules("quality")
+    // what belongs to this stack
+    .WithSavedQueries(
+        new SavedStudioQuery("Orders without a customer",
+            "SELECT * FROM orders WHERE customer_id IS NULL", folder: "Ad hoc", connection: "SHOP"))
+    .WithQualityRules(new StudioQualityRule(
+        "SHOP", "orders", "NotNull", Column: "customer_id",
+        Message: "an order without a customer is one nobody can invoice"))
+    .WithExportTemplates(new StudioExportTemplate(
+        "wiki", "Wiki table", "txt", "text/plain",
+        Row: "| {{values}} |", Header: "| {{columns}} |", Separator: " | "))
+    .WithSeedScript("SCRATCH", "INSERT INTO people (name) VALUES ('ada');");
+```
+
+**Both at once is the point.** Each of these settings takes a list of paths, so the folder version
+and the inline version add up rather than one replacing the other — which is what happened before,
+silently and in call order.
+
+The inline files are created *inside the container* rather than mounted from the host, so a
+published stack carries them the same way a local one does and there is no folder to keep in step.
+Calling one of these twice adds to what the earlier call wrote; a saved query with the same name
+replaces itself rather than appearing twice.
+
+What stays a file-only thing on purpose: **accounts**. `WithUser` and `WithLogin` take a parameter
+for the secret, and a list of people with passwords does not belong in a repository file — that is
+what [an identity provider](#signing-in-with-the-provider-you-already-have) is for.
 
 ## Signing in with the provider you already have
 

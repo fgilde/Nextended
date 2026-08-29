@@ -38,10 +38,11 @@ public static class WebDataStudioFilesExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
 
-        // Read-only: the studio reads these, it does not own them.
-        return builder
-            .WithBindMount(path, TemplatesTarget, isReadOnly: true)
-            .WithEnvironment("WDS_EXPORT_TEMPLATES_DIR", TemplatesTarget);
+        // Read-only: the studio reads these, it does not own them. The setting is a list, so a
+        // folder and the templates an app host wrote inline add up rather than replacing each other.
+        builder.WithBindMount(path, TemplatesTarget, isReadOnly: true);
+
+        return WebDataStudioInlineFiles.Mounted(builder, "WDS_EXPORT_TEMPLATES_DIR", TemplatesTarget);
     }
 
     /// <summary>
@@ -89,10 +90,11 @@ public static class WebDataStudioFilesExtensions
 
         var target = isFile ? $"{QualityTarget}/{Path.GetFileName(path)}" : QualityTarget;
 
-        // Read-only: the studio runs these, it does not own them.
-        return builder
-            .WithBindMount(path, target, isReadOnly: true)
-            .WithEnvironment("WDS_QUALITY_FILE", target);
+        // Read-only: the studio runs these, it does not own them. The setting is a list, so a
+        // repository's rules and the ones an app host wrote both run.
+        builder.WithBindMount(path, target, isReadOnly: true);
+
+        return WebDataStudioInlineFiles.Mounted(builder, "WDS_QUALITY_FILE", target);
     }
 
     /// <summary>
@@ -140,10 +142,11 @@ public static class WebDataStudioFilesExtensions
 
         builder.Resource.SavedQueriesPath = path;
 
-        // Read-only: the studio imports these, it does not own them.
-        return builder
-            .WithBindMount(path, QueriesTarget, isReadOnly: true)
-            .WithEnvironment("WDS_SAVED_QUERIES_DIR", QueriesTarget);
+        // Read-only: the studio imports these, it does not own them. The setting is a list, so
+        // this folder and any WithSavedQueries written in the app host both count.
+        builder.WithBindMount(path, QueriesTarget, isReadOnly: true);
+
+        return WebDataStudioInlineFiles.Mounted(builder, "WDS_SAVED_QUERIES_DIR", QueriesTarget);
     }
 
     /// <summary>
@@ -169,8 +172,8 @@ public static class WebDataStudioFilesExtensions
         var isFile = Path.GetExtension(path).Equals(".sql", StringComparison.OrdinalIgnoreCase);
         var target = isFile ? $"{SeedTarget}/seed.sql" : SeedTarget;
 
-        return builder
-            .WithBindMount(path, target, isReadOnly: true)
-            .WithEnvironment("WDS_SEED_SQL", target);
+        builder.WithBindMount(path, target, isReadOnly: true);
+
+        return WebDataStudioInlineFiles.Mounted(builder, "WDS_SEED_SQL", target);
     }
 }

@@ -118,6 +118,15 @@ public sealed class WebDataStudioResource(string name) : ContainerResource(name)
     internal List<ScheduledStudioQuery> ScheduleList { get; } = [];
 
     /// <summary>Folder of <c>.sql</c> files imported as saved queries, from <c>WithSavedQueriesFromDirectory</c>.</summary>
+    /// The files this app host wrote itself, per folder in the container: name to content. Kept so
+    /// a second call adds to the first rather than replacing what it wrote.
+    internal Dictionary<string, Dictionary<string, string>> InlineFiles { get; } =
+        new(StringComparer.Ordinal);
+
+    /// The paths each path-taking setting names, in the order they were added. The studio reads
+    /// these settings as a list, so a repository folder and an inline one both count.
+    internal Dictionary<string, string[]> PathSettings { get; } = new(StringComparer.Ordinal);
+
     public string? SavedQueriesPath { get; internal set; }
 
     /// <summary>Seed script or folder, from <c>WithSeedScript</c>.</summary>

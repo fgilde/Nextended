@@ -31,6 +31,19 @@ var studio = builder.AddWebDataStudio()
     .WithSavedQueriesFromDirectory("queries")
     // Export formats written as text with placeholders rather than as code to run.
     .WithExportTemplates("export-templates")
+    // The same three things, written here instead of in a folder — and both at once, which is the
+    // point: the repository ships what a review should catch, the app host adds what belongs to
+    // this stack.
+    .WithSavedQueries(
+        new SavedStudioQuery("Everything in this database", "SELECT * FROM customers", "Ad hoc", "SHOP"),
+        new SavedStudioQuery("Orders without a customer",
+            "SELECT * FROM orders WHERE customer_id IS NULL", "Ad hoc", "SHOP"))
+    .WithExportTemplates(new StudioExportTemplate(
+        "wiki", "Wiki table", "txt", "text/plain",
+        Row: "| {{values}} |", Header: "| {{columns}} |", Separator: " | "))
+    .WithQualityRules(new StudioQualityRule(
+        "SHOP", "orders", "NotNull", Column: "customer_id",
+        Message: "an order without a customer is one nobody can invoice"))
     // Snapshot every connection's schema on start and report the drift since the last one.
     .WithSchemaSnapshots()
     // Who did what through this studio.
