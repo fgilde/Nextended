@@ -44,6 +44,17 @@ var studio = builder.AddWebDataStudio()
     .WithQualityRules(new StudioQualityRule(
         "SHOP", "orders", "NotNull", Column: "customer_id",
         Message: "an order without a customer is one nobody can invoice"))
+    // A page everybody sees on the first morning, a snippet everybody has, and the clock the
+    // timestamps are shown on — all three belong to this stack rather than to one browser.
+    .WithDashboards(new StudioDashboard("Morning",
+    [
+        new StudioTile("Customers", "SHOP", "SELECT count(*) FROM customers"),
+        new StudioTile("Orders by status", "SHOP",
+            "SELECT status, count(*) FROM orders GROUP BY status", View: "chart", Width: 2),
+    ], RefreshSeconds: 30))
+    .WithSnippets(new StudioSnippet("recent", "rows from the last day",
+        "WHERE ${1:placed} > now() - interval '1 day'"))
+    .WithDefaultPreferences(timeZone: "utc")
     // Snapshot every connection's schema on start and report the drift since the last one.
     .WithSchemaSnapshots()
     // Who did what through this studio.

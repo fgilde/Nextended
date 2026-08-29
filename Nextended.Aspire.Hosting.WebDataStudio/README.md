@@ -153,6 +153,14 @@ builder.AddWebDataStudio("studio")
 | `.WithExportTemplates(params StudioExportTemplate[])` | An export format written in the app host rather than as a `.json` file. |
 | `.WithQualityRules(params StudioQualityRule[])` | Data quality rules written in the app host, typed, instead of hand-kept JSON. |
 | `.WithSeedScript(connection, sql)` | A seed script for one connection, written here rather than as `{CONNECTION}.sql`. |
+| `.WithConnections(params StudioConnectionEntry[])` | Connections that are not resources in this stack — a legacy server, somebody else's replica. Read-only in the UI, like every environment connection. |
+| `.WithConnectionsFromFile(path)` | The same array, kept as JSON in your repository. |
+| `.WithDashboards(params StudioDashboard[])` | A page of statements everybody sees the first time they open the studio. It belongs to the deployment: shown, not editable there. |
+| `.WithDashboardsFromFile(path)` | The same, as JSON in your repository. |
+| `.WithSnippets(params StudioSnippet[])` | Editor snippets for everybody. A person's own snippet with the same prefix wins for that person. |
+| `.WithSnippetsFromFile(path)` | The same, as JSON. |
+| `.WithMaskingFromFile(path)` | The masking baseline as a file: `{ "maskByDefault": true, "extra": [...], "never": [...] }`. Counts alongside `WithMaskedColumns`. |
+| `.WithDefaultPreferences(timeZone?, pageSize?, …)` | What a studio starts with before anybody changed it — the time zone timestamps are shown in, rows per page, and the rest. A starting point, not a lock. |
 | `.WithSchemaSnapshots(path?)` | Snapshot every connection's schema on start and report the drift since the last one. |
 | `.WithOpenTelemetry(collector \| url?, serviceName?)` | Send the studio's traces and metrics to an OTLP collector — a resource in the stack, or a URL. |
 | `.WithSharedResults(ttl?, isPublic?, maxRows?)` | Let people keep a result and share it as a link. Off by default. |
@@ -236,6 +244,39 @@ replaces itself rather than appearing twice.
 What stays a file-only thing on purpose: **accounts**. `WithUser` and `WithLogin` take a parameter
 for the secret, and a list of people with passwords does not belong in a repository file — that is
 what [an identity provider](#signing-in-with-the-provider-you-already-have) is for.
+
+### The rest of it: connections, dashboards, snippets, preferences
+
+The same two ways — written here, or read from a file, or both — for everything else a deployment
+brings with it:
+
+```csharp
+builder.AddWebDataStudio()
+    // servers that are not resources in this stack
+    .WithConnections(new StudioConnectionEntry("LEGACY", "sqlserver",
+        "Server=old;Database=erp;Trusted_Connection=True", ReadOnly: true, Group: "Old"))
+    // the page everybody sees on the first morning
+    .WithDashboards(new StudioDashboard("Morning",
+    [
+        new StudioTile("Orders today", "SHOP", "SELECT count(*) FROM orders WHERE placed > current_date"),
+        new StudioTile("By status", "SHOP",
+            "SELECT status, count(*) FROM orders GROUP BY status", View: "chart", Width: 2),
+    ], RefreshSeconds: 60))
+    // the filter everybody types
+    .WithSnippets(new StudioSnippet("tenant", "tenant filter", "WHERE tenant_id = ${1:1}"))
+    // and what a studio starts with: UTC, so a screenshot cannot be misread
+    .WithDefaultPreferences(timeZone: "utc", pageSize: 500);
+```
+
+**What belongs to the deployment stays its own.** A shipped dashboard is shown with a
+*from the deployment* badge and its edit and delete buttons are off — somebody who wants it
+different saves a copy under another name. A shipped snippet is offered to everybody, and a person's
+own snippet with the same prefix wins for that person. The preferences are a starting point: the
+first person to change one keeps their change.
+
+**A connection string with a secret in it belongs in a parameter.** `WithConnections` takes plain
+text and is meant for what a repository may hold; `WithConnection(name, connectionString, …)` takes
+a `ParameterResource`, which is where a password goes.
 
 ## Signing in with the provider you already have
 
