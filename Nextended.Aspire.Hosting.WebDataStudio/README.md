@@ -48,7 +48,7 @@ var storage = builder.AddAzureStorage("storage").RunAsEmulator();   // Azurite w
 builder.AddWebDataStudio("studio")
     .WithReference(shop)                                    // every engine, one call each
     .WithReference(orders, readOnly: true, color: "#e03131")
-    .WithBlobStorage(storage.AddBlobs("exports"))           // a container, browsable and queryable
+    .WithBlobStorage(storage.AddBlobs("blobs"), container: "exports")  // browsable and queryable
     .WithStorage("LAKE", "s3://lake?region=eu-central-1")   // AWS, MinIO, R2, Wasabi, Ceph
     .WithStorage("DROP", "file:///data/incoming")           // or just a folder
     .WithSchemas("shop", "public", "sales")                 // don't read 5000 tables to show 12
@@ -503,12 +503,20 @@ or for capping how much one keeps.
 
 ```csharp
 var storage = builder.AddAzureStorage("storage").RunAsEmulator();
-var exports = storage.AddBlobs("exports");
+var blobs = storage.AddBlobs("blobs");
 
-studio.WithBlobStorage(exports);                                  // Azurite now, the account later
+// The container as its own resource, which is what creates it — in Azurite while developing and in
+// the real account once deployed.
+storage.AddBlobContainer("exports");
+
+studio.WithBlobStorage(blobs, container: "exports");               // Azurite now, the account later
 studio.WithStorage("LAKE", "s3://bucket/exports?region=eu-central-1");
 studio.WithStorage("DROP", "file:///data/incoming", readOnly: true);
 ```
+
+**`AddBlobs` models the blob service, not a container.** A connection that names one nobody created
+answers `ContainerNotFound` on the first click — the studio says so in a sentence rather than in the
+provider's page of XML, but the container still has to exist. `AddBlobContainer` is what makes it.
 
 A bucket is a connection like any other: the studio browses containers, prefixes and objects in the
 same tree, one page at a time, and reads a file as a table — a Parquet or a CSV in a bucket opens in
@@ -703,7 +711,7 @@ of them comes up with data in it:
 | Redis `CACHE` | A key of every type Redis has: a string, a JSON string with a TTL, two hashes, a list, a set, a sorted set and a lock. **Open data** on `db0` or a key prefix lists the keys with their type, TTL, length and memory; on one key, the table its type makes |
 | MinIO `LAKE` | A CSV, an NDJSON export, and a `monthly/` prefix of three files with the same columns that read as one table |
 | Folder `DROP` | The `drop/` folder mounted in: a CSV, an NDJSON, a JSON document on one line, a Markdown file, a PDF and a PNG — the two that are shown where they lie rather than downloaded |
-| Azurite `EXPORTS` | Empty on purpose: it is the container to try an upload into |
+| Azurite `EXPORTS` | An empty container, created by the app host and there to try an upload into. Empty is not the same as missing: `AddBlobs` models the service, `AddBlobContainer` makes the container |
 
 **One account for the whole demo.** Two parameters — `demo-user` (`admin`) and `demo-password`
 (`change-me-please`) — are what every part of it asks for: the admin studio's login, MinIO's root

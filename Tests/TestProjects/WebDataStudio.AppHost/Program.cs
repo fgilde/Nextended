@@ -156,7 +156,12 @@ mongo.AddDatabase("events")
 //    WithBlobStorage passes the resource's connection string through as it is; the account name is
 //    inside it either way, so nothing has to be repeated here.
 var storage = builder.AddAzureStorage("storage").RunAsEmulator();
-var exports = storage.AddBlobs("exports");
+var blobs = storage.AddBlobs("blobs");
+
+// The container itself, as its own resource: AddBlobs models the blob *service*, and a connection
+// that names a container nobody created answers "ContainerNotFound" on the first click. This is
+// what creates it — in Azurite while developing, and in the real account once deployed.
+storage.AddBlobContainer("exports");
 
 // 2. MinIO, which is what an S3 endpoint looks like when it is part of your own stack. The URL is
 //    only known once the stack runs, so it is a reference expression rather than a string.
@@ -241,7 +246,7 @@ builder.AddWebDataStudio("admin-studio")
     .WithBindMount("drop", "/data/incoming")
     .WithStorage("DROP", "file:///data/incoming", readOnly: true, group: "Files")
     // The Azure emulator, and the MinIO from above with its endpoint and keys resolved at run time.
-    .WithBlobStorage(exports, group: "Buckets")
+    .WithBlobStorage(blobs, container: "exports", connectionName: "EXPORTS", group: "Buckets")
     .WithStorage("LAKE", ReferenceExpression.Create(
         $"s3://lake?endpoint={minio.GetEndpoint("api")}&access={demoUser}&secret={demoPassword}&region=us-east-1"),
         group: "Buckets")
