@@ -37,6 +37,21 @@ public sealed record StudioConnectionEntry(string Name, string Engine, string Co
     bool ReadOnly = false, string? Color = null, string? Group = null);
 
 /// <summary>
+/// One backup the studio takes on its own, without anybody remembering to.
+/// </summary>
+/// <param name="Name">What the job is called. It also names the files it writes.</param>
+/// <param name="Connection">Which connection to dump, by the name the studio shows.</param>
+/// <param name="EveryMinutes">Every so many minutes, or null for a daily one.</param>
+/// <param name="DailyAtUtc">Once a day at this time in UTC, e.g. <c>02:00</c>.</param>
+/// <param name="Format">plain, custom or tar, where the engine's tool has a choice.</param>
+/// <param name="SchemaOnly">The shape without the rows.</param>
+/// <param name="Keep">How many files of this job to keep. The oldest go, because a volume that
+/// fills up is how a backup schedule stops being one.</param>
+public sealed record StudioBackup(string Name, string Connection,
+    int? EveryMinutes = null, string? DailyAtUtc = null, string? Format = null,
+    bool SchemaOnly = false, int Keep = 7);
+
+/// <summary>
 /// The rest of what a deployment can bring with it: connections that are not resources, the masking
 /// baseline, dashboards, editor snippets, and the preferences a studio starts with.
 /// </summary>
@@ -47,6 +62,9 @@ public sealed record StudioConnectionEntry(string Name, string Engine, string Co
 /// </remarks>
 public static class WebDataStudioShippedExtensions
 {
+    private const string BackupScheduleFolder = "/data/backup-schedule-inline";
+    private const string BackupScheduleTarget = "/data/backup-schedule";
+
     private const string ConnectionsFolder = "/data/connections-inline";
     private const string MaskingFolder = "/data/masking-inline";
     private const string DashboardsFolder = "/data/dashboards-inline";
@@ -204,6 +222,91 @@ public static class WebDataStudioShippedExtensions
         builder.WithBindMount(path, target, isReadOnly: true);
 
         return WebDataStudioInlineFiles.Mounted(builder, "WDS_DASHBOARD_FILE", target);
+    }
+
+
+    // --- backups the studio takes on its own -------------------------------------------------------
+
+    /// <summary>
+    /// Takes a dump on a schedule, so a stack you leave running has something to go back to.
+    /// </summary>
+    /// <param name="builder">The studio.</param>
+    /// <param name="directory">Where the files go inside the container. Mount a volume there, or
+    /// the dumps live exactly as long as the container does.</param>
+    /// <param name="backups">The jobs.</param>
+    /// <remarks>
+    /// <para>
+    /// The dumping is the engine's own tool — <c>pg_dump</c>, <c>mysqldump</c>,
+    /// <c>mongodump</c> — which has to be in the studio's image; the studio says so rather than
+    /// writing an empty file when it is not.
+    /// </para>
+    /// <para>
+    /// Two ways of saying when: <c>EveryMinutes</c>, or <c>DailyAtUtc</c>. There is no cron
+    /// parser, on purpose: nobody asked the studio to be a scheduler.
+    /// </para>
+    /// </remarks>
+    public static IResourceBuilder<WebDataStudioResource> WithBackupSchedule(
+        this IResourceBuilder<WebDataStudioResource> builder, string directory,
+        params StudioBackup[] backups)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrWhiteSpace(directory);
+
+        var written = (backups ?? []).Where(one => one is not null).ToList();
+
+        foreach (var backup in written)
+        {
+            if (string.IsNullOrWhiteSpace(backup.Name) || string.IsNullOrWhiteSpace(backup.Connection))
+                throw new ArgumentException("a backup job needs a name and a connection", nameof(backups));
+
+            if (backup.EveryMinutes is null && string.IsNullOrWhiteSpace(backup.DailyAtUtc))
+                throw new ArgumentException(
+                    $"'{backup.Name}' never runs: say EveryMinutes or DailyAtUtc", nameof(backups));
+
+            if (backup.EveryMinutes is { } minutes and < 1)
+                throw new ArgumentOutOfRangeException(nameof(backups),
+                    $"'{backup.Name}' would run every {minutes} minutes");
+
+            if (backup.Keep < 0)
+                throw new ArgumentOutOfRangeException(nameof(backups),
+                    $"'{backup.Name}' cannot keep {backup.Keep} files");
+        }
+
+        if (written.Count == 0) return builder;
+
+        builder.WithEnvironment("WDS_BACKUP_DIR", directory);
+
+        return WebDataStudioInlineFiles.AddJson(builder, "WDS_BACKUP_SCHEDULE_FILE",
+            BackupScheduleFolder, "backups.json",
+            written.Select(backup => new
+            {
+                name = backup.Name,
+                connection = backup.Connection,
+                everyMinutes = backup.EveryMinutes,
+                dailyAtUtc = backup.DailyAtUtc,
+                format = backup.Format,
+                schemaOnly = backup.SchemaOnly,
+                keep = backup.Keep,
+            }));
+    }
+
+    /// <summary>
+    /// The same schedule, kept as JSON in your repository. The file has the shape
+    /// <see cref="WithBackupSchedule(IResourceBuilder{WebDataStudioResource}, string, StudioBackup[])"/>
+    /// writes.
+    /// </summary>
+    public static IResourceBuilder<WebDataStudioResource> WithBackupScheduleFromFile(
+        this IResourceBuilder<WebDataStudioResource> builder, string path, string directory)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        ArgumentException.ThrowIfNullOrWhiteSpace(directory);
+
+        var target = $"{BackupScheduleTarget}/{Path.GetFileName(path)}";
+        builder.WithBindMount(path, target, isReadOnly: true);
+        builder.WithEnvironment("WDS_BACKUP_DIR", directory);
+
+        return WebDataStudioInlineFiles.Mounted(builder, "WDS_BACKUP_SCHEDULE_FILE", target);
     }
 
     // --- snippets ---------------------------------------------------------------------------------

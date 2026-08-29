@@ -50,7 +50,10 @@ public static class WebDataStudioBuilderExtensions
             // The resource name is what the dashboard calls this studio; showing the same name in
             // the studio itself is what tells three of them apart.
             .WithEnvironment("WDS_TITLE", name)
-            .WithHttpHealthCheck("/api/auth/me", endpointName: WebDataStudioResource.HttpEndpointName);
+            // The studio's own health endpoint: it is exempt from sign-in and from tracing, and it
+            // answers "degraded" when a store is not usable rather than only proving the
+            // process is up.
+            .WithHttpHealthCheck("/api/health", endpointName: WebDataStudioResource.HttpEndpointName);
 
         // A named volume locally, nothing when published. Aspire turns a volume into an Azure
         // Files share on Container Apps, and the studio keeps its connections, history and

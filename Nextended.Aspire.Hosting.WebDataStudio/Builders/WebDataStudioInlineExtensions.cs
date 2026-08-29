@@ -54,8 +54,22 @@ public sealed record StudioQualityRule(
 /// inside the container, so a published stack carries them the same way a local one does — there is
 /// no folder on anybody's machine to keep in step.
 /// </remarks>
+/// <summary>
+/// Tables to copy from one connection into another when the stack comes up, for a development
+/// database that should not start out empty.
+/// </summary>
+/// <param name="From">Where the rows are, by the name the studio shows.</param>
+/// <param name="To">Where they should be.</param>
+/// <param name="Tables">Which tables. Each is created in the target and filled.</param>
+/// <param name="MaxRows">At most this many rows per table. 10 000 by default: this is a seed, not
+/// a replica.</param>
+/// <param name="Schema">The schema to create them in, where the target engine has schemas.</param>
+public sealed record StudioSeedCopy(string From, string To, IReadOnlyList<string> Tables,
+    int? MaxRows = null, string? Schema = null);
+
 public static class WebDataStudioInlineExtensions
 {
+    private const string SeedFromFolder = "/data/seed-from-inline";
     private const string QueriesFolder = "/data/queries-inline";
     private const string TemplatesFolder = "/data/export-templates-inline";
     private const string QualityFolder = "/data/quality-inline";
@@ -187,6 +201,65 @@ public static class WebDataStudioInlineExtensions
                 argument = rule.Argument,
                 message = rule.Message,
                 enabled = rule.Enabled,
+            }));
+    }
+
+    /// <summary>
+    /// Fills one connection from another when the stack comes up — the other kind of seed.
+    /// </summary>
+    /// <param name="builder">The studio.</param>
+    /// <param name="copies">What to copy where.</param>
+    /// <remarks>
+    /// <para>
+    /// <see cref="WithSeedScript"/> is the answer when you can write the data down. This is the
+    /// answer when you cannot: the tables already exist somewhere — a staging server, a container
+    /// this stack brought up with a sample database in it — and a fresh stack should come up with
+    /// them rather than with empty tables.
+    /// </para>
+    /// <para>
+    /// The same guards a seed script has, plus one: <b>a table that already exists is left
+    /// alone</b>. Nothing is copied into a read-only connection, nothing into one coloured red —
+    /// the studio's convention for production — and a restart never overwrites what somebody has
+    /// been working on.
+    /// </para>
+    /// </remarks>
+    public static IResourceBuilder<WebDataStudioResource> WithSeedFrom(
+        this IResourceBuilder<WebDataStudioResource> builder, params StudioSeedCopy[] copies)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        var written = (copies ?? []).Where(one => one is not null).ToList();
+
+        foreach (var copy in written)
+        {
+            if (string.IsNullOrWhiteSpace(copy.From) || string.IsNullOrWhiteSpace(copy.To))
+                throw new ArgumentException("a seed copy needs a source and a target connection",
+                    nameof(copies));
+
+            if (copy.From.Equals(copy.To, StringComparison.OrdinalIgnoreCase))
+                throw new ArgumentException(
+                    $"'{copy.From}' cannot be seeded from itself", nameof(copies));
+
+            if (copy.Tables is null || copy.Tables.Count == 0)
+                throw new ArgumentException(
+                    $"say which tables to copy from '{copy.From}'", nameof(copies));
+
+            if (copy.MaxRows is { } rows and < 1)
+                throw new ArgumentOutOfRangeException(nameof(copies),
+                    $"copying {rows} rows from '{copy.From}' would copy nothing");
+        }
+
+        if (written.Count == 0) return builder;
+
+        return WebDataStudioInlineFiles.AddJson(builder, "WDS_SEED_FROM_FILE", SeedFromFolder,
+            "seed-from.json",
+            written.Select(copy => new
+            {
+                from = copy.From,
+                to = copy.To,
+                tables = copy.Tables,
+                maxRows = copy.MaxRows,
+                schema = copy.Schema,
             }));
     }
 

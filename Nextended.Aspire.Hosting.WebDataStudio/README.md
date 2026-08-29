@@ -161,6 +161,9 @@ builder.AddWebDataStudio("studio")
 | `.WithSnippetsFromFile(path)` | The same, as JSON. |
 | `.WithMaskingFromFile(path)` | The masking baseline as a file: `{ "maskByDefault": true, "extra": [...], "never": [...] }`. Counts alongside `WithMaskedColumns`. |
 | `.WithDefaultPreferences(timeZone?, pageSize?, …)` | What a studio starts with before anybody changed it — the time zone timestamps are shown in, rows per page, and the rest. A starting point, not a lock. |
+| `.WithBackupSchedule(directory, params StudioBackup[])` | Dumps the studio takes on its own: every so many minutes or daily at a time in UTC, keeping the newest N. Mount a volume at `directory`, or they live as long as the container does. |
+| `.WithBackupScheduleFromFile(path, directory)` | The same schedule, as JSON in your repository. |
+| `.WithSeedFrom(params StudioSeedCopy[])` | Fills one connection from another when the stack comes up: the tables are created in the target and filled. A table that already exists is left alone. |
 | `.WithSchemaSnapshots(path?)` | Snapshot every connection's schema on start and report the drift since the last one. |
 | `.WithOpenTelemetry(collector \| url?, serviceName?)` | Send the studio's traces and metrics to an OTLP collector — a resource in the stack, or a URL. |
 | `.WithSharedResults(ttl?, isPublic?, maxRows?)` | Let people keep a result and share it as a link. Off by default. |
@@ -277,6 +280,35 @@ first person to change one keeps their change.
 **A connection string with a secret in it belongs in a parameter.** `WithConnections` takes plain
 text and is meant for what a repository may hold; `WithConnection(name, connectionString, …)` takes
 a `ParameterResource`, which is where a password goes.
+
+### Backups, and data that already exists somewhere
+
+Two things that make a stack you leave running:
+
+```csharp
+builder.AddWebDataStudio()
+    // a dump every night, seven kept, into a volume
+    .WithBackupSchedule("/backups",
+        new StudioBackup("nightly", "SHOP", DailyAtUtc: "02:00", Keep: 7))
+    // and a development database that does not start out empty
+    .WithSeedFrom(new StudioSeedCopy("STAGING", "DEV",
+        ["countries", "products", "customers"], MaxRows: 500));
+```
+
+**The dump is the engine's own tool** — `pg_dump`, `mysqldump`, `mongodump` — which has to be in the
+studio's image; the run says so rather than writing an empty file when it is not. Two ways of saying
+when: `EveryMinutes`, or `DailyAtUtc`. There is no cron parser on purpose. `Keep` prunes this job's
+own files and nobody else's, because a volume that fills up is how a backup schedule stops being
+one. `GET /api/admin/backup-schedule` says what the jobs are and how the last run of each went.
+
+**`WithSeedFrom` is the other kind of seed.** `WithSeedScript` is the answer when you can write the
+data down; this is the answer when you cannot, because the tables already exist on a staging server
+or in a container this stack brought up. Each table is created in the target and filled, at most
+`MaxRows` rows — a seed, not a replica.
+
+It carries the seed script's guards and one more: **a table that already exists is left alone**.
+Nothing is written into a read-only connection, nothing into one coloured red — the studio's
+convention for production — and a restart never overwrites what somebody has been working on.
 
 ## Signing in with the provider you already have
 

@@ -295,6 +295,85 @@ public class WebDataStudioInlineTests
             Add().WithDefaultPreferences(notifyAfterSeconds: -1));
     }
 
+    // --- seeding one connection from another --------------------------------------------------------
+
+    [Fact]
+    public async Task A_seed_copy_is_written_as_the_file_the_studio_reads()
+    {
+        var studio = Add().WithSeedFrom(
+            new StudioSeedCopy("STAGING", "DEV", ["countries", "customers"], MaxRows: 500));
+
+        var file = Assert.Single(FilesOf(studio.Resource)["/data/seed-from-inline"]);
+
+        Assert.Equal("seed-from.json", file.Name);
+        Assert.Contains("\"from\": \"STAGING\"", file.Contents);
+        Assert.Contains("\"countries\"", file.Contents);
+        Assert.Contains("\"maxRows\": 500", file.Contents);
+
+        Assert.Equal("/data/seed-from-inline", (await EnvOf(studio.Resource))["WDS_SEED_FROM_FILE"]);
+    }
+
+    [Fact]
+    public void A_copy_that_cannot_work_is_refused()
+    {
+        // No tables named is a copy that does nothing and looks like it should.
+        Assert.Throws<ArgumentException>(() =>
+            Add().WithSeedFrom(new StudioSeedCopy("STAGING", "DEV", [])));
+
+        // A connection cannot be seeded from itself.
+        Assert.Throws<ArgumentException>(() =>
+            Add().WithSeedFrom(new StudioSeedCopy("DEV", "dev", ["countries"])));
+
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            Add().WithSeedFrom(new StudioSeedCopy("STAGING", "DEV", ["countries"], MaxRows: 0)));
+    }
+
+    // --- backups the studio takes on its own -------------------------------------------------------
+
+    [Fact]
+    public async Task A_backup_schedule_is_written_as_the_file_the_studio_reads()
+    {
+        var studio = Add().WithBackupSchedule("/backups",
+            new StudioBackup("nightly", "SHOP", DailyAtUtc: "02:00", Keep: 3));
+
+        var file = Assert.Single(FilesOf(studio.Resource)["/data/backup-schedule-inline"]);
+
+        Assert.Equal("backups.json", file.Name);
+        Assert.Contains("\"name\": \"nightly\"", file.Contents);
+        Assert.Contains("\"dailyAtUtc\": \"02:00\"", file.Contents);
+        Assert.Contains("\"keep\": 3", file.Contents);
+
+        var env = await EnvOf(studio.Resource);
+        Assert.Equal("/data/backup-schedule-inline", env["WDS_BACKUP_SCHEDULE_FILE"]);
+        Assert.Equal("/backups", env["WDS_BACKUP_DIR"]);
+    }
+
+    [Fact]
+    public void A_job_that_never_runs_is_refused()
+    {
+        // Neither EveryMinutes nor DailyAtUtc means a job that exists and never fires, which is
+        // worse than no job at all: somebody believes there are backups.
+        Assert.Throws<ArgumentException>(() =>
+            Add().WithBackupSchedule("/backups", new StudioBackup("nightly", "SHOP")));
+
+        Assert.Throws<ArgumentException>(() =>
+            Add().WithBackupSchedule("/backups", new StudioBackup("", "SHOP", EveryMinutes: 60)));
+
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            Add().WithBackupSchedule("/backups", new StudioBackup("x", "SHOP", EveryMinutes: 0)));
+    }
+
+    [Fact]
+    public async Task A_schedule_can_come_from_a_file_in_the_repository()
+    {
+        var studio = Add().WithBackupScheduleFromFile(
+            Path.Combine(Directory.GetCurrentDirectory(), "backups.json"), "/backups");
+
+        var env = await EnvOf(studio.Resource);
+        Assert.Equal("/data/backup-schedule/backups.json", env["WDS_BACKUP_SCHEDULE_FILE"]);
+        Assert.Equal("/backups", env["WDS_BACKUP_DIR"]);
+    }
+
     // --- masking ---------------------------------------------------------------------------------
 
     [Fact]
