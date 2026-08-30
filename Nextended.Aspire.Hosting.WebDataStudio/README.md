@@ -709,7 +709,7 @@ of them comes up with data in it:
 | SQLite `SCRATCH` | Five people with real-looking names, addresses, salaries and a secret, the countries they are in and notes about them — the connection the development subset is worth trying on |
 | MongoDB `EVENTS` | Sessions whose documents agree on their shape, telemetry whose documents do not, and a capped collection. **Open data** on one of them pages it with a `find` — sorted and filtered by the server |
 | Redis `CACHE` | A key of every type Redis has: a string, a JSON string with a TTL, two hashes, a list, a set, a sorted set and a lock. **Open data** on `db0` or a key prefix lists the keys with their type, TTL, length and memory; on one key, the table its type makes |
-| MinIO `LAKE` | A CSV, an NDJSON export, and a `monthly/` prefix of three files with the same columns that read as one table |
+| MinIO `LAKE` | A CSV, an NDJSON export, and a `monthly/` prefix of three files with the same columns that read as one table. Written by a one-shot `mc` container, which is why it shows as *exited* once it is done |
 | Folder `DROP` | The `drop/` folder mounted in: a CSV, an NDJSON, a JSON document on one line, a Markdown file, a PDF and a PNG — the two that are shown where they lie rather than downloaded |
 | Azurite `EXPORTS` | An empty container, created by the app host and there to try an upload into. Empty is not the same as missing: `AddBlobs` models the service, `AddBlobContainer` makes the container |
 

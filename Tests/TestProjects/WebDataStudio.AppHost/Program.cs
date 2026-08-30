@@ -9,6 +9,14 @@ using Nextended.Aspire.Hosting.WebDataStudio.Resources;
 //   * "webdatastudio"   — the default: every WithWebDataStudio() without a name lands here
 //   * "analytics-studio" — a second studio, picked by name
 //   * "admin-studio"     — built by hand, with a login and read-only connections
+// A shell script written in this file, ready for a Linux container.
+//
+// This file is checked out with Windows line endings, and a raw string keeps them: the container's
+// shell then reads `do\r` and answers "syntax error near unexpected token". That is not a
+// hypothetical — it is why the MinIO bucket and the Redis keys were missing from this demo, with
+// both setup containers exiting 2 while everything around them looked fine.
+static string Sh(string script) => script.ReplaceLineEndings("\n");
+
 var builder = DistributedApplication.CreateBuilder(args);
 
 
@@ -110,21 +118,45 @@ redis.WithWebDataStudio();
 
 // Keys of every type Redis has, so the key browser is not an empty tree. One shot: redis-cli waits
 // for the server and writes, which is the Redis version of a seed script.
+//
+// Two things about the server Aspire starts, which a plain `redis-cli -h cache` gets wrong twice:
+// it wants a password, and its 6379 speaks TLS (the plaintext port is 6380). Rather than pinning
+// this demo to either of those, the script finds out which one answers and uses that.
 builder.AddContainer("redis-seed", "redis", "8-alpine")
     .WithEntrypoint("/bin/sh")
-    .WithArgs("-c", """
-        until redis-cli -h cache ping; do sleep 1; done
-        redis-cli -h cache SET greeting 'hello from the demo'
-        redis-cli -h cache SET 'session:ada' '{"account":"ada","pages":14}'
-        redis-cli -h cache EXPIRE 'session:ada' 3600
-        redis-cli -h cache HSET 'customer:1' name 'Ada Lovelace' city London orders 7
-        redis-cli -h cache HSET 'customer:2' name 'Linus Torvalds' city Helsinki orders 4
-        redis-cli -h cache RPUSH 'queue:outgoing' 'INV-1001' 'INV-1002' 'INV-1003'
-        redis-cli -h cache SADD 'tags:beta' ada grace
-        redis-cli -h cache ZADD 'leaderboard' 2310 grace 1204 ada 689 linus
-        redis-cli -h cache SETEX 'lock:import' 600 'held by the importer'
-        redis-cli -h cache DBSIZE
-        """)
+    .WithEnvironment("REDIS_PASSWORD", redis.Resource.PasswordParameter)
+    .WithArgs("-c", Sh("""
+        auth="-a $REDIS_PASSWORD --no-auth-warning"
+        cli=""
+
+        for attempt in $(seq 1 60); do
+          if redis-cli --tls --insecure -h cache $auth ping 2>/dev/null | grep -q PONG; then
+            cli="--tls --insecure -h cache $auth"
+            break
+          fi
+          if redis-cli -h cache -p 6380 $auth ping 2>/dev/null | grep -q PONG; then
+            cli="-h cache -p 6380 $auth"
+            break
+          fi
+          sleep 1
+        done
+
+        if [ -z "$cli" ]; then
+          echo "redis never answered on either port"
+          exit 1
+        fi
+
+        redis-cli $cli SET greeting 'hello from the demo'
+        redis-cli $cli SET 'session:ada' '{"account":"ada","pages":14}'
+        redis-cli $cli EXPIRE 'session:ada' 3600
+        redis-cli $cli HSET 'customer:1' name 'Ada Lovelace' city London orders 7
+        redis-cli $cli HSET 'customer:2' name 'Linus Torvalds' city Helsinki orders 4
+        redis-cli $cli RPUSH 'queue:outgoing' 'INV-1001' 'INV-1002' 'INV-1003'
+        redis-cli $cli SADD 'tags:beta' ada grace
+        redis-cli $cli ZADD 'leaderboard' 2310 grace 1204 ada 689 linus
+        redis-cli $cli SETEX 'lock:import' 600 'held by the importer'
+        redis-cli $cli DBSIZE
+        """))
     .WaitFor(redis);
 
 
@@ -178,7 +210,7 @@ builder.AddContainer("minio-setup", "minio/mc", "RELEASE.2025-04-16T18-13-26Z")
     .WithEntrypoint("/bin/sh")
     .WithEnvironment("MINIO_USER", demoUser)
     .WithEnvironment("MINIO_PASSWORD", demoPassword)
-    .WithArgs("-c", """
+    .WithArgs("-c", Sh("""
         until mc alias set demo http://minio:9000 "$MINIO_USER" "$MINIO_PASSWORD"; do sleep 1; done
         mc mb -p demo/lake
         printf 'name,city,orders\nada,london,7\ngrace,new york,4\nalan,manchester,9\n' > /tmp/people.csv
@@ -196,7 +228,7 @@ builder.AddContainer("minio-setup", "minio/mc", "RELEASE.2025-04-16T18-13-26Z")
         done
 
         mc ls -r demo/lake
-        """)
+        """))
     .WaitFor(minio);
 
 // --- an identity provider in the stack -----------------------------------------------------------
