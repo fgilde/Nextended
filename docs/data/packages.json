@@ -442,6 +442,31 @@
         "site": "https://www.php.net/",
         "logo": "https://raw.githubusercontent.com/php/web-php/master/public/images/logos/php-logo.svg"
       }
+    },
+    {
+      "id": "aspire-dbtools",
+      "name": "Nextended.Aspire.Hosting.DbTools",
+      "category": "aspire",
+      "slug": "aspire-dbtools",
+      "platform": "Cross-platform",
+      "frameworks": [
+        "net8.0",
+        "net9.0",
+        "net10.0"
+      ],
+      "dependencies": [
+        "Aspire.Hosting.AppHost",
+        "Aspire.Hosting.PostgreSQL",
+        "Aspire.Hosting.SqlServer",
+        "Aspire.Hosting.MySql",
+        "Aspire.Hosting.MongoDB",
+        "Aspire.Hosting.Redis"
+      ],
+      "sample": "Tests/TestProjects/WebDataStudio.AppHost",
+      "summary": {
+        "en": "Clone a database into an Aspire resource — the whole thing, schema and data, from another resource in the stack or from a server that is not one. PostgreSQL, SQL Server, MySQL/MariaDB, MongoDB and Redis, each through its own engine's dump and restore tools, as a container resource so it works in run and in publish alike.",
+        "de": "Eine Datenbank in eine Aspire-Ressource klonen — ganz, Schema und Daten, aus einer anderen Ressource des Stacks oder von einem Server, der keine ist. PostgreSQL, SQL Server, MySQL/MariaDB, MongoDB und Redis, jeweils mit den Dump- und Restore-Werkzeugen der eigenen Engine, als Container-Ressource — und damit im Lauf wie beim Veröffentlichen."
+      }
     }
   ]
 }

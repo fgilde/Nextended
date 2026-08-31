@@ -2877,10 +2877,6 @@ _No description._
 - `Clone<T>(this T source, bool useFastDeepClone = true) : T`
 - `ExposeField<T>(this object instance, string fieldName) : T`
 - `GetProperties(this object input, BindingFlags bindingAttr = 0) : IEnumerable<PropertyInfo>`
-- `If<T>(this T obj, Func<bool> condition, Action<T> action) : T`
-- `If<T>(this T obj, Func<bool> condition, Func<T, T> func) : T`
-- `If<T>(this T obj, bool condition, Action<T> action) : T`
-- `If<T>(this T obj, bool condition, Func<T, T> func) : T`
 - `IsIn<T>(this T item, IEnumerable<T> items) : bool`
 - `IsIn<T>(this T item, T[] list) : bool`
 - `IsNull(this object input) : bool`
@@ -2891,6 +2887,10 @@ _No description._
 - `ToNullSafeString(this object input, string defaultIfNull = "") : string`
 - `ToTask<T>(this T input) : Task<T>`
 - `ToUrlQueryString(this object obj, string firstDelimiter = "") : string`
+- `When<T>(this T obj, Func<bool> condition, Action<T> action) : T`
+- `When<T>(this T obj, Func<bool> condition, Func<T, T> func) : T`
+- `When<T>(this T obj, bool condition, Action<T> action) : T`
+- `When<T>(this T obj, bool condition, Func<T, T> func) : T`
 
 ### `RangeExtensions`
 

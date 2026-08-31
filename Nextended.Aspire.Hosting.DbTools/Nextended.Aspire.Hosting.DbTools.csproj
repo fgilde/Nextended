@@ -1,0 +1,29 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="..\Shared.props" />
+
+  <PropertyGroup>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <IsPackable>true</IsPackable>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <Description>Clone a database into an Aspire resource — the whole thing, schema and data, from another resource in the stack or from a server that is not. PostgreSQL, SQL Server, MySQL/MariaDB, MongoDB and Redis, each through its own engine's dump and restore tools, as a container resource so it works in run and in publish alike.</Description>
+    <PackageTags>Aspire, extensions, database, clone, copy, seed, dump, restore, postgresql, sqlserver, mysql, mongodb, redis</PackageTags>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Aspire.Hosting.AppHost" Version="$(AspireVersion)" />
+    <!-- Every typed overload puts one of these resource types in a public signature. A host that
+         clones only Postgres still gets the others: they are app-host-only packages, and one
+         package with five recipes beats five packages with one each. -->
+    <PackageReference Include="Aspire.Hosting.PostgreSQL" Version="$(AspireVersion)" />
+    <PackageReference Include="Aspire.Hosting.SqlServer" Version="$(AspireVersion)" />
+    <PackageReference Include="Aspire.Hosting.MySql" Version="$(AspireVersion)" />
+    <PackageReference Include="Aspire.Hosting.MongoDB" Version="$(AspireVersion)" />
+    <PackageReference Include="Aspire.Hosting.Redis" Version="$(AspireVersion)" />
+  </ItemGroup>
+
+</Project>

@@ -31,6 +31,9 @@
     <None Include="keycloak\**" CopyToOutputDirectory="PreserveNewest" />
     <!-- The documents MongoDB imports on its first start. -->
     <None Include="mongo-init\**" CopyToOutputDirectory="PreserveNewest" />
+    <!-- Northwind, for the server the clone reads from. -->
+    <None Include="northwind\**" CopyToOutputDirectory="PreserveNewest" />
+    <!-- Northwind, for the server the clone reads from. -->
     <!-- One seed script per connection, for the engines that cannot seed themselves. -->
     <None Include="seed\**" CopyToOutputDirectory="PreserveNewest" />
     <!-- The Grafana dashboard on the same database, mounted into Grafana's provisioning. -->
@@ -43,6 +46,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\..\Nextended.Aspire.Hosting.WebDataStudio\Nextended.Aspire.Hosting.WebDataStudio.csproj" IsAspireProjectResource="false" />
+    <!-- Cloning a database into this stack: the northwind copy below. -->
+    <ProjectReference Include="..\..\..\Nextended.Aspire.Hosting.DbTools\Nextended.Aspire.Hosting.DbTools.csproj" IsAspireProjectResource="false" />
     <!-- Grafana and the studio in one stack: two windows onto the same database resource. -->
     <ProjectReference Include="..\..\..\Nextended.Aspire.Hosting.Grafana\Nextended.Aspire.Hosting.Grafana.csproj" IsAspireProjectResource="false" />
   </ItemGroup>

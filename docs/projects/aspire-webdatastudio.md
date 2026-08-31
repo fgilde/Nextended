@@ -612,8 +612,10 @@ the studio cannot widen it; left unset, somebody can choose a scope for their ow
 connection's properties, and empty still means everything.
 
 `WithExportTemplates` mounts a folder of `.json` templates. Each is an id, a label, a file extension,
-a content type and up to three pieces of text — header, row, footer — with `{{table}}`, `{{columns}}`,
-`{{values}}`, `{{index}}`, `{{comma}}` and `{{col.NAME}}` as placeholders, each taking a filter for the
+a content type and up to three pieces of text — header, row, footer — with <code>&#123;&#123;table&#125;&#125;</code>,
+<code>&#123;&#123;columns&#125;&#125;</code>, <code>&#123;&#123;values&#125;&#125;</code>,
+<code>&#123;&#123;index&#125;&#125;</code>, <code>&#123;&#123;comma&#125;&#125;</code> and
+<code>&#123;&#123;col.NAME&#125;&#125;</code> as placeholders, each taking a filter for the
 escaping that format needs (`sql`, `json`, `csv`, `html`, `upper`, `lower`). So an `INSERT` writer is
 three lines of text and nothing the studio has to execute:
 
@@ -752,6 +754,7 @@ studio.Resource.Title;              // the name shown in the studio, resource na
 ## Related projects
 
 - [Nextended.Aspire](aspire.md) — the shared Aspire helpers
+- [Nextended.Aspire.Hosting.DbTools](aspire-dbtools.md) — fill one of these databases from an existing one
 - [Nextended.Aspire.Hosting.N8n](aspire-n8n.md), [Supabase](aspire-supabase.md) — other hosting integrations
 
 ## The sample AppHost
@@ -780,6 +783,22 @@ builder.AddGrafana()
 The credentials come from the resource's own parameters rather than being written down twice, and
 the two tools stay what they are: the studio is for asking a question you have not asked before,
 Grafana is for the answer you want on a wall. Same rows.
+
+**And one connection nobody described.** `NORTHWIND` — eight tables, their keys, twelve indexes and
+an `order_totals` view — is *cloned* on the first start, out of a second PostgreSQL container standing
+in for a server somewhere else:
+
+```csharp
+var source = builder.AddConnectionString("northwind-source", /* … */);
+
+postgres.AddDatabase("northwind")
+    .WithCloneFrom(source)      // Nextended.Aspire.Hosting.DbTools
+    .WithWebDataStudio();
+```
+
+That is [Nextended.Aspire.Hosting.DbTools](aspire-dbtools.md): `pg_dump` and `psql` in a container of
+their own, only into a database with nothing in it yet, and its log is the `northwind-clone` resource
+in the dashboard.
 
 The default studio also takes a backup of `SHOP` every ten minutes with three kept, and fills
 `SCRATCH` from `SHOP` on the first start — PostgreSQL into SQLite, so the column types are

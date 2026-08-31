@@ -19,6 +19,7 @@ using System.Reflection;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using System.Text.RegularExpressions;
 using System.Xml.Linq;
 
 var repoRoot = FindRepoRoot();
@@ -144,6 +145,7 @@ static Dictionary<string, string> LoadXmlSummaries(string xmlPath)
         // Flatten <see cref="T:Ns.Type"/> and friends into readable inline code.
         var text = string.Concat(summary.Nodes().Select(Flatten));
         text = string.Join(' ', text.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
+        text = VuePlaceholderSafe(text);
         if (text.Length > 0) result[id] = text;
     }
     return result;
@@ -160,6 +162,16 @@ static Dictionary<string, string> LoadXmlSummaries(string xmlPath)
         XElement e => string.Concat(e.Nodes().Select(Flatten)),
         _ => "",
     };
+
+    // A summary that documents a template placeholder contains "{{...}}", which is Vue's own
+    // interpolation syntax and makes VitePress render the page as an error instead. Entities carry the
+    // opening braces past the template compiler — the closing pair means nothing on its own — and a
+    // markdown code span would show the entity itself, so a span that holds one becomes <code> HTML.
+    static string VuePlaceholderSafe(string text)
+    {
+        text = text.Replace("{{", "&#123;&#123;");
+        return Regex.Replace(text, "`([^`]*&#123;&#123;[^`]*)`", "<code>$1</code>");
+    }
 
     static string LastSegment(string cref)
     {
