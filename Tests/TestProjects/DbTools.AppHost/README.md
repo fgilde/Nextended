@@ -6,6 +6,10 @@ The sample for [Nextended.Aspire.Hosting.DbTools](../../../Nextended.Aspire.Host
 dotnet run
 ```
 
+The dashboard comes up at <https://localhost:17170> and opens by itself; the login link is in the
+output. The first `dotnet run` builds the whole package chain and pulls two images, so it is quiet
+for a minute or two before anything appears — that is the build, not a hang.
+
 Not one table in this app host is described by hand. Both databases the studio shows arrive by
 clone — and they come from the two kinds of source a stack ever has:
 
