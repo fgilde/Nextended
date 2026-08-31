@@ -110,7 +110,46 @@ and it is deliberate: nothing here does that for you.
 
 `SchemaOnly` is refused for MongoDB and Redis when the app host is built, rather than three minutes
 later by a container: a collection *is* its documents and a key *is* its value, so there would be
-nothing to copy.
+nothing to copy. `DataOnly` is refused for SQL Server, where a BACPAC is schema and rows in one file
+and sqlpackage restores it whole.
+
+### Schema-only on SQL Server is a different pair of tools
+
+Not the same clone with the rows left out: `/a:Extract` and `/a:Publish` move a **DACPAC** instead of
+a BACPAC. Three things follow, and they are the reason to reach for it first on a database nobody has
+copied before:
+
+* it is minutes where a full export is hours, so it answers "does this database clone at all";
+* it leaves out what a container has no answer for — logins, users, permissions, role membership,
+  credentials, external data sources, external tables, audits, linked servers — which is exactly what
+  an Azure SQL database has and a local SQL Server cannot take;
+* it never destroys anything: objects the source does not have are kept, and a publish that would
+  have to rewrite a table stops instead. So `OnlyWhenEmpty` does not apply to it — a schema publish
+  into a database that already has the shape is a no-op that takes seconds.
+
+## What a clone looks like while it runs
+
+The clone container's log is the dump and restore output, line by line as it arrives — `Extracting
+schema`, `Creating Table [sales].[customers]…`, `Processing Table…` — plus a heartbeat while a long
+step is quiet, because on a real database "Extracting schema" can be the last thing said for ten
+minutes and silence is indistinguishable from a hang.
+
+What it cannot do is make the database resource wait. A database in Aspire has no state of its own —
+`PostgresDatabaseResource` and its siblings do not implement `IResourceWithWaitSupport` — so the
+target goes on reporting itself running while the copy is still on its way. Anything that must not
+touch the copy before it is complete waits for the clone instead:
+
+```csharp
+var copy = sql.AddDatabase("orders-copy").WithCloneFrom(staging);
+
+builder.AddProject<Projects.Api>("api")
+       .WithReference(copy)
+       .WaitForCompletion(builder.CloneOf("orders-copy"));
+```
+
+`CloneOf` finds the clone by the name of the database it fills, and throws with the list of the
+clones there are when the name does not match — which is the usual cause. The clone exits 0 both when
+it copied and when it found the target already full, because both mean the database is ready to use.
 
 ## It runs where the stack runs
 

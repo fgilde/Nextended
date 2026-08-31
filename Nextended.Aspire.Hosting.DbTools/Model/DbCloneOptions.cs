@@ -31,6 +31,18 @@ public sealed record DbCloneOptions
     public bool DataOnly { get; init; }
 
     /// <summary>
+    /// Copy what a reader can see, instead of asking the engine's schema tools.
+    /// </summary>
+    /// <remarks>
+    /// SQL Server only, and for one situation: a source whose login may read the database but does
+    /// not hold <c>VIEW DEFINITION</c>. sqlpackage asks for that permission before it does anything
+    /// and refuses without it — which is most application logins on a shared development database,
+    /// even where every definition is in fact readable. This reads the metadata instead and writes
+    /// the DDL out of it, then streams the rows across; both need SELECT and nothing else.
+    /// </remarks>
+    public bool FromMetadata { get; init; }
+
+    /// <summary>
     /// The image the dump and restore run in.
     /// </summary>
     /// <remarks>

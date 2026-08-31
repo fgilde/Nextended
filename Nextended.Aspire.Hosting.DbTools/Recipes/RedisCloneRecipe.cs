@@ -92,6 +92,7 @@ internal static class RedisCloneRecipe
         source_host="$CLONE_SOURCE_HOST"
         source_port=$(echo "$source_cli" | sed -n 's/.*-p \([0-9]*\).*/\1/p')
 
+        echo "##progress 20 copying"
         echo "replicating $source_host:$source_port onto the target"
 
         # Over TLS a replica needs telling; harmless where there is none, and put back below.
@@ -130,6 +131,7 @@ internal static class RedisCloneRecipe
           exit 1
         fi
 
-        echo "done: $(redis-cli $target DBSIZE | tr -dc '0-9') key(s) on the target"
+        echo "##progress 100 Cloned"
+          echo "done: $(redis-cli $target DBSIZE | tr -dc '0-9') key(s) on the target"
         """;
 }

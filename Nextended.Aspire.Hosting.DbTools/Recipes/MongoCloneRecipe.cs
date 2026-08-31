@@ -64,12 +64,14 @@ internal static class MongoCloneRecipe
         restore=""
         [ "$CLONE_OVERWRITE" = "1" ] && restore="--drop"
 
+        echo "##progress 20 copying"
         echo "cloning $CLONE_SOURCE_DB into $CLONE_TARGET_DB"
 
-        if mongodump --uri="$source_uri" --archive \
+        if timeout "${CLONE_TIMEOUT:-3600}" mongodump --uri="$source_uri" --archive \
            | mongorestore --uri="$target_uri" --archive $restore \
                --nsFrom="$CLONE_SOURCE_DB.*" --nsTo="$CLONE_TARGET_DB.*"
         then
+          echo "##progress 100 Cloned"
           echo "done: $(count_collections) collection(s) in $CLONE_TARGET_DB"
         else
           echo "the clone failed"

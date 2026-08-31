@@ -61,11 +61,13 @@ internal static class MySqlCloneRecipe
         [ "$CLONE_DATA_ONLY" = "1" ] && dump="$dump --no-create-info --skip-triggers"
         [ "$CLONE_OVERWRITE" = "1" ] && dump="$dump --add-drop-table"
 
+        echo "##progress 20 copying"
         echo "cloning $CLONE_SOURCE_DB into $CLONE_TARGET_DB"
 
-        if MYSQL_PWD="$CLONE_SOURCE_PASSWORD" mysqldump $source_args $dump "$CLONE_SOURCE_DB" \
+        if MYSQL_PWD="$CLONE_SOURCE_PASSWORD" timeout "${CLONE_TIMEOUT:-3600}" mysqldump $source_args $dump "$CLONE_SOURCE_DB" \
            | MYSQL_PWD="$CLONE_TARGET_PASSWORD" mysql $target "$CLONE_TARGET_DB"
         then
+          echo "##progress 100 Cloned"
           echo "done: $(count_tables) table(s) in $CLONE_TARGET_DB"
         else
           echo "the clone failed"

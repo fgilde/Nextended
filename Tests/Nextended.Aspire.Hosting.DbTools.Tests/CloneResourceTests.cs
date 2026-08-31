@@ -194,7 +194,12 @@ public class CloneResourceTests
             .Select(wait => wait.Resource.Name)
             .ToList();
 
-        Assert.Contains("dev-shop", waits);
+        // The server, not the database it fills: the database carries a health check that answers
+        // "has the clone finished", so waiting for the database would be waiting for itself.
+        Assert.Contains("dev", waits);
+        Assert.DoesNotContain("dev-shop", waits);
+
+        // The source is another matter — nothing can be dumped out of a server that has not started.
         Assert.Contains("shop", waits);
     }
 
@@ -211,10 +216,10 @@ public class CloneResourceTests
             .Select(wait => wait.Resource.Name)
             .ToList();
 
-        // The target, and the server it lives on, which Aspire adds for us. Nothing else: a source
-        // outside this stack is not something the model can wait for, and the script's own waiting
-        // is what covers it.
-        Assert.Equal(["dev", "shop"], waits.Order().ToList());
+        // The server the target lives on, and nothing else: a source outside this stack is not
+        // something the model can wait for, and the script's own waiting is what covers it. The
+        // target itself is not waited for — it is what waits for this clone.
+        Assert.Equal(["dev"], waits.Order().ToList());
     }
 
     [Fact]
@@ -275,6 +280,188 @@ public class CloneResourceTests
         Assert.Contains("--set-gtid-purged=OFF", script);
         // Asked for rather than assumed, because MariaDB's dump tool has no such option.
         Assert.Contains("mysqldump --help", script);
+    }
+
+    /// A database resource cannot wait for anything, so what a stack waits for is the clone itself.
+    [Fact]
+    public void The_clone_can_be_waited_for_by_name()
+    {
+        var builder = Builder();
+        var copy = builder.AddSqlServer("ms").AddDatabase("orders-copy");
+
+        copy.WithCloneFrom("Server=old;Database=orders;User Id=sa;Password=p");
+
+        var clone = builder.CloneOf("orders-copy");
+        Assert.Equal("orders-copy-clone", clone.Resource.Name);
+
+        // What the point of it is: a resource that does support waiting can wait for it.
+        builder.AddContainer("consumer", "busybox").WaitForCompletion(clone);
+    }
+
+    [Fact]
+    public void A_clone_that_is_not_there_says_which_ones_are()
+    {
+        var builder = Builder();
+        builder.AddSqlServer("ms").AddDatabase("orders-copy")
+            .WithCloneFrom("Server=old;Database=orders;User Id=sa;Password=p");
+
+        var error = Assert.Throws<ArgumentException>(() => builder.CloneOf("orders"));
+        Assert.Contains("orders-copy-clone", error.Message);
+    }
+
+    /// SQL Server's format is schema and rows in one file; half of it is not on offer, and saying so
+    /// when the app host is built beats a container saying it three minutes later.
+    [Fact]
+    public void A_data_only_clone_of_sql_server_is_refused_up_front()
+    {
+        var builder = Builder();
+        var target = builder.AddSqlServer("ms").AddDatabase("orders");
+
+        var error = Assert.Throws<ArgumentException>(() =>
+            target.WithCloneFrom("Server=old;Database=orders;User Id=sa;Password=p",
+                new DbCloneOptions { DataOnly = true }));
+
+        Assert.Contains("SQL Server", error.Message);
+    }
+
+    /// "Why is this database still empty" is asked at the database, so the clone's log has to be
+    /// reachable from there: in the dashboard it hangs under the database it fills.
+    [Fact]
+    public void The_clone_hangs_under_the_database_it_fills()
+    {
+        var builder = Builder();
+
+        var target = builder.AddSqlServer("ms").AddDatabase("orders")
+            .WithCloneFrom("Server=old;Database=orders;User Id=sa;Password=p");
+
+        var clone = Clone(builder, "orders-clone");
+        var parent = Assert.Single(clone.Annotations.OfType<ResourceRelationshipAnnotation>()
+            .Where(a => a.Type == "Parent"));
+
+        Assert.Same(target.Resource, parent.Resource);
+    }
+
+    /// A database whose contents are still being copied is not ready, and a database resource cannot
+    /// be made to wait — so it carries a health check that answers for the clone instead.
+    [Fact]
+    public void The_target_is_unhealthy_until_the_clone_has_finished()
+    {
+        var builder = Builder();
+
+        var target = builder.AddSqlServer("ms").AddDatabase("orders")
+            .WithCloneFrom("Server=old;Database=orders;User Id=sa;Password=p");
+
+        // Next to Aspire's own check on the database, not instead of it: both have to pass, so the
+        // target is ready when the server answers *and* the copy is there.
+        var checks = target.Resource.Annotations.OfType<HealthCheckAnnotation>().Select(a => a.Key).ToList();
+        Assert.Contains("dbtools-clone-orders-clone", checks);
+    }
+
+    /// The way in for a source whose login may read the database but not use its schema tools.
+    [Fact]
+    public void A_metadata_clone_reads_the_schema_itself()
+    {
+        var builder = Builder();
+
+        builder.AddSqlServer("ms").AddDatabase("orders")
+            .WithCloneFrom("Server=old;Database=orders;User Id=sa;Password=p",
+                new DbCloneOptions { FromMetadata = true });
+
+        var script = ScriptOf(Clone(builder, "orders-clone"));
+        Assert.DoesNotContain("sqlpackage", script);
+        Assert.Contains("SqlManagementObjects", script);
+        Assert.Contains("SqlBulkCopy", script);
+        Assert.Contains("CLONE_SOURCE_CS", script);
+    }
+
+    /// The other four engines' tools ask for no permission that reading the database does not give,
+    /// so the option would only be a second way of doing the same thing.
+    [Fact]
+    public void A_metadata_clone_is_refused_where_it_is_not_needed()
+    {
+        var builder = Builder();
+        var target = builder.AddPostgres("pg").AddDatabase("shop");
+
+        var error = Assert.Throws<ArgumentException>(() =>
+            target.WithCloneFrom("Host=old;Database=shop;Username=u;Password=p",
+                new DbCloneOptions { FromMetadata = true }));
+
+        Assert.Contains("PostgreSQL", error.Message);
+    }
+
+    /// A clone that hangs is worse than one that fails: TimeoutSeconds has to reach the script, or a
+    /// stalled query waits for ever while the resource looks busy.
+    [Fact]
+    public void The_timeout_reaches_the_script()
+    {
+        var builder = Builder();
+
+        builder.AddSqlServer("ms").AddDatabase("orders")
+            .WithCloneFrom("Server=old;Database=orders;User Id=sa;Password=p",
+                new DbCloneOptions { TimeoutSeconds = 90 });
+
+        var clone = Clone(builder, "orders-clone");
+        Assert.Equal("90", EnvOf(clone)["CLONE_TIMEOUT"]);
+        Assert.Contains("timeout \"${CLONE_TIMEOUT:-3600}\"", ScriptOf(clone));
+    }
+
+    /// Sixty attempts at a refusal is four minutes of hiding it. Only a source that has not started
+    /// yet is worth waiting for.
+    [Fact]
+    public void A_refusal_is_not_retried()
+    {
+        var builder = Builder();
+
+        builder.AddSqlServer("ms").AddDatabase("orders")
+            .WithCloneFrom("Server=old;Database=orders;User Id=sa;Password=p");
+
+        var script = ScriptOf(Clone(builder, "orders-clone"));
+        Assert.Contains("View Definition permission", script);
+        Assert.Contains("GRANT VIEW DEFINITION", script);
+        Assert.Contains("could not open a connection", script);
+    }
+
+    /// Overwriting a schema is a publish, and a publish drops nothing — so nothing has to be cleared
+    /// out of its way. Dropping anyway would leave the database missing for as long as the extract
+    /// takes, and everything connected to it saying "cannot open database".
+    [Fact]
+    public void A_schema_only_overwrite_does_not_drop_the_target_first()
+    {
+        var builder = Builder();
+
+        builder.AddSqlServer("ms").AddDatabase("orders")
+            .WithCloneFrom("Server=old;Database=orders;User Id=sa;Password=p",
+                new DbCloneOptions { SchemaOnly = true, Overwrite = true });
+
+        Assert.DoesNotContain(builder.Resources, r => r.Name == "orders-clone-prepare");
+
+        // A full overwrite still clears the way, because sqlpackage refuses to import over objects.
+        var second = Builder();
+
+        second.AddSqlServer("ms").AddDatabase("orders")
+            .WithCloneFrom("Server=old;Database=orders;User Id=sa;Password=p",
+                new DbCloneOptions { Overwrite = true });
+
+        Assert.Contains(second.Resources, r => r.Name == "orders-clone-prepare");
+    }
+
+    /// The schema alone goes through DACPAC rather than BACPAC — minutes instead of hours, and it can
+    /// leave out what a container has no answer for.
+    [Fact]
+    public void A_schema_only_clone_of_sql_server_extracts_and_publishes()
+    {
+        var builder = Builder();
+
+        builder.AddSqlServer("ms").AddDatabase("orders")
+            .WithCloneFrom("Server=old;Database=orders;User Id=sa;Password=p",
+                new DbCloneOptions { SchemaOnly = true });
+
+        var script = ScriptOf(Clone(builder, "orders-clone"));
+        Assert.Contains("/a:Extract", script);
+        Assert.Contains("/a:Publish", script);
+        Assert.Contains("ExtractAllTableData=False", script);
+        Assert.Contains("AllowIncompatiblePlatform=True", script);
+        Assert.Contains("ExcludeObjectTypes=Users;Logins", script);
     }
 
     [Fact]

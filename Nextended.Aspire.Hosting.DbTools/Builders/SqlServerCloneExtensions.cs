@@ -27,12 +27,35 @@ namespace Nextended.Aspire.Hosting.DbTools;
 /// </remarks>
 public static class SqlServerCloneExtensions
 {
-    private static CloneRecipe Recipe => new(
+    /// Which of the two ways in: sqlpackage, or the metadata a reader may read.
+    private static CloneRecipe RecipeFor(DbCloneOptions? options) =>
+        options?.FromMetadata == true
+            ? new CloneRecipe(
+                SqlServerMetadataCloneRecipe.DefaultPort,
+                SqlServerMetadataCloneRecipe.DefaultImage,
+                SqlServerMetadataCloneRecipe.DefaultTag,
+                SqlServerMetadataCloneRecipe.Script)
+            {
+                Label = "SQL Server",
+                SupportsFromMetadata = true,
+                // The copier creates, drops and fills the database itself, so nothing has to be
+                // cleared out of its way by a second container.
+            }
+            : Sqlpackage;
+
+    private static CloneRecipe Sqlpackage => new(
         SqlServerCloneRecipe.DefaultPort,
         SqlServerCloneRecipe.DefaultImage,
         SqlServerCloneRecipe.DefaultTag,
-        SqlServerCloneRecipe.Script) { Label = "SQL Server", Prepare = (SqlServerCloneRecipe.PrepareImage, SqlServerCloneRecipe.PrepareTag,
-            SqlServerCloneRecipe.PrepareScript) };
+        SqlServerCloneRecipe.Script)
+    {
+        Label = "SQL Server",
+        // A BACPAC is schema and rows in one file and sqlpackage restores it whole, so there is no
+        // data-only clone to be had here.
+        SupportsDataOnly = false,
+        Prepare = (SqlServerCloneRecipe.PrepareImage, SqlServerCloneRecipe.PrepareTag,
+            SqlServerCloneRecipe.PrepareScript),
+    };
 
     /// <summary>
     /// Clones another SQL Server database in this stack into this one.
@@ -50,7 +73,7 @@ public static class SqlServerCloneExtensions
         ArgumentNullException.ThrowIfNull(source);
 
         return CloneBuilder.Attach(target, Endpoint(target.Resource), Endpoint(source.Resource),
-            source.Resource, Recipe, (options ?? new()) with { WaitForSource = true });
+            source.Resource, RecipeFor(options), (options ?? new()) with { WaitForSource = true });
     }
 
     /// <summary>
@@ -75,7 +98,7 @@ public static class SqlServerCloneExtensions
 
         return CloneBuilder.Attach(target, Endpoint(target.Resource),
             DbEndpoint.Parse(sourceConnectionString, SqlServerCloneRecipe.DefaultPort),
-            null, Recipe, options);
+            null, RecipeFor(options), options);
     }
 
     /// <summary>
@@ -94,7 +117,7 @@ public static class SqlServerCloneExtensions
         // the whole string and takes it apart itself.
         return CloneBuilder.Attach(target, Endpoint(target.Resource),
             DbEndpoint.Whole(ReferenceExpression.Create($"{sourceConnectionString.Resource}")),
-            null, Recipe, options);
+            null, RecipeFor(options), options);
     }
 
     /// <summary>
@@ -112,7 +135,7 @@ public static class SqlServerCloneExtensions
 
         return CloneBuilder.Attach(target, Endpoint(target.Resource),
             DbEndpoint.Whole(source.Resource.ConnectionStringExpression),
-            null, Recipe, options);
+            null, RecipeFor(options), options);
     }
 
     /// Every part of a resource in this stack. SQL Server's administrator is always `sa`; there is

@@ -31,6 +31,15 @@ internal static class PostgresCloneRecipe
         echo "waiting for $CLONE_SOURCE_HOST:$CLONE_SOURCE_PORT"
         until pg_isready $source_args -d "$CLONE_SOURCE_DB" >/dev/null 2>&1; do sleep 1; done
 
+        # The database itself may not be there yet: this clone waits for the server rather than for the
+        # database resource, because the database is what waits for this clone.
+        export PGPASSWORD="$CLONE_TARGET_PASSWORD"
+
+        if ! psql $target -d postgres -tAc              "select 1 from pg_database where datname = '$CLONE_TARGET_DB'" | grep -q 1; then
+          echo "creating $CLONE_TARGET_DB"
+          psql $target -d postgres -c "CREATE DATABASE \"$CLONE_TARGET_DB\"" >/dev/null
+        fi
+
         if [ "$CLONE_ONLY_WHEN_EMPTY" = "1" ]; then
           export PGPASSWORD="$CLONE_TARGET_PASSWORD"
 
@@ -52,6 +61,7 @@ internal static class PostgresCloneRecipe
         # --clean --if-exists drops what it is about to replace, which is what overwriting means.
         [ "$CLONE_OVERWRITE" = "1" ] && dump="$dump --clean --if-exists"
 
+        echo "##progress 20 copying"
         echo "cloning $CLONE_SOURCE_DB into $CLONE_TARGET_DB"
 
         # One pipe, no temporary file: a dump of a large database is larger than the container's
@@ -59,11 +69,12 @@ internal static class PostgresCloneRecipe
         #
         # ON_ERROR_STOP so a broken restore is a failure rather than a half-full database with a
         # zero exit code. PGPASSWORD is per side, so each half of the pipe gets its own.
-        if PGPASSWORD="$CLONE_SOURCE_PASSWORD" pg_dump $source_args -d "$CLONE_SOURCE_DB" $dump \
+        if PGPASSWORD="$CLONE_SOURCE_PASSWORD" timeout "${CLONE_TIMEOUT:-3600}" pg_dump $source_args -d "$CLONE_SOURCE_DB" $dump \
            | PGPASSWORD="$CLONE_TARGET_PASSWORD" psql $target -d "$CLONE_TARGET_DB" \
                -v ON_ERROR_STOP=1 --quiet -o /dev/null
         then
           export PGPASSWORD="$CLONE_TARGET_PASSWORD"
+          echo "##progress 100 Cloned"
           echo "done: $(psql $target -d "$CLONE_TARGET_DB" -tAc \
             "select count(*) from information_schema.tables where table_schema not in ('pg_catalog','information_schema')") table(s) in $CLONE_TARGET_DB"
         else

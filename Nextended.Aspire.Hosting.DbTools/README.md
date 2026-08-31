@@ -80,9 +80,32 @@ target.WithCloneFrom(source, new DbCloneOptions
 ```
 
 `SchemaOnly` is refused for MongoDB and Redis when the app host is built rather than three minutes
-later by a container: a collection *is* its documents and a key *is* its value.
+later by a container: a collection *is* its documents and a key *is* its value. `DataOnly` is refused
+for SQL Server for the same reason in reverse — a BACPAC is schema and rows in one file.
+
+On SQL Server `SchemaOnly` is not the same clone with the rows left out; it is a different pair of
+tools. `/a:Extract` and `/a:Publish` move a DACPAC, which takes minutes where a full export takes
+hours, and can leave out what a container has no answer for: logins, permissions, external data
+sources. That makes it the first thing to try against a database nobody has copied before — it says
+within minutes whether the shape arrives at all. Nothing in that path drops anything: objects the
+source does not have stay, and a publish that would have to rewrite a table stops instead.
 
 ## Worth knowing
+
+**A cloned database still reports itself running while the copy is on its way.** A database resource
+in Aspire has no state of its own — it cannot be made to wait for anything — so the clone container is
+what a stack waits for:
+
+```csharp
+var copy = sql.AddDatabase("orders-copy").WithCloneFrom(staging);
+
+builder.AddProject<Projects.Api>("api")
+       .WithReference(copy)
+       .WaitForCompletion(builder.CloneOf("orders-copy"));   // starts when the copy is there
+```
+
+The clone's own resource is where its log is, and it says what it is doing while it does it: every
+line the dump and restore tools write, plus a heartbeat while a long one is quiet.
 
 **It runs where the stack runs.** A clone is a container resource, not app-host code, so
 `aspire publish` puts it in the manifest and a deployed stack clones too — which is the point when a

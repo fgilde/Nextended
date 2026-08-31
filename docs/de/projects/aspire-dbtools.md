@@ -64,6 +64,17 @@ Veröffentlichen: Wer aus einem alten System ein neues baut, braucht genau das, 
 selbst läuft dann nicht. Standardmäßig lässt ein Klon ein Ziel, in dem schon etwas steht, in Ruhe;
 `Overwrite = true` ersetzt es, und das muss man sagen.
 
+**Was ein Klon tut, während er läuft**, steht in seinem eigenen Log: jede Zeile der Dump- und
+Restore-Werkzeuge, sobald sie kommt, plus ein Herzschlag, solange ein langer Schritt schweigt. Was
+Aspire nicht kann: eine Datenbank-Ressource warten lassen — sie hat keinen eigenen Zustand. Wer die
+Kopie erst benutzen will, wenn sie da ist, wartet deshalb auf den Klon-Container:
+`.WaitForCompletion(builder.CloneOf("orders-copy"))`.
+
+**`SchemaOnly` ist bei SQL Server ein anderes Werkzeugpaar** — DACPAC statt BACPAC, also Minuten statt
+Stunden, und es lässt weg, womit ein Container nichts anfangen kann (Logins, Berechtigungen, External
+Data Sources). Damit ist es die erste Frage an eine Datenbank, die noch niemand kopiert hat: kommt die
+Struktur überhaupt an? Gelöscht wird dabei nichts.
+
 Die **vollständige Referenz** — alle Optionen, die Eigenheiten jeder Engine und die Dinge, die man
 vor dem Einsatz wissen sollte (SQL Server braucht beim ersten Klon Internet; ein Klon anonymisiert
 nichts) — steht auf der englischen Seite:

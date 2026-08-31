@@ -35,6 +35,19 @@ internal static class ClonePrologue
                         if (key == wanted[i]) {
                             sub(/^[^=]*=/, "", line)
                             gsub(/^[ \t]+|[ \t]+$/, "", line)
+
+                            # A value may be quoted, and has to be when it holds a semicolon or a
+                            # space - Azure writes the password quoted. The quotes belong to the
+                            # format, not to the password. 39 and 34 are the two quote characters,
+                            # written as codes so this program needs no quoting of its own.
+                            if (length(line) > 1) {
+                                q = substr(line, 1, 1)
+
+                                if ((q == sprintf("%c", 39) || q == sprintf("%c", 34)) && substr(line, length(line), 1) == q) {
+                                    line = substr(line, 2, length(line) - 2)
+                                }
+                            }
+
                             print line
                             exit
                         }
@@ -85,6 +98,12 @@ internal static class ClonePrologue
                     # "Server=localhost,1433" is how SQL Server writes a port.
                     case "$_host" in
                         *,*) _port=${_host##*,}; _host=${_host%%,*} ;;
+                    esac
+
+                    # "Server=tcp:host" is how Azure writes a host. The protocol prefix is SQL
+                    # Server's own spelling and means nothing to any other tool, so it goes.
+                    case "$_host" in
+                        tcp:*|np:*|lpc:*) _host=${_host#*:} ;;
                     esac
                     ;;
             esac
