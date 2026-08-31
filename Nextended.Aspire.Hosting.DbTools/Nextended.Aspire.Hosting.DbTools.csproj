@@ -10,7 +10,7 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <Description>Clone a database into an Aspire resource — the whole thing, schema and data, from another resource in the stack or from a server that is not. PostgreSQL, SQL Server, MySQL/MariaDB, MongoDB and Redis, each through its own engine's dump and restore tools, as a container resource so it works in run and in publish alike.</Description>
+    <Description>Database tools for an Aspire app host. The first: fill a database resource from a database that already exists — schema and data — from another resource in the stack or from a server it does not model. PostgreSQL, SQL Server, MySQL/MariaDB, MongoDB and Redis, each through its own engine's dump and restore tools.</Description>
     <PackageTags>Aspire, extensions, database, clone, copy, seed, dump, restore, postgresql, sqlserver, mysql, mongodb, redis</PackageTags>
   </PropertyGroup>
 

@@ -1,5 +1,4 @@
 using Aspire.Hosting.ApplicationModel;
-using Nextended.Aspire.Hosting.DbTools;
 using Nextended.Aspire.Hosting.Grafana;
 using Nextended.Aspire.Hosting.WebDataStudio;
 using Nextended.Aspire.Hosting.WebDataStudio.Resources;
@@ -93,36 +92,6 @@ var postgres = builder.AddPostgres("pg")
     .WithInitFiles("init");
 
 var shop = postgres.AddDatabase("shop").WithWebDataStudio();
-
-// --- a database cloned in from somewhere else ----------------------------------------------------
-// Northwind, the shape everybody recognises, and the reason it is here: it arrives by *clone*.
-//
-// The server it comes from is a plain container rather than one of this stack's database resources.
-// That is deliberate — it stands in for the server that lives somewhere else, the one Aspire knows
-// nothing about, and the clone reaches it the way it would reach that: by connection string.
-var northwindSource = builder.AddContainer("northwind-legacy", "postgres", "17-alpine")
-    .WithEnvironment("POSTGRES_PASSWORD", demoPassword)
-    .WithEnvironment("POSTGRES_DB", "northwind")
-    // Loaded once, the first time the container's data directory is empty, by the image itself.
-    .WithBindMount("northwind", "/docker-entrypoint-initdb.d")
-    .WithEndpoint(targetPort: 5432, name: "pg");
-
-// What a stack has when the database is not one of its resources: a connection string it was given.
-// A reference expression rather than a literal, because the password is a parameter and the host is
-// only a container name once the stack is running.
-var northwindConnection = builder.AddConnectionString("northwind-source",
-    ReferenceExpression.Create(
-        $"Host=northwind-legacy;Port=5432;Username=postgres;Password={demoPassword};Database=northwind"));
-
-// And the copy this stack owns: a database of its own, filled from that string. The whole thing —
-// tables, rows, keys, indexes and the order_totals view — through pg_dump and psql in a container of
-// its own, and only into a database that has nothing in it yet.
-var northwind = postgres.AddDatabase("northwind")
-    .WithCloneFrom(northwindConnection);
-
-// The studio opens the copy, not the original: this is the database somebody is meant to click
-// around in, and the original is only where it came from.
-northwind.WithWebDataStudio();
 
 // --- the same database, seen the other way -------------------------------------------------------
 // Grafana and the studio are two windows onto one server, and neither package knows about the

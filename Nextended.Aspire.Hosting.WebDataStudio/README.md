@@ -711,7 +711,6 @@ of them comes up with data in it:
 | Redis `CACHE` | A key of every type Redis has: a string, a JSON string with a TTL, two hashes, a list, a set, a sorted set and a lock. **Open data** on `db0` or a key prefix lists the keys with their type, TTL, length and memory; on one key, the table its type makes |
 | MinIO `LAKE` | A CSV, an NDJSON export, and a `monthly/` prefix of three files with the same columns that read as one table. Written by a one-shot `mc` container, which is why it shows as *exited* once it is done |
 | Folder `DROP` | The `drop/` folder mounted in: a CSV, an NDJSON, a JSON document on one line, a Markdown file, a PDF and a PNG — the two that are shown where they lie rather than downloaded |
-| PostgreSQL `NORTHWIND` | The shape everybody recognises — eight tables, their keys, twelve indexes and an `order_totals` view — and none of it is described in the app host. It is *cloned* on the first start out of a second PostgreSQL container standing in for a server somewhere else, by [Nextended.Aspire.Hosting.DbTools](https://github.com/fgilde/Nextended/blob/main/Nextended.Aspire.Hosting.DbTools/README.md) |
 | Azurite `EXPORTS` | An empty container, created by the app host and there to try an upload into. Empty is not the same as missing: `AddBlobs` models the service, `AddBlobContainer` makes the container |
 
 **One account for the whole demo.** Two parameters — `demo-user` (`admin`) and `demo-password`
@@ -730,24 +729,6 @@ session limits. The fourth studio has no accounts at all — it signs people in 
 where the demo account is in `dba-group` and becomes an admin, `bob` is in `developers` and may
 write, and `carol` gets the default role and sees everything read-only. All three use the
 `demo-password` parameter.
-
-**One of the connections was not written down anywhere.** `NORTHWIND` is a database this stack owns
-and nothing in the app host describes its contents, because they arrive by clone:
-
-```csharp
-// The stand-in for the server that lives somewhere else, reached the way that one would be.
-var source = builder.AddConnectionString("northwind-source",
-    ReferenceExpression.Create(
-        $"Host=northwind-legacy;Port=5432;Username=postgres;Password={demoPassword};Database=northwind"));
-
-postgres.AddDatabase("northwind")
-    .WithCloneFrom(source)      // Nextended.Aspire.Hosting.DbTools
-    .WithWebDataStudio();
-```
-
-`pg_dump` and `psql` run in a container of their own, only into a database that has nothing in it yet,
-and the `northwind-clone` resource in the dashboard is where its log is. It is the same idea as the
-rest of the demo — a resource the studio gets handed, not a connection string somebody typed.
 
 **Grafana is in the stack too, on the same PostgreSQL**, with a dashboard on those rows: *Customers*
 and *Orders by status* are the statements the studio's own **Morning** dashboard runs, so the two
@@ -822,7 +803,7 @@ The other 18 packages in the suite:
 - [Nextended.Aspire.Hosting.AspireUI](https://github.com/fgilde/Nextended/blob/main/Nextended.Aspire.Hosting.AspireUI/README.md) — AspireUI — the visual AppHost builder — as a resource inside your own Aspire stack, with an optional pre-seeded admin user and a starter stack built from your project paths.
 - [Nextended.Aspire.Hosting.LocalAI](https://github.com/fgilde/Nextended/blob/main/Nextended.Aspire.Hosting.LocalAI/README.md) — Self-hosted, OpenAI-compatible multimodal AI — image generation, text-to-speech, speech-to-text and video — with gallery model management, GPU support and Open WebUI.
 - [Nextended.Aspire.Hosting.Php](https://github.com/fgilde/Nextended/blob/main/Nextended.Aspire.Hosting.Php/README.md) — Run PHP endpoints inside your Aspire stack — a docroot folder or a single router script served by PHP's built-in web server, with php.ini settings as fluent options.
-- [Nextended.Aspire.Hosting.DbTools](https://github.com/fgilde/Nextended/blob/main/Nextended.Aspire.Hosting.DbTools/README.md) — Clone a database into an Aspire resource — the whole thing, schema and data, from another resource in the stack or from a server that is not one. PostgreSQL, SQL Server, MySQL/MariaDB, MongoDB and Redis, each through its own engine's dump and restore tools, as a container resource so it works in run and in publish alike.
+- [Nextended.Aspire.Hosting.DbTools](https://github.com/fgilde/Nextended/blob/main/Nextended.Aspire.Hosting.DbTools/README.md) — Database tools for an Aspire app host. The first: fill a database resource from a database that already exists — schema and data — from another resource in the stack or from a server it does not model. PostgreSQL, SQL Server, MySQL/MariaDB, MongoDB and Redis, each through its own engine's dump and restore tools.
 
 ## Links
 

@@ -5,7 +5,7 @@ title: Nextended.Aspire.Hosting.DbTools
 
 📚 **[Full API reference](/projects/aspire-dbtools-api)** — every public type and member, generated from the compiled assembly.
 
-Clone a database into an Aspire resource — the whole thing, schema and data, from another resource in the stack or from a server that Aspire knows nothing about.
+Database tools for an Aspire app host. The first one is cloning: filling a database resource from a database that already exists.
 [![NuGet](https://img.shields.io/nuget/v/Nextended.Aspire.Hosting.DbTools.svg)](https://www.nuget.org/packages/Nextended.Aspire.Hosting.DbTools/)
 
 🇩🇪 [Diese Seite auf Deutsch](/de/projects/aspire-dbtools)
@@ -18,15 +18,9 @@ Clone a database into an Aspire resource — the whole thing, schema and data, f
 dotnet add package Nextended.Aspire.Hosting.DbTools
 ```
 
-## What it is for
+## What it does
 
-Aspire can create a database and run a script in it. `WithCreationScript` is for `CREATE DATABASE`
-and says so; `WithInitFiles` runs once, the first time an empty data directory starts. What neither
-does is fill a database from one that already exists — and that is the thing everybody wants first:
-
-* a development stack with real shapes and real rows in it,
-* a new environment built out of an old one,
-* a copy of staging to try a migration against.
+One call fills a database resource from an existing database — schema and data:
 
 ```csharp
 var builder = DistributedApplication.CreateBuilder(args);
@@ -37,13 +31,24 @@ var dev = builder.AddPostgres("pg");
 dev.AddDatabase("shop")
    .WithCloneFrom("Host=staging.internal;Database=shop;Username=reader;Password=…");
 
-// Or from another database in the stack
+// Or from another resource in it
 var prod = builder.AddPostgres("prod").AddDatabase("shop");
 dev.AddDatabase("shop-copy").WithCloneFrom(prod);
 ```
 
 What arrives is the whole database: tables, rows, indexes, constraints, views, routines, and the
 sequences with the numbers they were counted to.
+
+## When it earns its place
+
+Aspire creates empty databases, and `WithCreationScript` / `WithInitFiles` fill them from SQL you
+wrote. That covers most stacks. This is for the cases it does not:
+
+* a development stack that needs the shapes and the volumes of a real database, not a fixture,
+* a new environment built out of an existing one,
+* a copy of staging to run a migration against before running it for real.
+
+If a seed script is enough for you, use the seed script.
 
 ## The engines, and what each one is cloned with
 
@@ -158,35 +163,38 @@ here anonymises anything — if that is what you need, take a masked subset inst
 [WebDataStudio](/projects/aspire-webdatastudio)'s *development subset* writes one as a SQL script
 that `WithSeedScript` can load into the next fresh stack.
 
-## A whole example: Northwind, cloned, opened in a studio
+## The sample, and what it proves
 
-This is in the repository and it runs:
-[WebDataStudio.AppHost](https://github.com/fgilde/Nextended/tree/main/Tests/TestProjects/WebDataStudio.AppHost).
+[`Tests/TestProjects/DbTools.AppHost`](https://github.com/fgilde/Nextended/tree/main/Tests/TestProjects/DbTools.AppHost)
+runs, and not one table in it is described by hand. It clones twice — once from each kind of source:
 
 ```csharp
-var demoPassword = builder.AddParameter("demo-password", "change-me-please", secret: true);
-var postgres = builder.AddPostgres("pg");
-
-// The server the data comes from. A plain container rather than a database resource, because it
-// stands in for the one that lives somewhere else — and the clone reaches it the way it would reach
-// that: by connection string.
+// 1. A server this stack does not model. The stand-in for it is a plain container, because a server
+//    somewhere else is not a database resource either.
 builder.AddContainer("northwind-legacy", "postgres", "17-alpine")
-    .WithEnvironment("POSTGRES_PASSWORD", demoPassword)
+    .WithEnvironment("POSTGRES_PASSWORD", password)
     .WithEnvironment("POSTGRES_DB", "northwind")
     .WithBindMount("northwind", "/docker-entrypoint-initdb.d")
     .WithEndpoint(targetPort: 5432, name: "pg");
 
-// What a stack has when the database is not one of its resources.
-var source = builder.AddConnectionString("northwind-source",
+var externalNorthwind = builder.AddConnectionString("northwind-source",
     ReferenceExpression.Create(
-        $"Host=northwind-legacy;Port=5432;Username=postgres;Password={demoPassword};Database=northwind"));
+        $"Host=northwind-legacy;Port=5432;Username=postgres;Password={password};Database=northwind"));
 
-// The copy this stack owns, and the studio that opens it.
-postgres.AddDatabase("northwind")
-    .WithCloneFrom(source)
-    .WithWebDataStudio();
+var postgres = builder.AddPostgres("pg", password: password);
+var northwind = postgres.AddDatabase("northwind").WithCloneFrom(externalNorthwind);
+
+// 2. Another resource in this stack — the typed overload, so two engines cannot be mixed up.
+var mysql = builder.AddMySql("mysql", password: password).WithInitFiles("mysql-init");
+var legacy = mysql.AddDatabase("legacy");
+var parts = mysql.AddDatabase("parts").WithCloneFrom(legacy);
+
+// And the fastest way to see that the rows really arrived.
+northwind.WithWebDataStudio();
+parts.WithWebDataStudio();
 ```
 
-`dotnet run`, and the studio comes up with a **NORTHWIND** connection holding eight tables, their
-foreign keys, twelve indexes and the `order_totals` view — none of which this app host describes. It
-was cloned, and the `northwind-clone` resource in the dashboard is where it says so.
+`dotnet run`, and the studio lists **NORTHWIND** with eight tables, their foreign keys, twelve
+indexes and the `order_totals` view, and **PARTS** with the suppliers, the parts, the `stock_value`
+view and the function beside them. Each clone is a resource in the dashboard: its log is the dump and
+restore output, and a second start says the target was not empty and left it alone.

@@ -784,22 +784,6 @@ The credentials come from the resource's own parameters rather than being writte
 the two tools stay what they are: the studio is for asking a question you have not asked before,
 Grafana is for the answer you want on a wall. Same rows.
 
-**And one connection nobody described.** `NORTHWIND` — eight tables, their keys, twelve indexes and
-an `order_totals` view — is *cloned* on the first start, out of a second PostgreSQL container standing
-in for a server somewhere else:
-
-```csharp
-var source = builder.AddConnectionString("northwind-source", /* … */);
-
-postgres.AddDatabase("northwind")
-    .WithCloneFrom(source)      // Nextended.Aspire.Hosting.DbTools
-    .WithWebDataStudio();
-```
-
-That is [Nextended.Aspire.Hosting.DbTools](aspire-dbtools.md): `pg_dump` and `psql` in a container of
-their own, only into a database with nothing in it yet, and its log is the `northwind-clone` resource
-in the dashboard.
-
 The default studio also takes a backup of `SHOP` every ten minutes with three kept, and fills
 `SCRATCH` from `SHOP` on the first start — PostgreSQL into SQLite, so the column types are
 approximated and you can see what that looks like.

@@ -462,10 +462,10 @@
         "Aspire.Hosting.MongoDB",
         "Aspire.Hosting.Redis"
       ],
-      "sample": "Tests/TestProjects/WebDataStudio.AppHost",
+      "sample": "Tests/TestProjects/DbTools.AppHost",
       "summary": {
-        "en": "Clone a database into an Aspire resource — the whole thing, schema and data, from another resource in the stack or from a server that is not one. PostgreSQL, SQL Server, MySQL/MariaDB, MongoDB and Redis, each through its own engine's dump and restore tools, as a container resource so it works in run and in publish alike.",
-        "de": "Eine Datenbank in eine Aspire-Ressource klonen — ganz, Schema und Daten, aus einer anderen Ressource des Stacks oder von einem Server, der keine ist. PostgreSQL, SQL Server, MySQL/MariaDB, MongoDB und Redis, jeweils mit den Dump- und Restore-Werkzeugen der eigenen Engine, als Container-Ressource — und damit im Lauf wie beim Veröffentlichen."
+        "en": "Database tools for an Aspire app host. The first: fill a database resource from a database that already exists — schema and data — from another resource in the stack or from a server it does not model. PostgreSQL, SQL Server, MySQL/MariaDB, MongoDB and Redis, each through its own engine's dump and restore tools.",
+        "de": "Datenbank-Werkzeuge für einen Aspire-App-Host. Das erste: eine Datenbank-Ressource aus einer bestehenden Datenbank füllen — Schema und Daten —, aus einer anderen Ressource des Stacks oder von einem Server, den er nicht modelliert. PostgreSQL, SQL Server, MySQL/MariaDB, MongoDB und Redis, jeweils mit den Dump- und Restore-Werkzeugen der eigenen Engine."
       }
     }
   ]

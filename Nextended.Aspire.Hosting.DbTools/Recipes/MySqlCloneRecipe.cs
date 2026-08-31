@@ -45,7 +45,18 @@ internal static class MySqlCloneRecipe
         # --routines and --events: left out by default, and a clone without the stored procedures is
         # not the same database. --single-transaction reads a consistent picture without locking the
         # source, which matters when the source is something somebody else is using.
+        #
+        # --set-gtid-purged=OFF because a logical copy of one database is not a replica of a server:
+        # with GTIDs on, mysqldump writes SET @@GLOBAL.GTID_PURGED into the dump, and restoring it is
+        # refused outright when the target already knows those transactions — which it always does
+        # when source and target live on the same server.
         dump="--single-transaction --routines --events --triggers --no-tablespaces"
+
+        # Asked for rather than assumed: MariaDB's dump tool has no such option, and this recipe runs
+        # in whatever image the target is.
+        if mysqldump --help 2>/dev/null | grep -q "set-gtid-purged"; then
+          dump="$dump --set-gtid-purged=OFF"
+        fi
         [ "$CLONE_SCHEMA_ONLY" = "1" ] && dump="$dump --no-data"
         [ "$CLONE_DATA_ONLY" = "1" ] && dump="$dump --no-create-info --skip-triggers"
         [ "$CLONE_OVERWRITE" = "1" ] && dump="$dump --add-drop-table"

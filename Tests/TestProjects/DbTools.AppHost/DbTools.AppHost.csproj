@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <Sdk Name="Aspire.AppHost.Sdk" Version="13.4.6" />
+  <Import Project="..\..\..\Version.props" />
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsAspireHost>true</IsAspireHost>
+    <IsPackable>false</IsPackable>
+    <UserSecretsId>nextended-dbtools-apphost-4f2a91c7</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Aspire.Hosting.AppHost" Version="$(AspireVersion)" />
+    <PackageReference Include="Aspire.Hosting.PostgreSQL" Version="$(AspireVersion)" />
+    <PackageReference Include="Aspire.Hosting.MySql" Version="$(AspireVersion)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The two source databases. Both folders are mounted into their container, which loads them
+         on its first start, so they have to sit next to the binary. -->
+    <None Include="northwind\**" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="mysql-init\**" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\Nextended.Aspire.Hosting.DbTools\Nextended.Aspire.Hosting.DbTools.csproj" IsAspireProjectResource="false" />
+    <!-- Only so the clones can be clicked through in a browser; the package itself needs nothing. -->
+    <ProjectReference Include="..\..\..\Nextended.Aspire.Hosting.WebDataStudio\Nextended.Aspire.Hosting.WebDataStudio.csproj" IsAspireProjectResource="false" />
+  </ItemGroup>
+
+</Project>

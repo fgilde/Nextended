@@ -260,6 +260,23 @@ public class CloneResourceTests
         Assert.Contains("REPLICAOF", ScriptOf(Clone(builder, "re-clone")));
     }
 
+    /// A MySQL dump carries the server's GTID state unless told not to, and restoring that into a
+    /// server that already knows those transactions is refused — which is every clone whose source
+    /// and target are two databases on the same server.
+    [Fact]
+    public void A_mysql_clone_does_not_carry_the_source_servers_gtid_state()
+    {
+        var builder = Builder();
+        var mysql = builder.AddMySql("my");
+
+        mysql.AddDatabase("copy").WithCloneFrom(mysql.AddDatabase("source"));
+
+        var script = ScriptOf(Clone(builder, "copy-clone"));
+        Assert.Contains("--set-gtid-purged=OFF", script);
+        // Asked for rather than assumed, because MariaDB's dump tool has no such option.
+        Assert.Contains("mysqldump --help", script);
+    }
+
     [Fact]
     public void An_option_an_engine_cannot_honour_is_refused_before_anything_is_built()
     {
