@@ -18,9 +18,11 @@ internal static class CloneProgress
 {
     internal const string Marker = "##progress";
 
+    /// What a hundred per cent means, whatever the recipe called it.
+    internal const string Finished = "finished";
+
     /// Follows one clone's log and keeps the target's state text in step with it.
-    internal static void Follow(
-        IDistributedApplicationBuilder builder, IResource target, string cloneResourceName)
+    internal static void Follow(IDistributedApplicationBuilder builder, IResource target, IResource clone)
     {
         builder.Eventing.Subscribe<AfterResourcesCreatedEvent>((created, _unused) =>
         {
@@ -31,19 +33,21 @@ internal static class CloneProgress
             {
                 try
                 {
-                    await foreach (var batch in logs.WatchAsync(cloneResourceName).WithCancellation(CancellationToken.None))
+                    // The resource, not its name: the by-name overload attaches to nothing here.
+                    await foreach (var batch in logs.WatchAsync(clone))
                     {
                         foreach (var line in batch)
                         {
                             var progress = Read(line.Content);
                             if (progress is null) continue;
 
-                            Console.WriteLine($"[dbtools] {target.Name}: {progress}");
+                            // Finished means the database is what it always was: running, and now
+                            // with something in it. Its health check is what says the copy is there.
+                            var state = progress == Finished
+                                ? new ResourceStateSnapshot(KnownResourceStates.Running, KnownResourceStateStyles.Success)
+                                : new ResourceStateSnapshot(progress, KnownResourceStateStyles.Info);
 
-                            await notifications.PublishUpdateAsync(target, snapshot => snapshot with
-                            {
-                                State = new ResourceStateSnapshot(progress, KnownResourceStateStyles.Info),
-                            });
+                            await notifications.PublishUpdateAsync(target, snapshot => snapshot with { State = state });
                         }
                     }
                 }
@@ -76,7 +80,7 @@ internal static class CloneProgress
         var what = space < 0 ? "" : rest[(space + 1)..].Trim();
 
         if (!int.TryParse(percentText, out var percent)) return null;
-        if (percent >= 100) return what.Length > 0 ? what : "Cloned";
+        if (percent >= 100) return Finished;
 
         return what.Length > 0 ? $"Cloning {percent}% — {what}" : $"Cloning {percent}%";
     }

@@ -126,7 +126,7 @@ internal static class CloneBuilder
         Health(target, clone.Resource.Name);
 
         // And while it runs, the database says how far it has got.
-        CloneProgress.Follow(target.ApplicationBuilder, target.Resource, clone.Resource.Name);
+        CloneProgress.Follow(target.ApplicationBuilder, target.Resource, clone.Resource);
 
         return target;
     }

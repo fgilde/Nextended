@@ -324,6 +324,17 @@ public class CloneResourceTests
         Assert.Contains("SQL Server", error.Message);
     }
 
+    /// The line a recipe prints, as the database's own state text.
+    [Theory]
+    [InlineData("##progress 5 reading the schema of 169 table(s)", "Cloning 5% — reading the schema of 169 table(s)")]
+    [InlineData("2026-08-31T19:45:58Z ##progress 20 copying", "Cloning 20% — copying")]
+    [InlineData("##progress 47 copying rows (20 of 169 tables)", "Cloning 47% — copying rows (20 of 169 tables)")]
+    [InlineData("##progress 100 Cloned", CloneProgress.Finished)]
+    [InlineData("nothing to see here", null)]
+    [InlineData("##progress not-a-number", null)]
+    public void A_progress_marker_becomes_the_state_the_database_shows(string line, string? expected) =>
+        Assert.Equal(expected, CloneProgress.Read(line));
+
     /// "Why is this database still empty" is asked at the database, so the clone's log has to be
     /// reachable from there: in the dashboard it hangs under the database it fills.
     [Fact]
