@@ -6,9 +6,6 @@
 <h1 align="center">Nextended</h1>
 
 <p align="center">
-  
-  [![QuickRun](https://quickrun.org/badge.svg)](https://quickrun.org/run?repo=fgilde/Nextended)
-  
   <a href="https://www.nuget.org/packages/Nextended.Core/"><img src="https://img.shields.io/nuget/v/Nextended.Core.svg" alt="NuGet"></a>
   <a href="https://github.com/fgilde/Nextended/blob/main/LICENSE"><img src="https://img.shields.io/github/license/fgilde/Nextended" alt="License"></a>
   <a href="https://fgilde.github.io/Nextended/"><img src="https://img.shields.io/badge/docs-en%20%7C%20de-blue" alt="Documentation"></a>
