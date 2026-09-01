@@ -22,6 +22,8 @@
 </p>
 <!-- NEXTENDED:HEADER:END -->
 
+[![QuickRun](https://quickrun.org/badge.svg)](https://quickrun.org/run?repo=fgilde/Nextended)
+
 > **Note**
 > This suite was previously published as **nExt**. It was renamed to Nextended and now targets
 > .NET 8, 9 and 10. See the [migration guide](docs/guides/migration.md).
