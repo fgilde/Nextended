@@ -50,22 +50,6 @@ var parts = mysql.AddDatabase("parts")
 
 
 
-var hubConnection = builder.AddParameter("hub-dev-connection", secret: true);
-// /* TEST */  var x = await hubConnection.Resource.GetValueAsync(CancellationToken.None);
-
-
-var hubDev = builder.AddConnectionString("hub-dev",
-    ReferenceExpression.Create($"{hubConnection.Resource}")).WithWebDataStudio(engine: WebDataStudioEngine.SqlServer);
-
-
-var hubDevCopy = "hub-dev-copy-1";
-builder.AddSqlServer("sqlserver")
-    .WithDataVolume($"{hubDevCopy}-sql")
-    .WithImagePullPolicy(ImagePullPolicy.Always)
-    .WithLifetime(ContainerLifetime.Session)
-    .AddDatabase(hubDevCopy)
-    .WithCloneFrom(hubDev, new DbCloneOptions { FromMetadata = true })
-    .WithWebDataStudio(connectionName: hubDevCopy);
 
 
 builder.Build().Run();
