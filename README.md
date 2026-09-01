@@ -22,7 +22,6 @@
 </p>
 <!-- NEXTENDED:HEADER:END -->
 
-[![QuickRun](https://quickrun.org/badge.svg)](https://quickrun.org/run?repo=fgilde/Nextended)
 
 > **Note**
 > This suite was previously published as **nExt**. It was renamed to Nextended and now targets
