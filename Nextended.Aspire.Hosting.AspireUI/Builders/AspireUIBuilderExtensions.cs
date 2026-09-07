@@ -32,7 +32,8 @@ public static class AspireUIBuilderExtensions
         // Precomputed string: passing an interpolated string directly would bind to the
         // ReferenceExpression WithEnvironment overload (which can't format an int).
         var urls = "http://+:" + AspireUIResource.DefaultTargetPort;
-        return builder.AddResource(new AspireUIResource(name))
+        var resource = new AspireUIResource(name);
+        return builder.AddResource(resource)
             .WithImage(image ?? AspireUIResource.DefaultImage, tag ?? AspireUIResource.DefaultTag)
             // Default tag is a rolling "latest" — always re-pull so a stale local image doesn't pin an old build.
             .WithImagePullPolicy(ImagePullPolicy.Always)
@@ -48,7 +49,17 @@ public static class AspireUIBuilderExtensions
             .WithVolume($"aspireui-data-{name}", "/data")
             // AspireUI shells `dotnet run` on generated AppHosts, which start their own containers —
             // it needs the host Docker daemon. (Linux hosts; on Docker Desktop the socket path holds.)
-            .WithBindMount("/var/run/docker.sock", "/var/run/docker.sock");
+            .WithBindMount("/var/run/docker.sock", "/var/run/docker.sock")
+            // Anonymous, cheap and only true once the server actually serves: what WaitFor needs.
+            .WithHttpHealthCheck("/api/auth/status", endpointName: AspireUIResource.HttpEndpointName)
+            // Accounts, targets, tokens, apps and stacks go over as one document, written last so a
+            // password or token that came from an Aspire parameter is resolved by then.
+            .WithEnvironment(async ctx =>
+            {
+                if (resource.Seed.IsEmpty) return;
+                ctx.EnvironmentVariables["ASPIREUI_SEED"] =
+                    await resource.Seed.ToJsonAsync(ctx.CancellationToken).ConfigureAwait(false);
+            });
     }
 
     /// <summary>

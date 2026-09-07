@@ -40,15 +40,88 @@ This adds the `ghcr.io/fgilde/aspireui` container with:
 
 ## API
 
+### The container
+
 | Call | Effect |
 |------|--------|
 | `AddAspireUI(name = "aspireui", port?, image?, tag?)` | Add the AspireUI container. |
-| `.WithAdminUser(username, password)` | Seed the admin on first run (idempotent; password stored hashed). Also accepts an Aspire `ParameterResource` for the password. |
-| `.WithSeedStack(name, params projectPaths)` | Seed a starter stack with one `AddProject` node per path. |
+| `.WithDataBindMount(hostPath)` | Keep AspireUI's data in a host folder instead of a named volume. |
+| `.WithoutDockerSocket()` | Run without the host's docker socket: builds and remote deploys still work, hosting on this machine does not. |
+| `.WithDockerHost(dockerHost)` | Point AspireUI's docker client somewhere else (`DOCKER_HOST`); implies `WithoutDockerSocket()`. |
 | `.WithSourceMount(hostPath, containerPath?)` | Bind-mount source into the container so a seeded stack can also run there. |
 
+### Accounts and tokens
+
+| Call | Effect |
+|------|--------|
+| `.WithAdminUser(username, password)` | Seed the admin on first run (idempotent; password stored hashed). Also accepts an Aspire `ParameterResource`. |
+| `.WithUser(username, password, permissions?, viewModes?, mustChangePassword?)` | Create an account. `permissions` is a preset from `AspireUIPermissions` or a comma-separated list of ids. Also accepts a `ParameterResource` password. |
+| `.WithUsers(params AspireUIUser[])` | Create several accounts at once, admins included. |
+| `.WithAppUser(username, password)` | An account that installs, configures and browses files — no builder. |
+| `.WithViewer(username, password)` | An account that may look and change nothing. |
+| `.WithApiToken(name, username, token)` | A bearer token for automation, with a value you already know. Also accepts a `ParameterResource`. |
+
+### Deploy targets
+
+| Call | Effect |
+|------|--------|
+| `.WithSshTarget(name, host, user, port, keyFile?, key?, passphrase?, publicHost?, isDefault?)` | Another machine's docker daemon over SSH. `keyFile` is mounted read-only, never put in an environment variable. |
+| `.WithDockerTcpTarget(name, host, port, caFile?, certFile?, keyFile?, publicHost?, isDefault?)` | A docker daemon over TCP with mTLS; the three certificates are mounted read-only. |
+| `.WithKubernetesTarget(name, context?, kubeconfigFile?, namespace?, expose?, ingressHost?, storageClass?, isDefault?)` | A Kubernetes cluster, deployed with Helm. |
+
+### Apps and stacks
+
+| Call | Effect |
+|------|--------|
+| `.WithApps(params catalogIds)` | Install apps from AspireUI's own catalog by id (`vaultwarden`, `gitea`, …). |
+| `.WithApp(catalogId, name?, deploy?)` | Install one catalog app under a name of your choosing. |
+| `.WithAppSource(name, url)` | Register an app manifest url as a store source. |
+| `.WithSeedStack(name, params projectPaths)` | Seed a stack with one `AddProject` node per path. |
+| `.WithProjectStack(name, params projects)` | Same, from the `ProjectResource`s in this AppHost — and their folders are mounted so the stack can also run. |
+| `.WithSeedFromDirectory(hostPath, name?, mode?, deploy?)` | Import a folder as a stack: manifest, compose file or AppHost, whichever it holds. Mounted read-only, imported as a copy. |
+| `.WithSeedFromCompose(hostPath, name?, deploy?)` | Import a single docker-compose file as a stack. |
+| `.WithSeedFromGit(url, branch?, subdir?, name?, mode?, deploy?)` | Clone a repository inside the container and import it. |
+| `.WithSeedFile(hostPath)` | Mount a seed document (or a folder with `aspireui.seed.json`) and point AspireUI at it. |
+| `.WithAutoDeploy(deploy = true)` | Deploy the seeded stacks and apps once hosting is up. |
+
+### Settings
+
+| Call | Effect |
+|------|--------|
+| `.WithAi(baseUrl, model, apiKey?)` / `.WithAi(backend, model, …)` | Configure the built-in assistant: an OpenAI-compatible endpoint, or a backend resource in the same stack. |
+| `.WithPublicHost(host)` | The host name app urls are built from. |
+| `.WithNginxProxyManager(baseUrl, email, password, forwardHost?)` | Let a hosted app be given a domain and a certificate from its own menu. Also takes an NPM resource in the same stack. |
+| `.WithNotifications(webhookUrl?, telegramToken?, telegramChat?)` | Where a deployment that came up, went down or started failing is reported. |
+| `.WithBackupSchedule(intervalHours = 24, retain = 7)` | Back up every hosted app's volumes on a schedule. |
+| `.WithHostedDashboards(browserToken?)` | Host an Aspire dashboard next to every deployed app. |
+| `.WithSetting(key, value)` | Any AspireUI setting by key. |
+| `.WithForcedSettings(force = true)` | Apply those settings on every start instead of only filling in what is empty. |
+
+Everything is **idempotent by name**: restarting with the same AppHost changes nothing, adding one
+entry adds exactly that one, and anything changed in the UI stays changed. `WithAdminUser` is the
+one exception — like AspireUI's own first-run seed, it is skipped once any account exists.
+
+```csharp
+var builder = DistributedApplication.CreateBuilder(args);
+
+var opsPassword = builder.AddParameter("ops-password", secret: true);
+
+builder.AddAspireUI()
+    .WithAdminUser("admin", "change-me-please")
+    .WithUser("ops", opsPassword, AspireUIPermissions.Operator)
+    .WithViewer("guest", "guest-password-1")
+    .WithApiToken("pipeline", "ops", builder.AddParameter("ci-token", secret: true))
+    .WithSshTarget("nas", "nas.local", "deploy", keyFile: "./keys/id_ed25519")
+    .WithApps("vaultwarden", "gitea")
+    .WithSeedFromDirectory("./seed/edge", "Edge")
+    .WithAutoDeploy();
+
+builder.Build().Run();
+```
+
 > The Docker-socket mount gives the container control over the host Docker daemon — run it only on a
-> trusted host. Seeding is first-run only: once AspireUI has any user, the admin/stack seed is skipped.
+> trusted host. Passwords and tokens belong in Aspire parameters, and key material in the files the
+> target methods mount, so neither ends up in the manifest.
 
 <!-- NEXTENDED:FOOTER:START generated by tools/Update-PackageDocs.ps1 — do not edit by hand -->
 ## Supported frameworks

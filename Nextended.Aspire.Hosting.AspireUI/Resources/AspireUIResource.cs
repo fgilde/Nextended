@@ -32,4 +32,11 @@ public sealed class AspireUIResource(string name) : ContainerResource(name)
 
     /// <summary>Project paths seeded into the starter stack (one <c>AddProject</c> node each).</summary>
     public IList<string> SeedProjects { get; } = new List<string>();
+
+    /// <summary>
+    /// Accounts, deploy targets, api tokens, store sources, apps and stacks this instance should come
+    /// up with. Filled in by the <c>With…</c> methods; handed over as one environment variable when
+    /// the application starts.
+    /// </summary>
+    public AspireUISeed Seed { get; } = new();
 }
