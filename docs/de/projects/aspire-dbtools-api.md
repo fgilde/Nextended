@@ -16,6 +16,12 @@ Diese Seite wird von `tools/ApiRef` aus der kompilierten Assembly erzeugt — si
 
 ## Nextended.Aspire.Hosting.DbTools
 
+### `CloneExtensions`
+
+`static class`
+
+The clone itself, as a resource — for everything that must not start before the copy is there.
+
 ### `DbCloneOptions`
 
 `class`
@@ -30,6 +36,8 @@ What a clone copies, and what it is allowed to overwrite.
 
 - `DataOnly : bool { get; set; }`
   <br>The rows into a schema that is already there.
+- `FromMetadata : bool { get; set; }`
+  <br>Copy what a reader can see, instead of asking the engine's schema tools.
 - `Image : string { get; set; }`
   <br>The image the dump and restore run in.
 - `Name : string { get; set; }`

@@ -371,4 +371,19 @@ studio.WithSeedFrom(new StudioSeedCopy("SHOP", "SCRATCH",
     // studio has to retry.
     .WaitFor(postgres);
 
+// --- a fourth studio, for anybody who walks up to it ---------------------------------------------
+// The other kind of deployment: no accounts, no connections of its own, and every visitor brings
+// their own database. What they open belongs to their browser — nobody else on this studio sees it,
+// nothing is written down, and it is gone in two hours or when they press the button.
+//
+// AsPublicViewer says the whole set at once: session scope, no server browser, ?u= for files,
+// read-only, a lifetime, a ceiling and an upload limit. The sample folder is mounted so there is
+// something to look at without bringing anything.
+builder.AddWebDataStudio("viewer-studio", port: 8083)
+    .WithTitle("Bring your own database")
+    .WithDatabaseFiles("drop", name: "samples")
+    // Connection strings are allowed here because it is a demo on a laptop; the hosts are the list
+    // that keeps it from being a way into the rest of the network.
+    .AsPublicViewer(connectionStrings: true, hosts: ["localhost", "127.0.0.1", "pg", "host.docker.internal"]);
+
 builder.Build().Run();

@@ -102,8 +102,21 @@ Provides the main extension method for adding Supabase to an Aspire application.
   <br>Optional name of a managedEnvironmentStorage (e.g. an NFS Azure Files share) to mount at the storage container's backend path (/var/lib/storage) in publish mode, so uploaded files persist across restarts/redeploys. This is a generic Supabase-storage concern — the HOST app owns creating the actual storage resource and just sets this name here. When null/empty, publish mode falls back to ephemeral container-local storage.
 - `PostgresDataVolumeName : string { get; set; }`
   <br>Optional name of a managedEnvironmentStorage (e.g. an NFS Azure Files share) to mount at the PostgreSQL data directory (/var/lib/postgresql/data) in publish mode, so the whole database survives container restarts/redeploys. Without it the ACA database is ephemeral (a restart wipes ALL data). This is a generic Supabase concern — the HOST app owns creating the actual storage resource and just sets this name here. When null/empty, publish mode stays ephemeral. NOTE: PostgreSQL requires POSIX semantics (fsync/locking), so the backing share must be Azure Files *NFS* (Premium), never SMB; the DB container is pinned to a single replica.
+- `PublishTarget : SupabasePublishTarget { get; set; }`
 - `StorageS3Backend : SupabaseStorageS3Options { get; set; }`
   <br>Optional S3-compatible backend for the storage container (publish mode). When set, the storage container runs with STORAGE_BACKEND=s3 against this endpoint instead of the local FILE backend. This is a generic Supabase-storage concern: supabase-storage's FILE backend needs a local POSIX disk WITH extended attributes, which Azure Files can't provide (SMB rejects its open flags; NFS 4.1 has no xattr) — so a durable container-apps deploy needs an S3-compatible store. The HOST app owns the S3 server (e.g. a bundled MinIO), its bucket and credentials, and just points this at it. When null, the FILE backend is used (see `PersistentStorageVolumeName` / local bind mount).
+
+### `SupabasePublishTarget`
+
+`enum`
+
+_Keine Beschreibung._
+
+**Werte**
+
+- `AzureContainerApps`
+- `ContainerEnvironment`
+- `value__`
 
 ### `SupabaseReferenceExtensions`
 
@@ -361,6 +374,7 @@ Represents a complete Supabase stack resource containing all sub-services. This 
 - `GetApiUrl() : string`
 - `GetPostgresConnectionString() : string`
 - `GetStudioUrl() : string`
+- `InfraRootDirForTests() : string`
 
 **Eigenschaften**
 

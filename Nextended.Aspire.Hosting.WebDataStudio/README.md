@@ -315,6 +315,57 @@ convention for production — and a restart never overwrites what somebody has b
 > Aspire already has the answer: `.WaitFor(postgres)` on the studio.
 
 
+## A studio anybody may use
+
+```csharp
+// The whole viewer stack in one call: no connections of its own, everything a visitor brings
+// belongs to their browser, and nothing outlives them.
+builder.AddWebDataStudio("viewer")
+    .AsPublicViewer(connectionStrings: true, hosts: ["db.example", "*.example.com"]);
+```
+
+Everything else in this README assumes one kind of deployment: the app host writes the connections
+down, a team opens the studio, everybody sees the same databases. There is another — a studio on the
+open internet as a viewer, where every visitor brings their own database and sees nobody else's.
+
+Two questions, kept apart, and both default to what the studio does today:
+
+```csharp
+studio.WithConnectionScope(ConnectionScope.Session)  // where a new connection goes
+      .WithoutAddingConnections()                    // the form, importing, testing one
+      .WithoutFileUpload()                           // a file from the visitor's machine
+      .WithoutFileBrowse()                           // the server's own folders
+      .WithConnectHosts("db.example")                // where it may connect at all
+      .WithSessionLifetime(minutes: 240, maxConnections: 25)
+      .WithUploadLimit(megabytes: 100);
+```
+
+`WithConnectionScope(ConnectionScope.Session)` holds what somebody makes for the browser that made
+it: the form, an upload, an import and a `?u=` link all land there, nothing reaches the store, and
+the next visitor's list is empty. The studio says so on its connections page and offers a button
+that throws the lot away — connections, files and the cookie that named them.
+
+The three `Without…` methods each close one way in. **`WithoutAddingConnections` is worth knowing
+outside the viewer case**: a stack whose connections come from this app host can close the form and
+keep everything else, and nobody adds their own any more. It covers testing a connection too, which
+opens whatever it is given and keeps nothing.
+
+`WithConnectHosts` is the one not to skip on anything a stranger can reach. A studio somebody may
+type a connection string into is an outbound connector from wherever it runs: a visitor can reach
+the addresses only the container can. The list is checked wherever a connection came from — the
+form, a test, a link, the store, this app host's own connections — so check it against your own
+resource names, or the studio comes up with fewer connections than the stack describes. Two things
+it cannot do for you: there is no rate limiting, so put a public studio behind a proxy that has
+some, and a list is a list — run it somewhere with restricted egress as well, because a network is a
+boundary and a setting is not.
+
+`AsPublicViewer` sets the lot: session scope, no server browser, `?u=` for files, read-only, a
+two-hour lifetime, a ceiling and a 50 MB upload limit. It throws when the same studio also has
+`WithLogin(...)` or a connection of its own — a viewer with accounts and shared databases is a
+contradiction, and the app host is where to find that out rather than the running container. Pair it
+with `WithDatabaseFiles("./samples")` when visitors should find something to look at without
+bringing anything.
+
 ## Signing in with the provider you already have
 
 `WithLogin` and `WithUser` put accounts in the container's environment: fine for one team, wrong for
