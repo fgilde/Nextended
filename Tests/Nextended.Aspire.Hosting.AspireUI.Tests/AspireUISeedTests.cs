@@ -21,13 +21,17 @@ public class AspireUISeedTests
         foreach (var annotation in resource.Annotations.OfType<EnvironmentCallbackAnnotation>())
             await annotation.Callback(ctx);
 
-        // A value can be a literal or something the app model resolves later (an Aspire parameter,
-        // an endpoint); resolving it here is what the container would end up with.
+        // A value is a literal, a parameter (which has its value here), or something only the running
+        // app can resolve — an endpoint's url. For the last kind the manifest expression is both what
+        // there is to see and what is worth asserting: waiting for a real url would wait for ever,
+        // because nothing has allocated the port.
         var values = new Dictionary<string, string>();
         foreach (var (key, value) in ctx.EnvironmentVariables)
             values[key] = value switch
             {
                 string s => s,
+                ParameterResource p => await ((IValueProvider)p).GetValueAsync(default) ?? "",
+                IManifestExpressionProvider expression => expression.ValueExpression,
                 IValueProvider provider => await provider.GetValueAsync(default) ?? "",
                 _ => value?.ToString() ?? "",
             };
@@ -369,5 +373,107 @@ public class AspireUISeedTests
         var env = await EnvAsync(b.AddAspireUI().WithSetting("NpmPassword", password).Resource);
 
         Assert.Equal("from-the-parameter", env["ASPIREUI_SET_NpmPassword"]);
+    }
+
+    // --- The assistant backend, in every shape the AppHost can say it -----------------------------
+
+    [Fact]
+    public async Task A_url_and_a_model_are_enough_and_the_kind_is_set_with_them()
+    {
+        var env = await EnvAsync(Add().WithAssistant("https://api.openai.com/", "gpt-4o-mini", "sk-x", "OpenAI").Resource);
+
+        Assert.Equal("https://api.openai.com", env["ASPIREUI_AI_BASE_URL"]);
+        Assert.Equal("gpt-4o-mini", env["ASPIREUI_AI_MODEL"]);
+        Assert.Equal("sk-x", env["ASPIREUI_AI_API_KEY"]);
+        // Without this a stack that used to point at a CLI would keep that setting.
+        Assert.Equal("http", env["ASPIREUI_SET_AiKind"]);
+        Assert.Equal("OpenAI", env["ASPIREUI_SET_AiProviderLabel"]);
+    }
+
+    [Fact]
+    public async Task The_key_can_come_from_a_parameter_so_it_stays_out_of_the_manifest()
+    {
+        var b = DistributedApplication.CreateBuilder();
+        var key = b.AddParameter("openai-key", secret: true, value: "sk-from-the-parameter");
+        var env = await EnvAsync(b.AddAspireUI().WithAssistant("https://api.openai.com", key, "gpt-4o-mini").Resource);
+
+        Assert.Equal("sk-from-the-parameter", env["ASPIREUI_AI_API_KEY"]);
+        Assert.Equal("gpt-4o-mini", env["ASPIREUI_AI_MODEL"]);
+    }
+
+    [Fact]
+    public async Task An_endpoint_that_is_only_known_at_start_works_too()
+    {
+        var b = DistributedApplication.CreateBuilder();
+        var server = b.AddContainer("vllm", "vllm/vllm-openai").WithHttpEndpoint(targetPort: 8000, name: "http");
+        var env = await EnvAsync(b.AddAspireUI()
+            .WithAssistant(ReferenceExpression.Create($"{server.GetEndpoint("http")}/v1"), "qwen3-8b").Resource);
+
+        Assert.Contains("/v1", env["ASPIREUI_AI_BASE_URL"]);
+        Assert.Equal("qwen3-8b", env["ASPIREUI_AI_MODEL"]);
+    }
+
+    [Fact]
+    public async Task A_model_server_in_the_stack_is_waited_for_and_named()
+    {
+        var b = DistributedApplication.CreateBuilder();
+        var ollama = b.AddContainer("ollama", "ollama/ollama").WithHttpEndpoint(targetPort: 11434, name: "http");
+        var ui = b.AddAspireUI().WithOllamaAssistant(ollama);
+
+        var env = await EnvAsync(ui.Resource);
+        Assert.EndsWith("/v1", env["ASPIREUI_AI_BASE_URL"]);
+        Assert.Equal("llama3.2", env["ASPIREUI_AI_MODEL"]);
+        Assert.Equal("Ollama", env["ASPIREUI_SET_AiProviderLabel"]);
+        Assert.Equal("llama3.2", ui.Resource.AssistantModel);
+
+        // The doc comment used to claim this and the code did not do it.
+        var waits = ui.Resource.Annotations.OfType<WaitAnnotation>().ToList();
+        Assert.Contains(waits, w => w.Resource.Name == "ollama");
+    }
+
+    [Fact]
+    public async Task A_server_with_several_endpoints_can_be_told_which_one_and_which_path()
+    {
+        var b = DistributedApplication.CreateBuilder();
+        var localAi = b.AddContainer("localai", "localai/localai")
+            .WithHttpEndpoint(targetPort: 8080, name: "api")
+            .WithHttpEndpoint(targetPort: 9090, name: "metrics");
+
+        var env = await EnvAsync(b.AddAspireUI()
+            .WithAssistant(localAi, "qwen3-8b", apiPath: "openai/v1", endpointName: "api").Resource);
+
+        // The path is normalised whether or not it was written with a leading slash.
+        Assert.EndsWith("/openai/v1", env["ASPIREUI_AI_BASE_URL"]);
+    }
+
+    [Fact]
+    public void A_server_with_no_endpoint_says_what_to_do_instead()
+    {
+        var b = DistributedApplication.CreateBuilder();
+        var bare = b.AddContainer("model-server", "some/image");
+        var error = Assert.Throws<InvalidOperationException>(() => b.AddAspireUI().WithAssistant(bare, "a-model"));
+        Assert.Contains("WithAssistant(endpoint, model)", error.Message);
+    }
+
+    [Fact]
+    public async Task A_cli_assistant_is_a_setting_and_only_a_known_tool()
+    {
+        var env = await EnvAsync(Add().WithCliAssistant("ollama", "llama3.2").Resource);
+        Assert.Equal("cli", env["ASPIREUI_SET_AiKind"]);
+        Assert.Equal("ollama", env["ASPIREUI_SET_AiCliTool"]);
+        Assert.Equal("llama3.2", env["ASPIREUI_SET_AiModel"]);
+        // No endpoint: this backend is a process on the host.
+        Assert.DoesNotContain("ASPIREUI_AI_BASE_URL", env.Keys);
+
+        Assert.Throws<ArgumentException>(() => Add().WithCliAssistant("chatgpt-cli"));
+    }
+
+    [Fact]
+    public async Task WithAi_still_works_and_means_the_same_thing()
+    {
+        var env = await EnvAsync(Add().WithAi("http://ollama:11434", "llama3.2", "ignored").Resource);
+        Assert.Equal("http://ollama:11434", env["ASPIREUI_AI_BASE_URL"]);
+        Assert.Equal("llama3.2", env["ASPIREUI_AI_MODEL"]);
+        Assert.Equal("http", env["ASPIREUI_SET_AiKind"]);
     }
 }

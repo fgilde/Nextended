@@ -89,7 +89,11 @@ Aspire-Dashboard wie jede andere Ressource.
 
 | Aufruf | Wirkung |
 | --- | --- |
-| `.WithAi(baseUrl, model, apiKey?)` / `.WithAi(backend, model, …)` | Konfiguriert den eingebauten Assistenten: ein OpenAI-kompatibler Endpunkt oder eine Backend-Ressource im selben Stack. |
+| `.WithAssistant(endpoint, model, apiKey?, label?)` | Das Backend des Assistenten: eine OpenAI-kompatible URL. Nimmt auch eine `ReferenceExpression` für einen erst beim Start bekannten Endpunkt und eine Aspire-`ParameterResource` für den Key. |
+| `.WithAssistant(server, model, apiKey?, apiPath?, endpointName?, label?)` | Ein Modell-Server in diesem Stack — Ollama, LocalAI, vLLM, llama.cpp. AspireUI wartet auf ihn und spricht über das Container-Netz mit ihm. |
+| `.WithOllamaAssistant(ollama, model = "llama3.2")` / `.WithLocalAiAssistant(localAi, model)` | Dasselbe, benannt nach den zwei Servern, zu denen die meisten zuerst greifen. |
+| `.WithCliAssistant(tool, model?)` | Ein Agent-CLI auf dem AspireUI-Host (claude, gemini, ollama, llm, codex). Antwortet auf Fragen, kann keine Tools aufrufen. |
+| `.WithAi(baseUrl, model, apiKey?)` / `.WithAi(backend, model, …)` | Der ältere Name für die ersten beiden. |
 | `.WithPublicHost(host)` | Der Hostname, aus dem App-URLs gebaut werden. |
 | `.WithNginxProxyManager(baseUrl, email, password, forwardHost?)` | Damit eine gehostete App aus ihrem eigenen Menü eine Domain und ein Zertifikat bekommen kann. Nimmt auch eine NPM-Ressource aus demselben Stack. |
 | `.WithNotifications(webhookUrl?, telegramToken?, telegramChat?)` | Wohin gemeldet wird, dass eine App hochkam, wegging oder anfing zu scheitern. |
@@ -123,6 +127,7 @@ builder.AddAspireUI()
     .WithSshTarget("nas", "nas.local", "deploy", keyFile: "./keys/id_ed25519")
     .WithApps("vaultwarden", "gitea")
     .WithSeedFromDirectory("./seed/edge", "Edge")
+    .WithOllamaAssistant(ollama, "llama3.2")
     .WithAutoDeploy();
 
 builder.Build().Run();

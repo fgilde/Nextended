@@ -39,4 +39,7 @@ public sealed class AspireUIResource(string name) : ContainerResource(name)
     /// the application starts.
     /// </summary>
     public AspireUISeed Seed { get; } = new();
+
+    /// <summary>The model the assistant was pointed at, if one of the <c>WithAssistant</c> methods did.</summary>
+    public string? AssistantModel { get; internal set; }
 }

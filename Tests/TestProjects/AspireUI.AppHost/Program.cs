@@ -5,6 +5,13 @@ using Nextended.Aspire.Hosting.AspireUI;
 // an api token, apps from the store and a stack seeded from this repository.
 var builder = DistributedApplication.CreateBuilder(args);
 
+// A model server in the same stack: AspireUI waits for it and talks to it over the container
+// network, so nothing about a conversation leaves the machine. Swap in AddOllama from the
+// CommunityToolkit and this is a working local assistant.
+var ollama = builder.AddContainer("ollama", "ollama/ollama")
+    .WithHttpEndpoint(port: null, targetPort: 11434, name: "http")
+    .WithVolume("aspireui-demo-ollama", "/root/.ollama");
+
 // Secrets belong in parameters, not in the AppHost source.
 var opsPassword = builder.AddParameter("ops-password", secret: true, value: "ops-password-please-change");
 var ciToken = builder.AddParameter("ci-token", secret: true, value: "aspireui_demo_ci_token_value");
@@ -38,11 +45,11 @@ builder.AddAspireUI()
         s.BackupRetain = 7;
         s.AuditRetainDays = 30;
         s.NotifyWebhookUrl = "https://example.invalid/hooks/aspireui";
-        s.AiKind = "http";
-        s.AiBaseUrl = "http://localhost:11434";
-        s.AiModel = "llama3.2";
-        s.AiProviderLabel = "Ollama";
     })
+
+    // The assistant, pointed at the server above. With this the floating button appears on every
+    // page and can operate the instance through the agent tools.
+    .WithOllamaAssistant(ollama, "llama3.2")
 
     // Off-site copies of every backup, and sign-in through an identity provider. Both point at
     // addresses that do not exist: this AppHost is here to show the shape, not to reach a bucket.

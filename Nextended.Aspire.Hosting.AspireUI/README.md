@@ -88,7 +88,11 @@ This adds the `ghcr.io/fgilde/aspireui` container with:
 
 | Call | Effect |
 |------|--------|
-| `.WithAi(baseUrl, model, apiKey?)` / `.WithAi(backend, model, …)` | Configure the built-in assistant: an OpenAI-compatible endpoint, or a backend resource in the same stack. |
+| `.WithAssistant(endpoint, model, apiKey?, label?)` | The assistant's backend: an OpenAI-compatible url. Also takes a `ReferenceExpression` for an endpoint only known at start, and an Aspire `ParameterResource` for the key. |
+| `.WithAssistant(server, model, apiKey?, apiPath?, endpointName?, label?)` | A model server in this stack — Ollama, LocalAI, vLLM, llama.cpp. AspireUI waits for it and talks to it over the container network. |
+| `.WithOllamaAssistant(ollama, model = "llama3.2")` / `.WithLocalAiAssistant(localAi, model)` | The same, named for the two servers people reach for first. |
+| `.WithCliAssistant(tool, model?)` | An agent CLI on the AspireUI host (claude, gemini, ollama, llm, codex). Answers questions; cannot call tools. |
+| `.WithAi(baseUrl, model, apiKey?)` / `.WithAi(backend, model, …)` | The older name for the first two. |
 | `.WithPublicHost(host)` | The host name app urls are built from. |
 | `.WithNginxProxyManager(baseUrl, email, password, forwardHost?)` | Let a hosted app be given a domain and a certificate from its own menu. Also takes an NPM resource in the same stack. |
 | `.WithNotifications(webhookUrl?, telegramToken?, telegramChat?)` | Where a deployment that came up, went down or started failing is reported. |
@@ -121,6 +125,7 @@ builder.AddAspireUI()
     .WithSshTarget("nas", "nas.local", "deploy", keyFile: "./keys/id_ed25519")
     .WithApps("vaultwarden", "gitea")
     .WithSeedFromDirectory("./seed/edge", "Edge")
+    .WithOllamaAssistant(ollama, "llama3.2")
     .WithAutoDeploy();
 
 builder.Build().Run();
