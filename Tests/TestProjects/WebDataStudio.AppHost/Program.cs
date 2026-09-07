@@ -3,8 +3,7 @@ using Nextended.Aspire.Hosting.Grafana;
 using Nextended.Aspire.Hosting.WebDataStudio;
 using Nextended.Aspire.Hosting.WebDataStudio.Resources;
 
-// Test/demo AppHost for the Nextended.Aspire.Hosting.WebDataStudio.
-//
+// Test/demo AppHost for the Nextended.Aspire.Hosting.WebDataStudio
 // Three studios on purpose, to show how sharing works:
 //   * "webdatastudio"   — the default: every WithWebDataStudio() without a name lands here
 //   * "analytics-studio" — a second studio, picked by name
@@ -77,7 +76,25 @@ var studio = builder.AddWebDataStudio()
     // A SQLite file on the studio's own volume — no server, and the connection the development
     // subset is worth trying on: people, the countries they are in, and notes about them.
     .WithConnection("SCRATCH", "Data Source=/data/scratch.db", WebDataStudioEngine.Sqlite,
-        group: "Files");
+        group: "Files")
+    // The same `drop` folder once more, this time as a folder the studio may open *files* from:
+    // Add connection → Browse the server walks it, and a `.sqlite3`, a `.duckdb` or a `.csv` in
+    // there becomes a connection without anything being typed. Mounted read-only.
+    .WithDatabaseFiles("drop", name: "incoming")
+    // Connections named in the studio's own URL, which is what turns it into a live viewer:
+    //
+    //   http://localhost:8080/?u=/data/files/incoming/whatever.sqlite3
+    //   http://localhost:8080/?u=shop:Host%3Dpg%3BDatabase%3Dshop%3BUsername%3Dpostgres%3BPassword%3D…
+    //
+    // `keep` is the switch for how long one lasts — WDS_OPEN_FROM_URL_KEEP in the container:
+    //   UrlConnections.Session (the default) — for the browser that opened the link and nobody
+    //     else, written down nowhere, gone when the studio restarts.
+    //   UrlConnections.Store — written to the connection store like any other connection: it
+    //     survives a restart and everybody sees it.
+    //
+    // `downloads: true` would also fetch a database over http, but that one needs the hosts it may
+    // fetch from — `hosts: ["data.example"]` — or the app host refuses right here.
+    .WithOpenFromUrl(files: true, connectionStrings: true, downloads: true, keep: UrlConnections.Session);
 
 // --- the shared studio ---------------------------------------------------------------------
 // Two databases, one call each, one studio with both connections in it.

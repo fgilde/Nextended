@@ -537,6 +537,45 @@ One stated limit: DuckDB reaches Google Cloud Storage over the S3 protocol, whic
 (`?hmac=…&hmacsecret=…`). With a service account alone the tree, the preview and the download all
 work and a query does not.
 
+## Database files, and links that open one
+
+```csharp
+studio.WithDatabaseFiles("./sample-databases");                    // SQLite, DuckDB, Parquet, CSV
+studio.WithOpenFromUrl(downloads: true, hosts: ["data.example"]);  // ?u=… opens what a link names
+```
+
+Not every database is a server. `WithDatabaseFiles` mounts a folder read-only and names it as a root
+the studio may read files from: the **Browse the server** picker offers it, and what opens is taken
+from the extension — `.db`, `.sqlite`, `.sqlite3`, `.db3`, `.s3db` as SQLite (the file has to start
+with `SQLite format 3`, because a `.db` is whatever somebody renamed), `.duckdb` and `.ddb` as
+DuckDB, and a `.parquet`, `.csv`, `.tsv`, `.ndjson`, `.jsonl`, `.json` or `.xlsx` as a storage
+connection over the folder it lies in, read-only whatever else is set. A second call is a second
+root; `name:` says what the folder is called inside the container. A file somebody uploads through
+the form needs no root — that one lands in the studio's own data directory.
+
+`WithOpenFromUrl` lets the studio open connections named in its own URL, which makes it something
+like a live viewer for databases: send somebody a link and the database is open when the page
+finishes loading.
+
+```
+https://studio.example/?u=/data/files/database-files/shop.sqlite3
+https://studio.example/?u=sales:/data/files/database-files/sales.duckdb,https://data.example/shop.sqlite3
+```
+
+Each kind is its own parameter because each is its own risk. `files` is a path the container can
+already read and is on by default. `downloads` is a fetcher inside your network, so `hosts` is
+required rather than optional — without it the app host refuses while the stack is being described,
+instead of the studio refusing every link later. `connectionStrings` is off unless it is asked for
+by name: a connection string in a URL is a password in browser history, in proxy logs and in
+screenshots.
+
+What a link opens belongs to the browser that opened it — marked **from a link** in the tree,
+invisible to everybody else, written down nowhere, gone on restart. `keep: UrlConnections.Store`
+writes it to the connection store like any other connection instead, which is right for a studio one
+person runs and wrong for a shared one. `writable: true` lets it write; a data file stays read-only
+regardless. `maxMegabytes` caps a download (512 by default), and a link with three databases in it
+opens the two it may and reports the setting that would have allowed the third.
+
 ## Schemas and export templates
 
 ```csharp
