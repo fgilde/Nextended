@@ -92,9 +92,13 @@ var studio = builder.AddWebDataStudio()
     //   UrlConnections.Store — written to the connection store like any other connection: it
     //     survives a restart and everybody sees it.
     //
-    // `downloads: true` would also fetch a database over http, but that one needs the hosts it may
-    // fetch from — `hosts: ["data.example"]` — or the app host refuses right here.
-    .WithOpenFromUrl(files: true, connectionStrings: true, downloads: true, keep: UrlConnections.Session);
+    // `downloads: true` also fetches a database over http — and that one needs the hosts it may
+    // fetch from, or the app host refuses right here rather than letting a link choose the address.
+    // These three are what a demo on a laptop reaches: its own machine, and the sample data on
+    // GitHub.
+    .WithOpenFromUrl(files: true, connectionStrings: true, downloads: true,
+        hosts: ["localhost", "127.0.0.1", "raw.githubusercontent.com"],
+        keep: UrlConnections.Session);
 
 // --- the shared studio ---------------------------------------------------------------------
 // Two databases, one call each, one studio with both connections in it.

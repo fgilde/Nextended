@@ -163,7 +163,8 @@ public static class WebDataStudioUrlExtensions
         if (downloads && allowed.Length == 0)
             throw new ArgumentException(
                 "a download needs the hosts it may fetch from: without them the studio would fetch "
-                + "whatever a link says, including addresses only this network can reach",
+                + "whatever a link says, including addresses only this network can reach. Name them "
+                + "— hosts: [\"data.example\"] — or leave downloads out",
                 nameof(hosts));
 
         return builder
