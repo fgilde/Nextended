@@ -449,6 +449,122 @@ public static class AspireUISeedExtensions
         return builder.WithEnvironment("ASPIREUI_SET_FORCE", force ? "true" : "false");
     }
 
+    /// <summary>
+    /// Hands sign-in to an identity provider that speaks OpenID Connect. Only the authority, the
+    /// client id and — for a confidential client — the secret are needed; the endpoints come from the
+    /// provider's own discovery document. Password sign-in keeps working alongside it.
+    /// </summary>
+    /// <param name="authority">The issuer url, e.g. <c>https://id.example.com/realms/main</c>.</param>
+    /// <param name="clientId">The client registered with the provider.</param>
+    /// <param name="clientSecret">The client secret, or null for a public client.</param>
+    /// <param name="label">What the login button says: "Sign in with …".</param>
+    /// <param name="scopes">Space-separated scopes; the default asks for the usual three.</param>
+    /// <param name="usernameClaim">Which claim is the login name. Null tries the usual ones.</param>
+    /// <param name="groupsClaim">Which claim holds the groups.</param>
+    /// <param name="adminGroup">Members of this group are admins — on every sign-in, in both directions.</param>
+    /// <param name="autoCreate">Create an account the first time somebody signs in.</param>
+    /// <param name="defaultPermissions">What a created account gets: a preset from <see cref="AspireUIPermissions"/> or a list of ids.</param>
+    public static IResourceBuilder<AspireUIResource> WithSingleSignOn(
+        this IResourceBuilder<AspireUIResource> builder, string authority, string clientId,
+        string? clientSecret = null, string? label = null, string? scopes = null,
+        string? usernameClaim = null, string? groupsClaim = null, string? adminGroup = null,
+        bool autoCreate = true, string? defaultPermissions = null)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrWhiteSpace(authority);
+        ArgumentException.ThrowIfNullOrWhiteSpace(clientId);
+
+        builder.WithSetting("OidcEnabled", "true")
+               .WithSetting("OidcAuthority", authority.Trim().TrimEnd('/'))
+               .WithSetting("OidcClientId", clientId.Trim())
+               .WithSetting("OidcAutoCreate", autoCreate ? "true" : "false");
+        if (!string.IsNullOrWhiteSpace(clientSecret)) builder.WithSetting("OidcClientSecret", clientSecret!);
+        if (!string.IsNullOrWhiteSpace(label)) builder.WithSetting("OidcLabel", label!.Trim());
+        if (!string.IsNullOrWhiteSpace(scopes)) builder.WithSetting("OidcScopes", scopes!.Trim());
+        if (!string.IsNullOrWhiteSpace(usernameClaim)) builder.WithSetting("OidcUsernameClaim", usernameClaim!.Trim());
+        if (!string.IsNullOrWhiteSpace(groupsClaim)) builder.WithSetting("OidcGroupsClaim", groupsClaim!.Trim());
+        if (!string.IsNullOrWhiteSpace(adminGroup)) builder.WithSetting("OidcAdminGroup", adminGroup!.Trim());
+        if (!string.IsNullOrWhiteSpace(defaultPermissions)) builder.WithSetting("OidcDefaultPermissions", defaultPermissions!.Trim());
+        return builder;
+    }
+
+    /// <inheritdoc cref="WithSingleSignOn(IResourceBuilder{AspireUIResource}, string, string, string?, string?, string?, string?, string?, string?, bool, string?)"/>
+    /// <remarks>The secret comes from an Aspire parameter, so it stays out of the source and the manifest.</remarks>
+    public static IResourceBuilder<AspireUIResource> WithSingleSignOn(
+        this IResourceBuilder<AspireUIResource> builder, string authority, string clientId,
+        IResourceBuilder<ParameterResource> clientSecret, string? label = null, string? scopes = null,
+        string? usernameClaim = null, string? groupsClaim = null, string? adminGroup = null,
+        bool autoCreate = true, string? defaultPermissions = null)
+    {
+        ArgumentNullException.ThrowIfNull(clientSecret);
+        return builder
+            .WithSingleSignOn(authority, clientId, (string?)null, label, scopes, usernameClaim,
+                groupsClaim, adminGroup, autoCreate, defaultPermissions)
+            .WithEnvironment("ASPIREUI_SET_OidcClientSecret", clientSecret);
+    }
+
+    /// <summary>
+    /// Copies every backup to an S3-compatible bucket as well. A backup on the same disk as the app
+    /// is a backup of that disk being fine.
+    /// </summary>
+    public static IResourceBuilder<AspireUIResource> WithS3Backups(
+        this IResourceBuilder<AspireUIResource> builder, string bucket, string accessKey, string secretKey,
+        string? endpoint = null, string? region = null, bool pathStyle = true)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrWhiteSpace(bucket);
+        builder.WithSetting("BackupRemoteKind", "s3")
+               .WithSetting("BackupS3Bucket", bucket.Trim())
+               .WithSetting("BackupS3AccessKey", accessKey)
+               .WithSetting("BackupS3SecretKey", secretKey)
+               .WithSetting("BackupS3PathStyle", pathStyle ? "true" : "false");
+        if (!string.IsNullOrWhiteSpace(endpoint)) builder.WithSetting("BackupS3Endpoint", endpoint!.Trim());
+        if (!string.IsNullOrWhiteSpace(region)) builder.WithSetting("BackupS3Region", region!.Trim());
+        return builder;
+    }
+
+    /// <summary>Copies every backup to a WebDAV share as well (Nextcloud, ownCloud, a plain apache).</summary>
+    public static IResourceBuilder<AspireUIResource> WithWebDavBackups(
+        this IResourceBuilder<AspireUIResource> builder, string baseUrl, string user, string password)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrWhiteSpace(baseUrl);
+        return builder
+            .WithSetting("BackupRemoteKind", "webdav")
+            .WithSetting("BackupWebDavUrl", baseUrl.Trim())
+            .WithSetting("BackupWebDavUser", user)
+            .WithSetting("BackupWebDavPassword", password);
+    }
+
+    /// <summary>
+    /// Copies every backup to a directory on another machine over scp. Key auth only — scp has
+    /// nowhere to type a password — and the key path is one inside the container.
+    /// </summary>
+    public static IResourceBuilder<AspireUIResource> WithSshBackups(
+        this IResourceBuilder<AspireUIResource> builder, string host, string user, string path,
+        string? keyFile = null, int port = 22)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrWhiteSpace(host);
+        builder.WithSetting("BackupRemoteKind", "sftp")
+               .WithSetting("BackupSftpHost", host.Trim())
+               .WithSetting("BackupSftpUser", user)
+               .WithSetting("BackupSftpPath", path)
+               .WithSetting("BackupSftpPort", port.ToString());
+        // A key on the AppHost machine is mounted read-only, exactly as the ssh target's key is.
+        if (!string.IsNullOrWhiteSpace(keyFile))
+            builder.WithSetting("BackupSftpKeyFile", Mount(builder, keyFile, "keys")!);
+        return builder;
+    }
+
+    /// <summary>How long the activity log keeps an entry. Zero keeps everything.</summary>
+    public static IResourceBuilder<AspireUIResource> WithAuditRetention(
+        this IResourceBuilder<AspireUIResource> builder, int days)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        return builder.WithSetting("AuditRetainDays", Math.Max(0, days).ToString());
+    }
+
     // --- The container itself -------------------------------------------------------------------
 
     /// <summary>

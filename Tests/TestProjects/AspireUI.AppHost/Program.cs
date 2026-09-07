@@ -8,6 +8,7 @@ var builder = DistributedApplication.CreateBuilder(args);
 // Secrets belong in parameters, not in the AppHost source.
 var opsPassword = builder.AddParameter("ops-password", secret: true, value: "ops-password-please-change");
 var ciToken = builder.AddParameter("ci-token", secret: true, value: "aspireui_demo_ci_token_value");
+var ssoSecret = builder.AddParameter("sso-client-secret", secret: true, value: "demo-client-secret");
 
 builder.AddAspireUI()
     .WithAdminUser("admin", "change-me-please")
@@ -31,6 +32,15 @@ builder.AddAspireUI()
     // Settings that would otherwise need a trip through the UI.
     .WithPublicHost("localhost")
     .WithBackupSchedule(intervalHours: 24, retain: 7)
-    .WithNotifications(webhookUrl: "https://example.invalid/hooks/aspireui");
+    .WithAuditRetention(days: 30)
+    .WithNotifications(webhookUrl: "https://example.invalid/hooks/aspireui")
+
+    // Off-site copies of every backup, and sign-in through an identity provider. Both point at
+    // addresses that do not exist: this AppHost is here to show the shape, not to reach a bucket.
+    .WithS3Backups(bucket: "aspireui-backups", accessKey: "demo", secretKey: "demo-secret",
+        endpoint: "https://minio.example.invalid", region: "eu-central-1")
+    .WithSingleSignOn(authority: "https://id.example.invalid/realms/main", clientId: "aspireui",
+        clientSecret: ssoSecret, label: "Keycloak", groupsClaim: "groups", adminGroup: "aspireui-admins",
+        defaultPermissions: AspireUIPermissions.AppUser);
 
 builder.Build().Run();

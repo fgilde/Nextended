@@ -20,7 +20,18 @@ public class AspireUISeedTests
             new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run));
         foreach (var annotation in resource.Annotations.OfType<EnvironmentCallbackAnnotation>())
             await annotation.Callback(ctx);
-        return ctx.EnvironmentVariables.ToDictionary(e => e.Key, e => e.Value?.ToString() ?? "");
+
+        // A value can be a literal or something the app model resolves later (an Aspire parameter,
+        // an endpoint); resolving it here is what the container would end up with.
+        var values = new Dictionary<string, string>();
+        foreach (var (key, value) in ctx.EnvironmentVariables)
+            values[key] = value switch
+            {
+                string s => s,
+                IValueProvider provider => await provider.GetValueAsync(default) ?? "",
+                _ => value?.ToString() ?? "",
+            };
+        return values;
     }
 
     private static async Task<JsonElement> SeedAsync(IResourceBuilder<AspireUIResource> builder)
@@ -246,5 +257,62 @@ public class AspireUISeedTests
 
         var builder = Add().WithSeedFile(file);
         Assert.Equal("/seed/file/aspireui.seed.json", (await EnvAsync(builder.Resource))["ASPIREUI_SEED_FILE"]);
+    }
+
+    [Fact]
+    public async Task Single_sign_on_goes_over_as_settings_and_the_secret_can_be_a_parameter()
+    {
+        var b = DistributedApplication.CreateBuilder();
+        var secret = b.AddParameter("sso-secret", secret: true, value: "from-the-parameter");
+        var env = await EnvAsync(b.AddAspireUI()
+            .WithSingleSignOn("https://id.example.com/realms/main/", "aspireui", secret,
+                label: "Keycloak", groupsClaim: "groups", adminGroup: "aspireui-admins",
+                defaultPermissions: AspireUIPermissions.AppUser)
+            .Resource);
+
+        Assert.Equal("true", env["ASPIREUI_SET_OidcEnabled"]);
+        // The trailing slash is dropped so discovery does not build a double one.
+        Assert.Equal("https://id.example.com/realms/main", env["ASPIREUI_SET_OidcAuthority"]);
+        Assert.Equal("aspireui", env["ASPIREUI_SET_OidcClientId"]);
+        Assert.Equal("Keycloak", env["ASPIREUI_SET_OidcLabel"]);
+        Assert.Equal("groups", env["ASPIREUI_SET_OidcGroupsClaim"]);
+        Assert.Equal("aspireui-admins", env["ASPIREUI_SET_OidcAdminGroup"]);
+        Assert.Equal("app-user", env["ASPIREUI_SET_OidcDefaultPermissions"]);
+        Assert.Equal("from-the-parameter", env["ASPIREUI_SET_OidcClientSecret"]);
+    }
+
+    [Fact]
+    public async Task Off_site_backups_pick_one_kind_and_its_own_fields()
+    {
+        var s3 = await EnvAsync(Add().WithS3Backups("bucket", "AKIA", "shh", endpoint: "https://minio.local",
+            region: "eu-central-1", pathStyle: true).Resource);
+        Assert.Equal("s3", s3["ASPIREUI_SET_BackupRemoteKind"]);
+        Assert.Equal("bucket", s3["ASPIREUI_SET_BackupS3Bucket"]);
+        Assert.Equal("https://minio.local", s3["ASPIREUI_SET_BackupS3Endpoint"]);
+        Assert.Equal("true", s3["ASPIREUI_SET_BackupS3PathStyle"]);
+
+        var dav = await EnvAsync(Add().WithWebDavBackups("https://cloud.example.com/dav", "kim", "app-password").Resource);
+        Assert.Equal("webdav", dav["ASPIREUI_SET_BackupRemoteKind"]);
+        Assert.Equal("https://cloud.example.com/dav", dav["ASPIREUI_SET_BackupWebDavUrl"]);
+
+        var keyFile = Path.Combine(Path.GetTempPath(), "aspireui-seedtest-" + Guid.NewGuid().ToString("n"), "backup_key");
+        Directory.CreateDirectory(Path.GetDirectoryName(keyFile)!);
+        File.WriteAllText(keyFile, "-----BEGIN OPENSSH PRIVATE KEY-----");
+        var builder = Add().WithSshBackups("nas.local", "deploy", "/srv/backups", keyFile, port: 2222);
+        var ssh = await EnvAsync(builder.Resource);
+        Assert.Equal("sftp", ssh["ASPIREUI_SET_BackupRemoteKind"]);
+        Assert.Equal("deploy", ssh["ASPIREUI_SET_BackupSftpUser"]);
+        Assert.Equal("2222", ssh["ASPIREUI_SET_BackupSftpPort"]);
+        // The key is mounted, and what travels is the path inside the container.
+        Assert.Equal("/seed/keys/backup_key", ssh["ASPIREUI_SET_BackupSftpKeyFile"]);
+        Assert.True(Assert.Single(builder.Resource.Annotations.OfType<ContainerMountAnnotation>(),
+            m => m.Target == "/seed/keys/backup_key").IsReadOnly);
+    }
+
+    [Fact]
+    public async Task Audit_retention_is_days_and_never_negative()
+    {
+        Assert.Equal("30", (await EnvAsync(Add().WithAuditRetention(30).Resource))["ASPIREUI_SET_AuditRetainDays"]);
+        Assert.Equal("0", (await EnvAsync(Add().WithAuditRetention(-5).Resource))["ASPIREUI_SET_AuditRetainDays"]);
     }
 }

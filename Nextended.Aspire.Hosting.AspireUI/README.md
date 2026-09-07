@@ -94,6 +94,11 @@ This adds the `ghcr.io/fgilde/aspireui` container with:
 | `.WithNotifications(webhookUrl?, telegramToken?, telegramChat?)` | Where a deployment that came up, went down or started failing is reported. |
 | `.WithBackupSchedule(intervalHours = 24, retain = 7)` | Back up every hosted app's volumes on a schedule. |
 | `.WithHostedDashboards(browserToken?)` | Host an Aspire dashboard next to every deployed app. |
+| `.WithSingleSignOn(authority, clientId, clientSecret?, label?, …)` | Sign-in through an OpenID Connect provider. Only the authority and client id are needed — the endpoints come from the provider's discovery document. The secret also takes an Aspire `ParameterResource`. |
+| `.WithS3Backups(bucket, accessKey, secretKey, endpoint?, region?, pathStyle?)` | Copy every backup to an S3-compatible bucket. |
+| `.WithWebDavBackups(baseUrl, user, password)` | Copy every backup to a WebDAV share. |
+| `.WithSshBackups(host, user, path, keyFile?, port?)` | Copy every backup to a directory on another machine over scp; the key file is mounted read-only. |
+| `.WithAuditRetention(days)` | How long the activity log keeps an entry (0 = keep everything). |
 | `.WithSetting(key, value)` | Any AspireUI setting by key. |
 | `.WithForcedSettings(force = true)` | Apply those settings on every start instead of only filling in what is empty. |
 

@@ -136,7 +136,17 @@ static Dictionary<string, string> LoadXmlSummaries(string xmlPath)
     var result = new Dictionary<string, string>(StringComparer.Ordinal);
     if (!File.Exists(xmlPath)) return result;
 
-    foreach (var member in XDocument.Load(xmlPath).Descendants("member"))
+    // A half-written documentation file (an interrupted build leaves them) must not take the whole
+    // reference down with it: the pages then show the surface without those summaries.
+    XDocument doc;
+    try { doc = XDocument.Load(xmlPath); }
+    catch (System.Xml.XmlException e)
+    {
+        Console.Error.WriteLine($"{Path.GetFileName(xmlPath)} is not valid xml ({e.Message}) — summaries from it are skipped.");
+        return result;
+    }
+
+    foreach (var member in doc.Descendants("member"))
     {
         var id = member.Attribute("name")?.Value;
         var summary = member.Element("summary");

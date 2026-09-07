@@ -95,6 +95,11 @@ Aspire-Dashboard wie jede andere Ressource.
 | `.WithNotifications(webhookUrl?, telegramToken?, telegramChat?)` | Wohin gemeldet wird, dass eine App hochkam, wegging oder anfing zu scheitern. |
 | `.WithBackupSchedule(intervalHours = 24, retain = 7)` | Sichert die Volumes jeder gehosteten App nach Plan. |
 | `.WithHostedDashboards(browserToken?)` | Hostet neben jeder deployten App ein Aspire-Dashboard. |
+| `.WithSingleSignOn(authority, clientId, clientSecret?, label?, …)` | Anmeldung über einen OpenID-Connect-Provider. Nötig sind nur Authority und Client-Id — die Endpunkte kommen aus dem Discovery-Dokument des Providers. Das Secret nimmt auch eine Aspire-`ParameterResource`. |
+| `.WithS3Backups(bucket, accessKey, secretKey, endpoint?, region?, pathStyle?)` | Kopiert jedes Backup in einen S3-kompatiblen Bucket. |
+| `.WithWebDavBackups(baseUrl, user, password)` | Kopiert jedes Backup auf eine WebDAV-Freigabe. |
+| `.WithSshBackups(host, user, path, keyFile?, port?)` | Kopiert jedes Backup per scp in ein Verzeichnis auf einem anderen Rechner; die Schlüsseldatei wird nur lesbar eingebunden. |
+| `.WithAuditRetention(days)` | Wie lange das Aktivitätsprotokoll einen Eintrag behält (0 = alles behalten). |
 | `.WithSetting(key, value)` | Jede AspireUI-Einstellung per Schlüssel. |
 | `.WithForcedSettings(force = true)` | Wendet diese Einstellungen bei jedem Start an, statt nur zu füllen, was leer ist. |
 
