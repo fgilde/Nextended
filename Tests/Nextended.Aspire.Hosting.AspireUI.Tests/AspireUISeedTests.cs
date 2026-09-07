@@ -315,4 +315,59 @@ public class AspireUISeedTests
         Assert.Equal("30", (await EnvAsync(Add().WithAuditRetention(30).Resource))["ASPIREUI_SET_AuditRetainDays"]);
         Assert.Equal("0", (await EnvAsync(Add().WithAuditRetention(-5).Resource))["ASPIREUI_SET_AuditRetainDays"]);
     }
+
+    [Fact]
+    public async Task WithSettings_writes_the_keys_aspireui_reads_and_leaves_the_rest_alone()
+    {
+        var env = await EnvAsync(Add().WithSettings(s =>
+        {
+            s.PublicHost = "192.168.1.50";
+            s.HostDashboards = true;
+            s.ProxyEnabled = true;
+            s.ProxyBaseUrl = "http://npm:81";
+            s.ProxyEmail = "admin@example.com";
+            s.BackupIntervalHours = 24;
+            s.BackupRetain = 14;
+            s.MaxImportFileMb = 50;
+            s.RespectGitignore = false;
+            s.AuditRetainDays = 30;
+            s.AiKind = "http";
+            s.AiBaseUrl = "http://ollama:11434";
+            s.AiModel = "llama3.2";
+        }).Resource);
+
+        Assert.Equal("192.168.1.50", env["ASPIREUI_SET_PublicHost"]);
+        Assert.Equal("true", env["ASPIREUI_SET_HostDashboard"]);
+        Assert.Equal("http://npm:81", env["ASPIREUI_SET_NpmBaseUrl"]);
+        Assert.Equal("24", env["ASPIREUI_SET_BackupIntervalHours"]);
+        Assert.Equal("14", env["ASPIREUI_SET_BackupRetain"]);
+        Assert.Equal("50", env["ASPIREUI_SET_MaxImportFileMb"]);
+        Assert.Equal("false", env["ASPIREUI_SET_RespectGitignore"]);
+        Assert.Equal("30", env["ASPIREUI_SET_AuditRetainDays"]);
+        Assert.Equal("llama3.2", env["ASPIREUI_SET_AiModel"]);
+
+        // Nothing was invented for the properties that were left alone.
+        Assert.DoesNotContain("ASPIREUI_SET_NpmPassword", env.Keys);
+        Assert.DoesNotContain("ASPIREUI_SET_NotifyWebhookUrl", env.Keys);
+        Assert.DoesNotContain("ASPIREUI_SET_FORCE", env.Keys);
+    }
+
+    [Fact]
+    public async Task Nothing_set_writes_nothing_and_force_is_opt_in()
+    {
+        Assert.DoesNotContain("ASPIREUI_SET_PublicHost", (await EnvAsync(Add().WithSettings(_ => { }).Resource)).Keys);
+
+        var forced = await EnvAsync(Add().WithSettings(s => { s.PublicHost = "h"; s.ForceOnEveryStart = true; }).Resource);
+        Assert.Equal("true", forced["ASPIREUI_SET_FORCE"]);
+    }
+
+    [Fact]
+    public async Task A_secret_setting_can_come_from_a_parameter()
+    {
+        var b = DistributedApplication.CreateBuilder();
+        var password = b.AddParameter("npm-password", secret: true, value: "from-the-parameter");
+        var env = await EnvAsync(b.AddAspireUI().WithSetting("NpmPassword", password).Resource);
+
+        Assert.Equal("from-the-parameter", env["ASPIREUI_SET_NpmPassword"]);
+    }
 }

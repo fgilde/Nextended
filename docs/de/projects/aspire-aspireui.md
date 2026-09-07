@@ -100,6 +100,8 @@ Aspire-Dashboard wie jede andere Ressource.
 | `.WithWebDavBackups(baseUrl, user, password)` | Kopiert jedes Backup auf eine WebDAV-Freigabe. |
 | `.WithSshBackups(host, user, path, keyFile?, port?)` | Kopiert jedes Backup per scp in ein Verzeichnis auf einem anderen Rechner; die Schlüsseldatei wird nur lesbar eingebunden. |
 | `.WithAuditRetention(days)` | Wie lange das Aktivitätsprotokoll einen Eintrag behält (0 = alles behalten). |
+| `.WithSettings(s => { … })` | Alle Einstellungen aus AspireUIs Settings, typisiert: Public-Host, mitgelieferte Dashboards, Proxy, Benachrichtigungen, Backup-Plan, Import-Grenzen, Aufbewahrung des Aktivitätsprotokolls und das Backend des Assistenten. Was null bleibt, wird nicht gesetzt. |
+| `.WithSetting(key, parameter)` | Eine Einstellung, deren Wert ein Secret ist, aus einer Aspire-`ParameterResource`. |
 | `.WithSetting(key, value)` | Jede AspireUI-Einstellung per Schlüssel. |
 | `.WithForcedSettings(force = true)` | Wendet diese Einstellungen bei jedem Start an, statt nur zu füllen, was leer ist. |
 

@@ -429,11 +429,63 @@ public static class AspireUISeedExtensions
         return builder;
     }
 
+    /// <summary>
+    /// Every setting under AspireUI's own settings, typed: the public host, the bundled dashboards,
+    /// the proxy, notifications, the backup schedule, import limits, the activity log's retention and
+    /// the assistant's backend. Anything left null is not sent.
+    /// </summary>
+    /// <example>
+    /// <code>
+    /// builder.AddAspireUI().WithSettings(s =>
+    /// {
+    ///     s.PublicHost = "192.168.1.50";
+    ///     s.ProxyEnabled = true;
+    ///     s.ProxyBaseUrl = "http://npm:81";
+    ///     s.BackupIntervalHours = 24;
+    ///     s.AiBaseUrl = "http://ollama:11434";
+    ///     s.AiModel = "llama3.2";
+    /// });
+    /// </code>
+    /// </example>
+    public static IResourceBuilder<AspireUIResource> WithSettings(
+        this IResourceBuilder<AspireUIResource> builder, Action<AspireUISettings> configure)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(configure);
+        var settings = new AspireUISettings();
+        configure(settings);
+        return builder.WithSettings(settings);
+    }
+
+    /// <inheritdoc cref="WithSettings(IResourceBuilder{AspireUIResource}, Action{AspireUISettings})"/>
+    public static IResourceBuilder<AspireUIResource> WithSettings(
+        this IResourceBuilder<AspireUIResource> builder, AspireUISettings settings)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(settings);
+        foreach (var (key, value) in settings.AsSettings()) builder.WithSetting(key, value);
+        if (settings.ForceOnEveryStart) builder.WithForcedSettings();
+        return builder;
+    }
+
     /// <summary>Overrides any AspireUI setting by key — the escape hatch for anything without its own method.</summary>
     public static IResourceBuilder<AspireUIResource> WithSetting(
         this IResourceBuilder<AspireUIResource> builder, string key, string value)
     {
         ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrWhiteSpace(key);
+        return builder.WithEnvironment("ASPIREUI_SET_" + key.Trim(), value);
+    }
+
+    /// <summary>
+    /// Overrides an AspireUI setting whose value is a secret, from an Aspire parameter — so it stays
+    /// out of the AppHost source and the manifest.
+    /// </summary>
+    public static IResourceBuilder<AspireUIResource> WithSetting(
+        this IResourceBuilder<AspireUIResource> builder, string key, IResourceBuilder<ParameterResource> value)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(value);
         ArgumentException.ThrowIfNullOrWhiteSpace(key);
         return builder.WithEnvironment("ASPIREUI_SET_" + key.Trim(), value);
     }

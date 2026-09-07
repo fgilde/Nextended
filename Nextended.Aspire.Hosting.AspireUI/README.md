@@ -99,6 +99,8 @@ This adds the `ghcr.io/fgilde/aspireui` container with:
 | `.WithWebDavBackups(baseUrl, user, password)` | Copy every backup to a WebDAV share. |
 | `.WithSshBackups(host, user, path, keyFile?, port?)` | Copy every backup to a directory on another machine over scp; the key file is mounted read-only. |
 | `.WithAuditRetention(days)` | How long the activity log keeps an entry (0 = keep everything). |
+| `.WithSettings(s => { … })` | Every setting under AspireUI's own settings, typed: public host, bundled dashboards, proxy, notifications, backup schedule, import limits, activity-log retention and the assistant's backend. Anything left null is not sent. |
+| `.WithSetting(key, parameter)` | One setting whose value is a secret, from an Aspire `ParameterResource`. |
 | `.WithSetting(key, value)` | Any AspireUI setting by key. |
 | `.WithForcedSettings(force = true)` | Apply those settings on every start instead of only filling in what is empty. |
 

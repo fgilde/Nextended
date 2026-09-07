@@ -29,11 +29,20 @@ builder.AddAspireUI()
     .WithApps("vaultwarden", "gitea")
     .WithSeedStack("Demo", builder.AppHostDirectory)
 
-    // Settings that would otherwise need a trip through the UI.
-    .WithPublicHost("localhost")
-    .WithBackupSchedule(intervalHours: 24, retain: 7)
-    .WithAuditRetention(days: 30)
-    .WithNotifications(webhookUrl: "https://example.invalid/hooks/aspireui")
+    // Settings that would otherwise need a trip through the UI. One typed object for the lot; the
+    // single-subject methods above are still there for the settings that come as a set.
+    .WithSettings(s =>
+    {
+        s.PublicHost = "localhost";
+        s.BackupIntervalHours = 24;
+        s.BackupRetain = 7;
+        s.AuditRetainDays = 30;
+        s.NotifyWebhookUrl = "https://example.invalid/hooks/aspireui";
+        s.AiKind = "http";
+        s.AiBaseUrl = "http://localhost:11434";
+        s.AiModel = "llama3.2";
+        s.AiProviderLabel = "Ollama";
+    })
 
     // Off-site copies of every backup, and sign-in through an identity provider. Both point at
     // addresses that do not exist: this AppHost is here to show the shape, not to reach a bucket.
