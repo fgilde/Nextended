@@ -16,6 +16,21 @@ Diese Seite wird von `tools/ApiRef` aus der kompilierten Assembly erzeugt — si
 
 ## Nextended.Aspire.Hosting.AspireUI
 
+### `AspireUIAssistantExtensions`
+
+`static class`
+
+Gives AspireUI's assistant a backend: an OpenAI-compatible endpoint, a model server running in this stack, or an agent CLI installed on the AspireUI host. Same shape as the studio's `WithAssistant` in `Nextended.Aspire.Hosting.WebDataStudio`, so the two packages are learned once. Once a backend is configured the assistant is more than a text box: it appears on every page of AspireUI and can operate the instance through the same tools the MCP server exposes, with the permissions of whoever is typing. That needs an HTTP endpoint — an agent CLI takes a prompt and returns text, and there is nowhere in that to put a tool call.
+
+**Felder**
+
+- `CliTools : string[]`
+  <br>The agent CLIs AspireUI knows how to drive.
+- `DefaultApiPath : string`
+  <br>The path an OpenAI-compatible server serves the chat API under. AspireUI adds `/chat/completions` itself, so this is the version segment and not the whole path.
+- `DefaultOllamaModel : string`
+  <br>The model Ollama pulls by default in most examples.
+
 ### `AspireUIBuilderExtensions`
 
 `static class`
@@ -80,6 +95,8 @@ AspireUI — the visual .NET Aspire AppHost builder — running as a container r
 
 - `AdminUsername : string { get; }`
   <br>Admin username seeded on first run, if configured via `WithAdminUser`.
+- `AssistantModel : string { get; }`
+  <br>The model the assistant was pointed at, if one of the `WithAssistant` methods did.
 - `Seed : AspireUISeed { get; }`
   <br>Accounts, deploy targets, api tokens, store sources, apps and stacks this instance should come up with. Filled in by the `With…` methods; handed over as one environment variable when the application starts.
 - `SeedProjects : IList<string> { get; }`
@@ -124,6 +141,56 @@ Everything the AspireUI container should find in its database on first start. Fi
 `static class`
 
 Everything an AspireUI instance can be handed on first start: accounts with permissions, deploy targets, api tokens for automation, store sources, apps from the catalog and stacks from a folder or a repository — plus the settings that used to need a trip through the UI. All of it is idempotent by name on the AspireUI side: restarting with the same AppHost changes nothing, adding one entry adds exactly that one, and anything changed in the UI stays changed.
+
+### `AspireUISettings`
+
+`class`
+
+Everything under AspireUI's own settings, as properties instead of key strings. Anything left null is not sent, and a value that is sent only fills in what the instance has not got yet — unless `ForceOnEveryStart` says otherwise, which also overwrites what somebody changed in the UI. This is the wide, typed way; `WithSetting(key, value)` stays for anything not listed here, and single-subject methods (`WithSingleSignOn`, `WithS3Backups`, …) stay for the settings that come as a set.
+
+**Konstruktoren**
+
+- `AspireUISettings()`
+
+**Eigenschaften**
+
+- `AiApiKey : string { get; set; }`
+- `AiBaseUrl : string { get; set; }`
+- `AiCliTool : string { get; set; }`
+  <br>The installed CLI to use when `AiKind` is `cli`: claude, gemini, ollama, llm, codex.
+- `AiKind : string { get; set; }`
+  <br>`http` for an OpenAI-compatible endpoint, `cli` for a local agent CLI.
+- `AiModel : string { get; set; }`
+- `AiProviderLabel : string { get; set; }`
+  <br>What the UI calls the provider, e.g. "Ollama".
+- `AuditRetainDays : int? { get; set; }`
+  <br>How long an entry is kept. Zero keeps everything.
+- `BackupIntervalHours : int? { get; set; }`
+  <br>Back up every running app's volumes this often. Zero turns the schedule off.
+- `BackupRetain : int? { get; set; }`
+  <br>How many snapshots to keep per app.
+- `DashboardToken : string { get; set; }`
+  <br>A fixed browser token, so AspireUI can hand out a one-click login link to it.
+- `ForceOnEveryStart : bool { get; set; }`
+  <br>Apply these on every start instead of only filling in what is empty. Off by default, because it also overwrites what somebody changed in the UI.
+- `HostDashboards : bool? { get; set; }`
+  <br>Host an Aspire dashboard next to every deployed app.
+- `MaxImportFileMb : int? { get; set; }`
+  <br>Files larger than this are skipped when a folder or archive is imported.
+- `NotifyTelegramChat : string { get; set; }`
+- `NotifyTelegramToken : string { get; set; }`
+- `NotifyWebhookUrl : string { get; set; }`
+  <br>Slack, Discord, Teams, ntfy — anything that takes a json post.
+- `ProxyBaseUrl : string { get; set; }`
+- `ProxyEmail : string { get; set; }`
+- `ProxyEnabled : bool? { get; set; }`
+- `ProxyForwardHost : string { get; set; }`
+  <br>Where the proxy forwards to. Blank uses `PublicHost`.
+- `ProxyPassword : string { get; set; }`
+- `PublicHost : string { get; set; }`
+  <br>The host name every app url is built from. Blank uses the host the browser asked for.
+- `RespectGitignore : bool? { get; set; }`
+  <br>Skip what an imported folder's own .gitignore ignores.
 
 ### `AspireUIUser`
 
