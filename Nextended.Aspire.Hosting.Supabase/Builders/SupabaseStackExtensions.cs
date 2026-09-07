@@ -11,6 +11,27 @@ namespace Nextended.Aspire.Hosting.Supabase.Builders;
 /// </summary>
 public static class SupabaseStackExtensions
 {
+    /// <summary>
+    /// Rebuilds the functions directory from the FUNCS_TGZ_B64_* parts (publish mode).
+    /// POSIX sh, so no bash-only ${!var}; __FUNCTIONS_DIR__ is substituted by the caller.
+    /// </summary>
+    /// <summary>
+    /// Files larger than this are left out of the published functions archive. Assets that big
+    /// belong in storage, not in a container environment variable (see the size note below).
+    /// </summary>
+    private const int MaxPublishedFunctionFileBytes = 512 * 1024;
+
+    /// <summary>Base64 chars per env var — below both Bicep's 128KB literal cap and MAX_ARG_STRLEN.</summary>
+    private const int FunctionsChunkSize = 64000;
+
+    /// <summary>Payload size that triggers a warning; the hard kernel limit for env+args is ~2MB.</summary>
+    private const int EnvironmentBudgetWarningBytes = 768 * 1024;
+
+    private const string ExtractFunctionsScript =
+        """
+        i=0; while [ "$i" -lt "${FUNCS_TGZ_PARTS:-1}" ]; do eval "printf '%s' \"\$FUNCS_TGZ_B64_$i\""; i=$((i+1)); done | base64 -d | tar -xzf - -C __FUNCTIONS_DIR__
+        """;
+
     #region Edge Functions
 
     /// <summary>
@@ -154,23 +175,63 @@ public static class SupabaseStackExtensions
                 $"echo $MAIN_TS_BASE64 | base64 -d > {edgeMountPath}/main/main.ts"
             };
 
-            // Read all function files, gzip+base64 encode, and add as environment variables.
-            // Gzip is needed because Bicep has a 128KB literal limit per env var.
-            foreach (var funcName in functionDirs)
+            // Ship the WHOLE functions directory as one tar.gz, not just each
+            // <function>/index.ts: functions routinely import shared modules
+            // (../_shared/x.ts) and may ship assets next to them. The generated router
+            // rewrites those relative imports to file:// paths under the functions
+            // directory, so a missing _shared/ made every function that used it fail to
+            // start in publish mode while working fine locally (bind mount).
+            //
+            // The archive is base64'd and split across FUNCS_TGZ_B64_0..N-1: Bicep caps a
+            // literal env var at 128KB and the kernel caps a single env var at
+            // MAX_ARG_STRLEN (128KB) as well. tar/gzip/base64 all exist in deno:alpine.
+            //
+            // SIZE MATTERS: the whole environment must stay below the kernel's ARG_MAX
+            // (~2MB for env + args together). The edge router spawns one `deno run` child
+            // per function and passes the environment on, so exceeding it does not just
+            // break startup — every function worker fails with E2BIG. Oversized files are
+            // therefore skipped rather than silently pushing the deployment over the edge.
+            if (hasFunctionsDir)
             {
-                var funcIndexPath = Path.Combine(functionsPath!, funcName, "index.ts");
-                if (File.Exists(funcIndexPath))
+                var skipped = new List<string>();
+                using var archive = new System.IO.MemoryStream();
+                using (var gz = new System.IO.Compression.GZipStream(archive, System.IO.Compression.CompressionMode.Compress, true))
+                using (var tar = new System.Formats.Tar.TarWriter(gz, System.Formats.Tar.TarEntryFormat.Pax, leaveOpen: true))
                 {
-                    var funcBytes = System.Text.Encoding.UTF8.GetBytes(File.ReadAllText(funcIndexPath));
-                    using var ms = new System.IO.MemoryStream();
-                    using (var gz = new System.IO.Compression.GZipStream(ms, System.IO.Compression.CompressionMode.Compress, true))
-                        gz.Write(funcBytes, 0, funcBytes.Length);
-                    var funcGzBase64 = Convert.ToBase64String(ms.ToArray());
-                    var envVarName = $"FUNC_{funcName.ToUpperInvariant().Replace("-", "_")}_GZ_B64";
-
-                    edgeBuilder.WithEnvironment(envVarName, funcGzBase64);
-                    setupCommands.Add($"mkdir -p {edgeMountPath}/functions/{funcName} && echo ${envVarName} | base64 -d | gunzip > {edgeMountPath}/functions/{funcName}/index.ts");
+                    foreach (var file in Directory.GetFiles(functionsPath!, "*", SearchOption.AllDirectories)
+                                 .OrderBy(f => f, StringComparer.OrdinalIgnoreCase))
+                    {
+                        var relative = Path.GetRelativePath(functionsPath!, file).Replace('\\', '/');
+                        var size = new FileInfo(file).Length;
+                        if (size > MaxPublishedFunctionFileBytes)
+                        {
+                            skipped.Add($"{relative} ({size / 1024}KB)");
+                            continue;
+                        }
+                        tar.WriteEntry(file, relative);
+                    }
                 }
+
+                if (skipped.Count > 0)
+                    LogWarning($"Edge Functions: skipped {skipped.Count} file(s) larger than {MaxPublishedFunctionFileBytes / 1024}KB — they are NOT available in publish mode: {string.Join(", ", skipped)}");
+
+                var funcsB64 = Convert.ToBase64String(archive.ToArray());
+                var parts = Math.Max(1, (funcsB64.Length + FunctionsChunkSize - 1) / FunctionsChunkSize);
+                for (var i = 0; i < parts; i++)
+                {
+                    var start = i * FunctionsChunkSize;
+                    var len = Math.Min(FunctionsChunkSize, funcsB64.Length - start);
+                    edgeBuilder.WithEnvironment($"FUNCS_TGZ_B64_{i}", len > 0 ? funcsB64.Substring(start, len) : "");
+                }
+                edgeBuilder.WithEnvironment("FUNCS_TGZ_PARTS", parts.ToString());
+
+                // POSIX sh (alpine) has no ${!var} indirection, so the parts are
+                // concatenated through eval. Raw string literal: no C# escaping games.
+                setupCommands.Add(ExtractFunctionsScript.Replace("__FUNCTIONS_DIR__", $"{edgeMountPath}/functions"));
+
+                LogInformation($"Edge Functions published as {parts} archive part(s), {funcsB64.Length / 1024}KB base64");
+                if (funcsB64.Length > EnvironmentBudgetWarningBytes)
+                    LogWarning($"Edge Functions payload is {funcsB64.Length / 1024}KB. The container environment must stay well below the kernel ARG_MAX (~2MB) because the router spawns a child process per function — shrink or remove large assets under {functionsPath}.");
             }
 
             setupCommands.Add($"echo 'Edge functions ready:' && find {edgeMountPath} -name '*.ts'");
@@ -201,7 +262,7 @@ public static class SupabaseStackExtensions
         // Azure Container Apps: set allowInsecure for internal HTTP communication
         if (appBuilder.ExecutionContext.IsPublishMode)
         {
-            edgeBuilder.PublishAsAzureContainerApp((infra, app) =>
+            edgeBuilder.PublishAsAcaWhenTargeted((infra, app) =>
             {
                 app.Configuration.Ingress.AllowInsecure = true;
             });
@@ -725,24 +786,132 @@ $$;
     #region JWT Configuration
 
     /// <summary>
-    /// Configures the JWT secret used for token signing.
+    /// Re-writes Kong's declarative config with the stack's current keys.
     /// </summary>
+    /// <remarks>
+    /// Kong authenticates callers against <c>keyauth_credentials</c> in kong.yml, which
+    /// AddSupabase writes with the defaults. Replacing a key without refreshing that file
+    /// leaves Kong rejecting every request with 401 — the whole stack starts and then answers
+    /// nothing, which is far harder to diagnose than a startup failure.
+    /// </remarks>
+    private static void RefreshKongCredentials(SupabaseStackResource stack)
+    {
+        if (stack.InfraRootDir is { Length: > 0 } infraRoot)
+        {
+            var kongYmlPath = Path.Combine(infraRoot, "config", "kong.yml");
+            if (File.Exists(kongYmlPath))
+            {
+                SupabaseSqlGenerator.WriteKongConfig(
+                    kongYmlPath,
+                    stack.AnonKey,
+                    stack.ServiceRoleKey,
+                    stack.Name,
+                    goTruePort: 9999,
+                    postRestPort: 3000,
+                    storagePort: 5000,
+                    metaPort: 8080,
+                    edgeRuntimePort: 9000,
+                    realtimePort: 4000,
+                    tracing: stack.KongTracing);
+            }
+        }
+
+        // Kong also receives the keys as environment variables, and publish mode ships its
+        // whole config as a base64 template embedded with those keys. Both are written when
+        // the Kong resource is created — i.e. before this method can run — so both have to be
+        // refreshed here, not just the bind-mounted file.
+        var refreshedTemplate = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(
+            SupabaseSqlGenerator.GetKongConfigTemplateForPublish(
+                stack.AnonKey, stack.ServiceRoleKey, tracing: stack.KongTracing)));
+        stack.KongConfigBase64 = refreshedTemplate;
+
+        stack.Kong?
+            .WithEnvironment("SUPABASE_ANON_KEY", stack.AnonKey)
+            .WithEnvironment("SUPABASE_SERVICE_KEY", stack.ServiceRoleKey)
+            .WithEnvironment("KONG_CONFIG_TEMPLATE_BASE64", refreshedTemplate);
+    }
+
+
+    /// <summary>
+    /// Configures the JWT secret from an Aspire parameter, so the value comes from
+    /// configuration (user secrets / secrets.json / <c>Parameters__…</c>) instead of source.
+    /// </summary>
+    /// <remarks>
+    /// Resolved to its value here because the secret is written into generated SQL and
+    /// container environments while the model is built. Note that the anon and service-role
+    /// keys are JWTs SIGNED with this secret — replacing the secret without also replacing
+    /// both keys makes GoTrue and PostgREST reject them.
+    /// </remarks>
+    public static IResourceBuilder<SupabaseStackResource> WithJwtSecret(
+        this IResourceBuilder<SupabaseStackResource> builder,
+        IResourceBuilder<ParameterResource> secret)
+    {
+        ArgumentNullException.ThrowIfNull(secret);
+        return builder.WithJwtSecret(secret.Resource.Value);
+    }
+
+    /// <summary>Configures the anonymous key from an Aspire parameter (see <see cref="WithJwtSecret(IResourceBuilder{SupabaseStackResource}, IResourceBuilder{ParameterResource})"/>).</summary>
+    public static IResourceBuilder<SupabaseStackResource> WithAnonKey(
+        this IResourceBuilder<SupabaseStackResource> builder,
+        IResourceBuilder<ParameterResource> anonKey)
+    {
+        ArgumentNullException.ThrowIfNull(anonKey);
+        return builder.WithAnonKey(anonKey.Resource.Value);
+    }
+
+    /// <summary>Configures the service-role key from an Aspire parameter (see <see cref="WithJwtSecret(IResourceBuilder{SupabaseStackResource}, IResourceBuilder{ParameterResource})"/>).</summary>
+    public static IResourceBuilder<SupabaseStackResource> WithServiceRoleKey(
+        this IResourceBuilder<SupabaseStackResource> builder,
+        IResourceBuilder<ParameterResource> serviceRoleKey)
+    {
+        ArgumentNullException.ThrowIfNull(serviceRoleKey);
+        return builder.WithServiceRoleKey(serviceRoleKey.Resource.Value);
+    }
+
+    /// <summary>
+    /// Configures the JWT secret used for token signing and propagates it to every service
+    /// that validates or issues tokens.
+    /// </summary>
+    /// <remarks>
+    /// Propagation is required, not cosmetic: the services capture the secret in their
+    /// environment when they are created, so setting only the property left Auth, REST,
+    /// Storage, Realtime and Studio on the previous value. Auth would then sign user tokens
+    /// with one secret while PostgREST validated them with another, and the anon/service-role
+    /// keys (JWTs signed with this secret) would be rejected — a stack that starts but
+    /// refuses every request.
+    /// </remarks>
     public static IResourceBuilder<SupabaseStackResource> WithJwtSecret(
         this IResourceBuilder<SupabaseStackResource> builder,
         string secret)
     {
-        builder.Resource.JwtSecret = secret;
+        var stack = builder.Resource;
+        stack.JwtSecret = secret;
+
+        stack.Auth?.WithEnvironment("GOTRUE_JWT_SECRET", secret);
+        stack.Rest?.WithEnvironment("PGRST_JWT_SECRET", secret);
+        stack.Rest?.WithEnvironment("PGRST_APP_SETTINGS_JWT_SECRET", secret);
+        stack.Storage?.WithEnvironment("PGRST_JWT_SECRET", secret);
+        stack.Realtime?.WithEnvironment("API_JWT_SECRET", secret);
+        stack.StackBuilder?.WithEnvironment("AUTH_JWT_SECRET", secret);
+
         return builder;
     }
 
     /// <summary>
-    /// Configures the anonymous key for public API access.
+    /// Configures the anonymous key for public API access and propagates it to the services
+    /// that hand it out (see the remarks on <see cref="WithJwtSecret(IResourceBuilder{SupabaseStackResource}, string)"/>).
     /// </summary>
     public static IResourceBuilder<SupabaseStackResource> WithAnonKey(
         this IResourceBuilder<SupabaseStackResource> builder,
         string anonKey)
     {
-        builder.Resource.AnonKey = anonKey;
+        var stack = builder.Resource;
+        stack.AnonKey = anonKey;
+
+        stack.Storage?.WithEnvironment("ANON_KEY", anonKey);
+        stack.StackBuilder?.WithEnvironment("SUPABASE_ANON_KEY", anonKey);
+        RefreshKongCredentials(stack);
+
         return builder;
     }
 
@@ -754,6 +923,7 @@ $$;
         string serviceRoleKey)
     {
         builder.Resource.ServiceRoleKey = serviceRoleKey;
+        RefreshKongCredentials(builder.Resource);
         return builder;
     }
 

@@ -33,6 +33,15 @@ public static class SupabaseBuilderExtensions
     public static string? PostgresDataVolumeName { get; set; }
 
     /// <summary>
+    /// Publish target of the whole stack. Default <see cref="SupabasePublishTarget.AzureContainerApps"/>
+    /// keeps the previous behaviour; set it to <see cref="SupabasePublishTarget.ContainerEnvironment"/>
+    /// to publish into a generic container environment (e.g. <c>AddDockerComposeEnvironment(...)</c>)
+    /// instead. Like <see cref="PostgresDataVolumeName"/> this is a host-app decision, so it lives
+    /// here as a static switch rather than on every resource.
+    /// </summary>
+    public static SupabasePublishTarget PublishTarget { get; set; } = SupabasePublishTarget.AzureContainerApps;
+
+    /// <summary>
     /// Optional S3-compatible backend for the storage container (publish mode). When set, the
     /// storage container runs with STORAGE_BACKEND=s3 against this endpoint instead of the local
     /// FILE backend. This is a generic Supabase-storage concern: supabase-storage's FILE backend
@@ -1036,7 +1045,7 @@ public static class SupabaseBuilderExtensions
         {
             // Helper to set allowInsecure on internal HTTP services
             void ConfigureInternalHttp(IResourceBuilder<ContainerResource> svc) =>
-                svc.PublishAsAzureContainerApp((infra, app) =>
+                svc.PublishAsAcaWhenTargeted((infra, app) =>
                 {
                     app.Configuration.Ingress.AllowInsecure = true;
                     // Force HTTP/1.1 on the internal ingress (plain HTTP services).
@@ -1053,7 +1062,7 @@ public static class SupabaseBuilderExtensions
             // replica = split brain (an object uploaded to replica A is a 404 on replica B).
             // With NFS-shared storage this could be relaxed, but for the local/ephemeral
             // backend it must stay at exactly 1.
-            stack.Storage.PublishAsAzureContainerApp((infra, app) =>
+            stack.Storage.PublishAsAcaWhenTargeted((infra, app) =>
             {
                 app.Configuration.Ingress.AllowInsecure = true;
                 app.Configuration.Ingress.Transport =
@@ -1091,7 +1100,7 @@ public static class SupabaseBuilderExtensions
             // needs to resolve its tenant) arrive untouched — exactly like a direct
             // docker-compose connection. Kong still reaches it at <name>:4000. This also
             // sidesteps the HTTP startup-probe PortMismatch we saw (TCP probe on 4000).
-            stack.Realtime.PublishAsAzureContainerApp((infra, app) =>
+            stack.Realtime.PublishAsAcaWhenTargeted((infra, app) =>
             {
                 app.Configuration.Ingress.Transport =
                     Azure.Provisioning.AppContainers.ContainerAppIngressTransportMethod.Tcp;
@@ -1103,7 +1112,7 @@ public static class SupabaseBuilderExtensions
             // Single replica is mandatory: two postgres processes on the same data directory
             // (or two independent ephemeral ones) = corruption / split-brain.
             // External mode: the caller owns the DB resource + its deployment, so skip this entirely.
-            stack.Database?.PublishAsAzureContainerApp((infra, app) =>
+            stack.Database?.PublishAsAcaWhenTargeted((infra, app) =>
             {
                 app.Configuration.Ingress.ExposedPort = Ports.Postgres;
                 app.Template.Scale.MinReplicas = 1;
@@ -1134,7 +1143,7 @@ public static class SupabaseBuilderExtensions
             // Init container should also be pinned to 1 (it's a one-shot job)
             if (initContainer != null)
             {
-                initContainer.PublishAsAzureContainerApp((infra, app) =>
+                initContainer.PublishAsAcaWhenTargeted((infra, app) =>
                 {
                     app.Template.Scale.MinReplicas = 0;
                     app.Template.Scale.MaxReplicas = 1;
@@ -1142,7 +1151,7 @@ public static class SupabaseBuilderExtensions
             }
 
             // Kong and Studio are external, also allow insecure for internal routes
-            stack.Kong.PublishAsAzureContainerApp((infra, app) =>
+            stack.Kong.PublishAsAcaWhenTargeted((infra, app) =>
             {
                 app.Configuration.Ingress.AllowInsecure = true;
                 // Force HTTP/1.1 on Kong's public ingress. Realtime uses WebSockets
@@ -1152,7 +1161,7 @@ public static class SupabaseBuilderExtensions
                 // which is exactly the live-progress breakage we saw in Azure.
                 app.Configuration.Ingress.Transport = Azure.Provisioning.AppContainers.ContainerAppIngressTransportMethod.Http;
             });
-            stackBuilder.PublishAsAzureContainerApp((infra, app) =>
+            stackBuilder.PublishAsAcaWhenTargeted((infra, app) =>
             {
                 app.Configuration.Ingress.AllowInsecure = true;
             });

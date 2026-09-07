@@ -59,7 +59,7 @@ public static class MinioOnNfsStorageExtensions
             .WithEndpoint(targetPort: 9000, name: "s3", scheme: "http", isExternal: false)
             .WithContainerRuntimeArgs("--restart=on-failure:10");
 
-        minio.PublishAsAzureContainerApp((infra, app) =>
+        minio.PublishAsAcaWhenTargeted((infra, app) =>
         {
             app.Configuration.Ingress.AllowInsecure = true;
             app.Configuration.Ingress.Transport =
@@ -109,7 +109,7 @@ public static class MinioOnNfsStorageExtensions
             .WithContainerRuntimeArgs("--restart=on-failure:10")
             .WaitFor(minio);
 
-        minioInit.PublishAsAzureContainerApp((infra, app) =>
+        minioInit.PublishAsAcaWhenTargeted((infra, app) =>
         {
             app.Template.Scale.MinReplicas = 1;
             app.Template.Scale.MaxReplicas = 1;

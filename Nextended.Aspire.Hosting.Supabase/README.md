@@ -29,6 +29,8 @@ A complete Supabase stack integration for .NET Aspire, providing local developme
 - [Syncing from Remote Supabase Project](#syncing-from-remote-supabase-project)
 - [Local Migrations](#local-migrations)
 - [Edge Functions](#edge-functions)
+- [Secrets and keys](#secrets-and-keys)
+- [Publishing](#publishing)
 - [Registered Users](#registered-users)
 - [Sub-Resource Configuration](#sub-resource-configuration)
 - [Dashboard Commands](#dashboard-commands)
@@ -349,6 +351,78 @@ curl -X POST http://localhost:8000/functions/v1/hello-world \
   -H "Authorization: Bearer YOUR_ANON_KEY" \
   -d '{"name": "World"}'
 ```
+
+---
+
+## Secrets and keys
+
+The stack ships with the publicly documented Supabase demo values for `JWT_SECRET` and the
+anon/service-role keys. They are fine for local development, but **must be replaced before
+anything is exposed**: `service_role` bypasses RLS, and the default key is public knowledge.
+
+```csharp
+builder.AddSupabase("sb")
+    .WithJwtSecret(builder.AddParameter("jwt-secret", secret: true))
+    .WithAnonKey(builder.AddParameter("anon-key", secret: true))
+    .WithServiceRoleKey(builder.AddParameter("service-key", secret: true))
+    .ConfigureDatabase(db => db.WithPassword(builder.AddParameter("db-password", secret: true)));
+```
+
+Both a `string` and an `IResourceBuilder<ParameterResource>` overload exist for all four. The
+parameter overloads resolve to the configured value (user secrets, a gitignored settings file,
+`Parameters__…` in the environment), because the password and secret are written into generated
+SQL, connection strings and container environments while the model is built.
+
+Two things worth knowing:
+
+- The anon and service-role keys are **JWTs signed with the JWT secret** — replacing the secret
+  without re-signing both keys makes GoTrue and PostgREST reject them.
+- `WithJwtSecret` and `WithAnonKey` propagate to every service that consumes them (Auth, REST,
+  Storage, Realtime, Studio). Setting the properties alone would leave those services on the
+  previous value, which yields a stack that starts but refuses every request.
+
+---
+
+## Publishing
+
+### Publish target
+
+By default the stack stamps Azure Container Apps annotations on every resource in publish
+mode. Set the target once when you publish somewhere else — for example into a compose
+environment — otherwise Aspire rejects the model with *"configured to publish as an Azure
+Container App, but there are no AzureContainerAppEnvironmentResource resources"*:
+
+```csharp
+builder.AddDockerComposeEnvironment("docker-env");
+SupabaseBuilderExtensions.PublishTarget = SupabasePublishTarget.ContainerEnvironment;
+```
+
+`SupabasePublishTarget.AzureContainerApps` stays the default, so existing AppHosts are
+unaffected.
+
+### Edge Functions in publish mode
+
+Publish mode has no bind mounts (ACA init containers cannot share volumes), so the **entire**
+functions directory is shipped as a base64 tar.gz split across `FUNCS_TGZ_B64_0..N` env vars
+(`FUNCS_TGZ_PARTS` holds the count) and unpacked at container start. Shipping the whole
+directory — not just each `<function>/index.ts` — is what makes shared modules work: the
+generated router rewrites `../_shared/x.ts` to a `file://` path inside the functions
+directory, so a function importing a shared module fails to start if that file was never
+transferred.
+
+Keep the directory small. The container environment must stay below the kernel's `ARG_MAX`
+(~2 MB for env *and* args), and it bites twice because the router spawns one `deno run` child
+per function and passes the environment on — exceeding it breaks every function, not just
+startup. Measured in `denoland/deno:alpine`: 1.7 MB still works, 2.5 MB fails with
+*Argument list too long*.
+
+Therefore:
+
+- each chunk is 64 000 base64 chars (below Bicep's 128 KB literal cap and `MAX_ARG_STRLEN`),
+- files larger than 512 KB are **skipped** with a warning naming them,
+- a payload above 768 KB logs a warning.
+
+Put large assets in storage, not next to your functions.
 
 ---
 
