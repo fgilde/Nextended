@@ -134,6 +134,27 @@ public static class DatabaseBuilderExtensions
     #region Sub-Resource Methods (for use with ConfigureDatabase)
 
     /// <summary>
+    /// Sets the PostgreSQL password from an Aspire parameter, so the value lives in
+    /// configuration (user secrets, a gitignored secrets.json, or <c>Parameters__…</c> in the
+    /// environment) instead of in source.
+    /// </summary>
+    /// <remarks>
+    /// The parameter is resolved to its value here rather than passed through as a reference:
+    /// the password is baked into generated SQL (the roles script), into connection strings
+    /// and into the post-init script while the model is being built, so a concrete value is
+    /// required at that point. Aspire resolves a parameter from configuration, which is
+    /// exactly where a deployment supplies it — a parameter without a configured value throws
+    /// with a message naming it.
+    /// </remarks>
+    public static IResourceBuilder<SupabaseDatabaseResource> WithPassword(
+        this IResourceBuilder<SupabaseDatabaseResource> builder,
+        IResourceBuilder<ParameterResource> password)
+    {
+        ArgumentNullException.ThrowIfNull(password);
+        return builder.WithPassword(password.Resource.Value);
+    }
+
+    /// <summary>
     /// Sets the PostgreSQL password and updates all dependent containers.
     /// </summary>
     public static IResourceBuilder<SupabaseDatabaseResource> WithPassword(

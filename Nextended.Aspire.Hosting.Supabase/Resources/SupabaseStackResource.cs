@@ -141,6 +141,9 @@ public sealed class SupabaseStackResource : ContainerResource, IResourceWithConn
     /// </summary>
     internal string? InfraRootDir { get; set; }
 
+    /// <summary>Test hook: the generated infra directory (config/, db-data/ …).</summary>
+    public string? InfraRootDirForTests() => InfraRootDir;
+
     /// <summary>
     /// Path to the database initialization SQL scripts directory.
     /// </summary>
