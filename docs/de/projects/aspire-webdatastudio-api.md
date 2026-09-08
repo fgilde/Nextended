@@ -364,6 +364,8 @@ The database engines WebDataStudio can talk to. The value tells the studio which
   <br>MongoDB.
 - `MySql`
   <br>MySQL and MariaDB.
+- `OData`
+  <br>An OData service, V2 to V4, read over HTTP. The connection string is the URL of the service root, and each further line of it is a request header — see `WithODataService`, which writes both. Read-only: the studio never sends a POST, a PATCH or a DELETE to a service.
 - `Oracle`
   <br>Oracle Database.
 - `PostgreSql`
@@ -453,6 +455,12 @@ The tools the studio's MCP endpoint offers, by name — so `WithMcpTools` takes 
   <br>Enough to find one's way around a schema, without reading a single row.
 - `ServerActivity : string`
   <br>What the server is running, and who waits on whom.
+
+### `WebDataStudioODataExtensions`
+
+`static class`
+
+An OData service as a connection: the URL of the service root, and the headers the service wants.
 
 ### `WebDataStudioOpsExtensions`
 

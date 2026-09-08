@@ -77,6 +77,17 @@ var studio = builder.AddWebDataStudio()
     // subset is worth trying on: people, the countries they are in, and notes about them.
     .WithConnection("SCRATCH", "Data Source=/data/scratch.db", WebDataStudioEngine.Sqlite,
         group: "Files")
+    // An OData service is a connection too, and this one needs nothing installed: the public
+    // Northwind of services.odata.org. The explorer lists its entity sets, the data tab pages them
+    // at the far end, and the query tab takes a resource path —
+    // `Products?$filter=UnitPrice gt 20&$orderby=ProductName&$top=50` — which the wand button
+    // writes for you. Read-only, because the driver is.
+    .WithODataService("NORTHWIND", "https://services.odata.org/V4/Northwind/Northwind.svc/",
+        group: "Services")
+    // The same thing with a header, which is how a service behind an API key is reached. TripPin
+    // wants none, so this one is only here to show the shape.
+    .WithODataService("TRIPPIN", "https://services.odata.org/TripPinRESTierService/",
+        headers: new() { ["Accept-Language"] = "de-DE" }, group: "Services")
     // The same `drop` folder once more, this time as a folder the studio may open *files* from:
     // Add connection → Browse the server walks it, and a `.sqlite3`, a `.duckdb` or a `.csv` in
     // there becomes a connection without anything being typed. Mounted read-only.

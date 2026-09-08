@@ -550,6 +550,45 @@ line — so anything can read it. Masked columns are masked *in the file*: an ar
 way around the masking. Archives work without this call; it is for putting them on a different volume,
 or for capping how much one keeps.
 
+## An OData service
+
+```csharp
+studio.WithODataService("NORTHWIND", "https://services.odata.org/V4/Northwind/Northwind.svc/",
+        group: "Services")
+      // A service behind an API key: one header per entry.
+      .WithODataService("SAP", "https://sap.example/odata/", new()
+      {
+          ["X-Api-Key"] = "…",
+          ["Accept-Language"] = "de-DE",
+      });
+
+// A key belongs in a parameter rather than in this file, so the value may arrive as one.
+var key = builder.AddParameter("sap-key", secret: true);
+
+studio.WithODataService("SAP", "https://sap.example/odata/", "X-Api-Key", key);
+```
+
+Not every database is a database. The studio reads an OData service over HTTP, V2 to V4: the
+explorer lists the entity sets from the service's `$metadata`, the data tab pages, sorts and filters
+them through `$top`, `$skip`, `$orderby` and `$filter` — so the service does the work — and the
+query tab takes a resource path with query options, `Products?$filter=UnitPrice gt 20&$top=50`. A
+wand button writes those options from the service's own metadata.
+
+The connection string is the URL of the service root. `user:pw@` in it travels as Basic
+authentication and `bearer:<token>@` as a Bearer token, both as headers rather than in the URL; each
+further line is a request header, which is how an API key or a session cookie gets there. The
+studio's own server makes the request, so a browser's cookies never reach the service.
+
+`WithODataService` is `WithConnection` with the shape checked: a URL that is not an absolute
+`http(s)` one is refused here rather than on somebody's first click, a header value carrying a
+newline is refused rather than smuggling a second header into the connection string, and the
+connection is read-only by default because the driver is — no POST, no PATCH, no DELETE. For
+anything else there is still `WithConnection(name, url, WebDataStudioEngine.OData)`.
+
+One thing to weigh before a studio strangers can reach: an OData connection makes the container
+fetch a URL somebody typed. `WithConnectHosts(...)` is what keeps that from being a way into the
+rest of your network, and it covers an OData service like every other target.
+
 ## Object storage
 
 ```csharp

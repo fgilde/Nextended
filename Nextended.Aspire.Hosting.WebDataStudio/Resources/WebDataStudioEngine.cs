@@ -39,6 +39,14 @@ public enum WebDataStudioEngine
     /// <c>azblob://account/container</c>, <c>gs://bucket</c>, <c>file:///data/incoming</c>.
     /// </summary>
     Storage,
+
+    /// <summary>
+    /// An OData service, V2 to V4, read over HTTP. The connection string is the URL of the service
+    /// root, and each further line of it is a request header — see
+    /// <c>WithODataService</c>, which writes both. Read-only: the studio never sends a POST, a
+    /// PATCH or a DELETE to a service.
+    /// </summary>
+    OData,
 }
 
 /// <summary>Maps <see cref="WebDataStudioEngine"/> to the identifiers WebDataStudio expects.</summary>
@@ -57,6 +65,7 @@ public static class WebDataStudioEngineExtensions
         WebDataStudioEngine.MongoDb => "mongodb",
         WebDataStudioEngine.Redis => "redis",
         WebDataStudioEngine.Storage => "storage",
+        WebDataStudioEngine.OData => "odata",
         _ => throw new ArgumentOutOfRangeException(nameof(engine), engine, "unknown engine"),
     };
 }
