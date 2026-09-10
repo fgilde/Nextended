@@ -28,6 +28,26 @@ public class WebDataStudioAccessTests
 
     // --- the two questions -------------------------------------------------------------------------
 
+    /// A public viewer closes the server browser, and a studio whose point is a folder of samples
+    /// says the opposite out loud after it. Whichever comes last is what the container gets.
+    [Fact]
+    public async Task A_viewer_can_be_told_to_show_its_samples_after_all()
+    {
+        var studio = Add()
+            .AsPublicViewer()
+            .WithFileBrowse();
+
+        Assert.Equal("true", (await EnvOf(studio.Resource))["WDS_ALLOW_FILE_BROWSE"]);
+    }
+
+    [Fact]
+    public async Task A_public_viewer_closes_the_server_browser_by_itself()
+    {
+        var studio = Add().AsPublicViewer();
+
+        Assert.Equal("false", (await EnvOf(studio.Resource))["WDS_ALLOW_FILE_BROWSE"]);
+    }
+
     [Fact]
     public async Task WithConnectionScope_SaysWhereANewConnectionGoes()
     {

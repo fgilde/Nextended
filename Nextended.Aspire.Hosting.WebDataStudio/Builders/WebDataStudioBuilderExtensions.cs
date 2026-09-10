@@ -325,6 +325,49 @@ public static class WebDataStudioBuilderExtensions
     }
 
     /// <summary>
+    /// Sets the icon the studio shows in its header, on its login screen and in the browser tab:
+    /// <c>WithIcon("brand/mark.svg")</c> or <c>WithIcon("https://intranet/mark.svg")</c>.
+    /// </summary>
+    /// <remarks>
+    /// A file that exists next to the app host is mounted into the container read-only and the
+    /// studio serves it itself; anything else travels as given, which is what a URL needs. So the
+    /// same call covers both, and neither one needs a volume of its own.
+    /// <para>
+    /// A path that is not there at build time is not an error: it may be a path inside the image, or
+    /// a URL a proxy resolves. The studio falls back to the icon it ships.
+    /// </para>
+    /// </remarks>
+    /// <param name="builder">The studio resource.</param>
+    /// <param name="icon">A local file, a path inside the container, or a URL. Null or empty
+    /// leaves the icon the studio ships.</param>
+    public static IResourceBuilder<WebDataStudioResource> WithIcon(
+        this IResourceBuilder<WebDataStudioResource> builder, string? icon)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        if (string.IsNullOrWhiteSpace(icon))
+        {
+            builder.Resource.Icon = null;
+            // Empty is what the studio reads as "the one you ship", so a second call can take the
+            // first one back.
+            return builder.WithEnvironment("WDS_ICON", "");
+        }
+
+        var value = icon.Trim();
+
+        if (File.Exists(value))
+        {
+            var target = $"/brand/{Path.GetFileName(value)}";
+            builder.WithBindMount(Path.GetFullPath(value), target, isReadOnly: true);
+            value = target;
+        }
+
+        builder.Resource.Icon = value;
+
+        return builder.WithEnvironment("WDS_ICON", value);
+    }
+
+    /// <summary>
     /// Makes every connection read-only, whatever each one says for itself. The studio enforces
     /// this in the driver, not only by hiding buttons.
     /// </summary>

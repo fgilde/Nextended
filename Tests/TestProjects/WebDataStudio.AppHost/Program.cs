@@ -32,6 +32,10 @@ var clientSecret = builder.AddParameter("keycloak-client-secret", "studio-secret
 var studio = builder.AddWebDataStudio()
     .WithTheme(WebDataStudioTheme.GitHubLight)
     .WithTitle("WebDataStudio demo")
+    // A deployment's own icon, in the header, on the login screen and in the browser tab. The file
+    // is mounted read-only and served by the studio itself, so nothing has to be reachable from a
+    // browser; a URL would work in the same call. WDS_ICON in the container.
+    .WithIcon("brand/demo-icon.svg")
     // One {CONNECTION}.sql per connection, run once each: SQL Server and the SQLite file below.
     // PostgreSQL seeds itself through the image's own init folder.
     .WithSeedScript("seed")
@@ -60,6 +64,62 @@ var studio = builder.AddWebDataStudio()
         new StudioTile("Orders by status", "SHOP",
             "SELECT status, count(*) FROM orders GROUP BY status", View: "chart", Width: 2),
     ], RefreshSeconds: 30))
+    // The same page as a canvas: twenty-four columns, a time range the widgets read through
+    // $__timeFilter, a variable in their statements, and one widget over two databases at once —
+    // PostgreSQL and SQL Server, staged and joined by the studio itself.
+    .WithDashboards(new StudioCanvas("Shop, at a glance",
+    [
+        new StudioWidget("Overview", StudioWidgetType.Row, Width: 24, Height: 1),
+        new StudioWidget("Customers", StudioWidgetType.Stat, "SHOP",
+            "SELECT count(*) FROM customers", Width: 5, Height: 4,
+            Thresholds: [new StudioThreshold(1, "good")]),
+        new StudioWidget("Shipped share", StudioWidgetType.Gauge, "SHOP",
+            "SELECT round(100.0 * count(*) FILTER (WHERE status = 'shipped') / greatest(count(*), 1), 1) FROM orders",
+            Width: 5, Height: 4, Min: 0, Max: 100, Unit: "percent",
+            Thresholds: [new StudioThreshold(50, "warning"), new StudioThreshold(80, "good")]),
+        new StudioWidget("Orders by status", StudioWidgetType.Bar, "SHOP",
+            "SELECT status, count(*) AS orders FROM orders GROUP BY status ORDER BY orders DESC",
+            Width: 7, Height: 4, Category: "status", Value: "orders"),
+        new StudioWidget("Page views per day", StudioWidgetType.Line, "SHOP",
+            "SELECT date_trunc('day', viewed_at) AS day, count(*) AS views FROM page_views "
+            + "WHERE $__timeFilter(viewed_at) GROUP BY day ORDER BY day",
+            Width: 7, Height: 4, Category: "day", Value: "views"),
+        new StudioWidget("What a dashboard is here", StudioWidgetType.Text, Width: 8, Height: 5,
+            Markdown: "## The same rows\n\nEvery widget runs through the endpoint a query tab "
+                      + "runs through, so masking, the row cap and the audit line are the same "
+                      + "ones.\n\n- `$__timeFilter(column)` becomes this engine's own BETWEEN\n"
+                      + "- `$status` is bound as a value, never written into the statement"),
+        new StudioWidget("Orders by status, only $status", StudioWidgetType.Table, "SHOP",
+            "SELECT id, status, placed_at FROM orders WHERE status = $status ORDER BY placed_at DESC LIMIT 50",
+            Width: 8, Height: 5),
+        // Two engines in one picture: the studio's own federation, with a row cap per source and an
+        // honest report of how much it copied. PostgreSQL knows what was ordered and SQL Server
+        // knows what was handed to a carrier, which is exactly the question neither can answer by
+        // itself. Both sides cast the day to text, so the join is on the same type rather than on
+        // whichever date type each engine staged.
+        new StudioWidget("Ordered here, handed over there", StudioWidgetType.Line,
+            Width: 8, Height: 5,
+            Sql: "SELECT coalesce(o.day, d.day) AS day, coalesce(o.orders, 0) AS ordered, "
+                 + "coalesce(d.handovers, 0) AS handed_over "
+                 + "FROM shop_orders o FULL OUTER JOIN handovers d ON d.day = o.day "
+                 + "ORDER BY 1",
+            Category: "day",
+            Sources:
+            [
+                new StudioWidgetSource("SHOP",
+                    "SELECT to_char(placed_at, 'YYYY-MM-DD') AS day, count(*) AS orders "
+                    + "FROM orders GROUP BY 1", "shop_orders"),
+                new StudioWidgetSource("ORDERS",
+                    "SELECT CONVERT(char(10), handed_over, 23) AS day, count(*) AS handovers "
+                    + "FROM dbo.deliveries WHERE handed_over IS NOT NULL "
+                    + "GROUP BY CONVERT(char(10), handed_over, 23)", "handovers"),
+            ]),
+    ], RefreshSeconds: 30, From: "now-30d",
+        Variables: [new StudioVariable("status", ["new", "shipped", "cancelled"], Default: "shipped")]))
+    // And the dashboards Grafana already reads in this same stack, in Grafana's own JSON. Nothing
+    // says which format they are in: the studio decides per file, so the folder Grafana is pointed
+    // at is the folder the studio is pointed at.
+    .WithGrafanaDashboards("grafana-dashboards")
     .WithSnippets(new StudioSnippet("recent", "rows from the last day",
         "WHERE ${1:placed} > now() - interval '1 day'"))
     .WithDefaultPreferences(timeZone: "utc")
@@ -350,9 +410,7 @@ builder.AddWebDataStudio("sso-studio", port: 8082)
     .WithAuditTrail(days: 30)
     .WaitFor(keycloak);
 
-// --- reports the studio writes by itself ---------------------------------------------------------
-// Reading statements only, on the studio's own volume under /data/exports. Every two minutes is a
-// demo interval: it is a file you can watch appear rather than something to wait a day for.
+
 studio.WithScheduledQueries(
     new ScheduledStudioQuery("order-totals", "SHOP",
         "SELECT o.id, c.name AS customer, o.status, sum(i.quantity * i.unit_price) AS total "
@@ -372,33 +430,30 @@ studio.WithBackupSchedule("/data/backups",
     new StudioBackup("shop", "SHOP", EveryMinutes: 10, Keep: 3),
     new StudioBackup("shop-schema", "SHOP", EveryMinutes: 30, SchemaOnly: true, Keep: 2));
 
-// --- a scratch database that does not start out empty ---------------------------------------------
-// The other kind of seed: not SQL written down, but tables that already exist on another connection.
-// SHOP is PostgreSQL and SCRATCH is a SQLite file, so this also shows what a copy between two
-// engines does to the column types — each one becomes the nearest thing SQLite has.
-//
-// A table that already exists is left alone, so restarting the stack does not overwrite whatever
-// you did to the copy last time.
+
 studio.WithSeedFrom(new StudioSeedCopy("SHOP", "SCRATCH",
         ["customers", "orders"], MaxRows: 200))
-    // The copy runs shortly after the studio starts, and a server that is not up yet has nothing to
-    // copy. Aspire already knows how to say "not before this one is healthy", so nothing in the
-    // studio has to retry.
     .WaitFor(postgres);
 
-// --- a fourth studio, for anybody who walks up to it ---------------------------------------------
-// The other kind of deployment: no accounts, no connections of its own, and every visitor brings
-// their own database. What they open belongs to their browser — nobody else on this studio sees it,
-// nothing is written down, and it is gone in two hours or when they press the button.
-//
-// AsPublicViewer says the whole set at once: session scope, no server browser, ?u= for files,
-// read-only, a lifetime, a ceiling and an upload limit. The sample folder is mounted so there is
-// something to look at without bringing anything.
+
 builder.AddWebDataStudio("viewer-studio", port: 8083)
     .WithTitle("Bring your own database")
     .WithDatabaseFiles("drop", name: "samples")
-    // Connection strings are allowed here because it is a demo on a laptop; the hosts are the list
-    // that keeps it from being a way into the rest of the network.
-    .AsPublicViewer(connectionStrings: true, hosts: ["localhost", "127.0.0.1", "pg", "host.docker.internal"]);
+    .AsPublicViewer(connectionStrings: true, hosts: ["localhost", "127.0.0.1", "pg", "host.docker.internal"])
+    .WithFileBrowse()
+    .WithUrls(context =>
+    {
+        context.Urls.Add(new ResourceUrlAnnotation
+        {
+            Url = "http://localhost:8083/?u=/data/files/samples/people.csv",
+            DisplayText = "Sample: people.csv",
+        });
+
+        context.Urls.Add(new ResourceUrlAnnotation
+        {
+            Url = "http://localhost:8083/?u=/data/files/samples/orders.ndjson",
+            DisplayText = "Sample: orders.ndjson",
+        });
+    });
 
 builder.Build().Run();

@@ -175,8 +175,10 @@ variables it does.
 | `.WithSeedScript(connection, sql)` | A seed script for one connection, written here rather than as `{CONNECTION}.sql`. |
 | `.WithConnections(params StudioConnectionEntry[])` | Connections that are not resources in this stack — a legacy server, somebody else's replica. Read-only in the UI, like every environment connection. |
 | `.WithConnectionsFromFile(path)` | The same array, kept as JSON in your repository. |
-| `.WithDashboards(params StudioDashboard[])` | A page of statements everybody sees the first time they open the studio. It belongs to the deployment: shown, not editable there. |
+| `.WithDashboards(params StudioCanvas[])` | A dashboard as a canvas: twenty-four columns, fifteen widget types, one time range and the variables its statements read. It belongs to the deployment: shown, not editable there. |
+| `.WithDashboards(params StudioDashboard[])` | The older shape — a page of statements as tiles. Still read, still laid out. |
 | `.WithDashboardsFromFile(path)` | The same, as JSON in your repository. |
+| `.WithGrafanaDashboards(path)` | Grafana JSON — a file or a folder of them. Nothing says which format they are in: the studio decides per file, and what cannot come along is a line in its log. |
 | `.WithSnippets(params StudioSnippet[])` | Editor snippets for everybody. A person's own snippet with the same prefix wins for that person. |
 | `.WithSnippetsFromFile(path)` | The same, as JSON. |
 | `.WithMaskingFromFile(path)` | The masking baseline as a file: `{ "maskByDefault": true, "extra": [...], "never": [...] }`. Counts alongside `WithMaskedColumns`. |
@@ -193,6 +195,7 @@ variables it does.
 | `.WithoutAssistantTools()` | Keep the studio's own assistant from using the MCP tools. |
 | `.WithTitle(name)` | Name in the studio's header and browser tab. Defaults to the resource name; `null` leaves it unnamed. |
 | `.WithTheme(WebDataStudioTheme.Ocean)` | The theme the studio comes up in — an enum of the studio's own themes, or a string for one this package does not know yet. A person who picks another keeps their choice. |
+| `.WithIcon("brand/mark.svg")` | The icon in the studio's header, on its login screen and in the browser tab. A file next to the app host is mounted read-only and served by the studio; anything else travels as given, so a URL works too. `null` keeps the shipped icon. |
 | `.WithReadOnly(readOnly = true)` | Every connection read-only, enforced in the driver. |
 | `.WithQueryTimeout(TimeSpan)` | Default statement timeout. |
 | `.WithMaxRows(int)` | Default row cap per result. |
@@ -267,6 +270,56 @@ replaces itself rather than appearing twice.
 What stays a file-only thing on purpose: **accounts**. `WithUser` and `WithLogin` take a parameter
 for the secret, and a list of people with passwords does not belong in a repository file — that is
 what [an identity provider](#signing-in-with-the-provider-you-already-have) is for.
+
+### Dashboards, including the ones you already have
+
+A dashboard is a canvas: twenty-four columns, fifteen widget types, a time range its statements read
+through `$__timeFilter`, variables bound as parameters, and a widget that can span connections.
+
+```csharp
+builder.AddWebDataStudio()
+    .WithDashboards(new StudioCanvas("Shop, at a glance",
+    [
+        new StudioWidget("Customers", StudioWidgetType.Stat, "SHOP",
+            "SELECT count(*) FROM customers", Width: 6, Height: 4,
+            Thresholds: [new StudioThreshold(1000, "good")]),
+        new StudioWidget("Shipped share", StudioWidgetType.Gauge, "SHOP",
+            "SELECT round(100.0 * count(*) FILTER (WHERE status = 'shipped') / count(*), 1) FROM orders",
+            Width: 6, Height: 4, Min: 0, Max: 100, Unit: "percent"),
+        new StudioWidget("Orders per day", StudioWidgetType.Line, "SHOP",
+            "SELECT date_trunc('day', placed_at) AS day, count(*) AS orders FROM orders "
+            + "WHERE $__timeFilter(placed_at) GROUP BY day ORDER BY day",
+            Width: 12, Height: 6, Category: "day", Value: "orders"),
+        // One widget over two engines: the studio stages each source and the widget joins them.
+        new StudioWidget("Ordered here, handed over there", StudioWidgetType.Line,
+            Width: 24, Height: 6, Category: "day",
+            Sql: "SELECT coalesce(o.day, d.day) AS day, o.orders, d.handovers "
+                 + "FROM shop_orders o FULL OUTER JOIN handovers d ON d.day = o.day ORDER BY 1",
+            Sources:
+            [
+                new StudioWidgetSource("SHOP",
+                    "SELECT to_char(placed_at, 'YYYY-MM-DD') AS day, count(*) AS orders FROM orders GROUP BY 1",
+                    "shop_orders"),
+                new StudioWidgetSource("WAREHOUSE",
+                    "SELECT CONVERT(char(10), handed_over, 23) AS day, count(*) AS handovers "
+                    + "FROM dbo.deliveries GROUP BY CONVERT(char(10), handed_over, 23)",
+                    "handovers"),
+            ]),
+    ], RefreshSeconds: 30, From: "now-30d",
+        Variables: [new StudioVariable("status", ["new", "shipped", "cancelled"], Default: "shipped")]))
+    // And the thirteen dashboards this team already has, in Grafana's own JSON. Nothing says which
+    // format they are in: the studio decides per file.
+    .WithGrafanaDashboards("grafana-dashboards");
+```
+
+- Widgets that do not say `X` and `Y` flow left to right and wrap.
+- A `Gauge` without `Min` and `Max` throws here, because the studio refuses to draw one rather than
+  inventing a scale.
+- A threshold's level is one of `good`, `warning`, `serious`, `critical` — what a threshold means,
+  not a colour to pick.
+- `WithGrafanaDashboards` and `WithDashboards` both count: the setting takes a list, so the folder
+  Grafana reads and the page written here live side by side.
+- The older `StudioDashboard`/`StudioTile` shape still works and lays itself out on the canvas.
 
 ### The rest of it: connections, dashboards, snippets, preferences
 
@@ -413,8 +466,11 @@ builder.AddWebDataStudio("studio")
   inside the container.
 
 The studio itself lists who exists under *Administration → Studio users*, and its header carries a
-user menu with the role and a way out. Accounts stay deployment configuration: nobody can promote
-themselves through the UI.
+user menu with the role and a way out. **An account written here stays read-only in the studio** —
+a rollout owns it, which is also what makes it the way back in. An admin can make further accounts
+in that tab while the studio runs; those live in the studio's own data directory, so give it a
+volume if they should survive the next `azd up`. The last admin can never be removed or demoted, and
+an admin account from the app host counts as one.
 
 ## Signing in with the provider you already have
 

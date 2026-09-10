@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Aspire.Hosting;
 using Aspire.Hosting.ApplicationModel;
 using Xunit;
@@ -240,6 +241,176 @@ public class WebDataStudioInlineTests
 
         Assert.Throws<ArgumentException>(() => Add().WithDashboards(
             new StudioDashboard("", [])));
+    }
+
+    [Fact]
+    public async Task A_dashboard_as_a_canvas_is_written_in_the_studios_own_shape()
+    {
+        var studio = Add().WithDashboards(new StudioCanvas("Morning",
+        [
+            new StudioWidget("Overview", StudioWidgetType.Row, Width: 24, Height: 1),
+            new StudioWidget("Customers", StudioWidgetType.Stat, "SHOP",
+                "SELECT count(*) FROM customers", Width: 6, Height: 4,
+                Thresholds: [new StudioThreshold(100, "good")]),
+            new StudioWidget("Disk", StudioWidgetType.Gauge, "SHOP", "SELECT 61", Width: 6,
+                Height: 4, Min: 0, Max: 100, Unit: "percent"),
+            new StudioWidget("Orders over time", StudioWidgetType.StackedArea, "SHOP",
+                "SELECT day, region, n FROM daily WHERE $__timeFilter(day)",
+                Width: 12, Height: 6, Category: "day", Series: "region", Value: "n"),
+        ], RefreshSeconds: 60, From: "now-7d",
+            Variables: [new StudioVariable("region", ["eu", "us"], Multi: true, Default: "eu")]));
+
+        var file = Assert.Single(FilesOf(studio.Resource)["/data/dashboards-inline"]);
+
+        Assert.Equal("canvas.json", file.Name);
+        Assert.Contains("\"widgets\"", file.Contents);
+        Assert.Contains("\"type\": \"Stat\"", file.Contents);
+        Assert.Contains("\"from\": \"now-7d\"", file.Contents);
+        Assert.Contains("\"level\": \"good\"", file.Contents);
+        // A stacked type carries the flag as well, so a reader of the file sees both.
+        Assert.Contains("\"stacked\": true", file.Contents);
+        Assert.Contains("\"multi\": true", file.Contents);
+
+        Assert.Equal("/data/dashboards-inline", (await EnvOf(studio.Resource))["WDS_DASHBOARD_FILE"]);
+    }
+
+    /// Widgets that do not say where they go flow left to right and wrap, which is what a page
+    /// written as a list is meant to look like.
+    [Fact]
+    public void Widgets_without_a_position_lay_themselves_out()
+    {
+        var studio = Add().WithDashboards(new StudioCanvas("Morning",
+        [
+            new StudioWidget("a", StudioWidgetType.Stat, "SHOP", "SELECT 1", Width: 12, Height: 4),
+            new StudioWidget("b", StudioWidgetType.Stat, "SHOP", "SELECT 2", Width: 12, Height: 4),
+            new StudioWidget("c", StudioWidgetType.Stat, "SHOP", "SELECT 3", Width: 12, Height: 4),
+            new StudioWidget("d", StudioWidgetType.Stat, "SHOP", "SELECT 4", Width: 6, Height: 4,
+                X: 18, Y: 0),
+        ]));
+
+        var contents = FilesOf(studio.Resource)["/data/dashboards-inline"].Single().Contents;
+        using var document = JsonDocument.Parse(contents);
+
+        var widgets = document.RootElement[0].GetProperty("widgets").EnumerateArray()
+            .ToDictionary(one => one.GetProperty("title").GetString()!,
+                one => one.GetProperty("position"));
+
+        Assert.Equal(0, widgets["a"].GetProperty("x").GetInt32());
+        Assert.Equal(12, widgets["b"].GetProperty("x").GetInt32());
+        // The third does not fit beside them, so it starts the next row.
+        Assert.Equal(0, widgets["c"].GetProperty("x").GetInt32());
+        Assert.Equal(4, widgets["c"].GetProperty("y").GetInt32());
+        // And the one that said where it belongs is there.
+        Assert.Equal(18, widgets["d"].GetProperty("x").GetInt32());
+        Assert.Equal(0, widgets["d"].GetProperty("y").GetInt32());
+    }
+
+    [Fact]
+    public void A_widget_over_two_connections_is_written_as_a_federated_one()
+    {
+        var studio = Add().WithDashboards(new StudioCanvas("Morning",
+        [
+            new StudioWidget("Both", StudioWidgetType.Bar,
+                Sql: "SELECT s.region, s.n, w.total FROM shop s JOIN warehouse w ON w.region = s.region",
+                Sources:
+                [
+                    new StudioWidgetSource("SHOP", "SELECT region, count(*) AS n FROM orders GROUP BY region", "shop"),
+                    new StudioWidgetSource("WAREHOUSE", "SELECT region, sum(total) AS total FROM stock GROUP BY region", "warehouse"),
+                ]),
+        ]));
+
+        var contents = FilesOf(studio.Resource)["/data/dashboards-inline"].Single().Contents;
+
+        Assert.Contains("\"kind\": \"Federated\"", contents);
+        Assert.Contains("\"alias\": \"warehouse\"", contents);
+    }
+
+    /// The studio refuses to draw a gauge without a range rather than inventing a scale, so an app
+    /// host that can catch it says so before the container is built.
+    [Fact]
+    public void A_widget_that_could_not_be_drawn_is_refused_here()
+    {
+        Assert.Throws<ArgumentException>(() => Add().WithDashboards(new StudioCanvas("Morning",
+            [new StudioWidget("Disk", StudioWidgetType.Gauge, "SHOP", "SELECT 61")])));
+
+        Assert.Throws<ArgumentException>(() => Add().WithDashboards(new StudioCanvas("Morning",
+            [new StudioWidget("Orders", StudioWidgetType.Bar, "SHOP", "")])));
+
+        Assert.Throws<ArgumentException>(() => Add().WithDashboards(new StudioCanvas("Morning",
+            [new StudioWidget("Orders", StudioWidgetType.Bar, Sql: "SELECT 1")])));
+
+        // A colour a dashboard picked is not a state a threshold can mean.
+        Assert.Throws<ArgumentException>(() => Add().WithDashboards(new StudioCanvas("Morning",
+            [new StudioWidget("Customers", StudioWidgetType.Stat, "SHOP", "SELECT 1",
+                Thresholds: [new StudioThreshold(1, "chartreuse")])])));
+    }
+
+    /// A prose widget and a band need no statement at all.
+    [Fact]
+    public void A_text_widget_needs_no_connection()
+    {
+        var studio = Add().WithDashboards(new StudioCanvas("Morning",
+        [
+            new StudioWidget("How to read this", StudioWidgetType.Text,
+                Markdown: "**Orders** are counted when they are paid."),
+        ]));
+
+        Assert.Contains("counted when they are paid",
+            FilesOf(studio.Resource)["/data/dashboards-inline"].Single().Contents);
+    }
+
+    /// A team with thirteen exported Grafana dashboards has them in exactly that shape: point this
+    /// at the folder, and nothing says which format they are in — the studio decides per file.
+    [Fact]
+    public async Task A_folder_of_grafana_dashboards_is_mounted_and_pointed_at()
+    {
+        var folder = Directory.CreateTempSubdirectory("wds-grafana");
+
+        try
+        {
+            await File.WriteAllTextAsync(Path.Combine(folder.FullName, "ops.json"),
+                "{\"title\":\"Ops\",\"panels\":[]}");
+
+            var studio = Add().WithGrafanaDashboards(folder.FullName);
+
+            var mount = Assert.Single(studio.Resource.Annotations
+                .OfType<ContainerMountAnnotation>()
+                .Where(one => one.Target.Contains("grafana", StringComparison.Ordinal)));
+
+            Assert.Equal(folder.FullName, mount.Source);
+            Assert.True(mount.IsReadOnly);
+            Assert.Contains("grafana", (await EnvOf(studio.Resource))["WDS_DASHBOARD_FILE"]);
+        }
+        finally
+        {
+            folder.Delete(recursive: true);
+        }
+    }
+
+    /// Both at once: what the app host wrote and the Grafana folder both count, because the setting
+    /// takes a list.
+    [Fact]
+    public async Task A_grafana_folder_and_a_canvas_live_side_by_side()
+    {
+        var folder = Directory.CreateTempSubdirectory("wds-grafana-both");
+
+        try
+        {
+            var studio = Add()
+                .WithGrafanaDashboards(folder.FullName)
+                .WithDashboards(new StudioCanvas("Mine",
+                    [new StudioWidget("Customers", StudioWidgetType.Stat, "SHOP", "SELECT 1")]));
+
+            var setting = (await EnvOf(studio.Resource))["WDS_DASHBOARD_FILE"];
+
+            Assert.Contains("grafana", setting);
+            Assert.Contains("/data/dashboards-inline", setting);
+            Assert.Contains(";", setting);
+        }
+        finally
+        {
+            folder.Delete(recursive: true);
+        }
     }
 
     // --- snippets --------------------------------------------------------------------------------

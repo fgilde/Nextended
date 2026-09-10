@@ -285,6 +285,54 @@ public class WebDataStudioExtensionsTests
     }
 
     [Fact]
+    public async Task WithIcon_Url_TravelsAsGiven()
+    {
+        var studio = Add().WithIcon(" https://intranet.example.com/mark.svg ");
+
+        Assert.Equal("https://intranet.example.com/mark.svg", studio.Resource.Icon);
+        Assert.Equal("https://intranet.example.com/mark.svg",
+            (await EnvOf(studio.Resource))["WDS_ICON"]);
+    }
+
+    [Fact]
+    public async Task WithIcon_LocalFile_IsMountedAndPointedAt()
+    {
+        var file = Path.Combine(Path.GetTempPath(), $"wds-icon-{Guid.NewGuid():N}.svg");
+        await File.WriteAllTextAsync(file, "<svg/>");
+
+        try
+        {
+            var studio = Add().WithIcon(file);
+
+            // The studio sees the path inside the container, not the one on this machine.
+            Assert.Equal("/brand/" + Path.GetFileName(file), studio.Resource.Icon);
+            Assert.Equal("/brand/" + Path.GetFileName(file),
+                (await EnvOf(studio.Resource))["WDS_ICON"]);
+
+            var mount = Assert.Single(
+                studio.Resource.Annotations.OfType<ContainerMountAnnotation>(),
+                m => m.Target.StartsWith("/brand/", StringComparison.Ordinal));
+
+            Assert.Equal(Path.GetFullPath(file), mount.Source);
+            Assert.True(mount.IsReadOnly);
+        }
+        finally
+        {
+            File.Delete(file);
+        }
+    }
+
+    [Fact]
+    public async Task WithIcon_Null_LeavesTheOneTheStudioShips()
+    {
+        var studio = Add().WithIcon("https://example.com/mark.svg").WithIcon(null);
+
+        // A second call has to be able to take the first one back.
+        Assert.Null(studio.Resource.Icon);
+        Assert.Equal("", (await EnvOf(studio.Resource))["WDS_ICON"]);
+    }
+
+    [Fact]
     public void EveryTheme_HasAnIdOfItsOwn()
     {
         var ids = Enum.GetValues<WebDataStudioTheme>()

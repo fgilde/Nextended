@@ -169,6 +169,13 @@ public sealed class WebDataStudioResource(string name) : ContainerResource(name)
     public string? Theme { get; internal set; }
 
     /// <summary>
+    /// The icon the studio shows in its header, on its login screen and in the browser tab, as the
+    /// studio sees it: a URL, or the path a mounted file has inside the container. Null leaves the
+    /// icon the studio ships.
+    /// </summary>
+    public string? Icon { get; internal set; }
+
+    /// <summary>
     /// Names of the connections attached to this studio, in the order they were added. These are
     /// the labels the studio shows in its explorer, and the suffixes of its <c>WDS_CONN_*</c>
     /// variables.

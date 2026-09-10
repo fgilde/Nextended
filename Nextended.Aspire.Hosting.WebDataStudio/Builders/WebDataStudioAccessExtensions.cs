@@ -83,6 +83,24 @@ public static class WebDataStudioAccessExtensions
     }
 
     /// <summary>
+    /// Opens the server browser: the folders of
+    /// <see cref="WebDataStudioUrlExtensions.WithDatabaseFiles"/> can be walked, and a file in them
+    /// becomes a connection with nothing typed.
+    /// </summary>
+    /// <remarks>
+    /// On by default; this exists to say it again after <see cref="AsPublicViewer"/>, which turns it
+    /// off. A studio whose whole point is a folder of samples visitors may open is exactly that
+    /// case.
+    /// </remarks>
+    public static IResourceBuilder<WebDataStudioResource> WithFileBrowse(
+        this IResourceBuilder<WebDataStudioResource> builder)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        return builder.WithEnvironment("WDS_ALLOW_FILE_BROWSE", "true");
+    }
+
+    /// <summary>
     /// Closes the server browser: the folders of <see cref="WebDataStudioUrlExtensions.WithDatabaseFiles"/>
     /// stay out of sight.
     /// </summary>
@@ -184,8 +202,15 @@ public static class WebDataStudioAccessExtensions
     /// <remarks>
     /// The whole set in one call, because a deployment that wants this wants all of it: session
     /// scope, no server browser, <c>?u=</c> for files, read-only, a lifetime, a ceiling and an upload
-    /// limit. Add <see cref="WebDataStudioUrlExtensions.WithDatabaseFiles"/> for a folder of sample
-    /// databases if visitors should find something to look at.
+    /// limit.
+    /// <para>
+    /// <b>The server browser is off</b>, which is the point of a public studio: a listing of a
+    /// container's folders is a description of the deployment. A folder of samples from
+    /// <see cref="WebDataStudioUrlExtensions.WithDatabaseFiles"/> is therefore reachable through a
+    /// <c>?u=/data/files/&lt;name&gt;/&lt;file&gt;</c> link and nothing else. A studio that should
+    /// let visitors pick from that folder says so out loud, after this call:
+    /// <c>.AsPublicViewer(…).WithFileBrowse()</c>.
+    /// </para>
     /// <para>
     /// Two things this cannot do for you. There is no rate limiting, so put a public studio behind a
     /// proxy that has some. And a host list is a list: run it somewhere with restricted egress as

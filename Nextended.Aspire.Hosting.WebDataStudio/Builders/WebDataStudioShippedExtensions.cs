@@ -24,6 +24,125 @@ public sealed record StudioTile(string Title, string Connection, string Sql,
     string View = "number", int Width = 1);
 
 /// <summary>
+/// What a widget draws. The names are the studio's own, so a new one there is a new one here
+/// without anything in between having to be taught about it.
+/// </summary>
+public enum StudioWidgetType
+{
+    /// <summary>One headline number.</summary>
+    Stat,
+    /// <summary>A number against a range. Needs <c>Min</c> and <c>Max</c>.</summary>
+    Gauge,
+    /// <summary>Magnitude per category.</summary>
+    Bar,
+    /// <summary>Parts per category.</summary>
+    StackedBar,
+    /// <summary>Part of a whole, few parts.</summary>
+    Pie,
+    /// <summary>Part of a whole, many parts.</summary>
+    Treemap,
+    /// <summary>Change over time.</summary>
+    Line,
+    /// <summary>Change over time, filled.</summary>
+    Area,
+    /// <summary>Parts over time.</summary>
+    StackedArea,
+    /// <summary>A shape, small — for a strip of them.</summary>
+    Sparkline,
+    /// <summary>Rows as rows.</summary>
+    Table,
+    /// <summary>A label and a value per row, for a top ten.</summary>
+    List,
+    /// <summary>Density across two dimensions.</summary>
+    Heatmap,
+    /// <summary>Where the rows are, from latitude and longitude or a geometry column.</summary>
+    GeoMap,
+    /// <summary>Flow from one thing to another.</summary>
+    Sankey,
+    /// <summary>Markdown, with the dashboard's variables filled in.</summary>
+    Text,
+    /// <summary>A band that collapses, to put a name on a group of widgets.</summary>
+    Row,
+}
+
+/// <summary>
+/// One threshold and the state it means: <c>good</c>, <c>warning</c>, <c>serious</c> or
+/// <c>critical</c>. The four are reserved — they are what a threshold means, not colours to pick.
+/// </summary>
+public sealed record StudioThreshold(double Value, string Level);
+
+/// <summary>
+/// One of a widget's sources, for a widget that spans connections. The studio stages each source
+/// query in an in-memory DuckDB table named by its alias and runs the widget's own statement there.
+/// </summary>
+public sealed record StudioWidgetSource(string Connection, string Sql, string Alias);
+
+/// <summary>
+/// A dashboard variable: values from a statement, or a written list. It reaches a widget's SQL as
+/// <c>$name</c>, <c>${name}</c> or <c>${name:csv}</c> for a list.
+/// </summary>
+public sealed record StudioVariable(string Name, IReadOnlyList<string>? Values = null,
+    string? Connection = null, string? Sql = null, bool Multi = false, bool IncludeAll = false,
+    string? Default = null, string? Label = null);
+
+/// <summary>
+/// One widget on a dashboard.
+/// </summary>
+/// <param name="Title">What it is called.</param>
+/// <param name="Type">What it draws.</param>
+/// <param name="Connection">The connection to run on, by the name the studio shows.</param>
+/// <param name="Sql">Its statement. <c>$__timeFilter(column)</c>, <c>$__from</c>, <c>$__to</c>,
+/// <c>$__interval</c> and the dashboard's variables are filled in by the studio.</param>
+/// <param name="Width">How many of the twenty-four columns it takes.</param>
+/// <param name="Height">How many rows tall it is.</param>
+/// <param name="X">Which column it starts at. Left out, the widgets flow left to right.</param>
+/// <param name="Y">Which row it starts at. Left out, the widgets flow left to right.</param>
+/// <param name="Category">The column that names the things. Left out, the first column that is not
+/// a number.</param>
+/// <param name="Series">One series per value of this column, for <c>SELECT day, region, count(*)</c>.</param>
+/// <param name="Value">The column that measures. Left out, every numeric column.</param>
+/// <param name="Sources">Several connections instead of one, joined by <paramref name="Sql"/>.</param>
+public sealed record StudioWidget(string Title,
+    StudioWidgetType Type = StudioWidgetType.Table,
+    string? Connection = null,
+    string? Sql = null,
+    int Width = 12,
+    int Height = 6,
+    int? X = null,
+    int? Y = null,
+    string? Unit = null,
+    int? Decimals = null,
+    double? Min = null,
+    double? Max = null,
+    string? Category = null,
+    string? Series = null,
+    string? Value = null,
+    string? Latitude = null,
+    string? Longitude = null,
+    string? From = null,
+    string? To = null,
+    string? Weight = null,
+    string? Markdown = null,
+    string? Description = null,
+    bool Horizontal = false,
+    IReadOnlyList<StudioThreshold>? Thresholds = null,
+    IReadOnlyList<StudioWidgetSource>? Sources = null);
+
+/// <summary>
+/// A dashboard as a canvas: twenty-four columns, one time range, and the variables its statements
+/// read. The shape the studio keeps its own dashboards in.
+/// </summary>
+/// <param name="Name">What the dashboard is called.</param>
+/// <param name="Widgets">The widgets on it.</param>
+/// <param name="RefreshSeconds">How often it runs itself. 0 means only when asked; below 10 is
+/// rounded up by the studio.</param>
+/// <param name="From">The start of its time range, relative (<c>now-24h</c>) or ISO.</param>
+/// <param name="To">The end of it.</param>
+public sealed record StudioCanvas(string Name, IReadOnlyList<StudioWidget> Widgets,
+    int RefreshSeconds = 0, string From = "now-24h", string To = "now",
+    IReadOnlyList<StudioVariable>? Variables = null, IReadOnlyList<string>? Tags = null);
+
+/// <summary>
 /// One editor snippet the deployment ships. <c>${1:name}</c> is a tab stop, the way the studio's
 /// own snippets are written.
 /// </summary>
@@ -206,6 +325,222 @@ public static class WebDataStudioShippedExtensions
                     width = tile.Width,
                 }),
             }));
+    }
+
+    /// <summary>
+    /// Ships a dashboard as a canvas: twenty-four columns, fifteen widget types, one time range and
+    /// the variables its statements read.
+    /// </summary>
+    /// <remarks>
+    /// A dashboard that comes with the deployment belongs to it: the studio shows it and cannot
+    /// change or delete it. Somebody who wants it different saves a copy under another name.
+    /// <para>
+    /// Widgets without <c>X</c> and <c>Y</c> flow left to right and wrap, which is what a page
+    /// written as a list of widgets is meant to look like.
+    /// </para>
+    /// </remarks>
+    /// <param name="builder">The studio.</param>
+    /// <param name="dashboards">The dashboards.</param>
+    public static IResourceBuilder<WebDataStudioResource> WithDashboards(
+        this IResourceBuilder<WebDataStudioResource> builder, params StudioCanvas[] dashboards)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        var written = (dashboards ?? []).Where(one => one is not null).ToList();
+
+        foreach (var dashboard in written) Check(dashboard);
+
+        if (written.Count == 0) return builder;
+
+        return WebDataStudioInlineFiles.AddJson(builder, "WDS_DASHBOARD_FILE", DashboardsFolder,
+            "canvas.json", written.Select(Document));
+    }
+
+    /// <summary>
+    /// Reads dashboards from Grafana JSON — a file, or a folder of them.
+    /// </summary>
+    /// <remarks>
+    /// Nothing here says which format the files are in, because nothing has to: the studio decides
+    /// per file, and reads its own shape, the older tile shape and Grafana's the same way. What
+    /// cannot come along from a Grafana dashboard — a Prometheus query, a panel type the studio does
+    /// not draw, transformations, alert rules — is a line in the studio's log rather than a silently
+    /// empty widget.
+    /// <para>
+    /// A team with thirteen exported dashboards has them in exactly this shape, which is the point:
+    /// point this at the folder and they are in the studio.
+    /// </para>
+    /// </remarks>
+    /// <param name="builder">The studio.</param>
+    /// <param name="path">A Grafana JSON file, or a folder of them, next to the app host.</param>
+    public static IResourceBuilder<WebDataStudioResource> WithGrafanaDashboards(
+        this IResourceBuilder<WebDataStudioResource> builder, string path)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+
+        var full = Path.GetFullPath(path);
+        var target = Directory.Exists(full)
+            ? $"{DashboardsTarget}/grafana"
+            : $"{DashboardsTarget}/grafana/{Path.GetFileName(full)}";
+
+        builder.WithBindMount(full, target, isReadOnly: true);
+
+        return WebDataStudioInlineFiles.Mounted(builder, "WDS_DASHBOARD_FILE", target);
+    }
+
+    /// What a dashboard has to say for itself before a container is built around it. The studio
+    /// would cope — a widget it cannot draw says so in its own frame — but an app host that can
+    /// catch it should.
+    private static void Check(StudioCanvas dashboard)
+    {
+        if (string.IsNullOrWhiteSpace(dashboard.Name))
+            throw new ArgumentException("a dashboard needs a name", nameof(dashboard));
+
+        foreach (var widget in dashboard.Widgets ?? [])
+        {
+            if (widget.Type is StudioWidgetType.Row or StudioWidgetType.Text) continue;
+
+            var federated = widget.Sources is { Count: > 0 };
+
+            if (string.IsNullOrWhiteSpace(widget.Sql))
+                throw new ArgumentException(
+                    $"the widget '{widget.Title}' on '{dashboard.Name}' says no statement",
+                    nameof(dashboard));
+
+            if (!federated && string.IsNullOrWhiteSpace(widget.Connection))
+                throw new ArgumentException(
+                    $"the widget '{widget.Title}' on '{dashboard.Name}' says no connection",
+                    nameof(dashboard));
+
+            // The studio refuses to draw a gauge without a range rather than inventing a scale, so
+            // this would be a container that comes up with a widget nobody can read.
+            if (widget.Type == StudioWidgetType.Gauge && (widget.Min is null || widget.Max is null))
+                throw new ArgumentException(
+                    $"the gauge '{widget.Title}' on '{dashboard.Name}' needs Min and Max: a gauge "
+                    + "without a range would need an invented scale",
+                    nameof(dashboard));
+
+            foreach (var threshold in widget.Thresholds ?? [])
+                if (!Levels.Contains(threshold.Level))
+                    throw new ArgumentException(
+                        $"'{threshold.Level}' is not a state a threshold can mean; the four are "
+                        + string.Join(", ", Levels),
+                        nameof(dashboard));
+
+            foreach (var source in widget.Sources ?? [])
+                if (string.IsNullOrWhiteSpace(source.Alias) || string.IsNullOrWhiteSpace(source.Sql)
+                    || string.IsNullOrWhiteSpace(source.Connection))
+                    throw new ArgumentException(
+                        $"a source of '{widget.Title}' on '{dashboard.Name}' is missing its "
+                        + "connection, its statement or its alias",
+                        nameof(dashboard));
+        }
+    }
+
+    private static readonly string[] Levels = ["good", "warning", "serious", "critical"];
+
+    /// The dashboard in the studio's own shape. Written here rather than translated there, so a
+    /// deployment's page is the same document a person would have built.
+    private static object Document(StudioCanvas dashboard)
+    {
+        var widgets = new List<object>();
+        var (x, y, tallest) = (0, 0, 0);
+
+        foreach (var widget in dashboard.Widgets ?? [])
+        {
+            var w = Math.Clamp(widget.Width, 1, 24);
+            var h = Math.Max(widget.Type == StudioWidgetType.Row ? 1 : 2, widget.Height);
+            var flowing = widget.X is null || widget.Y is null;
+
+            // Left to right, wrapping at the edge of the grid — unless the widget says where it
+            // belongs, in which case it belongs there.
+            if (flowing)
+            {
+                if (x + w > 24) (x, y, tallest) = (0, y + tallest, 0);
+                tallest = Math.Max(tallest, h);
+            }
+
+            var at = new { x = widget.X ?? x, y = widget.Y ?? y, w, h };
+            if (flowing) x += w;
+
+            widgets.Add(new
+            {
+                id = "",
+                type = widget.Type.ToString(),
+                title = widget.Title,
+                description = widget.Description,
+                position = at,
+                source = widget.Sources is { Count: > 0 } sources
+                    ? new
+                    {
+                        kind = "Federated",
+                        connectionId = (string?)null,
+                        sql = widget.Sql,
+                        sources = sources.Select(one => new
+                        {
+                            // The studio resolves a connection by name as well as by id.
+                            connectionId = one.Connection,
+                            sql = one.Sql,
+                            alias = one.Alias,
+                        }).ToList<object>(),
+                    }
+                    : new
+                    {
+                        kind = "Sql",
+                        connectionId = widget.Connection,
+                        sql = widget.Sql,
+                        sources = new List<object>(),
+                    },
+                mapping = new
+                {
+                    category = widget.Category,
+                    series = widget.Series,
+                    values = widget.Value is null ? Array.Empty<string>() : [widget.Value],
+                    latitude = widget.Latitude,
+                    longitude = widget.Longitude,
+                    from = widget.From,
+                    to = widget.To,
+                    weight = widget.Weight,
+                },
+                options = new
+                {
+                    unit = widget.Unit,
+                    decimals = widget.Decimals,
+                    min = widget.Min,
+                    max = widget.Max,
+                    thresholds = (widget.Thresholds ?? []).Select(one => new
+                    {
+                        value = one.Value,
+                        level = one.Level,
+                    }),
+                    legend = true,
+                    stacked = widget.Type is StudioWidgetType.StackedBar or StudioWidgetType.StackedArea,
+                    orientation = widget.Horizontal ? "horizontal" : null,
+                    markdown = widget.Markdown,
+                },
+            });
+        }
+
+        return new
+        {
+            name = dashboard.Name,
+            refreshSeconds = dashboard.RefreshSeconds,
+            timeRange = new { from = dashboard.From, to = dashboard.To },
+            variables = (dashboard.Variables ?? []).Select(one => new
+            {
+                name = one.Name,
+                kind = one.Sql is { Length: > 0 } ? "Query" : "Custom",
+                label = one.Label,
+                connectionId = one.Connection,
+                sql = one.Sql,
+                values = one.Values ?? [],
+                multi = one.Multi,
+                includeAll = one.IncludeAll,
+                @default = one.Default,
+            }),
+            tags = dashboard.Tags ?? [],
+            widgets,
+        };
     }
 
     /// <summary>
