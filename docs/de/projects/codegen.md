@@ -66,4 +66,4 @@ Build-time (analyzer)
 
 ## Lizenz
 
-GPL-3.0-or-later — siehe [LICENSE](https://github.com/fgilde/Nextended/blob/main/LICENSE).
+MIT — siehe [LICENSE](https://github.com/fgilde/Nextended/blob/main/LICENSE).

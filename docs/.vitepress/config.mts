@@ -19,7 +19,7 @@ const GILDE_LINK =
   `<img src="https://www.gilde.org/gilde/icon.svg" alt="" width="18" height="18" style="vertical-align:middle">` +
   `www.gilde.org</a>`;
 
-const FOOTER_MESSAGE = `GPL-3.0-or-later · ${GILDE_LINK}`;
+const FOOTER_MESSAGE = `MIT · ${GILDE_LINK}`;
 const FOOTER_COPYRIGHT = `Copyright © 2020–2026 <a href="${REPO}">fgilde</a>`;
 
 type Lang = "en" | "de";

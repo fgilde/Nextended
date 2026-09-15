@@ -2,7 +2,7 @@
   <PropertyGroup>
     <PackReadMe>true</PackReadMe>
     <Title>$(AssemblyName)</Title>
-    <PackageLicenseExpression>GPL-3.0-or-later</PackageLicenseExpression>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageId>$(AssemblyName)</PackageId>
     <Authors>fgilde</Authors>
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
@@ -11,7 +11,6 @@
     <RepositoryUrl>https://github.com/fgilde/Nextended</RepositoryUrl>
     <Description>This Library provides great and usefull Extension Methods, Small Helpers and Great usefull Types</Description>
     <Copyright>Copyright © $(Authors) 2020-$([System.DateTime]::Now.Year)</Copyright>
-    <PackageLicenseExpression>GPL-3.0-or-later</PackageLicenseExpression>
     <PackageTags>ClassMapping, Mapper, Automap, Enumerable Extensions, EnumHelper, AutoNotificationObject, CollectionWatcher, SuperType, TypedIds</PackageTags>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageIcon>icon.png</PackageIcon>

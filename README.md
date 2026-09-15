@@ -176,7 +176,7 @@ generator: every NuGet package, every README and the documentation site pick up 
 
 ## License
 
-GPL-3.0-or-later — see [LICENSE](LICENSE).
+MIT — see [LICENSE](LICENSE).
 
 ## Links
 

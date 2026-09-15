@@ -148,5 +148,5 @@ The other 18 packages in the suite:
 
 ## License
 
-GPL-3.0-or-later — see [LICENSE](https://github.com/fgilde/Nextended/blob/main/LICENSE).
+MIT — see [LICENSE](https://github.com/fgilde/Nextended/blob/main/LICENSE).
 <!-- NEXTENDED:FOOTER:END -->

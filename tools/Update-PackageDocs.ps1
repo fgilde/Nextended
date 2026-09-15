@@ -353,7 +353,7 @@ function Format-ProjectFooter([object] $pkg) {
     [void]$sb.AppendLine()
     [void]$sb.AppendLine('## License')
     [void]$sb.AppendLine()
-    [void]$sb.AppendLine("GPL-3.0-or-later — see [LICENSE]($($meta.repo)/blob/main/LICENSE).")
+    [void]$sb.AppendLine("MIT — see [LICENSE]($($meta.repo)/blob/main/LICENSE).")
 
     $sb.ToString().TrimEnd()
 }

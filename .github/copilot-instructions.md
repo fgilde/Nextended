@@ -265,7 +265,7 @@ When making changes:
 All main projects have `<GeneratePackageOnBuild>true</GeneratePackageOnBuild>` enabled. Each package includes:
 - README.md
 - icon.png
-- License information (GPL-3.0-or-later)
+- License information (MIT)
 
 ### Source Generators
 
@@ -282,4 +282,4 @@ The project uses T4 templates and source generators:
 
 ## License
 
-This project is licensed under GPL-3.0-or-later. All contributions must be compatible with this license.
+This project is licensed under MIT. All contributions must be compatible with this license.
