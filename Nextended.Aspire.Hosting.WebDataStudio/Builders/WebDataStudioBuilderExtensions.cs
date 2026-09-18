@@ -33,35 +33,20 @@ public static class WebDataStudioBuilderExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
 
-        // Precomputed: an interpolated string would bind to the ReferenceExpression overload of
-        // WithEnvironment, which cannot format an int.
         var urls = "http://+:" + WebDataStudioResource.DefaultTargetPort.ToString(CultureInfo.InvariantCulture);
 
         var resource = new WebDataStudioResource(name) { Title = name };
 
         var studio = builder.AddResource(resource)
             .WithImage(image ?? WebDataStudioResource.DefaultImage, tag ?? WebDataStudioResource.DefaultTag)
-            // The default tag is a rolling "latest"; re-pull so a stale local image cannot pin an old build.
             .WithImagePullPolicy(ImagePullPolicy.Always)
             .WithHttpEndpoint(port: port, targetPort: WebDataStudioResource.DefaultTargetPort,
                 name: WebDataStudioResource.HttpEndpointName)
             .WithEnvironment("ASPNETCORE_URLS", urls)
             .WithEnvironment("DB_PATH", "/data/webdatastudio.db")
-            // The resource name is what the dashboard calls this studio; showing the same name in
-            // the studio itself is what tells three of them apart.
             .WithEnvironment("WDS_TITLE", name)
-            // The studio's own health endpoint: it is exempt from sign-in and from tracing, and it
-            // answers "degraded" when a store is not usable rather than only proving the
-            // process is up.
             .WithHttpHealthCheck("/api/health", endpointName: WebDataStudioResource.HttpEndpointName);
 
-        // A named volume locally, nothing when published. Aspire turns a volume into an Azure
-        // Files share on Container Apps, and the studio keeps its connections, history and
-        // layouts in SQLite — which on an SMB share either crawls or blocks outright, taking
-        // every request that touches it with it. A deployed studio therefore starts with an
-        // empty, container-local /data; connections attached here come from the environment on
-        // every start anyway. Ask for persistence explicitly with WithDataVolume() if the share
-        // is known to behave.
         if (builder.ExecutionContext.IsRunMode)
             studio.WithVolume($"webdatastudio-data-{name}", "/data");
 
