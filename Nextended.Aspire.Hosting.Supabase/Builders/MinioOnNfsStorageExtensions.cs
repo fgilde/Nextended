@@ -6,26 +6,12 @@ namespace Nextended.Aspire.Hosting.Supabase.Builders;
 /// <summary>
 /// Durable object storage for supabase-storage on Azure Container Apps, via a bundled MinIO
 /// (S3) server backed by the persistent Azure Files NFS share.
-///
-/// supabase-storage's FILE backend cannot run durably on ACA: the only persistent volume ACA
-/// can mount is Azure Files, and SMB rejects the backend's open flags (EINVAL) while NFS 4.1
-/// has no extended attributes (xattr -> ENOTSUP), which the FILE backend requires for object
-/// metadata. So instead we run MinIO on the NFS share (MinIO keeps its metadata in its own
-/// xl.meta files — no xattr) and switch supabase-storage to the S3 backend pointing at it.
-///
-/// This wires (publish only):
-///   1. a MinIO container, mounting the NFS env-storage named <paramref name="nfsEnvStorageName"/>
-///      (created by PersistentNfsStorageExtensions.AddSupabaseNfsStorage — pass the SAME name)
-///      at /data, internal-only S3 ingress on :9000, pinned to a single writer,
-///   2. a one-shot mc init container that waits for MinIO and creates the bucket (idempotent),
-///   3. <see cref="SupabaseBuilderExtensions.StorageS3Backend"/> pointing the storage container at MinIO.
-///
-/// MinIO/mc are public images, so ACA pulls them directly (no local build/push, unaffected by
-/// the docker registry push path). NOTE: MinIO discourages network filesystems for large
-/// clusters, but a single-node single-drive instance on NFS is fine for this low-traffic app.
+
 /// </summary>
 public static class MinioOnNfsStorageExtensions
 {
+
+    private const string Registry = "quay.io";
     private const string MinioImage = "minio/minio";
     private const string MinioTag = "RELEASE.2025-09-07T16-13-09Z";
     private const string McImage = "minio/mc";
@@ -53,6 +39,7 @@ public static class MinioOnNfsStorageExtensions
 
         // 1) MinIO server, backed by the NFS share.
         var minio = builder.AddContainer("minio", MinioImage, MinioTag)
+            .WithImageRegistry(Registry)
             .WithEnvironment("MINIO_ROOT_USER", rootUser)
             .WithEnvironment("MINIO_ROOT_PASSWORD", rootPassword)
             .WithArgs("server", "/data", "--console-address", ":9001")
@@ -100,6 +87,7 @@ public static class MinioOnNfsStorageExtensions
             "echo 'bucket ready'; tail -f /dev/null";
 
         var minioInit = builder.AddContainer("minio-init", McImage, McTag)
+            .WithImageRegistry(Registry)
             .WithEntrypoint("/bin/sh")
             .WithArgs("-c", initScript)
             .WithEnvironment("MINIO_ENDPOINT", endpointExpr)
