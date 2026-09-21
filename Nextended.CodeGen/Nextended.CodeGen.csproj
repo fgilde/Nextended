@@ -1,5 +1,4 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-  <Import Project="..\Version.props" />
   <Import Project="..\Output.props" />
   <Import Project="..\Package.props" />
 
@@ -30,20 +29,20 @@
 
   <!-- ─────────────  Build‑Time‑Pakete  ───────────── -->
   <ItemGroup>
-    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.12.0" PrivateAssets="all" />
-    <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="3.11.0" PrivateAssets="all" IncludeAssets="runtime;build;native;contentfiles;analyzers;buildtransitive" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" PrivateAssets="all" IncludeAssets="runtime;build;native;contentfiles;analyzers;buildtransitive" />
   </ItemGroup>
 
   <!-- ─────────────  Laufzeit‑Dependencies (Generator‑intern)  ───────────── -->
   <ItemGroup>
     <!-- Öffentliche Attribute + Hilfs‑API -->
-    <PackageReference Include="Nextended.Core" Version="$(UsedCorePackageVersion)" GeneratePathProperty="true" />
+    <PackageReference Include="Nextended.Core" GeneratePathProperty="true" />
     <!-- Rest nur intern -->
-    <PackageReference Include="ClosedXML" Version="0.105.0" PrivateAssets="all" />
-    <PackageReference Include="ColorCode.HTML" Version="2.0.15" PrivateAssets="all" />
-    <PackageReference Include="Newtonsoft.Json" Version="13.0.4" PrivateAssets="all" />
-    <PackageReference Include="DocumentFormat.OpenXml" Version="3.5.1" PrivateAssets="all" />
-    <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" Version="10.0.5" PrivateAssets="all" />
+    <PackageReference Include="ClosedXML" PrivateAssets="all" />
+    <PackageReference Include="ColorCode.HTML" PrivateAssets="all" />
+    <PackageReference Include="Newtonsoft.Json" PrivateAssets="all" />
+    <PackageReference Include="DocumentFormat.OpenXml" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" PrivateAssets="all" />
   </ItemGroup>
 
   <!-- ─────────────  Zusatzdateien fürs NuGet  ───────────── -->

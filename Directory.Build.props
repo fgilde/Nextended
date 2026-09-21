@@ -1,0 +1,29 @@
+<Project>
+
+  <!--
+    Auto-imported into EVERY project in this repository. Its only job is to make the version knobs
+    from Version.props available everywhere - and, crucially, BEFORE the
+    <Sdk Name="Aspire.AppHost.Sdk" Version="$(AspireVersion)" /> elements in the AppHost projects
+    are resolved.
+
+    An <Import Project="..\..\..\Version.props" /> inside the csproj itself is evaluated too late
+    for that, which is why every AppHost used to hard-code the Aspire SDK version and could drift
+    away from the Aspire.Hosting.* package versions it was built against. Now both come from the
+    single $(AspireVersion) in Version.props.
+
+    Everything package-version related lives in Directory.Packages.props (central package
+    management); everything build/pack related stays in Shared.props / Output.props / Package.props,
+    which are imported per project on purpose - test projects and samples must NOT inherit the
+    packaging and multi-targeting rules of the shipped libraries.
+  -->
+  <Import Project="$(MSBuildThisFileDirectory)Version.props" />
+
+  <PropertyGroup>
+    <!-- NU1604 ("no inclusive lower bound") is what NuGet reports when a PackageVersion in
+         Directory.Packages.props resolves to an empty string - e.g. a $(MsVersion) reference from
+         a single-TFM project, where $(TargetFramework) is not known yet. Silently restoring
+         "(, )" is worse than a red build, so it is an error here. -->
+    <WarningsAsErrors>$(WarningsAsErrors);NU1604</WarningsAsErrors>
+  </PropertyGroup>
+
+</Project>

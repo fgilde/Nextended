@@ -1,5 +1,4 @@
 <Project>
-  <Import Project="Version.props" />
   <Import Project="Output.props" />
   <Import Project="Package.props" />
   <PropertyGroup>

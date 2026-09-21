@@ -18,13 +18,12 @@ namespace Nextended.Core.Tests
 			try
 			{
 				action();
-				Assert.Fail("No exception was thrown. But exception of type '{0}' was expected.", typeof(TException));
+				Assert.Fail($"No exception was thrown. But exception of type '{typeof(TException)}' was expected.");
 			}
 			catch (TException exception)
 			{
 				Assert.IsTrue(exception.GetType() == typeof(TException),
-							"Exception of type '{0}' was thrown. But exception of type '{1}' was expected.",
-							exception.GetType(), typeof(TException));
+							$"Exception of type '{exception.GetType()}' was thrown. But exception of type '{typeof(TException)}' was expected.");
 
 				Assert.IsTrue(condition(exception), "Exception condition failed");
 			}
@@ -34,8 +33,7 @@ namespace Nextended.Core.Tests
 			}
 			catch (Exception exception)
 			{
-				Assert.Fail("Exception of type '{0}' was thrown. But exception of type '{1}' was expected. Stacktrace: {2}",
-					exception.GetType(), typeof(TException), exception.StackTrace);
+				Assert.Fail($"Exception of type '{exception.GetType()}' was thrown. But exception of type '{typeof(TException)}' was expected. Stacktrace: {exception.StackTrace}");
 			}
 		}
 
@@ -51,13 +49,12 @@ namespace Nextended.Core.Tests
 			try
 			{
 				await action();
-				Assert.Fail("No exception was thrown. But exception of type '{0}' was expected.", typeof(TException));
+				Assert.Fail($"No exception was thrown. But exception of type '{typeof(TException)}' was expected.");
 			}
 			catch (TException exception)
 			{
 				Assert.IsTrue(exception.GetType() == typeof(TException),
-							"Exception of type '{0}' was thrown. But exception of type '{1}' was expected.",
-							exception.GetType(), typeof(TException));
+							$"Exception of type '{exception.GetType()}' was thrown. But exception of type '{typeof(TException)}' was expected.");
 
 				Assert.IsTrue(condition(exception), "Exception condition failed");
 			}
@@ -67,8 +64,7 @@ namespace Nextended.Core.Tests
 			}
 			catch (Exception exception)
 			{
-				Assert.Fail("Exception of type '{0}' was thrown. But exception of type '{1}' was expected. Stacktrace: {2}",
-					exception.GetType(), typeof(TException), exception.StackTrace);
+				Assert.Fail($"Exception of type '{exception.GetType()}' was thrown. But exception of type '{typeof(TException)}' was expected. Stacktrace: {exception.StackTrace}");
 			}
 		}
 	}

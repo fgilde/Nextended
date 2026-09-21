@@ -21,9 +21,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="MediaTypeMap.Core" Version="2.3.3" />
-    <PackageReference Include="System.Drawing.Common" Version="$(MsVersion)" />
-    <PackageReference Include="System.Runtime.Caching" Version="$(ManagementVersion)" />
+    <PackageReference Include="MediaTypeMap.Core" />
+    <PackageReference Include="System.Drawing.Common" />
+    <PackageReference Include="System.Runtime.Caching" />
   </ItemGroup>
 
   <ItemGroup>

@@ -111,6 +111,8 @@ Nextended/
 ├── Nextended.Aspire/     # .NET Aspire extensions
 ├── Nextended.AutoDto/    # DTO auto-generation
 ├── CodeGenSample/        # Sample project demonstrating code generation
+├── Directory.Build.props     # Auto-imported everywhere: pulls in Version.props
+├── Directory.Packages.props  # Central Package Management: ALL package versions
 ├── Shared.props          # Shared MSBuild properties
 ├── Package.props         # NuGet package properties
 ├── Version.props         # Version configuration
@@ -175,11 +177,30 @@ Nextended/
 
 ### Project Configuration
 
-All projects inherit from:
+Auto-imported into every project (no `<Import>` needed):
+- `Directory.Build.props`: imports `Version.props`, so `$(AspireVersion)` is available early
+  enough for the `<Sdk Name="Aspire.AppHost.Sdk" Version="$(AspireVersion)" />` of the AppHosts
+- `Directory.Packages.props`: Central Package Management - every package version lives here
+
+Imported explicitly by the shipped libraries:
 - `Shared.props`: Common build settings (target frameworks, nullable support)
 - `Package.props`: NuGet package metadata
 - `Version.props`: Version information
 - `Output.props`: Output path configuration
+
+### Adding a NuGet package
+
+`ManagePackageVersionsCentrally` is on, so a `PackageReference` carries **no** `Version`:
+
+```xml
+<PackageReference Include="Some.Package" />
+```
+
+Declare the version once in `Directory.Packages.props`. Framework-tied packages
+(Microsoft.Extensions.*, ASP.NET Core, EF Core, ...) use `$(MsVersion)`, which resolves per TFM -
+that only works in a project with `<TargetFrameworks>` (plural); a single-TFM project needs a
+literal version. NU1604 is an error, so getting this wrong fails the build instead of restoring
+an empty version range.
 
 ### Multi-Targeting
 

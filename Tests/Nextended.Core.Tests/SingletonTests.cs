@@ -50,7 +50,7 @@ namespace Nextended.Core.Tests
 			var singleton1 = TestSingleton.Instance;
 			var singleton2 = AnotherTestSingleton.Instance;
 			
-			Assert.AreNotSame(singleton1, singleton2);
+			Assert.AreNotSame<object>(singleton1, singleton2);
 		}
 
 		[TestMethod]

@@ -2,6 +2,9 @@
   <PropertyGroup>
     <UsedCorePackageVersion>10.1.37</UsedCorePackageVersion>
     <PackageVersion>10.1.37</PackageVersion>
+    <!-- The ONE Aspire version: used both for the Aspire.Hosting.* PackageVersions in
+         Directory.Packages.props and for the <Sdk Name="Aspire.AppHost.Sdk" /> of every AppHost.
+         Reachable everywhere because Directory.Build.props imports this file. -->
     <AspireVersion>13.5.4</AspireVersion>
   </PropertyGroup>
 
@@ -25,22 +28,23 @@
   </PropertyGroup>
 
 
-  <PropertyGroup Condition="'$(TargetFramework)' == 'net10.0'">
-    <MsVersion>10.0.8</MsVersion>
-    <ManagementVersion>$(MsVersion)</ManagementVersion>
-    <CachingMemoryVersion>$(MsVersion)</CachingMemoryVersion>
+  <!--
+    Baseline for the framework-tied packages (Microsoft.Extensions.*, ASP.NET Core, EF Core,
+    System.Drawing.Common, System.Runtime.Caching, ...): the newest patch of the major that
+    matches the TFM. A net8.0 consumer of a Nextended package must not be dragged onto 10.x
+    runtime libraries, so this stays per TFM rather than "always latest".
+
+    The 8.0.x band never shipped in lockstep - the packages whose last 8.0 patch differs from
+    this baseline are corrected per package in Directory.Packages.props.
+  -->
+  <PropertyGroup Condition="$(TargetFramework.StartsWith('net10.0'))">
+    <MsVersion>10.0.12</MsVersion>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(TargetFramework)' == 'net9.0'">
-    <MsVersion>9.0.10</MsVersion>
-    <ManagementVersion>$(MsVersion)</ManagementVersion>
-    <CachingMemoryVersion>$(MsVersion)</CachingMemoryVersion>
+  <PropertyGroup Condition="$(TargetFramework.StartsWith('net9.0'))">
+    <MsVersion>9.0.20</MsVersion>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(TargetFramework)' == 'netstandard2.1' Or '$(TargetFramework)' == 'netstandard2.0' Or '$(TargetFramework)' == 'net8.0'">
+  <PropertyGroup Condition="$(TargetFramework.StartsWith('net8.0')) Or $(TargetFramework.StartsWith('netstandard'))">
     <MsVersion>8.0.2</MsVersion>
-    <ManagementVersion>8.0.0</ManagementVersion>
-    <!-- Caching.Memory 8.0.0 has a known high-severity DoS (GHSA-qj66-m88j-hmgj); 8.0.1 is the patch.
-         Kept separate from ManagementVersion because Caching.Abstractions has no 8.0.1 release. -->
-    <CachingMemoryVersion>8.0.1</CachingMemoryVersion>
   </PropertyGroup>
 
 </Project>

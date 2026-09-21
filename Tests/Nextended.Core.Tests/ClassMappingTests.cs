@@ -435,14 +435,14 @@ namespace Nextended.Core.Tests
         }
 
         [TestMethod]
-        [ExpectedException(typeof(Exception), AllowDerivedTypes = true)]
         public void CrazyConversionTestExpectedException()
         {
             var classMappingSettings = ClassMappingSettings.Default.Set(settings => settings.IgnoreExceptions = false,
                 settings => settings.AllowGuidConversion = false);
             var myInitialObject = new MyCustomObject();
-            var myNewCustomObject = myInitialObject.MapTo<MyNewCustomObject>(classMappingSettings);
-            Assert.IsNull(myNewCustomObject);
+            // Assert.Throws allows derived exception types, like the removed
+            // [ExpectedException(..., AllowDerivedTypes = true)] did.
+            Assert.Throws<Exception>(() => myInitialObject.MapTo<MyNewCustomObject>(classMappingSettings));
         }
 
         [TestMethod]

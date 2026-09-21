@@ -40,13 +40,13 @@
     <Folder Include="Theming\Templates\" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
-    <PackageReference Include="Microsoft.Xaml.Behaviors.Wpf" Version="1.1.39" />
-    <PackageReference Include="MouseKeyHook" Version="5.7.1" />
-    <PackageReference Include="SharpDX" Version="4.2.0" />
-    <PackageReference Include="SharpDX.DirectInput" Version="4.2.0" />
-    <PackageReference Include="SharpDX.XInput" Version="4.2.0" />
-    <PackageReference Include="System.Data.DataSetExtensions" Version="4.5.0" />
+    <PackageReference Include="Microsoft.CSharp" />
+    <PackageReference Include="Microsoft.Xaml.Behaviors.Wpf" />
+    <PackageReference Include="MouseKeyHook" />
+    <PackageReference Include="SharpDX" />
+    <PackageReference Include="SharpDX.DirectInput" />
+    <PackageReference Include="SharpDX.XInput" />
+    <PackageReference Include="System.Data.DataSetExtensions" />
   </ItemGroup>
 
 

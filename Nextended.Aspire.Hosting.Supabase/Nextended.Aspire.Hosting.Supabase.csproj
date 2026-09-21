@@ -18,19 +18,20 @@
   <ItemGroup>
     <ProjectReference Include="..\Nextended.Aspire\Nextended.Aspire.csproj" />
     <ProjectReference Include="..\Nextended.Aspire.Hosting.Grafana\Nextended.Aspire.Hosting.Grafana.csproj" />
-    <PackageReference Include="Aspire.Hosting.Azure.AppContainers" Version="$(AspireVersion)" />
-    <PackageReference Include="Aspire.Hosting.Azure.Storage" Version="$(AspireVersion)" />
-    <PackageReference Include="Aspire.Hosting.Azure.Network" Version="$(AspireVersion)" />
-    <PackageReference Include="Aspire.Hosting.Docker" Version="$(AspireVersion)" />
+    <PackageReference Include="Aspire.Hosting.Azure.AppContainers" />
+    <PackageReference Include="Aspire.Hosting.Azure.Storage" />
+    <PackageReference Include="Aspire.Hosting.Azure.Network" />
+    <PackageReference Include="Aspire.Hosting.Docker" />
     <!-- Required by the optional external-database overload of AddSupabase(...), whose public
          signature exposes IResourceBuilder<PostgresServerResource> so callers can pass their own
          builder.AddPostgres(...) resource. -->
-    <PackageReference Include="Aspire.Hosting.PostgreSQL" Version="$(AspireVersion)" />
-    <PackageReference Include="supabase-csharp" Version="0.16.2" />
+    <PackageReference Include="Aspire.Hosting.PostgreSQL" />
+    <PackageReference Include="supabase-csharp" />
     <!-- supabase-csharp pulls IdentityModel 7.0.3 transitively, which has a known moderate JWT
-         vulnerability (GHSA-59j7-ghrg-fj52). Pin the patched 7.7.1 (same major → no downgrade). -->
-    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="7.7.1" />
-    <PackageReference Include="Microsoft.IdentityModel.JsonWebTokens" Version="7.7.1" />
+         vulnerability (GHSA-59j7-ghrg-fj52). These two references exist only to lift it onto the
+         patched version - see Directory.Packages.props for which one, and why not 8.x. -->
+    <PackageReference Include="System.IdentityModel.Tokens.Jwt" />
+    <PackageReference Include="Microsoft.IdentityModel.JsonWebTokens" />
   </ItemGroup>
 
 </Project>

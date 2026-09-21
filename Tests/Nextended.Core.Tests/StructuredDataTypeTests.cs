@@ -88,18 +88,19 @@ namespace Nextended.Core.Tests
         }
 
         [TestMethod]
-        [ExpectedException(typeof(ArgumentException))]
         public void ThrowsExceptionOnInvalidSourceFormat()
         {
             var invalidSource = "invalid_format_data";
-            SimpleConvert.ConvertDataStringTo(invalidSource, (StructuredDataType)999, StructuredDataType.Xml);
+            Assert.ThrowsExactly<ArgumentException>(() =>
+                SimpleConvert.ConvertDataStringTo(invalidSource, (StructuredDataType)999, StructuredDataType.Xml));
         }
 
         [TestMethod]
-        [ExpectedException(typeof(ArgumentException))]
         public void ThrowsExceptionOnInvalidTargetFormat()
         {
-            SimpleConvert.ConvertDataStringTo(sampleJson, StructuredDataType.Json, (StructuredDataType)999);  // Assuming 999 is not a valid enum value
+            // Assuming 999 is not a valid enum value
+            Assert.ThrowsExactly<ArgumentException>(() =>
+                SimpleConvert.ConvertDataStringTo(sampleJson, StructuredDataType.Json, (StructuredDataType)999));
         }
 
         [TestMethod]

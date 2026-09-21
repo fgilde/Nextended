@@ -15,7 +15,7 @@
   <ItemGroup>
     <!-- Reads the compiled assemblies without executing them, so a package that targets
          net8.0-windows or references a framework this tool does not have can still be inspected. -->
-    <PackageReference Include="System.Reflection.MetadataLoadContext" Version="9.0.0" />
+    <PackageReference Include="System.Reflection.MetadataLoadContext" />
   </ItemGroup>
 
 </Project>

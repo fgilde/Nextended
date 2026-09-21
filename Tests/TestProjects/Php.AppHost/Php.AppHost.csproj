@@ -1,7 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <Sdk Name="Aspire.AppHost.Sdk" Version="13.5.4" />
-  <Import Project="..\..\..\Version.props" />
+  <Sdk Name="Aspire.AppHost.Sdk" Version="$(AspireVersion)" />
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -14,8 +13,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Aspire.Hosting.AppHost" Version="$(AspireVersion)" />
-    <PackageReference Include="Aspire.Hosting.MySql" Version="$(AspireVersion)" />
+    <PackageReference Include="Aspire.Hosting.AppHost" />
+    <PackageReference Include="Aspire.Hosting.MySql" />
   </ItemGroup>
 
   <ItemGroup>

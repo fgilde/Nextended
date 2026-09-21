@@ -283,12 +283,11 @@ namespace Nextended.Core.Tests
         }
 
         [TestMethod]
-        [ExpectedException(typeof(InvalidOperationException))]
         public void RangeOf_Union_Disjoint_Throws()
         {
             var a = new RangeOf<int>(0, 5);
             var b = new RangeOf<int>(10, 15);
-            var _ = a + b; // disjoint → Exception (kein Adjacent-Union)
+            Assert.ThrowsExactly<InvalidOperationException>(() => _ = a + b); // disjoint → Exception (kein Adjacent-Union)
         }
 
         // Hinweis: Wenn du Adjacent-Union erlauben willst (z. B. [0..5] + [5..10] => [0..10]),

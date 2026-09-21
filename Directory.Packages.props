@@ -1,0 +1,142 @@
+<Project>
+
+  <!--
+    Central package management: the version of every PackageReference in this repository is
+    declared here and nowhere else. A csproj keeps Include / PrivateAssets / IncludeAssets /
+    GeneratePathProperty - only Version moves out.
+
+    Transitive pinning is deliberately OFF. Turning it on would pin every transitive dependency
+    of every shipped package as a direct dependency, which changes the dependency graph of the
+    published nupkgs. A single vulnerable transitive package is lifted with an explicit
+    PackageReference in the project that needs it instead (see IdentityModel below).
+
+    To raise a single package in one project only, use VersionOverride on its PackageReference.
+  -->
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    <CentralPackageTransitivePinningEnabled>false</CentralPackageTransitivePinningEnabled>
+  </PropertyGroup>
+
+  <!-- .NET Aspire. The hosting packages and the Aspire.AppHost.Sdk of the AppHost projects both
+       read $(AspireVersion) from Version.props, so the SDK cannot drift away from the packages. -->
+  <ItemGroup>
+    <PackageVersion Include="Aspire.Hosting.AppHost" Version="$(AspireVersion)" />
+    <PackageVersion Include="Aspire.Hosting.Azure.AppContainers" Version="$(AspireVersion)" />
+    <PackageVersion Include="Aspire.Hosting.Azure.Network" Version="$(AspireVersion)" />
+    <PackageVersion Include="Aspire.Hosting.Azure.Storage" Version="$(AspireVersion)" />
+    <PackageVersion Include="Aspire.Hosting.Docker" Version="$(AspireVersion)" />
+    <PackageVersion Include="Aspire.Hosting.MongoDB" Version="$(AspireVersion)" />
+    <PackageVersion Include="Aspire.Hosting.MySql" Version="$(AspireVersion)" />
+    <PackageVersion Include="Aspire.Hosting.PostgreSQL" Version="$(AspireVersion)" />
+    <PackageVersion Include="Aspire.Hosting.Redis" Version="$(AspireVersion)" />
+    <PackageVersion Include="Aspire.Hosting.SqlServer" Version="$(AspireVersion)" />
+    <PackageVersion Include="CommunityToolkit.Aspire.Hosting.Ollama" Version="13.5.0" />
+  </ItemGroup>
+
+  <!--
+    Framework-tied packages of the SHIPPED, multi-targeted libraries: the version follows the TFM
+    via $(MsVersion) (Version.props), so a net8.0 consumer of a Nextended package is never dragged
+    onto 10.x runtime libraries.
+
+    Only usable from a project with <TargetFrameworks> (plural). Restore evaluates a props file
+    once per inner build there, so $(TargetFramework) is known; in a single-TFM project it is not
+    set yet when this file is evaluated and $(MsVersion) would come out empty. Single-TFM projects
+    therefore take an explicit version from the block further down. NU1604 is treated as an error
+    (Directory.Build.props) so an empty central version fails the build instead of silently
+    restoring "(, )".
+  -->
+  <ItemGroup>
+    <PackageVersion Include="Microsoft.AspNetCore.Components.Web" Version="$(MsVersion)" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore" Version="$(MsVersion)" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Relational" Version="$(MsVersion)" />
+    <PackageVersion Include="Microsoft.Extensions.Caching.Abstractions" Version="$(MsVersion)" />
+    <PackageVersion Include="Microsoft.Extensions.Caching.Memory" Version="$(MsVersion)" />
+    <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="$(MsVersion)" />
+    <PackageVersion Include="Microsoft.Extensions.Localization.Abstractions" Version="$(MsVersion)" />
+    <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="$(MsVersion)" />
+    <PackageVersion Include="Microsoft.Extensions.Options" Version="$(MsVersion)" />
+    <PackageVersion Include="System.Drawing.Common" Version="$(MsVersion)" />
+    <PackageVersion Include="System.Runtime.Caching" Version="$(MsVersion)" />
+  </ItemGroup>
+
+  <!-- The 8.0.x band never shipped in lockstep: these packages have a newer (or, for
+       Caching.Abstractions, an older) last 8.0 patch than $(MsVersion). Corrected per package so
+       net8.0 and netstandard get the newest 8.0 patch that actually exists. -->
+  <ItemGroup Condition="$(TargetFramework.StartsWith('net8.0')) Or $(TargetFramework.StartsWith('netstandard'))">
+    <PackageVersion Update="Microsoft.AspNetCore.Components.Web" Version="8.0.31" />
+    <PackageVersion Update="Microsoft.EntityFrameworkCore" Version="8.0.31" />
+    <PackageVersion Update="Microsoft.EntityFrameworkCore.Relational" Version="8.0.31" />
+    <PackageVersion Update="Microsoft.Extensions.Caching.Abstractions" Version="8.0.0" />
+    <!-- Caching.Memory 8.0.0 has a known high-severity DoS (GHSA-qj66-m88j-hmgj); 8.0.1 is the
+         patch. Kept separate because Caching.Abstractions has no 8.0.1 release. -->
+    <PackageVersion Update="Microsoft.Extensions.Caching.Memory" Version="8.0.1" />
+    <PackageVersion Update="Microsoft.Extensions.Localization.Abstractions" Version="8.0.31" />
+    <PackageVersion Update="Microsoft.Extensions.Logging.Abstractions" Version="8.0.3" />
+    <PackageVersion Update="System.Drawing.Common" Version="8.0.31" />
+    <PackageVersion Update="System.Runtime.Caching" Version="8.0.1" />
+  </ItemGroup>
+
+  <!-- Framework-tied, but only referenced from single-TFM projects, which cannot use $(MsVersion)
+       (see above). The version therefore matches that project's TFM literally. -->
+  <ItemGroup>
+    <!-- Nextended.EF.Tests (net10.0) -->
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.InMemory" Version="10.0.12" />
+    <!-- Nextended.ResponseFilters.Tests (net10.0) -->
+    <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="10.0.12" />
+    <!-- tools/ApiRef (net9.0) -->
+    <PackageVersion Include="System.Reflection.MetadataLoadContext" Version="9.0.20" />
+  </ItemGroup>
+
+  <!-- Everything else: one version across all TFMs. -->
+  <ItemGroup>
+    <PackageVersion Include="ClosedXML" Version="0.105.1" />
+    <PackageVersion Include="ColorCode.HTML" Version="2.0.15" />
+    <PackageVersion Include="DocumentFormat.OpenXml" Version="3.5.1" />
+    <PackageVersion Include="MediaTypeMap.Core" Version="2.3.3" />
+    <PackageVersion Include="Microsoft.AspNetCore.OData" Version="9.5.0" />
+    <PackageVersion Include="Microsoft.Bcl.AsyncInterfaces" Version="10.0.12" />
+    <!-- Roslyn stays on the 4.12 band ON PURPOSE. Nextended.CodeGen ships as an analyzer, and an
+         analyzer compiled against a newer Microsoft.CodeAnalysis than the consumer's compiler
+         fails to load. 4.12 is the floor across the SDKs this repo supports. -->
+    <PackageVersion Include="Microsoft.CodeAnalysis.Analyzers" Version="3.11.0" />
+    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="4.12.0" />
+    <PackageVersion Include="Microsoft.CSharp" Version="4.7.0" />
+    <!-- Only referenced to lift supabase-csharp's transitive IdentityModel 7.0.3 off
+         GHSA-59j7-ghrg-fj52. Held inside major 7 (7.7.1 is its last patch): supabase-csharp is
+         compiled against 7.x. -->
+    <PackageVersion Include="Microsoft.IdentityModel.JsonWebTokens" Version="7.7.1" />
+    <PackageVersion Include="System.IdentityModel.Tokens.Jwt" Version="7.7.1" />
+    <!-- Microsoft.AspNetCore.OData 9.5.0 requires OData [8.4.0, 9.0.0) - 9.0.0 would break it. -->
+    <PackageVersion Include="Microsoft.OData.Core" Version="8.4.4" />
+    <PackageVersion Include="Microsoft.OData.Edm" Version="8.4.4" />
+    <PackageVersion Include="Microsoft.Rest.ClientRuntime.Azure" Version="3.3.19" />
+    <PackageVersion Include="Microsoft.Xaml.Behaviors.Wpf" Version="1.1.161" />
+    <PackageVersion Include="MouseKeyHook" Version="5.7.1" />
+    <PackageVersion Include="Newtonsoft.Json" Version="13.0.4" />
+    <!-- The published Nextended packages the samples/generator consume, not the in-tree projects. -->
+    <PackageVersion Include="Nextended.CodeGen" Version="$(UsedCorePackageVersion)" />
+    <PackageVersion Include="Nextended.Core" Version="$(UsedCorePackageVersion)" />
+    <PackageVersion Include="SharpDX" Version="4.2.0" />
+    <PackageVersion Include="SharpDX.DirectInput" Version="4.2.0" />
+    <PackageVersion Include="SharpDX.XInput" Version="4.2.0" />
+    <PackageVersion Include="StringToExpression" Version="2.2.0" />
+    <PackageVersion Include="supabase-csharp" Version="0.16.2" />
+    <PackageVersion Include="System.ComponentModel.Annotations" Version="5.0.0" />
+    <PackageVersion Include="System.Data.DataSetExtensions" Version="4.5.0" />
+    <PackageVersion Include="System.Linq.Dynamic.Core" Version="1.7.4" />
+    <PackageVersion Include="System.Management" Version="10.0.12" />
+    <PackageVersion Include="System.Reflection.Emit" Version="4.7.0" />
+    <PackageVersion Include="YamlDotNet" Version="18.1.0" />
+  </ItemGroup>
+
+  <!-- Test-only packages. -->
+  <ItemGroup>
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.10.1" />
+    <PackageVersion Include="MSTest.TestAdapter" Version="4.4.1" />
+    <PackageVersion Include="MSTest.TestFramework" Version="4.4.1" />
+    <PackageVersion Include="Shouldly" Version="4.3.0" />
+    <PackageVersion Include="xunit" Version="2.9.3" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="4.0.0" />
+  </ItemGroup>
+
+</Project>

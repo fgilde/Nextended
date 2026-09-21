@@ -22,8 +22,8 @@
   -->
   <ItemGroup>
     <ProjectReference Include="..\Nextended.Core\Nextended.Core.csproj" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="$(MsVersion)" />
-    <PackageReference Include="Microsoft.Extensions.Options" Version="$(MsVersion)" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Options" />
     <!--
       HttpRequest is exposed on ResponseFilterOptions.ShouldHandle so consumers can scope the
       pipeline per request (path/query/headers). The abstraction is part of the shared framework

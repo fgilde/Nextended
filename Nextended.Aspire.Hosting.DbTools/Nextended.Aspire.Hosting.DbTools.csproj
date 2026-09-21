@@ -15,15 +15,15 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Aspire.Hosting.AppHost" Version="$(AspireVersion)" />
+    <PackageReference Include="Aspire.Hosting.AppHost" />
     <!-- Every typed overload puts one of these resource types in a public signature. A host that
          clones only Postgres still gets the others: they are app-host-only packages, and one
          package with five recipes beats five packages with one each. -->
-    <PackageReference Include="Aspire.Hosting.PostgreSQL" Version="$(AspireVersion)" />
-    <PackageReference Include="Aspire.Hosting.SqlServer" Version="$(AspireVersion)" />
-    <PackageReference Include="Aspire.Hosting.MySql" Version="$(AspireVersion)" />
-    <PackageReference Include="Aspire.Hosting.MongoDB" Version="$(AspireVersion)" />
-    <PackageReference Include="Aspire.Hosting.Redis" Version="$(AspireVersion)" />
+    <PackageReference Include="Aspire.Hosting.PostgreSQL" />
+    <PackageReference Include="Aspire.Hosting.SqlServer" />
+    <PackageReference Include="Aspire.Hosting.MySql" />
+    <PackageReference Include="Aspire.Hosting.MongoDB" />
+    <PackageReference Include="Aspire.Hosting.Redis" />
   </ItemGroup>
 
 </Project>

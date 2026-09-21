@@ -15,10 +15,10 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Aspire.Hosting.AppHost" Version="$(AspireVersion)" />
+    <PackageReference Include="Aspire.Hosting.AppHost" />
     <!-- Required by the typed WithPostgresDatasource / WithPostgresExporter overloads whose public
          signatures expose IResourceBuilder<PostgresServerResource>. -->
-    <PackageReference Include="Aspire.Hosting.PostgreSQL" Version="$(AspireVersion)" />
+    <PackageReference Include="Aspire.Hosting.PostgreSQL" />
   </ItemGroup>
 
 </Project>

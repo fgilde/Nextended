@@ -22,23 +22,23 @@
     <Otherwise />
   </Choose>
   <ItemGroup>
-    <PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
-    <PackageReference Include="MSTest.TestAdapter" Version="2.2.10" />
-    <PackageReference Include="MSTest.TestFramework" Version="2.2.10" />
+    <PackageReference Include="Microsoft.CSharp" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="MSTest.TestAdapter" />
+    <PackageReference Include="MSTest.TestFramework" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\Nextended.Core\Nextended.Core.csproj" />
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Rest.ClientRuntime.Azure" Version="3.3.19" />
-    <PackageReference Include="Microsoft.AspNetCore.OData" Version="9.3.0" />
-    <PackageReference Include="Microsoft.OData.Core" Version="8.2.3" />
-    <PackageReference Include="Microsoft.OData.Edm" Version="8.2.3" />
-    <PackageReference Include="Shouldly" Version="4.3.0" />
-    <PackageReference Include="xunit" Version="2.9.2"/>
-    <PackageReference Include="xunit.runner.visualstudio" Version="3.0.2">
+    <PackageReference Include="Microsoft.Rest.ClientRuntime.Azure" />
+    <PackageReference Include="Microsoft.AspNetCore.OData" />
+    <PackageReference Include="Microsoft.OData.Core" />
+    <PackageReference Include="Microsoft.OData.Edm" />
+    <PackageReference Include="Shouldly" />
+    <PackageReference Include="xunit"/>
+    <PackageReference Include="xunit.runner.visualstudio">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
