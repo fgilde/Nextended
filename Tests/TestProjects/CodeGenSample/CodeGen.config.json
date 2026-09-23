@@ -68,7 +68,13 @@
 
     }
   ],
-
+  "Typescript": {
+    "DisableGeneration": false,
+    "PropertyNamingScheme": "CamelCase",
+    "OutputPath": "./Generated/Typescript/Models/",
+    "UnmappedTypeHandling": "ForceMapping",
+    "DeepProperties": false,
+  },
   "CodeToDocs": [ 
     {
       "DisableGeneration": false,

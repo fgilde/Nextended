@@ -31,9 +31,11 @@ public class DtoGenerationSymbols
 
     public IEnumerable<IPropertySymbol> GetDtoPropertiesDeep(
         INamedTypeSymbol type,
-        INamedTypeSymbol? ignoreAttr)
+        INamedTypeSymbol? ignoreAttr,
+        bool forceGenerate = false
+        )
     {
-        var ignoredByName = type.ClassCfg(this)?.PropertiesToIgnore ?? [];
+        var ignoredByName = type.ClassCfg(this, forceGenerate)?.PropertiesToIgnore ?? [];
 
         var seen = new HashSet<string>(StringComparer.Ordinal);
         for (var t = type; t != null; t = t.BaseType)
@@ -47,13 +49,13 @@ public class DtoGenerationSymbols
             }
         }
     }
-
-    public IEnumerable<IPropertySymbol> GetDtoProperties(INamedTypeSymbol type, INamedTypeSymbol? ignoreAttr)
+    
+    public IEnumerable<IPropertySymbol> GetDtoProperties(INamedTypeSymbol type, INamedTypeSymbol? ignoreAttr, bool forceGenerate = false)
     {
-        var ignoredByName = type.ClassCfg(this)?.PropertiesToIgnore ?? [];
+        var ignoredByName = type.ClassCfg(this, forceGenerate)?.PropertiesToIgnore ?? [];
 
         if (deepProperties)
-            return GetDtoPropertiesDeep(type, ignoreAttr);
+            return GetDtoPropertiesDeep(type, ignoreAttr, forceGenerate);
         return type.GetMembers().OfType<IPropertySymbol>().Where(p =>
             p.DeclaredAccessibility == Accessibility.Public &&
             !p.IsStatic &&
