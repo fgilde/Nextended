@@ -132,6 +132,11 @@ export default defineConfig({
   // Pages import the package data to render their listings. An alias keeps every page using the
   // same specifier instead of counting "../" levels per file, which is what broke the first
   // migration attempt.
+  // The gilde.org contact/support widgets are native custom elements; Vue must leave them alone.
+  vue: {
+    template: { compilerOptions: { isCustomElement: (tag) => tag.startsWith("gilde-") } },
+  },
+
   vite: {
     resolve: {
       alias: {
@@ -143,6 +148,7 @@ export default defineConfig({
   head: [
     ["link", { rel: "icon", type: "image/png", href: `${BASE}icon.png` }],
     ["meta", { name: "theme-color", content: "#f97316" }],
+    ["script", { type: "module", src: "https://connect.gilde.org/widgets/v1.js" }],
     ["meta", { property: "og:type", content: "website" }],
     ["meta", { property: "og:image", content: `https://fgilde.github.io${BASE}icon.png` }],
   ],

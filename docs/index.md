@@ -83,6 +83,8 @@ features:
 ---
 
 <script setup>
+import { computed } from 'vue'
+import { useData } from 'vitepress'
 import data from '@data/packages.json'
 
 const cats = data.categories
@@ -93,6 +95,10 @@ const base = '/Nextended/'
 const byCat = (id) => pkgs.filter((p) => p.category === id)
 const leaf = (path) => path.split('/').pop()
 const samples = pkgs.filter((p) => p.sample)
+// The widgets follow the site's own dark-mode toggle and brand colour (--vp-c-brand-1).
+const { isDark } = useData()
+const widgetTheme = computed(() => (isDark.value ? 'dark' : 'light'))
+const widgetAccent = computed(() => (isDark.value ? '#a8b1ff' : '#3451b2'))
 </script>
 
 ## The packages
@@ -169,3 +175,15 @@ Every Aspire integration and the source generator ship with a project you can st
 This suite was previously published as **nExt**. Namespaces moved from `nExt.*` to `Nextended.*`;
 the API is otherwise source-compatible. See the [migration guide](/guides/migration). The legacy
 [nExt.Core](https://www.nuget.org/packages/nExt.Core/) package is no longer maintained.
+
+## Contact & support
+
+<div class="gilde-widgets">
+  <gilde-contact project="fgilde/Nextended" widget="contact" inline :theme="widgetTheme" :accent="widgetAccent" language="en" title="Contact Nextended" width="560" radius="18" padding="28" show-logo="true" show-description="false" show-homepage="false" show-preview-notice="false" show-footer="false" footer-brand="Nextended" footer-tagline="gilde.org">Contact Nextended</gilde-contact>
+  <gilde-support project="fgilde/Nextended" widget="support" inline :theme="widgetTheme" :accent="widgetAccent" language="en" width="560" radius="18" padding="28" show-logo="true" show-description="false" show-homepage="false" show-preview-notice="false" show-footer="false" footer-brand="Nextended" footer-tagline="gilde.org" show-support-hint="false" support-layout="rows" show-support-icons="true" show-support-qr="true">Support Nextended</gilde-support>
+</div>
+
+<style>
+.gilde-widgets { display: flex; flex-wrap: wrap; gap: 24px; margin-top: 16px; }
+.gilde-widgets > * { flex: 1 1 320px; max-width: 560px; }
+</style>
