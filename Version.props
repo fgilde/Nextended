@@ -2,10 +2,7 @@
   <PropertyGroup>
     <UsedCorePackageVersion>10.1.37</UsedCorePackageVersion>
     <PackageVersion>10.1.37</PackageVersion>
-    <!-- The ONE Aspire version: used both for the Aspire.Hosting.* PackageVersions in
-         Directory.Packages.props and for the <Sdk Name="Aspire.AppHost.Sdk" /> of every AppHost.
-         Reachable everywhere because Directory.Build.props imports this file. -->
-    <AspireVersion>13.5.4</AspireVersion>
+    <AspireVersion>13.6.0</AspireVersion>
   </PropertyGroup>
 
 
