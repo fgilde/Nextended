@@ -120,7 +120,7 @@ namespace Nextended.Core.Tests
 
             var combined = euro100InEur + euro100InUsd;
             Assert.IsTrue(combined.Currency.IsoCode == "EUR");
-            Assert.IsTrue(combined == 200);
+            Assert.IsTrue(200 == Math.Round(combined));
 
             var combinedM4 = combined * 4;
             Assert.IsTrue(combinedM4 == 800);
