@@ -558,6 +558,28 @@ var supabase = builder.AddSupabase("supabase") /* ... */;
 
 > `PostgresDataVolumeName` applies to the **internal** database only. With an external Postgres you persist its data on your own resource; `AddSupabaseNfsStorage` + `AddMinioS3OnNfs` still apply for storage.
 
+#### MinIO images
+
+MinIO no longer publishes images — `minio/minio` and `minio/mc` are gone from Docker Hub and quay.io, and a
+registry reports a missing repository as `401 UNAUTHORIZED`, so Azure Container Apps fails with
+"authentication required". `AddMinioS3OnNfs` therefore pulls the same releases from a public mirror,
+rebuilt from the official GitHub release binaries (checksum-verified, see `tools/container-mirror/minio`):
+
+| Container | Default (`MinioContainerImageTags`) |
+|-----------|-------------------------------------|
+| `minio` | `ghcr.io/fgilde/minio:RELEASE.2025-09-07T16-13-09Z` |
+| `minio-init` | `ghcr.io/fgilde/minio-mc:RELEASE.2025-08-13T08-35-41Z` |
+
+Both can be pointed elsewhere with the standard Aspire image APIs — the server on the returned builder,
+the bucket-init container through `configureInit`:
+
+```csharp
+builder.AddMinioS3OnNfs("supabasenfs",
+        configureInit: init => init.WithImageRegistry("myregistry.azurecr.io").WithImage("mirror/mc"))
+    .WithImageRegistry("myregistry.azurecr.io")
+    .WithImage("mirror/minio");
+```
+
 ---
 
 ## Complete Example

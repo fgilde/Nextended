@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using Aspire.Hosting;
 using Aspire.Hosting.ApplicationModel;
 
@@ -6,27 +7,30 @@ namespace Nextended.Aspire.Hosting.Supabase.Builders;
 /// <summary>
 /// Durable object storage for supabase-storage on Azure Container Apps, via a bundled MinIO
 /// (S3) server backed by the persistent Azure Files NFS share.
-
 /// </summary>
 public static class MinioOnNfsStorageExtensions
 {
-
-    private const string Registry = "quay.io";
-    private const string MinioImage = "minio/minio";
-    private const string MinioTag = "RELEASE.2025-09-07T16-13-09Z";
-    private const string McImage = "minio/mc";
-    private const string McTag = "RELEASE.2025-08-13T08-35-41Z";
-
     // The single S3 bucket that backs all Supabase storage buckets. Must be DNS-compliant.
     private const string Bucket = "supabase-storage";
 
-    // Root-credential defaults: MinIO is internal-only (no external ingress), so these never
-    // leave the ACA environment — but real deployments should still pass their own values.
-
+    /// <summary>
+    /// Adds a MinIO server on the NFS share plus a container that creates the bucket, and points
+    /// the Supabase storage API at it as its S3 backend.
+    /// </summary>
+    /// <param name="builder">The application builder.</param>
+    /// <param name="nfsEnvStorageName">The managedEnvironmentStorage to mount (the name passed to AddSupabaseNfsStorage).</param>
+    /// <param name="rootUser">MinIO root user. MinIO is internal-only, but real deployments should pass their own.</param>
+    /// <param name="rootPassword">MinIO root password.</param>
+    /// <param name="configureInit">
+    /// Configures the bucket-init container, e.g. its image. The server is configured on the
+    /// returned builder. Defaults for both: <see cref="MinioContainerImageTags"/>.
+    /// </param>
+    /// <returns>The MinIO server container.</returns>
     public static IResourceBuilder<ContainerResource> AddMinioS3OnNfs(this IDistributedApplicationBuilder builder,
         string nfsEnvStorageName,
         string rootUser = "minio-admin",
-        string rootPassword = "Minio-Nfs-2026-secure!")
+        string rootPassword = "Minio-Nfs-2026-secure!",
+        Action<IResourceBuilder<ContainerResource>>? configureInit = null)
     {
         if (string.IsNullOrWhiteSpace(nfsEnvStorageName))
         {
@@ -38,8 +42,8 @@ public static class MinioOnNfsStorageExtensions
         }
 
         // 1) MinIO server, backed by the NFS share.
-        var minio = builder.AddContainer("minio", MinioImage, MinioTag)
-            .WithImageRegistry(Registry)
+        var minio = builder.AddContainer("minio", MinioContainerImageTags.Image, MinioContainerImageTags.Tag)
+            .WithImageRegistry(MinioContainerImageTags.Registry)
             .WithEnvironment("MINIO_ROOT_USER", rootUser)
             .WithEnvironment("MINIO_ROOT_PASSWORD", rootPassword)
             .WithArgs("server", "/data", "--console-address", ":9001")
@@ -86,8 +90,8 @@ public static class MinioOnNfsStorageExtensions
             "until mc --insecure mb --ignore-existing m/\"$BUCKET\"; do echo 'waiting for minio...'; sleep 2; done; " +
             "echo 'bucket ready'; tail -f /dev/null";
 
-        var minioInit = builder.AddContainer("minio-init", McImage, McTag)
-            .WithImageRegistry(Registry)
+        var minioInit = builder.AddContainer("minio-init", MinioContainerImageTags.ClientImage, MinioContainerImageTags.ClientTag)
+            .WithImageRegistry(MinioContainerImageTags.Registry)
             .WithEntrypoint("/bin/sh")
             .WithArgs("-c", initScript)
             .WithEnvironment("MINIO_ENDPOINT", endpointExpr)
@@ -115,7 +119,16 @@ public static class MinioOnNfsStorageExtensions
             ForcePathStyle = true,
         };
 
+        configureInit?.Invoke(minioInit);
         return minio;
-
     }
+
+    /// <summary>
+    /// The signature of releases before <c>configureInit</c> existed, kept so assemblies compiled
+    /// against them still bind. Source callers resolve to the overload above.
+    /// </summary>
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    public static IResourceBuilder<ContainerResource> AddMinioS3OnNfs(this IDistributedApplicationBuilder builder,
+        string nfsEnvStorageName, string rootUser, string rootPassword)
+        => builder.AddMinioS3OnNfs(nfsEnvStorageName, rootUser, rootPassword, configureInit: null);
 }
