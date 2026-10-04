@@ -169,11 +169,6 @@ public sealed class SupabaseStackResource : ContainerResource, IResourceWithConn
     // --- Azure Publish Mode Configuration ---
 
     /// <summary>
-    /// Base64-encoded Kong config YAML for Azure deployment.
-    /// </summary>
-    internal string? KongConfigBase64 { get; set; }
-
-    /// <summary>
     /// Base64-encoded post-init SQL for Azure deployment.
     /// </summary>
     internal string? PostInitSqlBase64 { get; set; }
@@ -185,6 +180,13 @@ public sealed class SupabaseStackResource : ContainerResource, IResourceWithConn
     /// via <c>WithKongOpenTelemetry(...)</c> on the stack builder.
     /// </summary>
     internal SupabaseSqlGenerator.KongTracingConfig? KongTracing { get; set; }
+
+    /// <summary>
+    /// SQL appended to the deployed post-init script, which psql runs as supabase_admin on every
+    /// start of the init container — so each snippet has to be idempotent. psql meta-commands
+    /// such as <c>\gexec</c> work.
+    /// </summary>
+    public List<string> AdditionalPostInitSql { get; } = [];
 
     /// <summary>
     /// Path to the scripts directory.

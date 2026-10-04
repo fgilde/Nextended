@@ -29,12 +29,12 @@ public static class EnvironmentReferenceExtensions
 
         builder
             .WithEnvironment("VITE_SUPABASE_URL", kongEndpoint)
-            .WithEnvironment("VITE_SUPABASE_PUBLISHABLE_KEY", stack.AnonKey)
+            .WithStackValue("VITE_SUPABASE_PUBLISHABLE_KEY", () => stack.AnonKey)
             // Server-side (SSR / TanStack Start server functions): non-prefixed variants.
             .WithEnvironment("SUPABASE_URL", kongEndpoint)
-            .WithEnvironment("SUPABASE_ANON_KEY", stack.AnonKey)
-            .WithEnvironment("SUPABASE_PUBLISHABLE_KEY", stack.AnonKey)
-            .WithEnvironment("SUPABASE_SERVICE_ROLE_KEY", stack.ServiceRoleKey)
+            .WithStackValue("SUPABASE_ANON_KEY", () => stack.AnonKey)
+            .WithStackValue("SUPABASE_PUBLISHABLE_KEY", () => stack.AnonKey)
+            .WithStackValue("SUPABASE_SERVICE_ROLE_KEY", () => stack.ServiceRoleKey)
             .WithReference(supabase);
 
         if (!string.IsNullOrEmpty(stack.ProjectRefId))

@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text;
+using Nextended.Aspire.Hosting.Observability;
 
 namespace Nextended.Aspire.Hosting.Grafana;
 
@@ -53,50 +54,76 @@ internal static class StackConfigGenerator
     }
 
     // -------------------------------------------------------------------------
-    // Loki (single-binary, filesystem-backed)
+    // Loki (single-binary; filesystem by default, S3 when a bucket is configured)
     // -------------------------------------------------------------------------
-    public static string GetLokiConfigYaml() => """
-        auth_enabled: false
 
-        server:
-          http_listen_port: 3100
-          grpc_listen_port: 9096
-          log_level: warn
+    /// <summary>Env vars the S3 variants read through <c>-config.expand-env</c> — credentials never land in the file.</summary>
+    public const string LokiS3EndpointEnv = "LOKI_S3_ENDPOINT";
+    public const string LokiS3AccessKeyEnv = "LOKI_S3_ACCESS_KEY";
+    public const string LokiS3SecretKeyEnv = "LOKI_S3_SECRET_KEY";
 
-        common:
-          instance_addr: 127.0.0.1
-          path_prefix: /loki
-          storage:
-            filesystem:
-              chunks_directory: /loki/chunks
-              rules_directory: /loki/rules
-          replication_factor: 1
-          ring:
-            kvstore:
-              store: inmemory
+    public static string GetLokiConfigYaml(S3StorageOptions? s3 = null)
+    {
+        var storage = s3 is null
+            ? """
+                storage:
+                    filesystem:
+                      chunks_directory: /loki/chunks
+                      rules_directory: /loki/rules
+                """
+            : $$"""
+                storage:
+                    s3:
+                      endpoint: ${{{LokiS3EndpointEnv}}}
+                      bucketnames: {{s3.Bucket}}
+                      access_key_id: ${{{LokiS3AccessKeyEnv}}}
+                      secret_access_key: ${{{LokiS3SecretKeyEnv}}}
+                      region: {{s3.Region}}
+                      s3forcepathstyle: true
+                      insecure: {{(s3.Insecure ? "true" : "false")}}
+                """;
+        var objectStore = s3 is null ? "filesystem" : "s3";
 
-        schema_config:
-          configs:
-            - from: 2024-01-01
-              store: tsdb
-              object_store: filesystem
-              schema: v13
-              index:
-                prefix: index_
-                period: 24h
+        return $$"""
+            auth_enabled: false
 
-        limits_config:
-          retention_period: 336h
-          reject_old_samples: true
-          reject_old_samples_max_age: 168h
-          allow_structured_metadata: true
+            server:
+              http_listen_port: 3100
+              grpc_listen_port: 9096
+              log_level: warn
 
-        compactor:
-          working_directory: /loki/compactor
-          retention_enabled: true
-          retention_delete_delay: 2h
-          delete_request_store: filesystem
-        """;
+            common:
+              instance_addr: 127.0.0.1
+              path_prefix: /loki
+              {{storage.Trim()}}
+              replication_factor: 1
+              ring:
+                kvstore:
+                  store: inmemory
+
+            schema_config:
+              configs:
+                - from: 2024-01-01
+                  store: tsdb
+                  object_store: {{objectStore}}
+                  schema: v13
+                  index:
+                    prefix: index_
+                    period: 24h
+
+            limits_config:
+              retention_period: 336h
+              reject_old_samples: true
+              reject_old_samples_max_age: 168h
+              allow_structured_metadata: true
+
+            compactor:
+              working_directory: /loki/compactor
+              retention_enabled: true
+              retention_delete_delay: 2h
+              delete_request_store: {{objectStore}}
+            """;
+    }
 
     // -------------------------------------------------------------------------
     // Promtail (Docker socket scrape → Loki push)
@@ -135,7 +162,11 @@ internal static class StackConfigGenerator
     // -------------------------------------------------------------------------
     // Tempo (single-binary, filesystem-backed, OTLP receiver)
     // -------------------------------------------------------------------------
-    public static string GetTempoConfigYaml(string? prometheusHost)
+    public const string TempoS3EndpointEnv = "TEMPO_S3_ENDPOINT";
+    public const string TempoS3AccessKeyEnv = "TEMPO_S3_ACCESS_KEY";
+    public const string TempoS3SecretKeyEnv = "TEMPO_S3_SECRET_KEY";
+
+    public static string GetTempoConfigYaml(string? prometheusHost, S3StorageOptions? s3 = null)
     {
         // metrics_generator needs a Prometheus remote_write target — skip the whole
         // block (and its processors) when the stack runs without Prometheus.
@@ -188,19 +219,38 @@ internal static class StackConfigGenerator
 
             storage:
               trace:
+            {TempoTraceStorage(s3)}{overrides}
+            """;
+    }
+
+    private static string TempoTraceStorage(S3StorageOptions? s3) => s3 is null
+        ? """
                 backend: local
                 wal:
                   path: /tmp/tempo/wal
                 local:
-                  path: /tmp/tempo/blocks{overrides}
-            """;
-    }
+                  path: /tmp/tempo/blocks
+            """.TrimEnd()
+        : $$"""
+                backend: s3
+                wal:
+                  path: /tmp/tempo/wal
+                s3:
+                  endpoint: ${{{TempoS3EndpointEnv}}}
+                  bucket: {{s3.Bucket}}
+                  access_key: ${{{TempoS3AccessKeyEnv}}}
+                  secret_key: ${{{TempoS3SecretKeyEnv}}}
+                  region: {{s3.Region}}
+                  insecure: {{(s3.Insecure ? "true" : "false")}}
+                  forcepathstyle: true
+            """.TrimEnd();
 
     // -------------------------------------------------------------------------
     // OpenTelemetry Collector (central fan-out)
     // -------------------------------------------------------------------------
     public static string GetOtelCollectorConfigYaml(
-        string? tempoHost, string? lokiHost, string? prometheusHost, string? aspireDashboardOtlpEndpoint)
+        string? tempoHost, string? lokiHost, string? prometheusHost, string? aspireDashboardOtlpEndpoint,
+        string debugVerbosity = "detailed")
     {
         // Build the exporter list dynamically — only include exporters whose
         // target service is actually in the stack. Avoids "connection refused"
@@ -281,8 +331,9 @@ internal static class StackConfigGenerator
                 # `detailed` logs the resource attributes + span names for each
                 # received batch — invaluable when a service isn't actually
                 # delivering. Tone down to `basic` once you're confident the
-                # pipeline is healthy.
-                verbosity: detailed
+                # pipeline is healthy. Deployed stacks use `basic`: stdout is
+                # billed log ingestion there.
+                verbosity: {{debugVerbosity}}
 
             service:
               telemetry:

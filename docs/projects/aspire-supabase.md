@@ -254,6 +254,8 @@ azd up
 
 All containers and their configuration are translated 1:1 from the Aspire model into Bicep/ACA resources.
 
+With `AddMinioS3OnNfs` and `AddSupabaseNfsStorage` the database and uploaded files survive redeploys. `AddObservabilityStack(supabase, …)` deploys too: Grafana keeps its state in a `grafana` database of the Supabase Postgres and reads through the read-only login `grafana_reader`, Loki and Tempo store into the MinIO buckets `loki` and `tempo`. A deployed Grafana needs a sign-in (`GrafanaEntraIdOptions`). Details: [package README → Deployment](https://github.com/fgilde/Nextended/blob/main/Nextended.Aspire.Hosting.Supabase/README.md#deployment).
+
 ## Complete example
 
 ```csharp

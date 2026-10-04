@@ -75,6 +75,12 @@ public static class SupabaseBuilderExtensions
 
         /// <summary>Use path-style addressing (required for MinIO and most non-AWS S3 servers).</summary>
         public bool ForcePathStyle { get; init; } = true;
+
+        /// <summary><c>host:port</c> of the S3 API without scheme, for clients that take it that way (Loki, Tempo).</summary>
+        public ReferenceExpression? HostAndPort { get; init; }
+
+        /// <summary>Buckets the MinIO init container creates next to <see cref="Bucket"/>.</summary>
+        public List<string> AdditionalBuckets { get; } = [];
     }
 
     #region Constants
@@ -553,7 +559,7 @@ public static class SupabaseBuilderExtensions
             .WithEnvironment("GOTRUE_SITE_URL", authResource.SiteUrl)
             // API_EXTERNAL_URL will be set after Kong is created (see below)
             .WithEnvironment("GOTRUE_URI_ALLOW_LIST", "*")
-            .WithEnvironment("GOTRUE_JWT_SECRET", stack.JwtSecret)
+            .WithStackValue("GOTRUE_JWT_SECRET", () => stack.JwtSecret)
             .WithEnvironment("GOTRUE_JWT_EXP", authResource.JwtExpiration.ToString())
             .WithEnvironment("GOTRUE_JWT_DEFAULT_GROUP_NAME", "authenticated")
             .WithEnvironment("GOTRUE_JWT_ADMIN_ROLES", "service_role")
@@ -589,10 +595,10 @@ public static class SupabaseBuilderExtensions
             .WithEnvironment("PGRST_DB_URI", restDbUri)
             .WithEnvironment("PGRST_DB_SCHEMAS", string.Join(",", restResource.Schemas))
             .WithEnvironment("PGRST_DB_ANON_ROLE", restResource.AnonRole)
-            .WithEnvironment("PGRST_JWT_SECRET", stack.JwtSecret)
+            .WithStackValue("PGRST_JWT_SECRET", () => stack.JwtSecret)
             .WithEnvironment("PGRST_DB_USE_LEGACY_GUCS", "false")
             // Required for JWT validation in requests
-            .WithEnvironment("PGRST_APP_SETTINGS_JWT_SECRET", stack.JwtSecret)
+            .WithStackValue("PGRST_APP_SETTINGS_JWT_SECRET", () => stack.JwtSecret)
             .WithEnvironment("PGRST_APP_SETTINGS_JWT_EXP", "3600")
             .WithEndpoint(targetPort: Ports.PostgREST, name: "http", scheme: "http", isExternal: false)
             .WithContainerRuntimeArgs("--restart=on-failure:10")
@@ -616,10 +622,10 @@ public static class SupabaseBuilderExtensions
         var storageBuilder = builder.AddResource(storageResource)
             .WithImage(Images.StorageApi, Images.StorageApiTag)
             .WithContainerName($"{containerPrefix}-storage")
-            .WithEnvironment("ANON_KEY", stack.AnonKey)
-            .WithEnvironment("SERVICE_KEY", stack.ServiceRoleKey)
+            .WithStackValue("ANON_KEY", () => stack.AnonKey)
+            .WithStackValue("SERVICE_KEY", () => stack.ServiceRoleKey)
             .WithEnvironment("POSTGREST_URL", postgrestUrl)
-            .WithEnvironment("PGRST_JWT_SECRET", stack.JwtSecret)
+            .WithStackValue("PGRST_JWT_SECRET", () => stack.JwtSecret)
             .WithEnvironment("DATABASE_URL", storageDatabaseUrl)
             // In Azure we write to the container's local overlay FS (/tmp, world-writable,
             // POSIX) instead of an Azure Files SMB mount — SMB rejects the storage backend's
@@ -712,7 +718,7 @@ public static class SupabaseBuilderExtensions
             .WithEnvironment("DB_NAME", "postgres")
             .WithEnvironment("DB_AFTER_CONNECT_QUERY", "SET search_path TO _realtime")
             .WithEnvironment("DB_ENC_KEY", "supabaserealtime")
-            .WithEnvironment("API_JWT_SECRET", stack.JwtSecret)
+            .WithStackValue("API_JWT_SECRET", () => stack.JwtSecret)
             .WithEnvironment("SECRET_KEY_BASE", "UpNVntn3cDxHJpq99YMc1T1AQgQpc8kfYTuRgBiYa15BLrx8etQoXz3gZv1/u2oq")
             .WithEnvironment("ERL_AFLAGS", "-proto_dist inet_tcp")
             .WithEnvironment("DNS_NODES", "")
@@ -801,8 +807,8 @@ public static class SupabaseBuilderExtensions
             .WithEnvironment("KONG_NGINX_PROXY_PROXY_BUFFERS", "64 160k")
             .WithEnvironment("KONG_NGINX_PROXY_LARGE_CLIENT_HEADER_BUFFERS", "4 64k")
             // Required for JWT validation in Kong
-            .WithEnvironment("SUPABASE_ANON_KEY", stack.AnonKey)
-            .WithEnvironment("SUPABASE_SERVICE_KEY", stack.ServiceRoleKey)
+            .WithStackValue("SUPABASE_ANON_KEY", () => stack.AnonKey)
+            .WithStackValue("SUPABASE_SERVICE_KEY", () => stack.ServiceRoleKey)
             // isProxied: false in local mode to bypass DCP proxy which doesn't support WebSocket upgrades from browsers
             .WithHttpEndpoint(port: isPublishMode ? null : kongResource.ExternalPort, targetPort: Ports.Kong, name: "http", isProxied: isPublishMode)
             .WaitFor(stack.Auth)
@@ -823,10 +829,6 @@ public static class SupabaseBuilderExtensions
             // Solution: Use a custom entrypoint that writes the config at startup
             // We pass the Kong config template as base64 and use envsubst to replace service URLs
 
-            var kongConfigTemplate = SupabaseSqlGenerator.GetKongConfigTemplateForPublish(stack.AnonKey, stack.ServiceRoleKey);
-            var kongConfigTemplateBase64 = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(kongConfigTemplate));
-            stack.KongConfigBase64 = kongConfigTemplateBase64;
-
             // Get endpoint references for all services Kong needs to route to
             var authEndpoint = stack.Auth.GetEndpoint("http");
             var restEndpoint = stack.Rest.GetEndpoint("http");
@@ -840,7 +842,12 @@ public static class SupabaseBuilderExtensions
             // Note: We use sed instead of envsubst to avoid needing to install gettext
             // This is more compatible across different container environments
             kongBuilder
-                .WithEnvironment("KONG_CONFIG_TEMPLATE_BASE64", kongConfigTemplateBase64)
+                // Built when the environment is evaluated, not now: keys (WithAnonKey/...) and
+                // tracing (WithKongOpenTelemetry) are usually set after Kong exists, and an eager
+                // value froze the template without them — deployed Kong never sent a trace.
+                .WithEnvironment(context => context.EnvironmentVariables["KONG_CONFIG_TEMPLATE_BASE64"] =
+                    Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(
+                        SupabaseSqlGenerator.GetKongConfigTemplateForPublish(stack.AnonKey, stack.ServiceRoleKey, tracing: stack.KongTracing))))
                 .WithEnvironment("AUTH_URL", authEndpoint)
                 .WithEnvironment("REST_URL", restEndpoint)
                 .WithEnvironment("STORAGE_URL", storageEndpoint)
@@ -913,10 +920,10 @@ public static class SupabaseBuilderExtensions
             .WithEnvironment("DEFAULT_PROJECT_NAME", "Default Project")
             .WithEnvironment("SUPABASE_URL", studioKongUrl)
             .WithEnvironment("SUPABASE_PUBLIC_URL", studioKongUrl)
-            .WithEnvironment("SUPABASE_ANON_KEY", stack.AnonKey)
-            .WithEnvironment("SUPABASE_SERVICE_KEY", stack.ServiceRoleKey)
+            .WithStackValue("SUPABASE_ANON_KEY", () => stack.AnonKey)
+            .WithStackValue("SUPABASE_SERVICE_KEY", () => stack.ServiceRoleKey)
             .WithEnvironment("GOTRUE_URL", studioAuthUrl)
-            .WithEnvironment("AUTH_JWT_SECRET", stack.JwtSecret)
+            .WithStackValue("AUTH_JWT_SECRET", () => stack.JwtSecret)
             .WithEnvironment("PG_META_CRYPTO_KEY", cryptoKey)
             .WithEnvironment("LOGFLARE_API_KEY", "")
             .WithEnvironment("LOGFLARE_URL", "")
@@ -1292,6 +1299,12 @@ public static class SupabaseBuilderExtensions
                     combinedSql.AppendLine();
                 }
             }
+        }
+
+        foreach (var snippet in stack.AdditionalPostInitSql)
+        {
+            combinedSql.AppendLine(snippet);
+            combinedSql.AppendLine();
         }
 
         return combinedSql.ToString();

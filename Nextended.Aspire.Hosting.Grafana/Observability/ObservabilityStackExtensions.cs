@@ -54,6 +54,7 @@ public static class ObservabilityStackExtensions
         var ctx = new ObservabilityStackContext
         {
             ConfigRootPath = options.ConfigRootPath,
+            IsPublishMode = isPublishMode,
             PrometheusRetention = options.PrometheusRetention,
             AspireDashboardOtlpEndpoint = options.AspireDashboardOtlpEndpoint,
             DashboardsFolderName = options.GrafanaDashboardsFolder,
@@ -80,8 +81,9 @@ public static class ObservabilityStackExtensions
 
         if (options.IncludeLoki)
         {
-            StackComponents.AddLoki(builder, ctx, N("loki"))
+            var loki = StackComponents.AddLoki(builder, ctx, N("loki"))
                 .WithImage(options.LokiImage, options.LokiImageTag);
+            if (options.LokiStorage is { } lokiStorage) loki.WithS3Storage(lokiStorage);
         }
 
         if (includePromtail && options.IncludeLoki)
@@ -92,8 +94,9 @@ public static class ObservabilityStackExtensions
 
         if (options.IncludeTempo)
         {
-            StackComponents.AddTempo(builder, ctx, N("tempo"))
+            var tempo = StackComponents.AddTempo(builder, ctx, N("tempo"))
                 .WithImage(options.TempoImage, options.TempoImageTag);
+            if (options.TempoStorage is { } tempoStorage) tempo.WithS3Storage(tempoStorage);
         }
 
         if (options.IncludeOtelCollector)
@@ -123,11 +126,16 @@ public static class ObservabilityStackExtensions
             {
                 grafana
                     .WithEnvironment("APP_DB_HOST", pg.Host)
-                    .WithEnvironment("APP_DB_PASSWORD", pg.Password)
+                    .WithEnvironment("APP_DB_PASSWORD", pg.GrafanaPassword ?? pg.Password)
                     .WithDatasource(GrafanaBuilderExtensions.PostgresDatasource(
                         "Postgres", $"{pg.Host}:{pg.Port}", pg.Database,
-                        user: pg.Username, passwordRef: "${APP_DB_PASSWORD}", sslMode: pg.SslMode));
+                        user: pg.GrafanaUsername ?? pg.Username, passwordRef: "${APP_DB_PASSWORD}", sslMode: pg.SslMode));
             }
+
+            if (options.GrafanaDatabase is { } database) grafana.WithDatabase(database);
+            // Last, so it overrides the anonymous/admin settings above.
+            if (options.GrafanaEntraId is { } entra) grafana.WithEntraIdLogin(entra);
+            if (options.GrafanaOAuth is { } oauth) grafana.WithOAuthLogin(oauth);
         }
 
         return builder;

@@ -125,16 +125,6 @@ public static class KongBuilderExtensions
             realtimePort: 4000,
             tracing: config);
 
-        // Also refresh the publish-mode template if it was already cached on
-        // the stack — keeps `azd up` honest.
-        if (stack.KongConfigBase64 is not null)
-        {
-            var publishTemplate = SupabaseSqlGenerator.GetKongConfigTemplateForPublish(
-                stack.AnonKey, stack.ServiceRoleKey, tracing: config);
-            stack.KongConfigBase64 = Convert.ToBase64String(
-                System.Text.Encoding.UTF8.GetBytes(publishTemplate));
-        }
-
         // Make sure the opentelemetry plugin is in Kong's allowed-plugins list.
         // Without this, Kong refuses to load any plugin not in KONG_PLUGINS.
         var plugins = stack.Kong.Resource.Plugins;

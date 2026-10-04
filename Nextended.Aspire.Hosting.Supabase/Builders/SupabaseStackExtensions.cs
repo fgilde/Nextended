@@ -145,10 +145,10 @@ public static class SupabaseStackExtensions
             .WithImage("denoland/deno", "alpine-2.1.4")
             .WithContainerName($"{containerPrefix}-edge")
             .WithEnvironment("SUPABASE_URL", edgeSupabaseUrl)
-            .WithEnvironment("SUPABASE_ANON_KEY", stack.AnonKey)
-            .WithEnvironment("SUPABASE_SERVICE_ROLE_KEY", stack.ServiceRoleKey)
+            .WithStackValue("SUPABASE_ANON_KEY", () => stack.AnonKey)
+            .WithStackValue("SUPABASE_SERVICE_ROLE_KEY", () => stack.ServiceRoleKey)
             .WithEnvironment("SUPABASE_DB_URL", edgeDbUrl)
-            .WithEnvironment("JWT_SECRET", stack.JwtSecret)
+            .WithStackValue("JWT_SECRET", () => stack.JwtSecret)
             .WithEnvironment("DENO_DIR", "/tmp/deno")
             .WithEnvironment("EDGE_RUNTIME_PORT", EdgeRuntimePort.ToString())
             .WithEndpoint(targetPort: EdgeRuntimePort, name: "http", scheme: "http", isExternal: false)
@@ -815,20 +815,6 @@ $$;
                     tracing: stack.KongTracing);
             }
         }
-
-        // Kong also receives the keys as environment variables, and publish mode ships its
-        // whole config as a base64 template embedded with those keys. Both are written when
-        // the Kong resource is created — i.e. before this method can run — so both have to be
-        // refreshed here, not just the bind-mounted file.
-        var refreshedTemplate = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(
-            SupabaseSqlGenerator.GetKongConfigTemplateForPublish(
-                stack.AnonKey, stack.ServiceRoleKey, tracing: stack.KongTracing)));
-        stack.KongConfigBase64 = refreshedTemplate;
-
-        stack.Kong?
-            .WithEnvironment("SUPABASE_ANON_KEY", stack.AnonKey)
-            .WithEnvironment("SUPABASE_SERVICE_KEY", stack.ServiceRoleKey)
-            .WithEnvironment("KONG_CONFIG_TEMPLATE_BASE64", refreshedTemplate);
     }
 
 
@@ -873,12 +859,10 @@ $$;
     /// that validates or issues tokens.
     /// </summary>
     /// <remarks>
-    /// Propagation is required, not cosmetic: the services capture the secret in their
-    /// environment when they are created, so setting only the property left Auth, REST,
-    /// Storage, Realtime and Studio on the previous value. Auth would then sign user tokens
-    /// with one secret while PostgREST validated them with another, and the anon/service-role
-    /// keys (JWTs signed with this secret) would be rejected — a stack that starts but
-    /// refuses every request.
+    /// Every container reads the secret and both keys when its environment is evaluated
+    /// (<see cref="WithStackValue"/>), so this can be called at any point, also after the
+    /// containers and references that use them were created. Changing the secret without
+    /// re-signing both keys makes GoTrue and PostgREST reject them.
     /// </remarks>
     public static IResourceBuilder<SupabaseStackResource> WithJwtSecret(
         this IResourceBuilder<SupabaseStackResource> builder,
@@ -886,14 +870,6 @@ $$;
     {
         var stack = builder.Resource;
         stack.JwtSecret = secret;
-
-        stack.Auth?.WithEnvironment("GOTRUE_JWT_SECRET", secret);
-        stack.Rest?.WithEnvironment("PGRST_JWT_SECRET", secret);
-        stack.Rest?.WithEnvironment("PGRST_APP_SETTINGS_JWT_SECRET", secret);
-        stack.Storage?.WithEnvironment("PGRST_JWT_SECRET", secret);
-        stack.Realtime?.WithEnvironment("API_JWT_SECRET", secret);
-        stack.StackBuilder?.WithEnvironment("AUTH_JWT_SECRET", secret);
-
         return builder;
     }
 
@@ -907,9 +883,6 @@ $$;
     {
         var stack = builder.Resource;
         stack.AnonKey = anonKey;
-
-        stack.Storage?.WithEnvironment("ANON_KEY", anonKey);
-        stack.StackBuilder?.WithEnvironment("SUPABASE_ANON_KEY", anonKey);
         RefreshKongCredentials(stack);
 
         return builder;
@@ -930,6 +903,17 @@ $$;
     #endregion
 
     #region Internal Helpers
+
+    /// <summary>
+    /// Sets a key or secret from the stack's value at the time the environment is evaluated.
+    /// A plain string would freeze the value of the moment the container is created, and
+    /// WithJwtSecret/WithAnonKey/WithServiceRoleKey usually come later — that container then
+    /// kept the demo value while every other one had moved on.
+    /// </summary>
+    internal static IResourceBuilder<T> WithStackValue<T>(
+        this IResourceBuilder<T> builder, string name, Func<string> value)
+        where T : IResourceWithEnvironment =>
+        builder.WithEnvironment(context => context.EnvironmentVariables[name] = value());
 
     /// <summary>
     /// Updates the PostInitSqlBase64 cache by building the combined SQL in memory.

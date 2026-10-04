@@ -17,8 +17,8 @@ internal static class StackComponents
             .WithImage(GrafanaStackDefaults.GrafanaImage, GrafanaStackDefaults.GrafanaImageTag)
             .WithEndpoint(targetPort: GrafanaResource.DefaultTargetPort, name: GrafanaResource.HttpEndpointName, scheme: "http")
             .WithEnvironment("GF_USERS_DEFAULT_THEME", "dark")
-            .WithBindMount(ctx.GrafanaProvisioningDir, "/etc/grafana/provisioning", isReadOnly: true)
             .WithExternalHttpEndpoints();
+        grafana = ctx.MountConfig(grafana, ctx.GrafanaProvisioningDir, "/etc/grafana/provisioning");
 
         ctx.Grafana = grafana;
         ctx.EnsureSubscribed(builder);
@@ -30,11 +30,8 @@ internal static class StackComponents
     {
         var prometheus = builder.AddResource(new PrometheusResource(name) { Context = ctx })
             .WithImage(GrafanaStackDefaults.PrometheusImage, GrafanaStackDefaults.PrometheusImageTag)
-            .WithEndpoint(targetPort: PrometheusResource.DefaultTargetPort, name: PrometheusResource.HttpEndpointName, scheme: "http")
-            .WithBindMount(
-                Path.Combine(ctx.GeneratedDir, "prometheus.yml"),
-                "/etc/prometheus/prometheus.yml",
-                isReadOnly: true)
+            .WithEndpoint(targetPort: PrometheusResource.DefaultTargetPort, port: ctx.InternalPort(PrometheusResource.DefaultTargetPort),
+                name: PrometheusResource.HttpEndpointName, scheme: ctx.InternalScheme)
             // Args via callback so a retention changed after this call still wins.
             .WithArgs(args =>
             {
@@ -45,6 +42,7 @@ internal static class StackComponents
                 // Required so OTel-Collector can push via remote_write.
                 args.Args.Add("--web.enable-remote-write-receiver");
             });
+        prometheus = ctx.MountConfig(prometheus, Path.Combine(ctx.GeneratedDir, "prometheus.yml"), "/etc/prometheus/prometheus.yml");
 
         ctx.Prometheus = prometheus;
         ctx.EnsureSubscribed(builder);
@@ -56,12 +54,10 @@ internal static class StackComponents
     {
         var loki = builder.AddResource(new LokiResource(name) { Context = ctx })
             .WithImage(GrafanaStackDefaults.LokiImage, GrafanaStackDefaults.LokiImageTag)
-            .WithEndpoint(targetPort: LokiResource.DefaultTargetPort, name: LokiResource.HttpEndpointName, scheme: "http")
-            .WithBindMount(
-                Path.Combine(ctx.GeneratedDir, "loki-config.yml"),
-                "/etc/loki/local-config.yaml",
-                isReadOnly: true)
+            .WithEndpoint(targetPort: LokiResource.DefaultTargetPort, port: ctx.InternalPort(LokiResource.DefaultTargetPort),
+                name: LokiResource.HttpEndpointName, scheme: ctx.InternalScheme)
             .WithArgs("-config.file=/etc/loki/local-config.yaml");
+        loki = ctx.MountConfig(loki, Path.Combine(ctx.GeneratedDir, "loki-config.yml"), "/etc/loki/local-config.yaml");
 
         ctx.Loki = loki;
         ctx.EnsureSubscribed(builder);
@@ -90,13 +86,12 @@ internal static class StackComponents
     {
         var tempo = builder.AddResource(new TempoResource(name) { Context = ctx })
             .WithImage(GrafanaStackDefaults.TempoImage, GrafanaStackDefaults.TempoImageTag)
-            .WithEndpoint(targetPort: TempoResource.DefaultTargetPort, name: TempoResource.HttpEndpointName, scheme: "http")
-            .WithEndpoint(targetPort: 4317, name: TempoResource.OtlpGrpcEndpointName, scheme: "http")
-            .WithBindMount(
-                Path.Combine(ctx.GeneratedDir, "tempo-config.yml"),
-                "/etc/tempo/tempo.yml",
-                isReadOnly: true)
+            .WithEndpoint(targetPort: TempoResource.DefaultTargetPort, port: ctx.InternalPort(TempoResource.DefaultTargetPort),
+                name: TempoResource.HttpEndpointName, scheme: ctx.InternalScheme)
+            .WithEndpoint(targetPort: TempoResource.OtlpGrpcTargetPort, port: ctx.InternalPort(TempoResource.OtlpGrpcTargetPort),
+                name: TempoResource.OtlpGrpcEndpointName, scheme: ctx.InternalScheme)
             .WithArgs("-config.file=/etc/tempo/tempo.yml");
+        tempo = ctx.MountConfig(tempo, Path.Combine(ctx.GeneratedDir, "tempo-config.yml"), "/etc/tempo/tempo.yml");
 
         ctx.Tempo = tempo;
         ctx.EnsureSubscribed(builder);
@@ -107,13 +102,16 @@ internal static class StackComponents
         IDistributedApplicationBuilder builder, ObservabilityStackContext ctx, string name)
     {
         var otelCollector = builder.AddResource(new OtelCollectorResource(name) { Context = ctx })
-            .WithImage(GrafanaStackDefaults.OtelCollectorImage, GrafanaStackDefaults.OtelCollectorImageTag)
-            .WithEndpoint(targetPort: OtelCollectorResource.OtlpGrpcTargetPort, name: OtelCollectorResource.OtlpGrpcEndpointName, scheme: "http")
-            .WithEndpoint(targetPort: OtelCollectorResource.OtlpHttpTargetPort, name: OtelCollectorResource.OtlpHttpEndpointName, scheme: "http")
-            .WithBindMount(
-                Path.Combine(ctx.GeneratedDir, "otel-collector-config.yml"),
-                "/etc/otelcol-contrib/config.yaml",
-                isReadOnly: true);
+            .WithImage(GrafanaStackDefaults.OtelCollectorImage, GrafanaStackDefaults.OtelCollectorImageTag);
+        // Publish mode exposes OTLP/HTTP only: its gRPC port would collide with Tempo's 4317 (a TCP
+        // port is unique per Container Apps environment), and nothing sends gRPC to the collector.
+        if (!ctx.IsPublishMode)
+            otelCollector = otelCollector.WithEndpoint(targetPort: OtelCollectorResource.OtlpGrpcTargetPort,
+                name: OtelCollectorResource.OtlpGrpcEndpointName, scheme: "http");
+        otelCollector = otelCollector.WithEndpoint(targetPort: OtelCollectorResource.OtlpHttpTargetPort,
+            port: ctx.InternalPort(OtelCollectorResource.OtlpHttpTargetPort),
+            name: OtelCollectorResource.OtlpHttpEndpointName, scheme: ctx.InternalScheme);
+        otelCollector = ctx.MountConfig(otelCollector, Path.Combine(ctx.GeneratedDir, "otel-collector-config.yml"), "/etc/otelcol-contrib/config.yaml");
 
         ctx.OtelCollector = otelCollector;
         ctx.EnsureSubscribed(builder);
@@ -157,7 +155,8 @@ internal static class StackComponents
     {
         var exporter = builder.AddResource(new PostgresExporterResource(name))
             .WithImage(GrafanaStackDefaults.PostgresExporterImage, GrafanaStackDefaults.PostgresExporterImageTag)
-            .WithEndpoint(targetPort: PostgresExporterResource.DefaultTargetPort, name: "metrics", scheme: "http");
+            .WithEndpoint(targetPort: PostgresExporterResource.DefaultTargetPort, port: ctx.InternalPort(PostgresExporterResource.DefaultTargetPort),
+                name: "metrics", scheme: ctx.InternalScheme);
 
         exporter = dataSourceName switch
         {

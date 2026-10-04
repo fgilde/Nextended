@@ -89,6 +89,59 @@ builder.AddObservabilityStack(new ObservabilityStackOptions
 that derives the Postgres connection from a Supabase stack:
 `builder.AddObservabilityStack(supabase, opts => …)`.
 
+## Deploying (Azure Container Apps)
+
+In publish mode (`aspire publish`, `azd up`) the stack deploys without anything a container app cannot do:
+
+- **No bind mounts.** Generated configs, provisioning and dashboards are baked into small images under `{configRoot}/.generated/publish/<resource>/` — `FROM` the component's own image (`WithImage`/`WithImageTag` still apply), one `COPY` per file.
+- **Internal components speak TCP** on their own ports (Prometheus 9090, Loki 3100, Tempo 3200, collector 4318, postgres_exporter 9187), so every generated `name:port` address keeps working; Grafana stays HTTP. Deployed, the collector receives OTLP/HTTP only — 4317 belongs to Tempo.
+- The collector drops the mirror to the local Aspire dashboard (unless you set your own endpoint) and logs one line per batch instead of every span.
+- Promtail and cAdvisor are left out (they need the host's Docker socket).
+
+What a deployed stack should add — all opt-in, credentials always as env vars (`${VAR}` in the files, no secret in an image):
+
+```csharp
+builder.AddObservabilityStack(new ObservabilityStackOptions
+{
+    ConfigRootPath = Path.Combine(builder.AppHostDirectory, "observability"),
+    LokiStorage = new S3StorageOptions
+    {
+        Endpoint = ReferenceExpression.Create($"{s3.Property(EndpointProperty.HostAndPort)}"), // host:port
+        Bucket = "loki",                                                                      // must exist
+        AccessKey = ReferenceExpression.Create($"{accessKey}"),
+        SecretKey = ReferenceExpression.Create($"{secretKey}"),
+    },
+    TempoStorage = new S3StorageOptions { /* same, Bucket = "tempo" */ },
+    GrafanaDatabase = new GrafanaDatabaseOptions
+    {
+        HostAndPort = ReferenceExpression.Create($"{db.Property(EndpointProperty.HostAndPort)}"),
+        Password = ReferenceExpression.Create($"{grafanaDbPassword}"),
+    },
+    GrafanaEntraId = new GrafanaEntraIdOptions
+    {
+        TenantId = "<tenant id>",
+        ClientId = "<app registration client id>",
+        ClientSecret = ReferenceExpression.Create($"{builder.AddParameter("grafana-client-secret", secret: true)}"),
+    },
+});
+```
+
+Fluent equivalents: `l.WithS3Storage(…)` on Loki, `t.WithS3Storage(…)` on Tempo, `grafana.WithDatabase(…)`, `grafana.WithEntraIdLogin(…)`.
+
+**Entra ID sign-in** turns off the login form, basic auth, anonymous access and Grafana's initial `admin` user — the only way in is an account of the tenant holding one of the app roles `Viewer`, `Editor`, `Admin` or `GrafanaAdmin` (server admin); `AllowedGroups` narrows it further. The app registration needs the redirect URI `{grafana-url}/login/azuread`; `GF_SERVER_ROOT_URL` comes from Grafana's own endpoint.
+
+**Any other OpenID Connect provider** — Keycloak, Authentik, Auth0, Okta … — goes through `GrafanaOAuth` (`GrafanaOAuthOptions`, fluent `grafana.WithOAuthLogin(…)`), locked down the same way; its redirect URI is `{grafana-url}/login/generic_oauth`. Grafana does no discovery there, so the auth, token and userinfo URLs are named. For Keycloak a realm is enough:
+
+```csharp
+opts.GrafanaOAuth = GrafanaOAuthOptions.Keycloak(
+    "https://sso.example.com/realms/company", "grafana",
+    ReferenceExpression.Create($"{builder.AddParameter("grafana-client-secret", secret: true)}"));
+```
+
+It reads the client roles `grafana-admin`, `admin`, `editor` and `viewer` from a `roles` claim — in Keycloak a "User Client Role" mapper with token claim name `roles`, added to the ID token and userinfo. `GrafanaOAuthOptions.Roles("groups", admins: ["ops"], viewers: ["staff"])` maps names in any claim array instead; someone matching none is turned away.
+
+With `Nextended.Aspire.Hosting.Supabase`, `AddObservabilityStack(supabase, …)` sets storage and database up from the Supabase stack itself.
+
 ## Notes
 
 - Promtail and cAdvisor need the host's Docker socket — they are automatically skipped in publish mode (`azd up`).

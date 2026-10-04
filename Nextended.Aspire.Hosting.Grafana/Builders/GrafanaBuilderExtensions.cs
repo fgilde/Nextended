@@ -1,5 +1,6 @@
 using Aspire.Hosting;
 using Aspire.Hosting.ApplicationModel;
+using Nextended.Aspire.Hosting.Observability;
 
 namespace Nextended.Aspire.Hosting.Grafana;
 
@@ -25,7 +26,11 @@ public static class GrafanaBuilderExtensions
         ArgumentNullException.ThrowIfNull(builder);
         configRootPath = Path.GetFullPath(configRootPath ?? Path.Combine(builder.AppHostDirectory, "observability"));
 
-        var ctx = new ObservabilityStackContext { ConfigRootPath = configRootPath };
+        var ctx = new ObservabilityStackContext
+        {
+            ConfigRootPath = configRootPath,
+            IsPublishMode = builder.ExecutionContext.IsPublishMode,
+        };
         return StackComponents.AddGrafana(builder, ctx, name);
     }
 
@@ -70,7 +75,7 @@ public static class GrafanaBuilderExtensions
         ctx.DashboardsMountPath = Path.GetFullPath(hostPath);
         if (folderName is not null) ctx.DashboardsFolderName = folderName;
 
-        return grafana.WithBindMount(ctx.DashboardsMountPath, "/var/lib/grafana/dashboards", isReadOnly: true);
+        return ctx.MountConfig(grafana, ctx.DashboardsMountPath, "/var/lib/grafana/dashboards");
     }
 
     /// <summary>
@@ -317,6 +322,134 @@ public static class GrafanaBuilderExtensions
         prometheus.Resource.Context.PrometheusRetention = retention;
         return prometheus;
     }
+
+    // ---- Deployed stacks: object storage, database, sign-in ---------------------------
+
+    /// <summary>
+    /// Keeps Loki's chunks and index in an S3 bucket (e.g. MinIO) — survives container restarts
+    /// where no persistent disk exists. The bucket has to exist.
+    /// </summary>
+    public static IResourceBuilder<LokiResource> WithS3Storage(
+        this IResourceBuilder<LokiResource> loki, S3StorageOptions storage)
+    {
+        ArgumentNullException.ThrowIfNull(storage);
+        loki.Resource.Context.LokiStorage = storage;
+        return loki
+            .WithEnvironment(StackConfigGenerator.LokiS3EndpointEnv, storage.Endpoint)
+            .WithEnvironment(StackConfigGenerator.LokiS3AccessKeyEnv, storage.AccessKey)
+            .WithEnvironment(StackConfigGenerator.LokiS3SecretKeyEnv, storage.SecretKey)
+            .WithArgs("-config.expand-env=true");
+    }
+
+    /// <summary>Keeps Tempo's trace blocks in an S3 bucket (e.g. MinIO). The bucket has to exist.</summary>
+    public static IResourceBuilder<TempoResource> WithS3Storage(
+        this IResourceBuilder<TempoResource> tempo, S3StorageOptions storage)
+    {
+        ArgumentNullException.ThrowIfNull(storage);
+        tempo.Resource.Context.TempoStorage = storage;
+        return tempo
+            .WithEnvironment(StackConfigGenerator.TempoS3EndpointEnv, storage.Endpoint)
+            .WithEnvironment(StackConfigGenerator.TempoS3AccessKeyEnv, storage.AccessKey)
+            .WithEnvironment(StackConfigGenerator.TempoS3SecretKeyEnv, storage.SecretKey)
+            .WithArgs("-config.expand-env=true");
+    }
+
+    /// <summary>Keeps Grafana's own state (users, preferences, UI-made dashboards) in Postgres instead of SQLite.</summary>
+    public static IResourceBuilder<GrafanaResource> WithDatabase(
+        this IResourceBuilder<GrafanaResource> grafana, GrafanaDatabaseOptions database)
+    {
+        ArgumentNullException.ThrowIfNull(database);
+        return grafana
+            .WithEnvironment("GF_DATABASE_TYPE", "postgres")
+            .WithEnvironment("GF_DATABASE_HOST", database.HostAndPort)
+            .WithEnvironment("GF_DATABASE_NAME", database.Name)
+            .WithEnvironment("GF_DATABASE_USER", database.User)
+            .WithEnvironment("GF_DATABASE_PASSWORD", database.Password)
+            .WithEnvironment("GF_DATABASE_SSL_MODE", database.SslMode);
+    }
+
+    /// <summary>
+    /// Microsoft Entra ID sign-in. Turns off the login form, basic auth, anonymous access and the
+    /// initial local admin, so the only way in is a tenant account holding one of the app roles
+    /// GrafanaAdmin, Admin, Editor or Viewer. The root URL comes from Grafana's own endpoint,
+    /// which is what the OAuth redirect needs.
+    /// </summary>
+    public static IResourceBuilder<GrafanaResource> WithEntraIdLogin(
+        this IResourceBuilder<GrafanaResource> grafana, GrafanaEntraIdOptions entra)
+    {
+        ArgumentNullException.ThrowIfNull(entra);
+        ArgumentException.ThrowIfNullOrWhiteSpace(entra.TenantId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(entra.ClientId);
+
+        var authority = $"https://login.microsoftonline.com/{entra.TenantId}/oauth2/v2.0";
+        grafana
+            .WithEnvironment("GF_AUTH_AZUREAD_ENABLED", "true")
+            .WithEnvironment("GF_AUTH_AZUREAD_NAME", "Microsoft Entra ID")
+            .WithEnvironment("GF_AUTH_AZUREAD_CLIENT_ID", entra.ClientId)
+            .WithEnvironment("GF_AUTH_AZUREAD_CLIENT_SECRET", entra.ClientSecret)
+            .WithEnvironment("GF_AUTH_AZUREAD_SCOPES", "openid email profile")
+            .WithEnvironment("GF_AUTH_AZUREAD_AUTH_URL", $"{authority}/authorize")
+            .WithEnvironment("GF_AUTH_AZUREAD_TOKEN_URL", $"{authority}/token")
+            .WithEnvironment("GF_AUTH_AZUREAD_ALLOWED_ORGANIZATIONS", entra.TenantId)
+            .WithEnvironment("GF_AUTH_AZUREAD_ALLOW_SIGN_UP", "true")
+            .WithEnvironment("GF_AUTH_AZUREAD_USE_PKCE", "true")
+            // Without one of the app roles a user is turned away instead of becoming a Viewer.
+            .WithEnvironment("GF_AUTH_AZUREAD_ROLE_ATTRIBUTE_STRICT", "true")
+            // The app role GrafanaAdmin makes a server admin; there is no other one.
+            .WithEnvironment("GF_AUTH_AZUREAD_ALLOW_ASSIGN_GRAFANA_ADMIN", "true");
+
+        if (entra.AllowedGroups.Count > 0)
+            grafana.WithEnvironment("GF_AUTH_AZUREAD_ALLOWED_GROUPS", string.Join(' ', entra.AllowedGroups));
+
+        return grafana.WithSignInOnly();
+    }
+
+    /// <summary>
+    /// Sign-in through an OpenID Connect provider — Keycloak, Authentik, Auth0, Okta … — via
+    /// Grafana's generic OAuth, locked down like <see cref="WithEntraIdLogin"/>: the only way in is an
+    /// account the provider vouches for and <see cref="GrafanaOAuthOptions.RoleAttributePath"/>
+    /// gives a role. Register <c>{grafana-url}/login/generic_oauth</c> as redirect URI.
+    /// </summary>
+    public static IResourceBuilder<GrafanaResource> WithOAuthLogin(
+        this IResourceBuilder<GrafanaResource> grafana, GrafanaOAuthOptions oauth)
+    {
+        ArgumentNullException.ThrowIfNull(oauth);
+        ArgumentException.ThrowIfNullOrWhiteSpace(oauth.ClientId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(oauth.RoleAttributePath);
+        foreach (var (name, url) in new[] { ("AuthUrl", oauth.AuthUrl), ("TokenUrl", oauth.TokenUrl), ("ApiUrl", oauth.ApiUrl) })
+            if (!Uri.TryCreate(url, UriKind.Absolute, out var uri) || (uri.Scheme != Uri.UriSchemeHttps && uri.Scheme != Uri.UriSchemeHttp))
+                throw new ArgumentException($"{name} is an absolute http(s) URL of the provider — {url}", nameof(oauth));
+
+        grafana
+            .WithEnvironment("GF_AUTH_GENERIC_OAUTH_ENABLED", "true")
+            .WithEnvironment("GF_AUTH_GENERIC_OAUTH_NAME", oauth.Name)
+            .WithEnvironment("GF_AUTH_GENERIC_OAUTH_CLIENT_ID", oauth.ClientId)
+            .WithEnvironment("GF_AUTH_GENERIC_OAUTH_CLIENT_SECRET", oauth.ClientSecret)
+            .WithEnvironment("GF_AUTH_GENERIC_OAUTH_SCOPES", oauth.Scopes)
+            .WithEnvironment("GF_AUTH_GENERIC_OAUTH_AUTH_URL", oauth.AuthUrl)
+            .WithEnvironment("GF_AUTH_GENERIC_OAUTH_TOKEN_URL", oauth.TokenUrl)
+            .WithEnvironment("GF_AUTH_GENERIC_OAUTH_API_URL", oauth.ApiUrl)
+            .WithEnvironment("GF_AUTH_GENERIC_OAUTH_ALLOW_SIGN_UP", "true")
+            .WithEnvironment("GF_AUTH_GENERIC_OAUTH_USE_PKCE", "true")
+            .WithEnvironment("GF_AUTH_GENERIC_OAUTH_ROLE_ATTRIBUTE_PATH", oauth.RoleAttributePath)
+            .WithEnvironment("GF_AUTH_GENERIC_OAUTH_ROLE_ATTRIBUTE_STRICT", "true")
+            .WithEnvironment("GF_AUTH_GENERIC_OAUTH_ALLOW_ASSIGN_GRAFANA_ADMIN", "true");
+
+        return grafana.WithSignInOnly();
+    }
+
+    /// <summary>
+    /// What both sign-ins share: no login form, basic auth, anonymous access or local admin
+    /// (Grafana would create admin/admin on its first start), and the root URL from Grafana's own
+    /// endpoint, which is what the OAuth redirect needs.
+    /// </summary>
+    private static IResourceBuilder<GrafanaResource> WithSignInOnly(this IResourceBuilder<GrafanaResource> grafana) =>
+        grafana
+            .WithEnvironment("GF_SERVER_ROOT_URL", grafana.GetEndpoint(GrafanaResource.HttpEndpointName))
+            .WithEnvironment("GF_AUTH_DISABLE_LOGIN_FORM", "true")
+            .WithEnvironment("GF_AUTH_BASIC_ENABLED", "false")
+            .WithEnvironment("GF_AUTH_ANONYMOUS_ENABLED", "false")
+            .WithEnvironment("GF_SECURITY_DISABLE_INITIAL_ADMIN_CREATION", "true");
 
     // ---- Persistence ------------------------------------------------------------------
     // Named volumes so dashboards/metrics/logs/traces survive container recreation.

@@ -52,6 +52,7 @@ public sealed class TempoResource(string name) : ContainerResource(name)
     public const int DefaultTargetPort = 3200;
     public const string HttpEndpointName = "http";
     public const string OtlpGrpcEndpointName = "otlp-grpc";
+    public const int OtlpGrpcTargetPort = 4317;
 
     public EndpointReference HttpEndpoint => new(this, HttpEndpointName);
 

@@ -1,5 +1,8 @@
+using System.Globalization;
+using System.Text;
 using Aspire.Hosting;
 using Aspire.Hosting.ApplicationModel;
+using Nextended.Aspire.Hosting.Observability;
 
 namespace Nextended.Aspire.Hosting.Grafana;
 
@@ -14,6 +17,12 @@ namespace Nextended.Aspire.Hosting.Grafana;
 internal sealed class ObservabilityStackContext
 {
     public required string ConfigRootPath { get; init; }
+
+    /// <summary>
+    /// Publish mode bakes configs into images instead of bind-mounting them and publishes the
+    /// internal components as TCP — see <see cref="MountConfig{T}"/> and <see cref="InternalScheme"/>.
+    /// </summary>
+    public bool IsPublishMode { get; init; }
 
     public string GeneratedDir => Path.Combine(ConfigRootPath, ".generated");
     public string GrafanaProvisioningDir => Path.Combine(GeneratedDir, "grafana", "provisioning");
@@ -41,6 +50,41 @@ internal sealed class ObservabilityStackContext
 
     /// <summary>Sidebar folder name for auto-provisioned dashboards.</summary>
     public string DashboardsFolderName { get; set; } = "Application";
+
+    /// <summary>S3 bucket for Loki; null keeps chunks on the container filesystem.</summary>
+    public S3StorageOptions? LokiStorage { get; set; }
+
+    /// <summary>S3 bucket for Tempo; null keeps trace blocks on the container filesystem.</summary>
+    public S3StorageOptions? TempoStorage { get; set; }
+
+    /// <summary>
+    /// Scheme for the internal components' endpoints. Locally plain HTTP. In publish mode TCP:
+    /// Azure Container Apps routes an HTTP ingress only through 443 as
+    /// <c>https://{name}.internal.{env-domain}</c>, while TCP ingress keeps
+    /// <c>{name}:{port}</c> — the Docker-network addresses every generated config already uses.
+    /// </summary>
+    public string InternalScheme => IsPublishMode ? "tcp" : "http";
+
+    /// <summary>Fixed port in publish mode (TCP ingress exposes the target port as is), Aspire's choice locally.</summary>
+    public int? InternalPort(int targetPort) => IsPublishMode ? targetPort : null;
+
+    private readonly Dictionary<string, (IResourceBuilder<ContainerResource> Builder, List<(string Source, string Target)> Files)> _baked = new();
+
+    /// <summary>
+    /// Run mode: read-only bind mount. Publish mode: the file or folder is COPY'd into an image
+    /// built FROM the component's final image (see <see cref="BakeImages"/>) — Azure Container Apps
+    /// has no host to mount from, and azd fails the bicep step on a bind mount.
+    /// </summary>
+    public IResourceBuilder<T> MountConfig<T>(IResourceBuilder<T> resource, string source, string target)
+        where T : ContainerResource
+    {
+        if (!IsPublishMode) return resource.WithBindMount(source, target, isReadOnly: true);
+
+        if (!_baked.TryGetValue(resource.Resource.Name, out var entry))
+            _baked[resource.Resource.Name] = entry = (resource, []);
+        entry.Files.Add((source, target));
+        return resource;
+    }
 
     private bool _subscribed;
 
@@ -73,7 +117,7 @@ internal sealed class ObservabilityStackContext
             Prometheus is not null);
 
         WriteIfNeeded(Path.Combine(GeneratedDir, "loki-config.yml"),
-            StackConfigGenerator.GetLokiConfigYaml,
+            () => StackConfigGenerator.GetLokiConfigYaml(LokiStorage),
             Loki is not null);
 
         WriteIfNeeded(Path.Combine(GeneratedDir, "promtail-config.yml"),
@@ -81,12 +125,19 @@ internal sealed class ObservabilityStackContext
             Promtail is not null && Loki is not null);
 
         WriteIfNeeded(Path.Combine(GeneratedDir, "tempo-config.yml"),
-            () => StackConfigGenerator.GetTempoConfigYaml(Prometheus?.Resource.Name),
+            () => StackConfigGenerator.GetTempoConfigYaml(Prometheus?.Resource.Name, TempoStorage),
             Tempo is not null);
+
+        // The default mirror target is the local Aspire dashboard on host.docker.internal, which
+        // does not exist once deployed; only an explicitly configured endpoint survives publishing.
+        var aspireMirror = IsPublishMode && AspireDashboardOtlpEndpoint == GrafanaStackDefaults.AspireDashboardOtlpEndpoint
+            ? null
+            : AspireDashboardOtlpEndpoint;
 
         WriteIfNeeded(Path.Combine(GeneratedDir, "otel-collector-config.yml"),
             () => StackConfigGenerator.GetOtelCollectorConfigYaml(
-                Tempo?.Resource.Name, Loki?.Resource.Name, Prometheus?.Resource.Name, AspireDashboardOtlpEndpoint),
+                Tempo?.Resource.Name, Loki?.Resource.Name, Prometheus?.Resource.Name, aspireMirror,
+                debugVerbosity: IsPublishMode ? "basic" : "detailed"),
             OtelCollector is not null);
 
         if (Grafana is not null)
@@ -105,6 +156,62 @@ internal sealed class ObservabilityStackContext
             if (DashboardsMountPath is not null)
                 Directory.CreateDirectory(DashboardsMountPath);
         }
+
+        if (IsPublishMode) BakeImages();
+    }
+
+    /// <summary>
+    /// One build context per component under <c>.generated/publish/{name}</c>: a Dockerfile FROM the
+    /// component's final image (so <c>WithImage</c> overrides still apply) that COPYs every file
+    /// <see cref="MountConfig{T}"/> would have bind-mounted. Runs after the configs are written.
+    /// </summary>
+    private void BakeImages()
+    {
+        var publishRoot = Path.Combine(GeneratedDir, "publish");
+        foreach (var (name, (builder, files)) in _baked)
+        {
+            var image = builder.Resource.Annotations.OfType<ContainerImageAnnotation>().LastOrDefault()
+                ?? throw new InvalidOperationException($"{name}: no container image to build from.");
+            var from = string.IsNullOrEmpty(image.Registry) ? image.Image : $"{image.Registry}/{image.Image}";
+            from += string.IsNullOrEmpty(image.SHA256) ? $":{image.Tag ?? "latest"}" : $"@sha256:{image.SHA256}";
+
+            var context = Path.Combine(publishRoot, name);
+            if (Directory.Exists(context)) Directory.Delete(context, recursive: true);
+            Directory.CreateDirectory(context);
+
+            var dockerfile = new StringBuilder().Append("FROM ").AppendLine(from);
+            for (var i = 0; i < files.Count; i++)
+            {
+                var (source, target) = files[i];
+                var staged = Path.Combine(context, "files", i.ToString(CultureInfo.InvariantCulture));
+                if (Directory.Exists(source))
+                {
+                    CopyDirectory(source, staged);
+                    dockerfile.AppendLine(CultureInfo.InvariantCulture, $"COPY files/{i}/ {target.TrimEnd('/')}/");
+                }
+                else
+                {
+                    Directory.CreateDirectory(Path.GetDirectoryName(staged)!);
+                    File.Copy(source, staged);
+                    dockerfile.AppendLine(CultureInfo.InvariantCulture, $"COPY files/{i} {target}");
+                }
+            }
+
+            File.WriteAllText(Path.Combine(context, "Dockerfile"), dockerfile.ToString());
+            builder.WithDockerfile(context);
+        }
+    }
+
+    private static void CopyDirectory(string source, string target)
+    {
+        Directory.CreateDirectory(target);
+        foreach (var dir in Directory.EnumerateDirectories(source, "*", SearchOption.AllDirectories))
+            Directory.CreateDirectory(Path.Combine(target, Path.GetRelativePath(source, dir)));
+        foreach (var file in Directory.EnumerateFiles(source, "*", SearchOption.AllDirectories))
+            File.Copy(file, Path.Combine(target, Path.GetRelativePath(source, file)), overwrite: true);
+        // An empty folder would leave COPY without a source.
+        if (!Directory.EnumerateFileSystemEntries(target).Any())
+            File.WriteAllText(Path.Combine(target, ".keep"), "");
     }
 
     /// <summary>Auto-datasources for present components, then user-supplied ones.</summary>

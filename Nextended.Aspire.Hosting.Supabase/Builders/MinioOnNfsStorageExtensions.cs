@@ -88,7 +88,21 @@ public static class MinioOnNfsStorageExtensions
         const string initScript =
             "mc --insecure alias set m \"$MINIO_ENDPOINT\" \"$MINIO_USER\" \"$MINIO_PASS\" >/dev/null 2>&1; " +
             "until mc --insecure mb --ignore-existing m/\"$BUCKET\"; do echo 'waiting for minio...'; sleep 2; done; " +
+            "for b in $EXTRA_BUCKETS; do mc --insecure mb --ignore-existing m/\"$b\"; done; " +
             "echo 'bucket ready'; tail -f /dev/null";
+
+        // Created before the init container so its bucket list can still grow afterwards
+        // (e.g. the observability stack adding Loki/Tempo buckets); read lazily below.
+        var storage = new SupabaseBuilderExtensions.SupabaseStorageS3Options
+        {
+            Endpoint = endpointExpr,
+            HostAndPort = ReferenceExpression.Create($"{s3Ep.Property(EndpointProperty.HostAndPort)}"),
+            Bucket = Bucket,
+            AccessKey = rootUser,
+            SecretKey = rootPassword,
+            Region = "us-east-1",
+            ForcePathStyle = true,
+        };
 
         var minioInit = builder.AddContainer("minio-init", MinioContainerImageTags.ClientImage, MinioContainerImageTags.ClientTag)
             .WithImageRegistry(MinioContainerImageTags.Registry)
@@ -98,6 +112,7 @@ public static class MinioOnNfsStorageExtensions
             .WithEnvironment("MINIO_USER", rootUser)
             .WithEnvironment("MINIO_PASS", rootPassword)
             .WithEnvironment("BUCKET", Bucket)
+            .WithEnvironment(context => context.EnvironmentVariables["EXTRA_BUCKETS"] = string.Join(' ', storage.AdditionalBuckets))
             .WithContainerRuntimeArgs("--restart=on-failure:10")
             .WaitFor(minio);
 
@@ -109,15 +124,7 @@ public static class MinioOnNfsStorageExtensions
 
         // 3) Point supabase-storage's S3 backend at MinIO (read in AddSupabase, so this must be
         //    set before builder.AddSupabase(...) is called).
-        SupabaseBuilderExtensions.StorageS3Backend = new SupabaseBuilderExtensions.SupabaseStorageS3Options
-        {
-            Endpoint = endpointExpr,
-            Bucket = Bucket,
-            AccessKey = rootUser,
-            SecretKey = rootPassword,
-            Region = "us-east-1",
-            ForcePathStyle = true,
-        };
+        SupabaseBuilderExtensions.StorageS3Backend = storage;
 
         configureInit?.Invoke(minioInit);
         return minio;

@@ -377,9 +377,10 @@ Two things worth knowing:
 
 - The anon and service-role keys are **JWTs signed with the JWT secret** — replacing the secret
   without re-signing both keys makes GoTrue and PostgREST reject them.
-- `WithJwtSecret` and `WithAnonKey` propagate to every service that consumes them (Auth, REST,
-  Storage, Realtime, Studio). Setting the properties alone would leave those services on the
-  previous value, which yields a stack that starts but refuses every request.
+- Every container — Auth, REST, Storage, Realtime, Studio, Kong, the Edge Functions — and every
+  `WithSupabaseVite`/`WithSupabaseReference` reads the secret and both keys when its environment
+  is evaluated, so the three calls can come at any point, also after `WithEdgeFunctions` and the
+  references. (Containers used to copy a key when they were created and then kept the demo value.)
 
 ---
 
@@ -579,6 +580,33 @@ builder.AddMinioS3OnNfs("supabasenfs",
     .WithImageRegistry("myregistry.azurecr.io")
     .WithImage("mirror/minio");
 ```
+
+### Observability on Azure Container Apps
+
+`AddObservabilityStack(supabase, …)` — the Grafana stack of `Nextended.Aspire.Hosting.Grafana`, wired to this stack — deploys as well. In publish mode it sets these defaults **before** your `configure` runs, so each of them can be overridden:
+
+- **Grafana's own state** goes into a `grafana` database of the Supabase Postgres (owner `grafana`) instead of SQLite on an ephemeral disk.
+- **Grafana's Postgres datasource** logs in as `grafana_reader` (`BYPASSRLS` + `pg_read_all_data`): it sees every row, RLS included, and cannot write. Locally it keeps the DB superuser.
+- The init container creates both logins (idempotent, on every start, through `SupabaseStackResource.AdditionalPostInitSql` — usable for your own SQL too). Their passwords are derived from the DB password, so nothing new has to be stored.
+- **Loki and Tempo** keep their data in the MinIO buckets `loki` and `tempo` when `AddMinioS3OnNfs` is in use; `minio-init` creates them (`SupabaseStorageS3Options.AdditionalBuckets`). Behind the ACA ingress that is HTTPS on 443.
+- Prometheus keeps 3 days on its container disk. Every component runs as exactly one replica, the internal ones with their TCP port exposed.
+
+A deployed Grafana is reachable from the internet and can read the whole database — give it a sign-in, e.g. Entra ID:
+
+```csharp
+builder.AddObservabilityStack(supabase, opts =>
+{
+    if (builder.ExecutionContext.IsPublishMode)
+        opts.GrafanaEntraId = new GrafanaEntraIdOptions
+        {
+            TenantId = "<tenant id>",
+            ClientId = "<app registration client id>",
+            ClientSecret = ReferenceExpression.Create($"{builder.AddParameter("grafana-client-secret", secret: true)}"),
+        };
+});
+```
+
+`WithKongOpenTelemetry` works wherever it is called: Kong's deployed config is rendered when the environment is evaluated, so its traces reach the collector in Azure too (the template used to be frozen when Kong was created, before tracing was switched on).
 
 ---
 

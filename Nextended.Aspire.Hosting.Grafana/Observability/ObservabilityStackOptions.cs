@@ -1,3 +1,4 @@
+using Aspire.Hosting.ApplicationModel;
 using Nextended.Aspire.Hosting.Grafana;
 
 namespace Nextended.Aspire.Hosting.Observability;
@@ -114,9 +115,146 @@ public sealed class ObservabilityStackOptions
     /// <summary>
     /// Aspire-dashboard OTLP endpoint that the OTel-Collector mirrors traces to.
     /// Default points at <c>host.docker.internal:18889</c> — Aspire 13's standard
-    /// local-dev port. Set to <c>""</c> to disable the mirror exporter.
+    /// local-dev port, so it is dropped in publish mode unless set explicitly. Set to
+    /// <c>""</c> to disable the mirror exporter.
     /// </summary>
     public string AspireDashboardOtlpEndpoint { get; set; } = GrafanaStackDefaults.AspireDashboardOtlpEndpoint;
+
+    // ---- Persistence / auth for deployed stacks -----------------------------------
+
+    /// <summary>Keeps Loki's chunks and index in S3 instead of the container filesystem.</summary>
+    public S3StorageOptions? LokiStorage { get; set; }
+
+    /// <summary>Keeps Tempo's trace blocks in S3 instead of the container filesystem.</summary>
+    public S3StorageOptions? TempoStorage { get; set; }
+
+    /// <summary>Keeps Grafana's own state (users, preferences, UI-made dashboards) in Postgres instead of SQLite.</summary>
+    public GrafanaDatabaseOptions? GrafanaDatabase { get; set; }
+
+    /// <summary>Microsoft Entra ID sign-in for Grafana; replaces the login form and basic auth.</summary>
+    public GrafanaEntraIdOptions? GrafanaEntraId { get; set; }
+
+    /// <summary>Sign-in through another OpenID Connect provider (Keycloak, Authentik, Auth0, Okta …); replaces the login form and basic auth.</summary>
+    public GrafanaOAuthOptions? GrafanaOAuth { get; set; }
+}
+
+/// <summary>An S3-compatible bucket (e.g. MinIO) for Loki or Tempo.</summary>
+public sealed class S3StorageOptions
+{
+    /// <summary><c>host:port</c> of the S3 API without scheme — e.g. an endpoint's <c>HostAndPort</c> property.</summary>
+    public required ReferenceExpression Endpoint { get; init; }
+
+    /// <summary>Bucket name; it has to exist (neither Loki nor Tempo creates buckets).</summary>
+    public required string Bucket { get; init; }
+
+    public required ReferenceExpression AccessKey { get; init; }
+    public required ReferenceExpression SecretKey { get; init; }
+
+    /// <summary>Plain HTTP instead of HTTPS.</summary>
+    public bool Insecure { get; init; }
+
+    public string Region { get; init; } = "us-east-1";
+}
+
+/// <summary>A Postgres database for Grafana's own state.</summary>
+public sealed class GrafanaDatabaseOptions
+{
+    /// <summary><c>host:port</c> of the Postgres server.</summary>
+    public required ReferenceExpression HostAndPort { get; init; }
+
+    public string Name { get; init; } = "grafana";
+    public string User { get; init; } = "grafana";
+    public required ReferenceExpression Password { get; init; }
+    public string SslMode { get; init; } = "disable";
+}
+
+/// <summary>
+/// Sign-in through an OpenID Connect provider with Grafana's generic OAuth. Grafana does no
+/// discovery there, so the three endpoints are named; <see cref="Keycloak"/> derives them from a
+/// realm. The redirect URI to register is <c>{grafana-url}/login/generic_oauth</c>.
+/// </summary>
+public sealed class GrafanaOAuthOptions
+{
+    /// <summary>What the login button says: "Sign in with …".</summary>
+    public required string Name { get; init; }
+    public required string ClientId { get; init; }
+    public required ReferenceExpression ClientSecret { get; init; }
+    public required string AuthUrl { get; init; }
+    public required string TokenUrl { get; init; }
+
+    /// <summary>The provider's userinfo endpoint.</summary>
+    public required string ApiUrl { get; init; }
+
+    public string Scopes { get; init; } = "openid email profile";
+
+    /// <summary>
+    /// JMESPath over the ID token and userinfo claims yielding <c>GrafanaAdmin</c>, <c>Admin</c>,
+    /// <c>Editor</c> or <c>Viewer</c> — <see cref="Roles"/> builds one. Whoever it yields nothing
+    /// for is turned away.
+    /// </summary>
+    public required string RoleAttributePath { get; init; }
+
+    /// <summary>
+    /// A Keycloak realm, e.g. <c>https://sso.example.com/realms/company</c>. Roles come from the
+    /// <c>roles</c> claim (client roles <c>grafana-admin</c>, <c>admin</c>, <c>editor</c>,
+    /// <c>viewer</c>); Keycloak puts them there with a "User Client Role" mapper whose token claim
+    /// name is <c>roles</c>, added to the ID token and userinfo.
+    /// </summary>
+    public static GrafanaOAuthOptions Keycloak(string realmUrl, string clientId, ReferenceExpression clientSecret,
+        string? roleAttributePath = null, string name = "Keycloak")
+    {
+        if (!Uri.TryCreate(realmUrl, UriKind.Absolute, out var realm)
+            || (realm.Scheme != Uri.UriSchemeHttps && realm.Scheme != Uri.UriSchemeHttp)
+            || !realm.AbsolutePath.Contains("/realms/", StringComparison.Ordinal))
+            throw new ArgumentException($"a realm URL looks like https://sso.example.com/realms/company — {realmUrl}", nameof(realmUrl));
+
+        var protocol = $"{realmUrl.TrimEnd('/')}/protocol/openid-connect";
+        return new GrafanaOAuthOptions
+        {
+            Name = name,
+            ClientId = clientId,
+            ClientSecret = clientSecret,
+            AuthUrl = $"{protocol}/auth",
+            TokenUrl = $"{protocol}/token",
+            ApiUrl = $"{protocol}/userinfo",
+            RoleAttributePath = roleAttributePath
+                ?? Roles("roles", grafanaAdmins: ["grafana-admin"], admins: ["admin"], editors: ["editor"], viewers: ["viewer"]),
+        };
+    }
+
+    /// <summary>
+    /// A <see cref="RoleAttributePath"/> for names in a claim array, e.g.
+    /// <c>Roles("groups", admins: ["ops"], viewers: ["staff"])</c>. In someone with several, the
+    /// highest wins: GrafanaAdmin, Admin, Editor, Viewer. A token without the claim matches nothing
+    /// instead of failing the evaluation.
+    /// </summary>
+    public static string Roles(string claim, string[]? grafanaAdmins = null, string[]? admins = null,
+        string[]? editors = null, string[]? viewers = null)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(claim);
+        var terms = new[] { ("GrafanaAdmin", grafanaAdmins), ("Admin", admins), ("Editor", editors), ("Viewer", viewers) }
+            .SelectMany(level => (level.Item2 ?? []).Where(n => !string.IsNullOrWhiteSpace(n))
+                .Select(n => $"contains({claim}[*] || `[]`, '{n.Replace("\\", "\\\\").Replace("'", "\\'")}') && '{level.Item1}'"))
+            .ToArray();
+        if (terms.Length == 0) throw new ArgumentException("name at least one role", nameof(claim));
+        return string.Join(" || ", terms);
+    }
+}
+
+/// <summary>
+/// Microsoft Entra ID (Azure AD) sign-in. Needs an app registration in the tenant with the
+/// redirect URI <c>{grafana-url}/login/azuread</c>, a client secret and the app roles
+/// <c>Admin</c>, <c>Editor</c> and <c>Viewer</c> (plus <c>GrafanaAdmin</c> for server admins —
+/// there is no local admin) — Grafana maps those roles itself, and a user without one is turned away.
+/// </summary>
+public sealed class GrafanaEntraIdOptions
+{
+    public required string TenantId { get; init; }
+    public required string ClientId { get; init; }
+    public required ReferenceExpression ClientSecret { get; init; }
+
+    /// <summary>Object IDs of Entra groups allowed to sign in. Empty = every user with an app role.</summary>
+    public IReadOnlyList<string> AllowedGroups { get; init; } = [];
 }
 
 /// <summary>
@@ -136,6 +274,12 @@ public sealed class PostgresExporterOptions
 
     /// <summary>SSL mode. Default <c>"disable"</c> for local Docker setups.</summary>
     public string SslMode { get; set; } = "disable";
+
+    /// <summary>Login of Grafana's SQL datasource; defaults to <see cref="Username"/>. Give it a read-only role on shared setups.</summary>
+    public string? GrafanaUsername { get; set; }
+
+    /// <summary>Password of <see cref="GrafanaUsername"/>; defaults to <see cref="Password"/>.</summary>
+    public string? GrafanaPassword { get; set; }
 
     /// <summary>Builds the libpq-style DSN that postgres_exporter expects.</summary>
     internal string ToDataSourceName() =>

@@ -86,6 +86,23 @@ builder.AddObservabilityStack(new ObservabilityStackOptions
 ergänzt eine Überladung, die die Postgres-Verbindung aus einem Supabase-Stack ableitet:
 `builder.AddObservabilityStack(supabase, opts => …)`.
 
+## Deployment (Azure Container Apps)
+
+Im Publish-Modus (`aspire publish`, `azd up`) kommt der Stack ohne alles aus, was eine Container App nicht kann:
+
+- **Keine Bind-Mounts.** Generierte Konfigurationen, Provisioning und Dashboards werden in kleine Images gebacken (`{configRoot}/.generated/publish/<ressource>/`) — `FROM` dem Image der Komponente (`WithImage`/`WithImageTag` gelten weiter), ein `COPY` pro Datei.
+- **Interne Komponenten sprechen TCP** auf ihren eigenen Ports (Prometheus 9090, Loki 3100, Tempo 3200, Collector 4318, postgres_exporter 9187), damit jede generierte `name:port`-Adresse gültig bleibt; Grafana bleibt HTTP. Deployt nimmt der Collector nur OTLP/HTTP an — 4317 gehört Tempo.
+- Der Collector lässt den Spiegel zum lokalen Aspire-Dashboard weg (außer bei eigenem Endpoint) und schreibt eine Logzeile pro Batch statt jedes Spans.
+- Promtail und cAdvisor entfallen (sie brauchen den Docker-Socket des Hosts).
+
+Für einen deployten Stack gedacht, alles optional, Zugangsdaten immer als Umgebungsvariablen (`${VAR}` in den Dateien, kein Geheimnis im Image): `LokiStorage`/`TempoStorage` (`S3StorageOptions`, Bucket muss existieren), `GrafanaDatabase` (`GrafanaDatabaseOptions`, Grafanas Zustand in Postgres statt SQLite) und `GrafanaEntraId` (`GrafanaEntraIdOptions`). Fluent: `WithS3Storage(…)` an Loki bzw. Tempo, `grafana.WithDatabase(…)`, `grafana.WithEntraIdLogin(…)`. Codebeispiel auf der [englischen Seite](/projects/aspire-grafana#deploying-azure-container-apps).
+
+**Anmeldung per Entra ID** schaltet Login-Formular, Basic Auth, anonymen Zugriff und Grafanas initialen `admin` ab — hinein kommt nur ein Konto des Tenants mit einer der App-Rollen `Viewer`, `Editor`, `Admin` oder `GrafanaAdmin` (Server-Admin); `AllowedGroups` schränkt weiter ein. Die App-Registrierung braucht die Redirect-URI `{grafana-url}/login/azuread`.
+
+**Jeder andere OpenID-Connect-Anbieter** — Keycloak, Authentik, Auth0, Okta … — geht über `GrafanaOAuth` (`GrafanaOAuthOptions`, fluent `grafana.WithOAuthLogin(…)`), genauso abgesichert; Redirect-URI `{grafana-url}/login/generic_oauth`. Grafana macht dort keine Discovery, deshalb werden Auth-, Token- und Userinfo-URL angegeben — für Keycloak reicht der Realm: `GrafanaOAuthOptions.Keycloak("https://sso.example.com/realms/company", "grafana", secret)`. Das liest die Client-Rollen `grafana-admin`, `admin`, `editor` und `viewer` aus einem Claim `roles` (in Keycloak ein Mapper „User Client Role“ mit Token-Claim-Name `roles`, für ID-Token und Userinfo). `GrafanaOAuthOptions.Roles("groups", admins: ["ops"], viewers: ["staff"])` ordnet Namen aus einem beliebigen Claim zu; wer auf nichts passt, wird abgewiesen.
+
+Mit `Nextended.Aspire.Hosting.Supabase` richtet `AddObservabilityStack(supabase, …)` Speicher und Datenbank aus dem Supabase-Stack selbst ein.
+
 ## Hinweise
 
 **Docker-Socket.** Promtail und cAdvisor brauchen den Docker-Socket des Hosts. Im Publish-Modus
