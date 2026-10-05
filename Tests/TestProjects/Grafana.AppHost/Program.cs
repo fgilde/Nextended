@@ -27,7 +27,6 @@ if (builder.Configuration["SAMPLE_SIGN_IN"] == "keycloak")
     builder.AddContainer("keycloak", "quay.io/keycloak/keycloak", "26.2")
         .WithArgs("start-dev", "--import-realm")
         .WithBindMount(Path.Combine(builder.AppHostDirectory, "keycloak"), "/opt/keycloak/data/import", isReadOnly: true)
-        // The browser opens the login page on localhost; Grafana reaches keycloak:8080 directly.
         .WithEnvironment("KC_HOSTNAME", keycloakUrl)
         .WithEnvironment("KC_HOSTNAME_BACKCHANNEL_DYNAMIC", "true")
         .WithEnvironment("KC_BOOTSTRAP_ADMIN_USERNAME", "admin")
