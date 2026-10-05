@@ -1,0 +1,90 @@
+{
+  "realm": "nextended",
+  "enabled": true,
+  "sslRequired": "none",
+  "roles": {
+    "client": {
+      "grafana": [
+        { "name": "grafana-admin", "description": "Grafana server admin" },
+        { "name": "admin", "description": "Grafana organization admin" },
+        { "name": "editor", "description": "Grafana editor" },
+        { "name": "viewer", "description": "Grafana viewer" }
+      ]
+    }
+  },
+  "clients": [
+    {
+      "clientId": "grafana",
+      "name": "Grafana",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "secret": "nextended-sample-secret",
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "redirectUris": ["http://localhost:*"],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "http://localhost:*"
+      },
+      "protocolMappers": [
+        {
+          "name": "roles",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-client-role-mapper",
+          "consentRequired": false,
+          "config": {
+            "usermodel.clientRoleMapping.clientId": "grafana",
+            "claim.name": "roles",
+            "multivalued": "true",
+            "jsonType.label": "String",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true"
+          }
+        }
+      ]
+    }
+  ],
+  "users": [
+    {
+      "username": "ada",
+      "email": "ada@example.com",
+      "firstName": "Ada",
+      "lastName": "Admin",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [{ "type": "password", "value": "ada", "temporary": false }],
+      "clientRoles": { "grafana": ["grafana-admin"] }
+    },
+    {
+      "username": "eve",
+      "email": "eve@example.com",
+      "firstName": "Eve",
+      "lastName": "Editor",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [{ "type": "password", "value": "eve", "temporary": false }],
+      "clientRoles": { "grafana": ["editor"] }
+    },
+    {
+      "username": "vic",
+      "email": "vic@example.com",
+      "firstName": "Vic",
+      "lastName": "Viewer",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [{ "type": "password", "value": "vic", "temporary": false }],
+      "clientRoles": { "grafana": ["viewer"] }
+    },
+    {
+      "username": "nora",
+      "email": "nora@example.com",
+      "firstName": "Nora",
+      "lastName": "Norole",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [{ "type": "password", "value": "nora", "temporary": false }]
+    }
+  ]
+}

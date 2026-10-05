@@ -284,6 +284,65 @@ public sealed class ObservabilityStackTests : IDisposable
     }
 
     [Fact]
+    public async Task Locally_the_sign_in_returns_to_the_address_the_browser_has()
+    {
+        // Regression: the endpoint reference resolved to grafana.dev.internal:3000 for Grafana
+        // itself, so after signing in the browser was sent to a container-network name.
+        var builder = Stack(publish: false, options => options.GrafanaOAuth = GrafanaOAuthOptions.Keycloak(
+            "http://localhost:8180/realms/acme", "grafana", ReferenceExpression.Create($"s")));
+        var grafana = (IResourceWithEnvironment)Resource(builder, "monitoring-grafana");
+        var http = grafana.Annotations.OfType<EndpointAnnotation>().Single(e => e.Name == GrafanaResource.HttpEndpointName);
+        http.AllocatedEndpoint = new AllocatedEndpoint(http, "localhost", 43210);
+
+#pragma warning disable CS0618 // no model-only equivalent yet
+        // The old reference waited for an allocation on the container network — forever.
+        var env = await grafana.GetEnvironmentVariableValuesAsync(DistributedApplicationOperation.Run).AsTask()
+            .WaitAsync(TimeSpan.FromSeconds(10));
+#pragma warning restore CS0618
+        Assert.Equal("http://localhost:43210", env["GF_SERVER_ROOT_URL"]);
+    }
+
+    [Fact]
+    public void Keycloak_keeps_the_browser_address_and_the_one_grafana_uses_apart()
+    {
+        var options = GrafanaOAuthOptions.Keycloak("http://localhost:8180/realms/acme", "grafana",
+            ReferenceExpression.Create($"s"), backchannelRealmUrl: "http://keycloak:8080/realms/acme");
+
+        Assert.Equal("http://localhost:8180/realms/acme/protocol/openid-connect/auth", options.AuthUrl);
+        Assert.Equal("http://keycloak:8080/realms/acme/protocol/openid-connect/token", options.TokenUrl);
+        Assert.Equal("http://keycloak:8080/realms/acme/protocol/openid-connect/userinfo", options.ApiUrl);
+        Assert.Throws<ArgumentException>(() => GrafanaOAuthOptions.Keycloak("http://localhost:8180/realms/acme", "grafana",
+            ReferenceExpression.Create($"s"), backchannelRealmUrl: "keycloak:8080"));
+    }
+
+    [Fact]
+    public void The_keycloak_sample_realm_carries_what_the_sample_and_the_preset_expect()
+    {
+        var dir = new DirectoryInfo(AppContext.BaseDirectory);
+        while (dir is not null && !File.Exists(Path.Combine(dir.FullName, "Nextended.sln"))) dir = dir.Parent;
+        Assert.NotNull(dir);
+        var sample = Path.Combine(dir!.FullName, "Tests", "TestProjects", "Grafana.AppHost");
+        using var realm = System.Text.Json.JsonDocument.Parse(File.ReadAllText(Path.Combine(sample, "keycloak", "nextended-realm.json")));
+        var program = File.ReadAllText(Path.Combine(sample, "Program.cs"));
+        var client = realm.RootElement.GetProperty("clients").EnumerateArray()
+            .Single(c => c.GetProperty("clientId").GetString() == "grafana");
+
+        Assert.Contains($"\"{client.GetProperty("secret").GetString()}\"", program);
+        Assert.Contains($"/realms/{realm.RootElement.GetProperty("realm").GetString()}\"", program);
+        // Grafana listens on a port the AppHost picks.
+        Assert.Contains("http://localhost:*", client.GetProperty("redirectUris").EnumerateArray().Select(u => u.GetString()));
+
+        var mapper = client.GetProperty("protocolMappers").EnumerateArray().Single().GetProperty("config");
+        Assert.Equal("roles", mapper.GetProperty("claim.name").GetString());
+        Assert.Equal("true", mapper.GetProperty("id.token.claim").GetString());
+        Assert.Equal("true", mapper.GetProperty("userinfo.token.claim").GetString());
+
+        var preset = GrafanaOAuthOptions.Keycloak("http://x/realms/y", "c", ReferenceExpression.Create($"s")).RoleAttributePath;
+        foreach (var role in realm.RootElement.GetProperty("roles").GetProperty("client").GetProperty("grafana").EnumerateArray())
+            Assert.Contains($"'{role.GetProperty("name").GetString()}'", preset);
+    }
+
+    [Fact]
     public void A_role_path_puts_the_highest_role_first_and_survives_a_missing_claim()
     {
         Assert.Equal(

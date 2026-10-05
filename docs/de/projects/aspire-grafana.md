@@ -99,7 +99,7 @@ Für einen deployten Stack gedacht, alles optional, Zugangsdaten immer als Umgeb
 
 **Anmeldung per Entra ID** schaltet Login-Formular, Basic Auth, anonymen Zugriff und Grafanas initialen `admin` ab — hinein kommt nur ein Konto des Tenants mit einer der App-Rollen `Viewer`, `Editor`, `Admin` oder `GrafanaAdmin` (Server-Admin); `AllowedGroups` schränkt weiter ein. Die App-Registrierung braucht die Redirect-URI `{grafana-url}/login/azuread`.
 
-**Jeder andere OpenID-Connect-Anbieter** — Keycloak, Authentik, Auth0, Okta … — geht über `GrafanaOAuth` (`GrafanaOAuthOptions`, fluent `grafana.WithOAuthLogin(…)`), genauso abgesichert; Redirect-URI `{grafana-url}/login/generic_oauth`. Grafana macht dort keine Discovery, deshalb werden Auth-, Token- und Userinfo-URL angegeben — für Keycloak reicht der Realm: `GrafanaOAuthOptions.Keycloak("https://sso.example.com/realms/company", "grafana", secret)`. Das liest die Client-Rollen `grafana-admin`, `admin`, `editor` und `viewer` aus einem Claim `roles` (in Keycloak ein Mapper „User Client Role“ mit Token-Claim-Name `roles`, für ID-Token und Userinfo). `GrafanaOAuthOptions.Roles("groups", admins: ["ops"], viewers: ["staff"])` ordnet Namen aus einem beliebigen Claim zu; wer auf nichts passt, wird abgewiesen.
+**Jeder andere OpenID-Connect-Anbieter** — Keycloak, Authentik, Auth0, Okta … — geht über `GrafanaOAuth` (`GrafanaOAuthOptions`, fluent `grafana.WithOAuthLogin(…)`), genauso abgesichert; Redirect-URI `{grafana-url}/login/generic_oauth`. Grafana macht dort keine Discovery, deshalb werden Auth-, Token- und Userinfo-URL angegeben — für Keycloak reicht der Realm: `GrafanaOAuthOptions.Keycloak("https://sso.example.com/realms/company", "grafana", secret)`. Erreichen Browser und Grafana Keycloak unterschiedlich — ein Keycloak-Container neben Grafana ist für den Browser `http://localhost:…`, für Grafana `http://keycloak:8080` —, kommt die zweite Adresse als `backchannelRealmUrl` dazu; Keycloak selbst braucht dann `KC_HOSTNAME` (die Browser-Adresse) und `KC_HOSTNAME_BACKCHANNEL_DYNAMIC=true`, wie im Beispielprojekt. Lokal ist Grafanas Root-URL — wohin der Browser nach der Anmeldung zurückkehrt — die Adresse auf dem Host, nicht der Name im Container-Netz. Das Preset liest die Client-Rollen `grafana-admin`, `admin`, `editor` und `viewer` aus einem Claim `roles` (in Keycloak ein Mapper „User Client Role“ mit Token-Claim-Name `roles`, für ID-Token und Userinfo). `GrafanaOAuthOptions.Roles("groups", admins: ["ops"], viewers: ["staff"])` ordnet Namen aus einem beliebigen Claim zu; wer auf nichts passt, wird abgewiesen.
 
 Mit `Nextended.Aspire.Hosting.Supabase` richtet `AddObservabilityStack(supabase, …)` Speicher und Datenbank aus dem Supabase-Stack selbst ein.
 
@@ -122,6 +122,8 @@ git clone https://github.com/fgilde/Nextended.git
 cd Nextended/Tests/TestProjects/Grafana.AppHost
 dotnet run
 ```
+
+`dotnet run --launch-profile keycloak` startet es mit Anmeldung über ein Keycloak (Realm `nextended` aus `keycloak/nextended-realm.json`, Keycloak auf `http://localhost:8180`, Admin-Konsole `admin`/`admin`). Demo-Benutzer, Passwort = Benutzername: `ada` (Grafana-Server-Admin), `eve` (Editor), `vic` (Viewer) und `nora` ohne Rolle, die abgewiesen wird.
 
 ## Unterstützte Frameworks
 

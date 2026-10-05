@@ -25,6 +25,19 @@
         "ASPIRE_DASHBOARD_OTLP_ENDPOINT_URL": "http://localhost:21140",
         "ASPIRE_RESOURCE_SERVICE_ENDPOINT_URL": "http://localhost:22140"
       }
+    },
+    "keycloak": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "launchBrowser": true,
+      "applicationUrl": "https://localhost:17140;http://localhost:15140",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "DOTNET_ENVIRONMENT": "Development",
+        "ASPIRE_DASHBOARD_OTLP_ENDPOINT_URL": "https://localhost:21140",
+        "ASPIRE_RESOURCE_SERVICE_ENDPOINT_URL": "https://localhost:22140",
+        "SAMPLE_SIGN_IN": "keycloak"
+      }
     }
   }
 }

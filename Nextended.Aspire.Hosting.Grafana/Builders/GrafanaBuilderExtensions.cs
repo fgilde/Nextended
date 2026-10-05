@@ -440,16 +440,26 @@ public static class GrafanaBuilderExtensions
 
     /// <summary>
     /// What both sign-ins share: no login form, basic auth, anonymous access or local admin
-    /// (Grafana would create admin/admin on its first start), and the root URL from Grafana's own
-    /// endpoint, which is what the OAuth redirect needs.
+    /// (Grafana would create admin/admin on its first start), and the root URL the browser comes
+    /// back to after signing in — the OAuth redirect URI is built from it.
     /// </summary>
-    private static IResourceBuilder<GrafanaResource> WithSignInOnly(this IResourceBuilder<GrafanaResource> grafana) =>
-        grafana
-            .WithEnvironment("GF_SERVER_ROOT_URL", grafana.GetEndpoint(GrafanaResource.HttpEndpointName))
+    private static IResourceBuilder<GrafanaResource> WithSignInOnly(this IResourceBuilder<GrafanaResource> grafana)
+    {
+        var endpoint = grafana.GetEndpoint(GrafanaResource.HttpEndpointName);
+        // Deployed, the reference is Grafana's public URL. Locally it would resolve to the
+        // container-network name (grafana.dev.internal:3000), which no browser reaches; the
+        // allocated endpoint is the address on the host.
+        if (grafana.ApplicationBuilder.ExecutionContext.IsPublishMode)
+            grafana.WithEnvironment("GF_SERVER_ROOT_URL", endpoint);
+        else
+            grafana.WithEnvironment(context => context.EnvironmentVariables["GF_SERVER_ROOT_URL"] = endpoint.Url);
+
+        return grafana
             .WithEnvironment("GF_AUTH_DISABLE_LOGIN_FORM", "true")
             .WithEnvironment("GF_AUTH_BASIC_ENABLED", "false")
             .WithEnvironment("GF_AUTH_ANONYMOUS_ENABLED", "false")
             .WithEnvironment("GF_SECURITY_DISABLE_INITIAL_ADMIN_CREATION", "true");
+    }
 
     // ---- Persistence ------------------------------------------------------------------
     // Named volumes so dashboards/metrics/logs/traces survive container recreation.

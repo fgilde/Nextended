@@ -125,7 +125,9 @@ opts.GrafanaOAuth = GrafanaOAuthOptions.Keycloak(
     ReferenceExpression.Create($"{builder.AddParameter("grafana-client-secret", secret: true)}"));
 ```
 
-It reads the client roles `grafana-admin`, `admin`, `editor` and `viewer` from a `roles` claim — in Keycloak a "User Client Role" mapper with token claim name `roles`, added to the ID token and userinfo. `GrafanaOAuthOptions.Roles("groups", admins: ["ops"], viewers: ["staff"])` maps names in any claim array instead; someone matching none is turned away.
+Where the browser and Grafana reach Keycloak differently — a Keycloak container next to Grafana is `http://localhost:…` for the browser and `http://keycloak:8080` for Grafana — pass the second as `backchannelRealmUrl`; Keycloak itself then needs `KC_HOSTNAME` (the browser's address) and `KC_HOSTNAME_BACKCHANNEL_DYNAMIC=true`, as in the runnable sample. Locally Grafana's root URL — where the browser returns after signing in — is the address the host sees, not the container-network name.
+
+The preset reads the client roles `grafana-admin`, `admin`, `editor` and `viewer` from a `roles` claim — in Keycloak a "User Client Role" mapper with token claim name `roles`, added to the ID token and userinfo. `GrafanaOAuthOptions.Roles("groups", admins: ["ops"], viewers: ["staff"])` maps names in any claim array instead; someone matching none is turned away.
 
 With `Nextended.Aspire.Hosting.Supabase`, `AddObservabilityStack(supabase, …)` sets storage and database up from the Supabase stack itself.
 

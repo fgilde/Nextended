@@ -199,28 +199,36 @@ public sealed class GrafanaOAuthOptions
     /// <c>roles</c> claim (client roles <c>grafana-admin</c>, <c>admin</c>, <c>editor</c>,
     /// <c>viewer</c>); Keycloak puts them there with a "User Client Role" mapper whose token claim
     /// name is <c>roles</c>, added to the ID token and userinfo.
+    /// <paramref name="backchannelRealmUrl"/> is how Grafana itself reaches the realm when that differs
+    /// from the browser's address — a Keycloak container next to Grafana is <c>http://keycloak:8080/…</c>
+    /// for Grafana and <c>http://localhost:…</c> for the browser.
     /// </summary>
     public static GrafanaOAuthOptions Keycloak(string realmUrl, string clientId, ReferenceExpression clientSecret,
-        string? roleAttributePath = null, string name = "Keycloak")
+        string? backchannelRealmUrl = null, string? roleAttributePath = null, string name = "Keycloak")
     {
-        if (!Uri.TryCreate(realmUrl, UriKind.Absolute, out var realm)
-            || (realm.Scheme != Uri.UriSchemeHttps && realm.Scheme != Uri.UriSchemeHttp)
-            || !realm.AbsolutePath.Contains("/realms/", StringComparison.Ordinal))
-            throw new ArgumentException($"a realm URL looks like https://sso.example.com/realms/company — {realmUrl}", nameof(realmUrl));
-
-        var protocol = $"{realmUrl.TrimEnd('/')}/protocol/openid-connect";
+        var browser = $"{RealmUrl(realmUrl, nameof(realmUrl))}/protocol/openid-connect";
+        var backchannel = backchannelRealmUrl is null
+            ? browser
+            : $"{RealmUrl(backchannelRealmUrl, nameof(backchannelRealmUrl))}/protocol/openid-connect";
         return new GrafanaOAuthOptions
         {
             Name = name,
             ClientId = clientId,
             ClientSecret = clientSecret,
-            AuthUrl = $"{protocol}/auth",
-            TokenUrl = $"{protocol}/token",
-            ApiUrl = $"{protocol}/userinfo",
+            AuthUrl = $"{browser}/auth",
+            TokenUrl = $"{backchannel}/token",
+            ApiUrl = $"{backchannel}/userinfo",
             RoleAttributePath = roleAttributePath
                 ?? Roles("roles", grafanaAdmins: ["grafana-admin"], admins: ["admin"], editors: ["editor"], viewers: ["viewer"]),
         };
     }
+
+    private static string RealmUrl(string url, string parameter) =>
+        Uri.TryCreate(url, UriKind.Absolute, out var realm)
+        && (realm.Scheme == Uri.UriSchemeHttps || realm.Scheme == Uri.UriSchemeHttp)
+        && realm.AbsolutePath.Contains("/realms/", StringComparison.Ordinal)
+            ? url.TrimEnd('/')
+            : throw new ArgumentException($"a realm URL looks like https://sso.example.com/realms/company — {url}", parameter);
 
     /// <summary>
     /// A <see cref="RoleAttributePath"/> for names in a claim array, e.g.
