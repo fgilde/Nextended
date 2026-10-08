@@ -203,6 +203,40 @@ public static class SupabaseBuilderExtensions
 
     #endregion
 
+    /// <summary>
+    /// Runs PostgreSQL only while holding an exclusive lock on the data share
+    /// (<c>argv[1]</c>), then execs the rest of argv. A POSIX lock belongs to the process and
+    /// survives execve as long as its descriptor stays open, so the postmaster holds it until it
+    /// exits — also on NFS, where a separate flock helper would drop it when it quits. While it
+    /// waits, a placeholder answers on 5432: Azure Container Apps retires the old replica only once
+    /// the new one is up, so without it both would wait for each other and an update would hang.
+    /// </summary>
+    internal const string PgLockScript = """
+        import fcntl, os, socket, sys, threading
+        lock_path, argv = sys.argv[1], sys.argv[2:]
+        fd = os.open(lock_path, os.O_RDWR | os.O_CREAT, 0o600)
+        os.set_inheritable(fd, True)  # closed by execve it would release the lock
+        try:
+            fcntl.lockf(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except OSError:
+            print('[DB-Init] Another instance still runs on this data directory; waiting for it to stop...', flush=True)
+            placeholder = socket.create_server(('0.0.0.0', 5432))
+            def answer():
+                while True:
+                    try:
+                        connection, _ = placeholder.accept()
+                        connection.close()
+                    except OSError:
+                        return
+            threading.Thread(target=answer, daemon=True).start()
+            fcntl.lockf(fd, fcntl.LOCK_EX)
+            placeholder.shutdown(socket.SHUT_RDWR)
+            placeholder.close()
+        print('[DB-Init] Data directory lock acquired', flush=True)
+        os.execv(argv[0], argv)
+
+        """;
+
     #region Main Entry Point
 
     /// <summary>
@@ -422,20 +456,29 @@ public static class SupabaseBuilderExtensions
                 "HBAEOF\n" +
                 "echo '[DB-Init] Custom pg_hba.conf created'\n" +
                 "\n" +
-                "# Step 4b: Ensure PGDATA ownership/permissions.\n" +
-                "# When a persistent Azure Files NFS volume is mounted at the data directory it is\n" +
-                "# initially owned by root; postgres/initdb refuse a PGDATA that isn't owned by the\n" +
-                "# postgres user with mode 0700. We run as root here, so fix it before handing over.\n" +
-                "# No-op/harmless when the directory is ephemeral container-local storage.\n" +
-                "echo '[DB-Init] Step 4b: Ensuring PGDATA ownership (postgres:postgres 0700)...'\n" +
-                "mkdir -p /var/lib/postgresql/data\n" +
-                "chown postgres:postgres /var/lib/postgresql/data\n" +
-                "chmod 0700 /var/lib/postgresql/data\n" +
+                "# Step 4b: Data directory and single-writer lock.\n" +
+                "# Azure Container Apps runs the old and the new replica side by side for a while — on\n" +
+                "# every revision update and whenever a replica moves to another node. Two postmasters on\n" +
+                "# one data directory destroy it (postmaster.pid only guards a single host). So the\n" +
+                "# postmaster holds an exclusive lock on the share for as long as it runs, and a new\n" +
+                "# instance waits for it (see PgLockScript). A fresh share gets the cluster in a\n" +
+                "# subdirectory, because initdb wants an empty directory and the lock file sits beside it;\n" +
+                "# a cluster created before the lock existed stays at the share root.\n" +
+                "ROOT=/var/lib/postgresql/data\n" +
+                "mkdir -p \"$ROOT\"\n" +
+                "if [ -f \"$ROOT/PG_VERSION\" ]; then export PGDATA=\"$ROOT\"; else export PGDATA=\"$ROOT/pgdata\"; fi\n" +
+                "mkdir -p \"$PGDATA\"\n" +
+                "chown postgres:postgres \"$ROOT\" \"$PGDATA\"\n" +
+                "chmod 0700 \"$ROOT\" \"$PGDATA\"\n" +
+                "echo \"[DB-Init] Step 4b: data directory $PGDATA\"\n" +
+                "cat > /tmp/pg-lock.py << 'PYEOF'\n" +
+                PgLockScript +
+                "PYEOF\n" +
                 "\n" +
-                "# Step 5: Start PostgreSQL with custom hba_file\n" +
+                "# Step 5: Start PostgreSQL with custom hba_file once the lock is ours\n" +
                 "echo '[DB-Init] Step 5: Starting PostgreSQL...'\n" +
                 "echo '[DB-Init] === Wrapper script completed, handing over to docker-entrypoint.sh ==='\n" +
-                "exec /usr/local/bin/docker-entrypoint.sh postgres -D /etc/postgresql -c listen_addresses='*' -c max_connections=200 -c hba_file=/tmp/pg_hba.conf\n";
+                "exec python3 /tmp/pg-lock.py \"$ROOT/.supabase-db.lock\" /usr/local/bin/docker-entrypoint.sh postgres -D /etc/postgresql -c data_directory=\"$PGDATA\" -c listen_addresses='*' -c max_connections=200 -c hba_file=/tmp/pg_hba.conf\n";
 
             var wrapperBase64 = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(wrapperScript));
 

@@ -557,6 +557,8 @@ var supabase = builder.AddSupabase("supabase") /* ... */;
 | `SupabaseBuilderExtensions.PostgresDataVolumeName` | Env-storage name to mount at the internal Postgres data dir. The DB is pinned to a single replica. Leave unset to keep an ephemeral database. |
 | `SupabaseBuilderExtensions.PersistentStorageVolumeName` | Alternative to MinIO: mount an env-storage directly at storage-api's file directory. Leave unset when using `AddMinioS3OnNfs`. |
 
+> **One writer at a time.** Azure Container Apps runs the old and the new replica side by side for a while — on every revision update and whenever a replica moves to another node, even with one replica pinned. Two postmasters on one NFS data directory destroy it (`postmaster.pid` only guards a single host; the result is `PANIC: could not locate a valid checkpoint record`). The deployed database therefore runs only while it holds an exclusive lock on the share (`.supabase-db.lock` next to the cluster): a new instance waits until the old postmaster has exited, and meanwhile answers on 5432 so the platform retires the old replica instead of waiting for the new one. A fresh share gets the cluster in `pgdata/`; a share whose cluster sits at its root keeps it there.
+
 > `PostgresDataVolumeName` applies to the **internal** database only. With an external Postgres you persist its data on your own resource; `AddSupabaseNfsStorage` + `AddMinioS3OnNfs` still apply for storage.
 
 #### MinIO images
