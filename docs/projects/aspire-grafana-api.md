@@ -202,8 +202,70 @@ Tempo distributed-tracing backend (OTLP receiver + trace store).
 - `DefaultTargetPort : int`
 - `HttpEndpointName : string`
 - `OtlpGrpcEndpointName : string`
+- `OtlpGrpcTargetPort : int`
 
 ## Nextended.Aspire.Hosting.Observability
+
+### `GrafanaDatabaseOptions`
+
+`class`
+
+A Postgres database for Grafana's own state.
+
+**Constructors**
+
+- `GrafanaDatabaseOptions()`
+
+**Properties**
+
+- `Name : string { get; set; }`
+- `SslMode : string { get; set; }`
+- `User : string { get; set; }`
+
+### `GrafanaEntraIdOptions`
+
+`class`
+
+Microsoft Entra ID (Azure AD) sign-in. Needs an app registration in the tenant with the redirect URI `{grafana-url}/login/azuread`, a client secret and the app roles `Admin`, `Editor` and `Viewer` (plus `GrafanaAdmin` for server admins — there is no local admin) — Grafana maps those roles itself, and a user without one is turned away.
+
+**Constructors**
+
+- `GrafanaEntraIdOptions()`
+
+**Properties**
+
+- `AllowedGroups : IReadOnlyList<string> { get; set; }`
+  <br>Object IDs of Entra groups allowed to sign in. Empty = every user with an app role.
+- `ClientId : string { get; set; }`
+- `TenantId : string { get; set; }`
+
+### `GrafanaOAuthOptions`
+
+`class`
+
+Sign-in through an OpenID Connect provider with Grafana's generic OAuth. Grafana does no discovery there, so the three endpoints are named; `Keycloak` derives them from a realm. The redirect URI to register is `{grafana-url}/login/generic_oauth`.
+
+**Constructors**
+
+- `GrafanaOAuthOptions()`
+
+**Methods**
+
+- `Roles(string claim, string[] grafanaAdmins = null, string[] admins = null, string[] editors = null, string[] viewers = null) : string`
+  <br>A `RoleAttributePath` for names in a claim array, e.g. `Roles("groups", admins: ["ops"], viewers: ["staff"])`. In someone with several, the highest wins: GrafanaAdmin, Admin, Editor, Viewer. A token without the claim matches nothing instead of failing the evaluation.
+
+**Properties**
+
+- `ApiUrl : string { get; set; }`
+  <br>The provider's userinfo endpoint.
+- `AuthUrl : string { get; set; }`
+- `ClientId : string { get; set; }`
+- `Name : string { get; set; }`
+  <br>What the login button says: "Sign in with …".
+- `RoleAttributePath : string { get; set; }`
+  <br>JMESPath over the ID token and userinfo claims yielding `GrafanaAdmin`, `Admin`, `Editor` or `Viewer` — `Roles` builds one. Whoever it yields nothing for is turned away.
+- `Scopes : string { get; set; }`
+- `TokenUrl : string { get; set; }`
 
 ### `ObservabilityStackExtensions`
 
@@ -224,7 +286,7 @@ Options for `AddObservabilityStack` — the one-call, batteries-included way to 
 **Properties**
 
 - `AspireDashboardOtlpEndpoint : string { get; set; }`
-  <br>Aspire-dashboard OTLP endpoint that the OTel-Collector mirrors traces to. Default points at `host.docker.internal:18889` — Aspire 13's standard local-dev port. Set to `""` to disable the mirror exporter.
+  <br>Aspire-dashboard OTLP endpoint that the OTel-Collector mirrors traces to. Default points at `host.docker.internal:18889` — Aspire 13's standard local-dev port, so it is dropped in publish mode unless set explicitly. Set to `""` to disable the mirror exporter.
 - `CAdvisorImage : string { get; set; }`
 - `CAdvisorImageTag : string { get; set; }`
 - `ConfigRootPath : string { get; set; }`
@@ -232,14 +294,20 @@ Options for `AddObservabilityStack` — the one-call, batteries-included way to 
 - `DashboardsPath : string { get; set; }`
   <br>Folder containing the Grafana dashboard JSON files (one file = one dashboard, auto-loaded by Grafana's provisioning). When `null`, defaults to `{ConfigRootPath}/grafana/dashboards`. Set explicitly if dashboards live outside the config tree.
 - `GrafanaAdminPassword : string { get; set; }`
-  <br>Admin password used when `GrafanaAnonymousAdmin` is false. Should come from a secret in production scenarios.
+  <br>Admin password used when `GrafanaAnonymousAdmin` is false. Should come from a secret in production scenarios — `GrafanaAdminPasswordParameter`.
 - `GrafanaAdminUser : string { get; set; }`
 - `GrafanaAnonymousAdmin : bool { get; set; }`
   <br>When true (default), Grafana is started with anonymous Admin access — no login form. Convenient for local dev. Set false for shared/deployed setups and supply `GrafanaAdminUser`/`GrafanaAdminPassword`.
 - `GrafanaDashboardsFolder : string { get; set; }`
   <br>Grafana folder name under which auto-provisioned dashboards appear in the sidebar. Default `"Application"`. Change to e.g. your app's name to brand the experience without touching dashboard JSON files.
+- `GrafanaDatabase : GrafanaDatabaseOptions { get; set; }`
+  <br>Keeps Grafana's own state (users, preferences, UI-made dashboards) in Postgres instead of SQLite.
+- `GrafanaEntraId : GrafanaEntraIdOptions { get; set; }`
+  <br>Microsoft Entra ID sign-in for Grafana; replaces the login form and basic auth.
 - `GrafanaImage : string { get; set; }`
 - `GrafanaImageTag : string { get; set; }`
+- `GrafanaOAuth : GrafanaOAuthOptions { get; set; }`
+  <br>Sign-in through another OpenID Connect provider (Keycloak, Authentik, Auth0, Okta …); replaces the login form and basic auth.
 - `IncludeCAdvisor : bool { get; set; }`
   <br>cAdvisor — per-container CPU / Memory / Network metrics scraped from the Docker socket.
 - `IncludeGrafana : bool { get; set; }`
@@ -250,6 +318,8 @@ Options for `AddObservabilityStack` — the one-call, batteries-included way to 
 - `IncludeTempo : bool { get; set; }`
 - `LokiImage : string { get; set; }`
 - `LokiImageTag : string { get; set; }`
+- `LokiStorage : S3StorageOptions { get; set; }`
+  <br>Keeps Loki's chunks and index in S3 instead of the container filesystem.
 - `OtelCollectorImage : string { get; set; }`
 - `OtelCollectorImageTag : string { get; set; }`
 - `PostgresExporter : PostgresExporterOptions { get; set; }`
@@ -266,6 +336,8 @@ Options for `AddObservabilityStack` — the one-call, batteries-included way to 
   <br>Name prefix used for every Aspire resource the stack creates. Final names look like `{ResourceNamePrefix}-prometheus`, `{ResourceNamePrefix}-grafana`, etc. Defaults to `"monitoring"`. Set to `""` to keep bare names.
 - `TempoImage : string { get; set; }`
 - `TempoImageTag : string { get; set; }`
+- `TempoStorage : S3StorageOptions { get; set; }`
+  <br>Keeps Tempo's trace blocks in S3 instead of the container filesystem.
 
 ### `PostgresExporterOptions`
 
@@ -280,14 +352,36 @@ Connection options for the `postgres_exporter` sidecar.
 **Properties**
 
 - `Database : string { get; set; }`
+- `GrafanaPassword : string { get; set; }`
+  <br>Password of `GrafanaUsername`; defaults to `Password`.
+- `GrafanaUsername : string { get; set; }`
+  <br>Login of Grafana's SQL datasource; defaults to `Username`. Give it a read-only role on shared setups.
 - `Host : string { get; set; }`
   <br>Hostname or container name of the Postgres instance (Docker DNS). Required.
 - `Password : string { get; set; }`
-  <br>Password for the exporter's read connection. Required.
+  <br>Password for the exporter's read connection. This or `PasswordExpression` is required.
 - `Port : int { get; set; }`
 - `SslMode : string { get; set; }`
   <br>SSL mode. Default `"disable"` for local Docker setups.
 - `Username : string { get; set; }`
+
+### `S3StorageOptions`
+
+`class`
+
+An S3-compatible bucket (e.g. MinIO) for Loki or Tempo.
+
+**Constructors**
+
+- `S3StorageOptions()`
+
+**Properties**
+
+- `Bucket : string { get; set; }`
+  <br>Bucket name; it has to exist (neither Loki nor Tempo creates buckets).
+- `Insecure : bool { get; set; }`
+  <br>Plain HTTP instead of HTTPS.
+- `Region : string { get; set; }`
 
 ## Projects
 

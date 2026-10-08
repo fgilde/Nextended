@@ -20,7 +20,18 @@ Diese Seite wird von `tools/ApiRef` aus der kompilierten Assembly erzeugt — si
 
 `static class`
 
-Supabase-aware entry point for the observability stack. The stack itself (Grafana, Prometheus, Loki, Promtail, cAdvisor, Tempo, OTel-Collector, postgres_exporter) lives in the `Nextended.Aspire.Hosting.Grafana` package — see `ObservabilityStackExtensions` for the generic options-based overload and `GrafanaBuilderExtensions` for the fluent piecemeal API.
+Supabase-aware entry point for the observability stack. The stack itself (Grafana, Prometheus, Loki, Promtail, cAdvisor, Tempo, OTel-Collector, postgres_exporter) lives in the `Nextended.Aspire.Hosting.Grafana` package — see `ObservabilityStackExtensions` for the generic options-based overload and `GrafanaBuilderExtensions` for the fluent piecemeal API. Deployed (publish mode) the stack keeps its state in what the Supabase stack already runs: Grafana in a `grafana` database of the Supabase Postgres, Loki and Tempo in MinIO buckets when MinIO (`MinioOnNfsStorageExtensions`) is in use, and Grafana's SQL datasource reads through a login without write rights.
+
+**Felder**
+
+- `GrafanaPasswordVariable : string`
+  <br>psql variable with the password of `GrafanaRole` in the deployed post-init SQL.
+- `GrafanaRole : string`
+  <br>Owner of Grafana's own database in a deployed stack.
+- `ReaderPasswordVariable : string`
+  <br>psql variable with the password of `ReaderRole` in the deployed post-init SQL.
+- `ReaderRole : string`
+  <br>Login of Grafana's SQL datasource in a deployed stack: reads everything (RLS included), writes nothing.
 
 ## Nextended.Aspire.Hosting.Supabase.Builders
 
@@ -60,11 +71,30 @@ Provides extension methods for configuring the Supabase Kong API Gateway.
 
 Provides extension methods for configuring the Supabase Postgres-Meta service.
 
+### `MinioContainerImageTags`
+
+`static class`
+
+Default images of `AddMinioS3OnNfs` (`MinioOnNfsStorageExtensions`).
+
+**Felder**
+
+- `ClientImage : string`
+  <br>MinIO client (mc) image used by the bucket-init container.
+- `ClientTag : string`
+  <br>MinIO client release.
+- `Image : string`
+  <br>MinIO server image.
+- `Registry : string`
+  <br>Registry of both default images.
+- `Tag : string`
+  <br>MinIO server release.
+
 ### `MinioOnNfsStorageExtensions`
 
 `static class`
 
-Durable object storage for supabase-storage on Azure Container Apps, via a bundled MinIO (S3) server backed by the persistent Azure Files NFS share. supabase-storage's FILE backend cannot run durably on ACA: the only persistent volume ACA can mount is Azure Files, and SMB rejects the backend's open flags (EINVAL) while NFS 4.1 has no extended attributes (xattr -&gt; ENOTSUP), which the FILE backend requires for object metadata. So instead we run MinIO on the NFS share (MinIO keeps its metadata in its own xl.meta files — no xattr) and switch supabase-storage to the S3 backend pointing at it. This wires (publish only): 1. a MinIO container, mounting the NFS env-storage named `nfsEnvStorageName` (created by PersistentNfsStorageExtensions.AddSupabaseNfsStorage — pass the SAME name) at /data, internal-only S3 ingress on :9000, pinned to a single writer, 2. a one-shot mc init container that waits for MinIO and creates the bucket (idempotent), 3. `StorageS3Backend` pointing the storage container at MinIO. MinIO/mc are public images, so ACA pulls them directly (no local build/push, unaffected by the docker registry push path). NOTE: MinIO discourages network filesystems for large clusters, but a single-node single-drive instance on NFS is fine for this low-traffic app.
+Durable object storage for supabase-storage on Azure Container Apps, via a bundled MinIO (S3) server backed by the persistent Azure Files NFS share.
 
 ### `PersistentNfsStorageExtensions`
 
@@ -103,6 +133,7 @@ Provides the main extension method for adding Supabase to an Aspire application.
 - `PostgresDataVolumeName : string { get; set; }`
   <br>Optional name of a managedEnvironmentStorage (e.g. an NFS Azure Files share) to mount at the PostgreSQL data directory (/var/lib/postgresql/data) in publish mode, so the whole database survives container restarts/redeploys. Without it the ACA database is ephemeral (a restart wipes ALL data). This is a generic Supabase concern — the HOST app owns creating the actual storage resource and just sets this name here. When null/empty, publish mode stays ephemeral. NOTE: PostgreSQL requires POSIX semantics (fsync/locking), so the backing share must be Azure Files *NFS* (Premium), never SMB; the DB container is pinned to a single replica.
 - `PublishTarget : SupabasePublishTarget { get; set; }`
+  <br>Publish target of the whole stack. Default `AzureContainerApps` keeps the previous behaviour; set it to `ContainerEnvironment` to publish into a generic container environment (e.g. `AddDockerComposeEnvironment(...)`) instead. Like `PostgresDataVolumeName` this is a host-app decision, so it lives here as a static switch rather than on every resource.
 - `StorageS3Backend : SupabaseStorageS3Options { get; set; }`
   <br>Optional S3-compatible backend for the storage container (publish mode). When set, the storage container runs with STORAGE_BACKEND=s3 against this endpoint instead of the local FILE backend. This is a generic Supabase-storage concern: supabase-storage's FILE backend needs a local POSIX disk WITH extended attributes, which Azure Files can't provide (SMB rejects its open flags; NFS 4.1 has no xattr) — so a durable container-apps deploy needs an S3-compatible store. The HOST app owns the S3 server (e.g. a bundled MinIO), its bucket and credentials, and just points this at it. When null, the FILE backend is used (see `PersistentStorageVolumeName` / local bind mount).
 
@@ -110,12 +141,14 @@ Provides the main extension method for adding Supabase to an Aspire application.
 
 `enum`
 
-_Keine Beschreibung._
+Where `aspire publish` should deploy the Supabase stack to.
 
 **Werte**
 
 - `AzureContainerApps`
+  <br>Azure Container Apps (default, unchanged behaviour).
 - `ContainerEnvironment`
+  <br>A generic container environment such as `AddDockerComposeEnvironment(...)`. The stack then emits no Azure Container Apps annotations, so publishing works without an `AddAzureContainerAppEnvironment(...)` in the model.
 - `value__`
 
 ### `SupabaseReferenceExtensions`
@@ -143,6 +176,7 @@ _Keine Beschreibung._
 **Eigenschaften**
 
 - `AccessKey : string { get; set; }`
+- `AdditionalBuckets : List<string> { get; }`
 - `Bucket : string { get; set; }`
 - `ForcePathStyle : bool { get; set; }`
 - `Region : string { get; set; }`
@@ -268,7 +302,7 @@ Represents a Supabase PostgreSQL database container resource.
 - `ExternalPort : int { get; }`
   <br>Gets or sets the external port for PostgreSQL connections.
 - `Password : string { get; }`
-  <br>Gets or sets the database password.
+  <br>Gets or sets the database password. Set from a parameter (`WithPassword(parameter)`) it is that parameter's configured value.
 
 ### `SupabaseEdgeRuntimeResource`
 
@@ -378,10 +412,12 @@ Represents a complete Supabase stack resource containing all sub-services. This 
 
 **Eigenschaften**
 
+- `AdditionalPostInitSql : List<string> { get; }`
+  <br>SQL appended to the deployed post-init script, which psql runs as supabase_admin on every start of the init container — so each snippet has to be idempotent. psql meta-commands such as `\gexec` work.
 - `AnonKey : string { get; }`
   <br>Gets the Anon Key for client-side authentication.
 - `JwtSecret : string { get; }`
-  <br>Gets or sets the JWT secret used for token signing.
+  <br>Gets or sets the JWT secret used for token signing. Set from a parameter it is that parameter's configured value.
 - `ProjectRefId : string { get; }`
 - `ServiceKey : string { get; }`
 - `ServiceRoleKey : string { get; }`

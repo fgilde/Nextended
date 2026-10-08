@@ -8,7 +8,14 @@ namespace Nextended.Aspire.Hosting.Supabase.Resources;
 /// <summary>
 /// Represents a registered development user.
 /// </summary>
-public record RegisteredUser(string Email, string Password, string DisplayName);
+public record RegisteredUser(string Email, string Password, string DisplayName)
+{
+    /// <summary>
+    /// The parameter the password comes from (<c>WithRegisteredUser(email, parameter)</c>). Deployed,
+    /// the post-init SQL then reads it at runtime instead of carrying it.
+    /// </summary>
+    public ParameterResource? PasswordParameter { get; init; }
+}
 
 /// <summary>
 /// Represents a complete Supabase stack resource containing all sub-services.
@@ -27,20 +34,49 @@ public sealed class SupabaseStackResource : ContainerResource, IResourceWithConn
 
     // --- Secrets auf Stack-Ebene ---
 
+    internal StackSecret JwtSecretValue { get; } = new(string.Empty);
+    internal StackSecret AnonKeyValue { get; } = new(string.Empty);
+    internal StackSecret ServiceRoleKeyValue { get; } = new(string.Empty);
+
     /// <summary>
-    /// Gets or sets the JWT secret used for token signing.
+    /// Gets or sets the JWT secret used for token signing. Set from a parameter it is that
+    /// parameter's configured value.
     /// </summary>
-    public string JwtSecret { get; internal set; } = string.Empty;
+    public string JwtSecret
+    {
+        get => JwtSecretValue.Value;
+        internal set => JwtSecretValue.Set(value);
+    }
 
     /// <summary>
     /// Gets the Anon Key for client-side authentication.
     /// </summary>
-    public string AnonKey { get; internal set; } = string.Empty;
+    public string AnonKey
+    {
+        get => AnonKeyValue.Value;
+        internal set => AnonKeyValue.Set(value);
+    }
 
     /// <summary>
     /// Gets the Service Role Key for server-side authentication.
     /// </summary>
-    public string ServiceRoleKey { get; internal set; } = string.Empty;
+    public string ServiceRoleKey
+    {
+        get => ServiceRoleKeyValue.Value;
+        internal set => ServiceRoleKeyValue.Set(value);
+    }
+
+    /// <summary>
+    /// The JWT secret for another resource's environment: its parameter — deployed a secret, never
+    /// plain text — or the plain value. Prefer it over <see cref="JwtSecret"/>, which resolves.
+    /// </summary>
+    public ReferenceExpression JwtSecretExpression => JwtSecretValue.Expression;
+
+    /// <summary>The anon key for another resource's environment (see <see cref="JwtSecretExpression"/>).</summary>
+    public ReferenceExpression AnonKeyExpression => AnonKeyValue.Expression;
+
+    /// <summary>The service role key for another resource's environment (see <see cref="JwtSecretExpression"/>).</summary>
+    public ReferenceExpression ServiceRoleKeyExpression => ServiceRoleKeyValue.Expression;
 
     // --- Typisierte Container Referenzen ---
 
@@ -59,8 +95,17 @@ public sealed class SupabaseStackResource : ContainerResource, IResourceWithConn
     /// <summary>Mode-agnostic DB endpoint (internal container's or the injected resource's). Set by AddSupabase.</summary>
     internal EndpointReference? DatabaseEndpoint { get; set; }
 
-    /// <summary>Mode-agnostic DB password expression (a literal for the internal DB, the injected resource's parameter otherwise).</summary>
-    internal ReferenceExpression? DatabasePassword { get; set; }
+    /// <summary>The injected resource's password parameter (external database only).</summary>
+    internal ReferenceExpression? ExternalDatabasePassword { get; set; }
+
+    /// <summary>
+    /// Mode-agnostic DB password: the internal database's (a parameter or a plain value) or the
+    /// injected resource's parameter. Read it when the environment is evaluated, not while
+    /// building — the password is usually set after the services that use it.
+    /// </summary>
+    internal ReferenceExpression DatabasePassword =>
+        ExternalDatabasePassword ?? Database?.Resource.PasswordSecret.Expression
+        ?? throw new InvalidOperationException("Database not configured. Ensure AddSupabase() has been called.");
 
     /// <summary>The long-running DB resource that consumers should WaitFor (internal container or the injected resource).</summary>
     internal IResourceBuilder<IResource>? DatabaseWaitTarget { get; set; }
@@ -187,6 +232,14 @@ public sealed class SupabaseStackResource : ContainerResource, IResourceWithConn
     /// such as <c>\gexec</c> work.
     /// </summary>
     public List<string> AdditionalPostInitSql { get; } = [];
+
+    /// <summary>
+    /// psql variables of the deployed post-init SQL (<c>:'name'</c>), handed to the init container
+    /// as environment variables — a parameter stays a secret instead of ending up in the SQL.
+    /// Inside a DO block read one with <c>current_setting('nextended.name')</c>: psql does not
+    /// substitute there, so each is also set as that session setting.
+    /// </summary>
+    internal Dictionary<string, object> PostInitSqlVariables { get; } = new(StringComparer.Ordinal);
 
     /// <summary>
     /// Path to the scripts directory.

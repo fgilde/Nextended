@@ -1,5 +1,3 @@
-using System.Security.Cryptography;
-using System.Text;
 using Aspire.Hosting;
 using Aspire.Hosting.ApplicationModel;
 using Nextended.Aspire.Hosting.Grafana;
@@ -46,15 +44,16 @@ public static class ObservabilityStack
         IResourceBuilder<SupabaseStackResource> supabase,
         Action<ObservabilityStackOptions>? configure = null)
     {
-        var dbPassword = supabase.Resource.Database?.Resource.Password
-            ?? throw new InvalidOperationException("Supabase database password not configured");
+        var stack = supabase.Resource;
+        if (stack.Database is null && stack.ExternalDatabasePassword is null)
+            throw new InvalidOperationException("Supabase database password not configured");
 
         var defaultConfigRoot = Path.GetFullPath(
             Path.Combine(builder.AppHostDirectory, "..", "observability"));
 
         // Use the actual Database container's resource name — keeps things
         // in lock-step if the Supabase library ever changes the suffix.
-        var dbHost = supabase.Resource.Database?.Resource.Name ?? $"{supabase.Resource.Name}-db";
+        var dbHost = stack.Database?.Resource.Name ?? $"{stack.Name}-db";
 
         var options = new ObservabilityStackOptions
         {
@@ -62,12 +61,13 @@ public static class ObservabilityStack
             PostgresExporter = new PostgresExporterOptions
             {
                 Host = dbHost,
-                Password = dbPassword,
+                // A parameter stays a reference, deployed a secret.
+                PasswordExpression = stack.DatabasePassword,
             },
         };
 
         var deployed = builder.ExecutionContext.IsPublishMode;
-        if (deployed) ApplyDeployedDefaults(supabase.Resource, options, dbHost, dbPassword);
+        if (deployed) ApplyDeployedDefaults(builder, stack, options, dbHost);
 
         configure?.Invoke(options);
         builder.AddObservabilityStack(options);
@@ -76,19 +76,27 @@ public static class ObservabilityStack
         return builder;
     }
 
+    /// <summary>psql variable with the password of <see cref="GrafanaRole"/> in the deployed post-init SQL.</summary>
+    public const string GrafanaPasswordVariable = "grafana_db_password";
+
+    /// <summary>psql variable with the password of <see cref="ReaderRole"/> in the deployed post-init SQL.</summary>
+    public const string ReaderPasswordVariable = "grafana_reader_password";
+
     /// <summary>Defaults for a deployed stack, set before <c>configure</c> so the caller can still override them.</summary>
     private static void ApplyDeployedDefaults(
-        SupabaseStackResource stack, ObservabilityStackOptions options, string dbHost, string dbPassword)
+        IDistributedApplicationBuilder builder, SupabaseStackResource stack, ObservabilityStackOptions options, string dbHost)
     {
         // Container filesystem only, and ACA gives a replica little of it.
         options.PrometheusRetention = "3d";
 
-        // Grafana's state and its datasource login live in the Supabase Postgres. The passwords are
-        // derived from the DB password: the post-init SQL is generated at publish time, so it can
-        // only hold values known then — and the DB password is one of them anyway.
-        var grafanaPassword = DerivePassword(dbPassword, GrafanaRole);
-        var readerPassword = DerivePassword(dbPassword, ReaderRole);
-        stack.AdditionalPostInitSql.Add(GrafanaDatabaseSql(grafanaPassword, readerPassword));
+        // Grafana's state and its datasource login live in the Supabase Postgres, each login with a
+        // password of its own: generated parameters (azd creates them once per environment), which
+        // the post-init SQL receives at runtime and Grafana as secrets.
+        var grafanaPassword = GeneratedPassword(builder, $"{stack.Name}-grafana-db-password");
+        var readerPassword = GeneratedPassword(builder, $"{stack.Name}-grafana-reader-password");
+        stack.PostInitSqlVariables[GrafanaPasswordVariable] = grafanaPassword;
+        stack.PostInitSqlVariables[ReaderPasswordVariable] = readerPassword;
+        stack.AdditionalPostInitSql.Add(GrafanaDatabaseSql);
 
         options.GrafanaDatabase = new GrafanaDatabaseOptions
         {
@@ -98,7 +106,7 @@ public static class ObservabilityStack
             Password = ReferenceExpression.Create($"{grafanaPassword}"),
         };
         options.PostgresExporter!.GrafanaUsername = ReaderRole;
-        options.PostgresExporter.GrafanaPassword = readerPassword;
+        options.PostgresExporter.GrafanaPasswordExpression = ReferenceExpression.Create($"{readerPassword}");
 
         if (SupabaseBuilderExtensions.StorageS3Backend is not { HostAndPort: { } s3HostAndPort } s3) return;
 
@@ -113,7 +121,7 @@ public static class ObservabilityStack
                 Endpoint = s3HostAndPort,
                 Bucket = name,
                 AccessKey = ReferenceExpression.Create($"{s3.AccessKey}"),
-                SecretKey = ReferenceExpression.Create($"{s3.SecretKey}"),
+                SecretKey = s3.SecretKeyExpression,
                 Region = s3.Region,
                 Insecure = insecure,
             };
@@ -123,38 +131,28 @@ public static class ObservabilityStack
         options.TempoStorage = Bucket("tempo");
     }
 
+    /// <summary>Letters and digits only, so it needs no quoting in SQL, YAML or env.</summary>
+    private static ParameterResource GeneratedPassword(IDistributedApplicationBuilder builder, string name) =>
+        builder.AddParameter(name, new GenerateParameterDefault { MinLength = 32, Special = false }, secret: true).Resource;
+
     /// <summary>
-    /// Idempotent (the init container re-runs it on every start). <c>BYPASSRLS</c> because nearly
-    /// every app table has row level security without a policy for this login — the datasource
-    /// would see empty tables; <c>pg_read_all_data</c> grants reading, nothing grants writing.
+    /// Idempotent (the init container re-runs it on every start, and it sets the passwords each
+    /// time). <c>BYPASSRLS</c> because nearly every app table has row level security without a
+    /// policy for this login — the datasource would see empty tables; <c>pg_read_all_data</c>
+    /// grants reading, nothing grants writing.
     /// </summary>
-    internal static string GrafanaDatabaseSql(string grafanaPassword, string readerPassword) => $$"""
+    internal const string GrafanaDatabaseSql = $$"""
         -- Observability: Grafana's own database and a read-only login for its SQL datasource.
-        DO $obs$
-        BEGIN
-          IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = '{{GrafanaRole}}') THEN
-            CREATE ROLE {{GrafanaRole}} LOGIN PASSWORD '{{grafanaPassword}}';
-          ELSE
-            ALTER ROLE {{GrafanaRole}} WITH LOGIN PASSWORD '{{grafanaPassword}}';
-          END IF;
-          IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = '{{ReaderRole}}') THEN
-            CREATE ROLE {{ReaderRole}} LOGIN BYPASSRLS PASSWORD '{{readerPassword}}';
-          ELSE
-            ALTER ROLE {{ReaderRole}} WITH LOGIN BYPASSRLS PASSWORD '{{readerPassword}}';
-          END IF;
-        END
-        $obs$;
+        SELECT 'CREATE ROLE {{GrafanaRole}} LOGIN'
+        WHERE NOT EXISTS (SELECT FROM pg_roles WHERE rolname = '{{GrafanaRole}}')\gexec
+        ALTER ROLE {{GrafanaRole}} WITH LOGIN PASSWORD :'{{GrafanaPasswordVariable}}';
+        SELECT 'CREATE ROLE {{ReaderRole}} LOGIN BYPASSRLS'
+        WHERE NOT EXISTS (SELECT FROM pg_roles WHERE rolname = '{{ReaderRole}}')\gexec
+        ALTER ROLE {{ReaderRole}} WITH LOGIN BYPASSRLS PASSWORD :'{{ReaderPasswordVariable}}';
         GRANT pg_read_all_data TO {{ReaderRole}};
         SELECT 'CREATE DATABASE {{GrafanaRole}} OWNER {{GrafanaRole}}'
         WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = '{{GrafanaRole}}')\gexec
         """;
-
-    /// <summary>Hex, so it needs no quoting in SQL, YAML or env; stable for a given DB password.</summary>
-    internal static string DerivePassword(string dbPassword, string purpose)
-    {
-        var hash = HMACSHA256.HashData(Encoding.UTF8.GetBytes(dbPassword), Encoding.UTF8.GetBytes($"nextended-observability:{purpose}"));
-        return Convert.ToHexString(hash)[..32].ToLowerInvariant();
-    }
 
     /// <summary>
     /// Azure Container Apps settings for the deployed components: the internal ones are TCP

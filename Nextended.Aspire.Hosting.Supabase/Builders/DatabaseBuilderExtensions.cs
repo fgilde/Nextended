@@ -16,7 +16,8 @@ public static class DatabaseBuilderExtensions
     #region Direct Stack Methods (Aspire-Standard Pattern)
 
     /// <summary>
-    /// Sets the PostgreSQL password and updates all dependent containers.
+    /// Sets the PostgreSQL password. Every container reads it when its environment is evaluated,
+    /// so this may come after the services that use it.
     /// </summary>
     /// <param name="builder">The Supabase stack resource builder.</param>
     /// <param name="password">The database password.</param>
@@ -29,51 +30,20 @@ public static class DatabaseBuilderExtensions
         if (stack.Database is null)
             throw new InvalidOperationException("Database not configured. Ensure AddSupabase() has been called.");
 
-        var resource = stack.Database.Resource;
-        resource.Password = password;
+        stack.Database.WithPassword(password);
+        return builder;
+    }
 
-        var containerPrefix = stack.Name;
+    /// <summary>Sets the PostgreSQL password from an Aspire parameter (see <see cref="WithPassword(IResourceBuilder{SupabaseDatabaseResource}, IResourceBuilder{ParameterResource})"/>).</summary>
+    public static IResourceBuilder<SupabaseStackResource> WithDatabasePassword(
+        this IResourceBuilder<SupabaseStackResource> builder,
+        IResourceBuilder<ParameterResource> password)
+    {
+        var stack = builder.Resource;
+        if (stack.Database is null)
+            throw new InvalidOperationException("Database not configured. Ensure AddSupabase() has been called.");
 
-        // Get database endpoint for dynamic service discovery (works in ACA and locally)
-        var dbEndpoint = stack.Database.GetEndpoint("tcp");
-
-        // Update environment variables on all containers that use the password
-        stack.Database.WithEnvironment("POSTGRES_PASSWORD", password);
-
-        // Auth container - update DB URL using dynamic endpoint resolution
-        var authDbUrl = ReferenceExpression.Create(
-            $"postgres://supabase_auth_admin:{password}@{dbEndpoint.Property(EndpointProperty.Host)}:{dbEndpoint.Property(EndpointProperty.Port)}/postgres?search_path=auth");
-        stack.Auth?.WithEnvironment("GOTRUE_DB_DATABASE_URL", authDbUrl);
-
-        // Rest container - update DB URI using dynamic endpoint resolution
-        var restDbUri = ReferenceExpression.Create(
-            $"postgres://authenticator:{password}@{dbEndpoint.Property(EndpointProperty.Host)}:{dbEndpoint.Property(EndpointProperty.Port)}/postgres");
-        stack.Rest?.WithEnvironment("PGRST_DB_URI", restDbUri);
-
-        // Storage container - update DB URL using dynamic endpoint resolution
-        var storageDatabaseUrl = ReferenceExpression.Create(
-            $"postgres://supabase_storage_admin:{password}@{dbEndpoint.Property(EndpointProperty.Host)}:{dbEndpoint.Property(EndpointProperty.Port)}/postgres");
-        stack.Storage?.WithEnvironment("DATABASE_URL", storageDatabaseUrl);
-
-        // Meta container - update password
-        stack.Meta?.WithEnvironment("PG_META_DB_PASSWORD", password);
-
-        // Studio container (which is the stack itself) - update password
-        stack.StackBuilder?.WithEnvironment("POSTGRES_PASSWORD", password);
-
-        // Init container (for publish mode) - update password via environment variable
-        stack.InitContainer?.WithEnvironment("DB_PASSWORD", password);
-
-        // Realtime container - critical: without this, realtime fails to connect and all
-        // postgres_changes subscriptions silently never fire.
-        stack.Realtime?.WithEnvironment("DB_PASSWORD", password);
-
-        // NOTE: SQL files are NOT written here. They are written once with the final password
-        // via BeforeResourceStartedEvent in AddSupabase(), which fires after all configuration
-        // (including this WithPassword call) is applied.
-
-        LogInformation("Database password updated in all containers");
-
+        stack.Database.WithPassword(password);
         return builder;
     }
 
@@ -139,77 +109,31 @@ public static class DatabaseBuilderExtensions
     /// environment) instead of in source.
     /// </summary>
     /// <remarks>
-    /// The parameter is resolved to its value here rather than passed through as a reference:
-    /// the password is baked into generated SQL (the roles script), into connection strings
-    /// and into the post-init script while the model is being built, so a concrete value is
-    /// required at that point. Aspire resolves a parameter from configuration, which is
-    /// exactly where a deployment supplies it — a parameter without a configured value throws
-    /// with a message naming it.
+    /// The parameter stays a reference: deployed, the database and every service get it as a
+    /// secret, the post-init SQL receives it at runtime, and the value appears in neither the
+    /// manifest nor the bicep. Locally it resolves from configuration, also for the generated
+    /// SQL files.
     /// </remarks>
     public static IResourceBuilder<SupabaseDatabaseResource> WithPassword(
         this IResourceBuilder<SupabaseDatabaseResource> builder,
         IResourceBuilder<ParameterResource> password)
     {
         ArgumentNullException.ThrowIfNull(password);
-        return builder.WithPassword(password.Resource.Value);
+        builder.Resource.PasswordSecret.Set(password.Resource);
+        LogInformation("Database password set from parameter");
+        return builder;
     }
 
     /// <summary>
-    /// Sets the PostgreSQL password and updates all dependent containers.
+    /// Sets the PostgreSQL password. Every container reads it when its environment is evaluated,
+    /// so this may come after the services that use it.
     /// </summary>
     public static IResourceBuilder<SupabaseDatabaseResource> WithPassword(
         this IResourceBuilder<SupabaseDatabaseResource> builder,
         string password)
     {
-        var resource = builder.Resource;
-        resource.Password = password;
-
-        var stack = resource.Stack;
-        if (stack is null)
-            throw new InvalidOperationException("Stack not configured on database resource.");
-
-        var containerPrefix = stack.Name;
-
-        // Get database endpoint for dynamic service discovery (works in ACA and locally)
-        var dbEndpoint = stack.Database!.GetEndpoint("tcp");
-
-        // Update environment variables on all containers that use the password
-        builder.WithEnvironment("POSTGRES_PASSWORD", password);
-
-        // Auth container - update DB URL using dynamic endpoint resolution
-        var authDbUrl = ReferenceExpression.Create(
-            $"postgres://supabase_auth_admin:{password}@{dbEndpoint.Property(EndpointProperty.Host)}:{dbEndpoint.Property(EndpointProperty.Port)}/postgres?search_path=auth");
-        stack.Auth?.WithEnvironment("GOTRUE_DB_DATABASE_URL", authDbUrl);
-
-        // Rest container - update DB URI using dynamic endpoint resolution
-        var restDbUri = ReferenceExpression.Create(
-            $"postgres://authenticator:{password}@{dbEndpoint.Property(EndpointProperty.Host)}:{dbEndpoint.Property(EndpointProperty.Port)}/postgres");
-        stack.Rest?.WithEnvironment("PGRST_DB_URI", restDbUri);
-
-        // Storage container - update DB URL using dynamic endpoint resolution
-        var storageDatabaseUrl = ReferenceExpression.Create(
-            $"postgres://supabase_storage_admin:{password}@{dbEndpoint.Property(EndpointProperty.Host)}:{dbEndpoint.Property(EndpointProperty.Port)}/postgres");
-        stack.Storage?.WithEnvironment("DATABASE_URL", storageDatabaseUrl);
-
-        // Meta container - update password
-        stack.Meta?.WithEnvironment("PG_META_DB_PASSWORD", password);
-
-        // Studio container (which is the stack itself) - update password
-        stack.StackBuilder?.WithEnvironment("POSTGRES_PASSWORD", password);
-
-        // Init container (for publish mode) - update password via environment variable
-        stack.InitContainer?.WithEnvironment("DB_PASSWORD", password);
-
-        // Realtime container - critical: without this, realtime fails to connect and all
-        // postgres_changes subscriptions silently never fire.
-        stack.Realtime?.WithEnvironment("DB_PASSWORD", password);
-
-        // NOTE: SQL files are NOT written here. They are written once with the final password
-        // via BeforeResourceStartedEvent in AddSupabase(), which fires after all configuration
-        // (including this WithPassword call) is applied.
-
-        LogInformation("Database password updated in all containers");
-
+        builder.Resource.Password = password;
+        LogInformation("Database password updated");
         return builder;
     }
 

@@ -98,9 +98,15 @@ public sealed class ObservabilityStackOptions
 
     /// <summary>
     /// Admin password used when <see cref="GrafanaAnonymousAdmin"/> is false. Should
-    /// come from a secret in production scenarios.
+    /// come from a secret in production scenarios — <see cref="GrafanaAdminPasswordParameter"/>.
     /// </summary>
     public string? GrafanaAdminPassword { get; set; }
+
+    /// <summary>
+    /// Admin password from an Aspire parameter; wins over <see cref="GrafanaAdminPassword"/>.
+    /// Deployed, Grafana gets it as a secret.
+    /// </summary>
+    public IResourceBuilder<ParameterResource>? GrafanaAdminPasswordParameter { get; set; }
 
     /// <summary>Grafana retention for Prometheus (<c>--storage.tsdb.retention.time</c>). Default 15 days.</summary>
     public string PrometheusRetention { get; set; } = GrafanaStackDefaults.PrometheusRetention;
@@ -277,8 +283,14 @@ public sealed class PostgresExporterOptions
     public string Database { get; set; } = "postgres";
     public string Username { get; set; } = "postgres";
 
-    /// <summary>Password for the exporter's read connection. Required.</summary>
-    public required string Password { get; set; }
+    /// <summary>Password for the exporter's read connection. This or <see cref="PasswordExpression"/> is required.</summary>
+    public string Password { get; set; } = string.Empty;
+
+    /// <summary>
+    /// The password as an expression, e.g. of a secret parameter; wins over <see cref="Password"/>.
+    /// Deployed, a parameter in it makes the connection string a secret.
+    /// </summary>
+    public ReferenceExpression? PasswordExpression { get; set; }
 
     /// <summary>SSL mode. Default <c>"disable"</c> for local Docker setups.</summary>
     public string SslMode { get; set; } = "disable";
@@ -289,7 +301,15 @@ public sealed class PostgresExporterOptions
     /// <summary>Password of <see cref="GrafanaUsername"/>; defaults to <see cref="Password"/>.</summary>
     public string? GrafanaPassword { get; set; }
 
+    /// <summary>Password of <see cref="GrafanaUsername"/> as an expression; wins over <see cref="GrafanaPassword"/>.</summary>
+    public ReferenceExpression? GrafanaPasswordExpression { get; set; }
+
     /// <summary>Builds the libpq-style DSN that postgres_exporter expects.</summary>
-    internal string ToDataSourceName() =>
-        $"postgresql://{Username}:{Password}@{Host}:{Port}/{Database}?sslmode={SslMode}";
+    internal object ToDataSourceName() => PasswordExpression is { } password
+        ? ReferenceExpression.Create($"postgresql://{Username}:{password}@{Host}:{Port.ToString()}/{Database}?sslmode={SslMode}")
+        : $"postgresql://{Username}:{Password}@{Host}:{Port}/{Database}?sslmode={SslMode}";
+
+    /// <summary>The password of Grafana's datasource login, for an environment variable.</summary>
+    internal object GrafanaPasswordValue() =>
+        (object?)GrafanaPasswordExpression ?? GrafanaPassword ?? (object?)PasswordExpression ?? Password;
 }

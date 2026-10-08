@@ -106,15 +106,9 @@ public static class SupabaseStackExtensions
         // Mode-agnostic DB endpoint (set by AddSupabase): internal container OR injected external resource.
         var dbEndpoint = stack.DatabaseEndpoint!;
 
-        // Read the DB password HERE — WithEdgeFunctions runs AFTER ConfigureDatabase/WithPassword in the
-        // chain, so the internal dbResource password is finalized. Internal: the live password. External:
-        // the injected resource's password parameter (stack.DatabasePassword). Using the early
-        // stack.DatabasePassword snapshot for the internal path would be stale (pre-WithPassword default).
-        var edgeDbUrl = stack.Database is not null
-            ? ReferenceExpression.Create(
-                $"postgresql://postgres:{stack.Database.Resource.Password}@{dbEndpoint.Property(EndpointProperty.Host)}:{dbEndpoint.Property(EndpointProperty.Port)}/postgres")
-            : ReferenceExpression.Create(
-                $"postgresql://postgres:{stack.DatabasePassword!}@{dbEndpoint.Property(EndpointProperty.Host)}:{dbEndpoint.Property(EndpointProperty.Port)}/postgres");
+        // Built when the environment is evaluated, so a password set later still counts.
+        ReferenceExpression EdgeDbUrl() => ReferenceExpression.Create(
+            $"postgresql://postgres:{stack.DatabasePassword}@{dbEndpoint.Property(EndpointProperty.Host)}:{dbEndpoint.Property(EndpointProperty.Port)}/postgres");
 
         // Generate router file for multi-function support
         var infraRoot = stack.InfraRootDir ?? Path.Combine(appBuilder.AppHostDirectory, "..", "infra", "supabase");
@@ -145,10 +139,10 @@ public static class SupabaseStackExtensions
             .WithImage("denoland/deno", "alpine-2.1.4")
             .WithContainerName($"{containerPrefix}-edge")
             .WithEnvironment("SUPABASE_URL", edgeSupabaseUrl)
-            .WithStackValue("SUPABASE_ANON_KEY", () => stack.AnonKey)
-            .WithStackValue("SUPABASE_SERVICE_ROLE_KEY", () => stack.ServiceRoleKey)
-            .WithEnvironment("SUPABASE_DB_URL", edgeDbUrl)
-            .WithStackValue("JWT_SECRET", () => stack.JwtSecret)
+            .WithStackValue("SUPABASE_ANON_KEY", () => stack.AnonKeyValue.EnvironmentValue)
+            .WithStackValue("SUPABASE_SERVICE_ROLE_KEY", () => stack.ServiceRoleKeyValue.EnvironmentValue)
+            .WithStackValue("SUPABASE_DB_URL", EdgeDbUrl)
+            .WithStackValue("JWT_SECRET", () => stack.JwtSecretValue.EnvironmentValue)
             .WithEnvironment("DENO_DIR", "/tmp/deno")
             .WithEnvironment("EDGE_RUNTIME_PORT", EdgeRuntimePort.ToString())
             .WithEndpoint(targetPort: EdgeRuntimePort, name: "http", scheme: "http", isExternal: false)
@@ -537,13 +531,42 @@ public static class SupabaseStackExtensions
         this IResourceBuilder<SupabaseStackResource> builder,
         string email,
         string password,
+        string? displayName = null) =>
+        builder.AddRegisteredUser(new RegisteredUser(email, password, displayName ?? email));
+
+    /// <summary>
+    /// Registers a user whose password comes from an Aspire parameter. Deployed, the password
+    /// reaches the init container as a secret and the post-init SQL reads it at runtime — it is
+    /// in neither the generated manifest nor the bicep. Locally it resolves from configuration.
+    /// The user is created once; a later deploy with another value leaves the password alone.
+    /// </summary>
+    public static IResourceBuilder<SupabaseStackResource> WithRegisteredUser(
+        this IResourceBuilder<SupabaseStackResource> builder,
+        string email,
+        IResourceBuilder<ParameterResource> password,
         string? displayName = null)
     {
-        var user = new RegisteredUser(email, password, displayName ?? email);
-        builder.Resource.RegisteredUsers.Add(user);
+        ArgumentNullException.ThrowIfNull(password);
+        return builder.AddRegisteredUser(
+            new RegisteredUser(email, string.Empty, displayName ?? email) { PasswordParameter = password.Resource });
+    }
 
-        var scriptsDir = builder.Resource.InitSqlPath != null
-            ? Path.Combine(Path.GetDirectoryName(builder.Resource.InitSqlPath)!, "scripts")
+    private static IResourceBuilder<SupabaseStackResource> AddRegisteredUser(
+        this IResourceBuilder<SupabaseStackResource> builder, RegisteredUser user)
+    {
+        var stack = builder.Resource;
+        stack.RegisteredUsers.Add(user);
+
+        if (stack.AppBuilder?.ExecutionContext.IsPublishMode == true)
+        {
+            stack.PostInitSqlVariables[UserPasswordVariable(stack.RegisteredUsers.Count - 1)] =
+                (object?)user.PasswordParameter ?? user.Password;
+            LogInformation($"User registered: {user.Email}");
+            return builder;
+        }
+
+        var scriptsDir = stack.InitSqlPath != null
+            ? Path.Combine(Path.GetDirectoryName(stack.InitSqlPath)!, "scripts")
             : null;
 
         if (scriptsDir is not null)
@@ -553,19 +576,16 @@ public static class SupabaseStackExtensions
             // users.sql is appended to (a build may register several users). Clear it on the FIRST
             // registered user of THIS generation, otherwise File.AppendAllText accumulates a stale
             // seed block from every previous build/run (the file persists under infra/).
-            if (builder.Resource.RegisteredUsers.Count == 1)
+            if (stack.RegisteredUsers.Count == 1)
             {
                 File.WriteAllText(userSqlPath, string.Empty);
             }
-            AppendUserSql(userSqlPath, user);
+#pragma warning disable CS0618 // a local run resolves the parameter from configuration here
+            var password = user.PasswordParameter?.Value ?? user.Password;
+#pragma warning restore CS0618
+            File.AppendAllText(userSqlPath, GenerateUserSql(user, $"'{password.Replace("'", "''")}'"));
 
-            // For publish mode: Update PostInitSqlBase64 to include new user
-            if (builder.Resource.AppBuilder?.ExecutionContext.IsPublishMode == true)
-            {
-                UpdatePostInitSqlBase64(builder.Resource);
-            }
-
-            LogInformation($"User registered: {email} -> {userSqlPath}");
+            LogInformation($"User registered: {user.Email} -> {userSqlPath}");
         }
         else
         {
@@ -575,11 +595,19 @@ public static class SupabaseStackExtensions
         return builder;
     }
 
-    private static void AppendUserSql(string path, RegisteredUser user)
+    /// <summary>psql variable that carries a registered user's password into the deployed post-init SQL.</summary>
+    internal static string UserPasswordVariable(int index) => $"user_password_{index}";
+
+    /// <summary>The deployed post-init SQL for every registered user; the passwords come from psql variables.</summary>
+    internal static string GenerateRegisteredUsersSql(SupabaseStackResource stack) =>
+        string.Concat(stack.RegisteredUsers.Select((user, index) =>
+            GenerateUserSql(user, $"current_setting('nextended.{UserPasswordVariable(index)}')")));
+
+    /// <param name="passwordSql">SQL yielding the password: a quoted literal, or <c>current_setting(...)</c>.</param>
+    private static string GenerateUserSql(RegisteredUser user, string passwordSql)
     {
         var email = user.Email.Replace("'", "''");
         var displayName = user.DisplayName.Replace("'", "''");
-        var password = user.Password.Replace("'", "''");
 
         var appMetaData = @"{""provider"": ""email"", ""providers"": [""email""]}";
         var userMetaData = @"{""display_name"": """ + displayName + @"""}";
@@ -600,7 +628,7 @@ BEGIN
 
     IF new_user_id IS NULL THEN
         -- Hash password
-        hashed_password := extensions.crypt('{password}', extensions.gen_salt('bf', 10));
+        hashed_password := extensions.crypt({passwordSql}, extensions.gen_salt('bf', 10));
 
         -- Create user in auth.users
         INSERT INTO auth.users (
@@ -685,7 +713,7 @@ $$;
 \set ON_ERROR_STOP off
 
 """;
-        File.AppendAllText(path, sql);
+        return sql;
     }
 
     #endregion
@@ -792,10 +820,12 @@ $$;
     /// Kong authenticates callers against <c>keyauth_credentials</c> in kong.yml, which
     /// AddSupabase writes with the defaults. Replacing a key without refreshing that file
     /// leaves Kong rejecting every request with 401 — the whole stack starts and then answers
-    /// nothing, which is far harder to diagnose than a startup failure.
+    /// nothing, which is far harder to diagnose than a startup failure. Local only: deployed,
+    /// Kong fills its config from SUPABASE_ANON_KEY / SUPABASE_SERVICE_KEY when it starts.
     /// </remarks>
     private static void RefreshKongCredentials(SupabaseStackResource stack)
     {
+        if (stack.AppBuilder?.ExecutionContext.IsPublishMode == true) return;
         if (stack.InfraRootDir is { Length: > 0 } infraRoot)
         {
             var kongYmlPath = Path.Combine(infraRoot, "config", "kong.yml");
@@ -817,23 +847,24 @@ $$;
         }
     }
 
-
     /// <summary>
     /// Configures the JWT secret from an Aspire parameter, so the value comes from
     /// configuration (user secrets / secrets.json / <c>Parameters__…</c>) instead of source.
     /// </summary>
     /// <remarks>
-    /// Resolved to its value here because the secret is written into generated SQL and
-    /// container environments while the model is built. Note that the anon and service-role
-    /// keys are JWTs SIGNED with this secret — replacing the secret without also replacing
-    /// both keys makes GoTrue and PostgREST reject them.
+    /// The parameter stays a reference: deployed, every service gets it as a secret and the
+    /// value never appears in the generated manifest or bicep. Locally it resolves from
+    /// configuration. Note that the anon and service-role keys are JWTs SIGNED with this
+    /// secret — replacing the secret without also replacing both keys makes GoTrue and
+    /// PostgREST reject them.
     /// </remarks>
     public static IResourceBuilder<SupabaseStackResource> WithJwtSecret(
         this IResourceBuilder<SupabaseStackResource> builder,
         IResourceBuilder<ParameterResource> secret)
     {
         ArgumentNullException.ThrowIfNull(secret);
-        return builder.WithJwtSecret(secret.Resource.Value);
+        builder.Resource.JwtSecretValue.Set(secret.Resource);
+        return builder;
     }
 
     /// <summary>Configures the anonymous key from an Aspire parameter (see <see cref="WithJwtSecret(IResourceBuilder{SupabaseStackResource}, IResourceBuilder{ParameterResource})"/>).</summary>
@@ -842,7 +873,9 @@ $$;
         IResourceBuilder<ParameterResource> anonKey)
     {
         ArgumentNullException.ThrowIfNull(anonKey);
-        return builder.WithAnonKey(anonKey.Resource.Value);
+        builder.Resource.AnonKeyValue.Set(anonKey.Resource);
+        RefreshKongCredentials(builder.Resource);
+        return builder;
     }
 
     /// <summary>Configures the service-role key from an Aspire parameter (see <see cref="WithJwtSecret(IResourceBuilder{SupabaseStackResource}, IResourceBuilder{ParameterResource})"/>).</summary>
@@ -851,7 +884,9 @@ $$;
         IResourceBuilder<ParameterResource> serviceRoleKey)
     {
         ArgumentNullException.ThrowIfNull(serviceRoleKey);
-        return builder.WithServiceRoleKey(serviceRoleKey.Resource.Value);
+        builder.Resource.ServiceRoleKeyValue.Set(serviceRoleKey.Resource);
+        RefreshKongCredentials(builder.Resource);
+        return builder;
     }
 
     /// <summary>
@@ -908,10 +943,11 @@ $$;
     /// Sets a key or secret from the stack's value at the time the environment is evaluated.
     /// A plain string would freeze the value of the moment the container is created, and
     /// WithJwtSecret/WithAnonKey/WithServiceRoleKey usually come later — that container then
-    /// kept the demo value while every other one had moved on.
+    /// kept the demo value while every other one had moved on. A parameter, or an expression
+    /// containing one, stays a reference (a secret when deployed).
     /// </summary>
     internal static IResourceBuilder<T> WithStackValue<T>(
-        this IResourceBuilder<T> builder, string name, Func<string> value)
+        this IResourceBuilder<T> builder, string name, Func<object> value)
         where T : IResourceWithEnvironment =>
         builder.WithEnvironment(context => context.EnvironmentVariables[name] = value());
 

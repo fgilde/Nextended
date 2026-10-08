@@ -117,6 +117,10 @@ public static class ObservabilityStackExtensions
             {
                 grafana.WithAnonymousAdmin();
             }
+            else if (options.GrafanaAdminPasswordParameter is { } adminPassword)
+            {
+                grafana.WithAdminUser(options.GrafanaAdminUser, adminPassword);
+            }
             else if (!string.IsNullOrEmpty(options.GrafanaAdminPassword))
             {
                 grafana.WithAdminUser(options.GrafanaAdminUser, options.GrafanaAdminPassword);
@@ -126,7 +130,7 @@ public static class ObservabilityStackExtensions
             {
                 grafana
                     .WithEnvironment("APP_DB_HOST", pg.Host)
-                    .WithEnvironment("APP_DB_PASSWORD", pg.GrafanaPassword ?? pg.Password)
+                    .WithEnvironment(context => context.EnvironmentVariables["APP_DB_PASSWORD"] = pg.GrafanaPasswordValue())
                     .WithDatasource(GrafanaBuilderExtensions.PostgresDatasource(
                         "Postgres", $"{pg.Host}:{pg.Port}", pg.Database,
                         user: pg.GrafanaUsername ?? pg.Username, passwordRef: "${APP_DB_PASSWORD}", sslMode: pg.SslMode));

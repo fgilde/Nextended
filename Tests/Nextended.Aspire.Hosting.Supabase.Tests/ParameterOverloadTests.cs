@@ -122,8 +122,8 @@ public class ParameterOverloadTests
     public async Task Replacing_the_keys_also_updates_kongs_environment_and_publish_template()
     {
         // Publish mode has no bind mount: Kong gets the keys as env vars and its whole config
-        // as a base64 template that already embeds them. Both are written when the Kong
-        // resource is created, so both must be refreshed when the keys change.
+        // as a base64 template with placeholders that its entrypoint fills from those env vars —
+        // the keys are secrets and must not travel inside the template.
         var builder = DistributedApplication.CreateBuilder(new DistributedApplicationOptions
         {
             Args = ["--operation", "publish", "--publisher", "manifest"],
@@ -140,9 +140,23 @@ public class ParameterOverloadTests
         Assert.Equal("published.service.key", env["SUPABASE_SERVICE_KEY"]);
 
         var template = Encoding.UTF8.GetString(Convert.FromBase64String(env["KONG_CONFIG_TEMPLATE_BASE64"]));
-        Assert.Contains("published.anon.key", template);
-        Assert.Contains("published.service.key", template);
+        Assert.Contains("key: ${SUPABASE_ANON_KEY}", template);
+        Assert.Contains("key: ${SUPABASE_SERVICE_KEY}", template);
+        Assert.DoesNotContain("published.anon.key", template);
         Assert.DoesNotContain("supabase-demo", template);
+
+        var entrypoint = string.Join(' ', await ArgsOf(stack.Resource.Kong.Resource));
+        Assert.Contains(@"s|\${SUPABASE_ANON_KEY}|$SUPABASE_ANON_KEY|g", entrypoint);
+        Assert.Contains(@"s|\${SUPABASE_SERVICE_KEY}|$SUPABASE_SERVICE_KEY|g", entrypoint);
+    }
+
+    private static async Task<List<string>> ArgsOf(IResource resource)
+    {
+        var args = new List<object>();
+        var context = new CommandLineArgsCallbackContext(args);
+        foreach (var callback in resource.Annotations.OfType<CommandLineArgsCallbackAnnotation>())
+            await callback.Callback(context);
+        return args.Select(a => a.ToString() ?? "").ToList();
     }
 
     [Fact]

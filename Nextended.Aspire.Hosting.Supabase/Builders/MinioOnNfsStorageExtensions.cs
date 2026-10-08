@@ -30,8 +30,32 @@ public static class MinioOnNfsStorageExtensions
         string nfsEnvStorageName,
         string rootUser = "minio-admin",
         string rootPassword = "Minio-Nfs-2026-secure!",
+        Action<IResourceBuilder<ContainerResource>>? configureInit = null) =>
+        builder.AddMinioS3OnNfs(nfsEnvStorageName, rootUser, rootPassword, rootPasswordParameter: null, configureInit);
+
+    /// <summary>
+    /// <see cref="AddMinioS3OnNfs(IDistributedApplicationBuilder, string, string, string, Action{IResourceBuilder{ContainerResource}}?)"/>
+    /// with the root password from an Aspire parameter: deployed, MinIO, its init container and
+    /// the storage API get it as a secret.
+    /// </summary>
+    public static IResourceBuilder<ContainerResource> AddMinioS3OnNfs(this IDistributedApplicationBuilder builder,
+        string nfsEnvStorageName,
+        IResourceBuilder<ParameterResource> rootPassword,
+        string rootUser = "minio-admin",
         Action<IResourceBuilder<ContainerResource>>? configureInit = null)
     {
+        ArgumentNullException.ThrowIfNull(rootPassword);
+        return builder.AddMinioS3OnNfs(nfsEnvStorageName, rootUser, string.Empty, rootPassword.Resource, configureInit);
+    }
+
+    private static IResourceBuilder<ContainerResource> AddMinioS3OnNfs(this IDistributedApplicationBuilder builder,
+        string nfsEnvStorageName,
+        string rootUser,
+        string rootPassword,
+        ParameterResource? rootPasswordParameter,
+        Action<IResourceBuilder<ContainerResource>>? configureInit)
+    {
+        var password = (object?)rootPasswordParameter ?? rootPassword;
         if (string.IsNullOrWhiteSpace(nfsEnvStorageName))
         {
             // An empty name would silently emit storageName: '' in the volume bicep and fail at
@@ -45,7 +69,7 @@ public static class MinioOnNfsStorageExtensions
         var minio = builder.AddContainer("minio", MinioContainerImageTags.Image, MinioContainerImageTags.Tag)
             .WithImageRegistry(MinioContainerImageTags.Registry)
             .WithEnvironment("MINIO_ROOT_USER", rootUser)
-            .WithEnvironment("MINIO_ROOT_PASSWORD", rootPassword)
+            .WithEnvironment(context => context.EnvironmentVariables["MINIO_ROOT_PASSWORD"] = password)
             .WithArgs("server", "/data", "--console-address", ":9001")
             .WithEndpoint(targetPort: 9000, name: "s3", scheme: "http", isExternal: false)
             .WithContainerRuntimeArgs("--restart=on-failure:10");
@@ -100,6 +124,7 @@ public static class MinioOnNfsStorageExtensions
             Bucket = Bucket,
             AccessKey = rootUser,
             SecretKey = rootPassword,
+            SecretKeyParameter = rootPasswordParameter,
             Region = "us-east-1",
             ForcePathStyle = true,
         };
@@ -110,7 +135,7 @@ public static class MinioOnNfsStorageExtensions
             .WithArgs("-c", initScript)
             .WithEnvironment("MINIO_ENDPOINT", endpointExpr)
             .WithEnvironment("MINIO_USER", rootUser)
-            .WithEnvironment("MINIO_PASS", rootPassword)
+            .WithEnvironment(context => context.EnvironmentVariables["MINIO_PASS"] = password)
             .WithEnvironment("BUCKET", Bucket)
             .WithEnvironment(context => context.EnvironmentVariables["EXTRA_BUCKETS"] = string.Join(' ', storage.AdditionalBuckets))
             .WithContainerRuntimeArgs("--restart=on-failure:10")

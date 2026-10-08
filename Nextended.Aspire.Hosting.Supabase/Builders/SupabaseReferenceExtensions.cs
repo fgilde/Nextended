@@ -46,7 +46,7 @@ public static class SupabaseReferenceExtensions
         // Build connection string as environment variable expression
         // Format: Url=<endpoint>;Key=<anon_key>
         builder.WithEnvironment($"ConnectionStrings__{connectionName}__Url", kongEndpoint);
-        builder.WithStackValue($"ConnectionStrings__{connectionName}__Key", () => stack.AnonKey);
+        builder.WithStackValue($"ConnectionStrings__{connectionName}__Key", () => stack.AnonKeyValue.EnvironmentValue);
 
         // Also add reference for service discovery
         builder.WithReference(supabase);
@@ -78,7 +78,7 @@ public static class SupabaseReferenceExtensions
 
         // Build connection string with SERVICE ROLE key
         builder.WithEnvironment($"ConnectionStrings__{connectionName}__Url", kongEndpoint);
-        builder.WithStackValue($"ConnectionStrings__{connectionName}__Key", () => stack.ServiceRoleKey);
+        builder.WithStackValue($"ConnectionStrings__{connectionName}__Key", () => stack.ServiceRoleKeyValue.EnvironmentValue);
 
         // Also add reference for service discovery
         builder.WithReference(supabase);

@@ -68,7 +68,15 @@ public static class SupabaseBuilderExtensions
         public required string AccessKey { get; init; }
 
         /// <summary>Secret access key (consumed via the AWS SDK default credential chain).</summary>
-        public required string SecretKey { get; init; }
+        public string SecretKey { get; init; } = string.Empty;
+
+        /// <summary>The secret access key as a parameter; wins over <see cref="SecretKey"/> and stays a secret when deployed.</summary>
+        public ParameterResource? SecretKeyParameter { get; init; }
+
+        /// <summary>The secret access key for an environment variable or expression.</summary>
+        public ReferenceExpression SecretKeyExpression => SecretKeyParameter is { } parameter
+            ? ReferenceExpression.Create($"{parameter}")
+            : ReferenceExpression.Create($"{SecretKey}");
 
         /// <summary>Region passed to the S3 client. MinIO ignores it, but the SDK requires one.</summary>
         public string Region { get; init; } = "us-east-1";
@@ -290,7 +298,6 @@ public static class SupabaseBuilderExtensions
         stack.UsesExternalDatabase = useExternalDb;
         SupabaseDatabaseResource? dbResource = null;
         EndpointReference dbEndpoint;
-        ReferenceExpression dbPassword;
         IResourceBuilder<IResource> dbWait;                 // long-running DB the services WaitFor
         IResourceBuilder<ContainerResource>? dbBootstrap = null; // external only: one-shot role setup
 
@@ -310,7 +317,7 @@ public static class SupabaseBuilderExtensions
         var dbBuilder = builder.AddResource(dbResource)
             .WithImage(Images.Postgres, Images.PostgresTag)
             .WithContainerName($"{containerPrefix}-db")
-            .WithEnvironment(context => context.EnvironmentVariables["POSTGRES_PASSWORD"] = dbResource!.Password)
+            .WithEnvironment(context => context.EnvironmentVariables["POSTGRES_PASSWORD"] = dbResource!.PasswordSecret.EnvironmentValue)
             .WithEnvironment("POSTGRES_DB", "postgres")
             .WithEndpoint(port: isPublishMode ? Ports.Postgres : dbResource.ExternalPort, targetPort: Ports.Postgres, name: "tcp", scheme: "tcp", isExternal: !isPublishMode);
 
@@ -513,7 +520,6 @@ public static class SupabaseBuilderExtensions
         }
             stack.Database = dbBuilder;
             dbEndpoint = dbBuilder.GetEndpoint("tcp");
-            dbPassword = ReferenceExpression.Create($"{dbResource!.Password}");
             dbWait = dbBuilder;
         }
         else
@@ -534,7 +540,8 @@ public static class SupabaseBuilderExtensions
             // also creates the "postgres" superuser, so the resource's own connection string still works.
             ext.WithEnvironment("POSTGRES_USER", "supabase_admin");
             dbEndpoint = ext.Resource.PrimaryEndpoint;
-            dbPassword = ReferenceExpression.Create($"{ext.Resource.PasswordParameter}");
+            var dbPassword = ReferenceExpression.Create($"{ext.Resource.PasswordParameter}");
+            stack.ExternalDatabasePassword = dbPassword;
             stack.Database = null; // no internal DB in external mode
             dbWait = ext;          // services WaitFor the external DB (long-running)
 
@@ -565,8 +572,12 @@ public static class SupabaseBuilderExtensions
         // Expose the resolved DB handles on the stack so later builder methods (edge functions,
         // post-init helpers) stay mode-agnostic instead of touching stack.Database directly.
         stack.DatabaseEndpoint = dbEndpoint;
-        stack.DatabasePassword = dbPassword;
         stack.DatabaseWaitTarget = dbWait;
+
+        // Every consumer builds its connection string when the environment is evaluated: the
+        // password (a plain value or a parameter that stays a secret) is set after AddSupabase.
+        ReferenceExpression DbUrl(string user, string query = "") => ReferenceExpression.Create(
+            $"postgres://{user}:{stack.DatabasePassword}@{dbEndpoint.Property(EndpointProperty.Host)}:{dbEndpoint.Property(EndpointProperty.Port)}/postgres{query}");
 
         // All services use Aspire's endpoint references which work in both local and Azure Container Apps
         // Azure Container Apps has internal DNS that resolves container names automatically
@@ -586,23 +597,18 @@ public static class SupabaseBuilderExtensions
         // AUTH (GoTrue)
         var authResource = new SupabaseAuthResource($"{containerPrefix}-auth") { Stack = stack };
 
-        // Build database connection string using Aspire's endpoint references
-        // Azure Container Apps has internal DNS - container names resolve automatically
-        var authDbUrl = ReferenceExpression.Create(
-            $"postgres://supabase_auth_admin:{dbPassword}@{dbEndpoint.Property(EndpointProperty.Host)}:{dbEndpoint.Property(EndpointProperty.Port)}/postgres?search_path=auth");
-
         stack.Auth = builder.AddResource(authResource)
             .WithImage(Images.GoTrue, Images.GoTrueTag)
             .WithContainerName($"{containerPrefix}-auth")
             .WithEnvironment("GOTRUE_API_HOST", "0.0.0.0")
             .WithEnvironment("GOTRUE_API_PORT", Ports.GoTrue.ToString())
             .WithEnvironment("GOTRUE_DB_DRIVER", "postgres")
-            .WithEnvironment("GOTRUE_DB_DATABASE_URL", authDbUrl)
+            .WithStackValue("GOTRUE_DB_DATABASE_URL", () => DbUrl("supabase_auth_admin", "?search_path=auth"))
             .WithEnvironment("GOTRUE_DB_NAMESPACE", "auth")
             .WithEnvironment("GOTRUE_SITE_URL", authResource.SiteUrl)
             // API_EXTERNAL_URL will be set after Kong is created (see below)
             .WithEnvironment("GOTRUE_URI_ALLOW_LIST", "*")
-            .WithStackValue("GOTRUE_JWT_SECRET", () => stack.JwtSecret)
+            .WithStackValue("GOTRUE_JWT_SECRET", () => stack.JwtSecretValue.EnvironmentValue)
             .WithEnvironment("GOTRUE_JWT_EXP", authResource.JwtExpiration.ToString())
             .WithEnvironment("GOTRUE_JWT_DEFAULT_GROUP_NAME", "authenticated")
             .WithEnvironment("GOTRUE_JWT_ADMIN_ROLES", "service_role")
@@ -627,21 +633,16 @@ public static class SupabaseBuilderExtensions
         // REST (PostgREST)
         var restResource = new SupabaseRestResource($"{containerPrefix}-rest") { Stack = stack };
 
-        // Build database URI using Aspire's endpoint references
-        // Azure Container Apps has internal DNS - container names resolve automatically
-        var restDbUri = ReferenceExpression.Create(
-            $"postgres://authenticator:{dbPassword}@{dbEndpoint.Property(EndpointProperty.Host)}:{dbEndpoint.Property(EndpointProperty.Port)}/postgres");
-
         stack.Rest = builder.AddResource(restResource)
             .WithImage(Images.PostgREST, Images.PostgRESTTag)
             .WithContainerName($"{containerPrefix}-rest")
-            .WithEnvironment("PGRST_DB_URI", restDbUri)
+            .WithStackValue("PGRST_DB_URI", () => DbUrl("authenticator"))
             .WithEnvironment("PGRST_DB_SCHEMAS", string.Join(",", restResource.Schemas))
             .WithEnvironment("PGRST_DB_ANON_ROLE", restResource.AnonRole)
-            .WithStackValue("PGRST_JWT_SECRET", () => stack.JwtSecret)
+            .WithStackValue("PGRST_JWT_SECRET", () => stack.JwtSecretValue.EnvironmentValue)
             .WithEnvironment("PGRST_DB_USE_LEGACY_GUCS", "false")
             // Required for JWT validation in requests
-            .WithStackValue("PGRST_APP_SETTINGS_JWT_SECRET", () => stack.JwtSecret)
+            .WithStackValue("PGRST_APP_SETTINGS_JWT_SECRET", () => stack.JwtSecretValue.EnvironmentValue)
             .WithEnvironment("PGRST_APP_SETTINGS_JWT_EXP", "3600")
             .WithEndpoint(targetPort: Ports.PostgREST, name: "http", scheme: "http", isExternal: false)
             .WithContainerRuntimeArgs("--restart=on-failure:10")
@@ -655,21 +656,17 @@ public static class SupabaseBuilderExtensions
         // Azure Files (SMB open-flags / NFS-4.1 has no xattr).
         var storageS3 = StorageS3Backend;
 
-        // Build database URL using Aspire's endpoint references
-        // Azure Container Apps has internal DNS - container names resolve automatically
-        var storageDatabaseUrl = ReferenceExpression.Create(
-            $"postgres://supabase_storage_admin:{dbPassword}@{dbEndpoint.Property(EndpointProperty.Host)}:{dbEndpoint.Property(EndpointProperty.Port)}/postgres");
         // Build REST URL using Aspire's endpoint reference for HTTP
         var postgrestUrl = stack.Rest.GetEndpoint("http");
 
         var storageBuilder = builder.AddResource(storageResource)
             .WithImage(Images.StorageApi, Images.StorageApiTag)
             .WithContainerName($"{containerPrefix}-storage")
-            .WithStackValue("ANON_KEY", () => stack.AnonKey)
-            .WithStackValue("SERVICE_KEY", () => stack.ServiceRoleKey)
+            .WithStackValue("ANON_KEY", () => stack.AnonKeyValue.EnvironmentValue)
+            .WithStackValue("SERVICE_KEY", () => stack.ServiceRoleKeyValue.EnvironmentValue)
             .WithEnvironment("POSTGREST_URL", postgrestUrl)
-            .WithStackValue("PGRST_JWT_SECRET", () => stack.JwtSecret)
-            .WithEnvironment("DATABASE_URL", storageDatabaseUrl)
+            .WithStackValue("PGRST_JWT_SECRET", () => stack.JwtSecretValue.EnvironmentValue)
+            .WithStackValue("DATABASE_URL", () => DbUrl("supabase_storage_admin"))
             // In Azure we write to the container's local overlay FS (/tmp, world-writable,
             // POSIX) instead of an Azure Files SMB mount — SMB rejects the storage backend's
             // open flags with EINVAL and every upload 500s. Locally we keep the bind-mounted
@@ -703,7 +700,7 @@ public static class SupabaseBuilderExtensions
                 .WithEnvironment("STORAGE_S3_FORCE_PATH_STYLE", storageS3.ForcePathStyle ? "true" : "false")
                 .WithEnvironment("STORAGE_S3_ENDPOINT", storageS3.Endpoint)
                 .WithEnvironment("AWS_ACCESS_KEY_ID", storageS3.AccessKey)
-                .WithEnvironment("AWS_SECRET_ACCESS_KEY", storageS3.SecretKey);
+                .WithEnvironment("AWS_SECRET_ACCESS_KEY", storageS3.SecretKeyExpression);
         }
 
         if (isPublishMode)
@@ -757,11 +754,11 @@ public static class SupabaseBuilderExtensions
             .WithEnvironment("DB_HOST", realtimeDbHost)
             .WithEnvironment("DB_PORT", realtimeDbPort)
             .WithEnvironment("DB_USER", "supabase_admin")
-            .WithEnvironment("DB_PASSWORD", dbPassword)
+            .WithStackValue("DB_PASSWORD", () => stack.DatabasePassword)
             .WithEnvironment("DB_NAME", "postgres")
             .WithEnvironment("DB_AFTER_CONNECT_QUERY", "SET search_path TO _realtime")
             .WithEnvironment("DB_ENC_KEY", "supabaserealtime")
-            .WithStackValue("API_JWT_SECRET", () => stack.JwtSecret)
+            .WithStackValue("API_JWT_SECRET", () => stack.JwtSecretValue.EnvironmentValue)
             .WithEnvironment("SECRET_KEY_BASE", "UpNVntn3cDxHJpq99YMc1T1AQgQpc8kfYTuRgBiYa15BLrx8etQoXz3gZv1/u2oq")
             .WithEnvironment("ERL_AFLAGS", "-proto_dist inet_tcp")
             .WithEnvironment("DNS_NODES", "")
@@ -796,7 +793,7 @@ public static class SupabaseBuilderExtensions
             .WithEnvironment("PG_META_PORT", metaResource.Port.ToString())
             .WithEnvironment("PG_META_DB_NAME", "postgres")
             .WithEnvironment("PG_META_DB_USER", "supabase_admin")
-            .WithEnvironment("PG_META_DB_PASSWORD", dbPassword)
+            .WithStackValue("PG_META_DB_PASSWORD", () => stack.DatabasePassword)
             .WithEnvironment("CRYPTO_KEY", cryptoKey)
             .WithEndpoint(targetPort: Ports.PostgresMeta, name: "http", scheme: "http", isExternal: false)
             .WaitFor(dbWait);
@@ -850,8 +847,8 @@ public static class SupabaseBuilderExtensions
             .WithEnvironment("KONG_NGINX_PROXY_PROXY_BUFFERS", "64 160k")
             .WithEnvironment("KONG_NGINX_PROXY_LARGE_CLIENT_HEADER_BUFFERS", "4 64k")
             // Required for JWT validation in Kong
-            .WithStackValue("SUPABASE_ANON_KEY", () => stack.AnonKey)
-            .WithStackValue("SUPABASE_SERVICE_KEY", () => stack.ServiceRoleKey)
+            .WithStackValue("SUPABASE_ANON_KEY", () => stack.AnonKeyValue.EnvironmentValue)
+            .WithStackValue("SUPABASE_SERVICE_KEY", () => stack.ServiceRoleKeyValue.EnvironmentValue)
             // isProxied: false in local mode to bypass DCP proxy which doesn't support WebSocket upgrades from browsers
             .WithHttpEndpoint(port: isPublishMode ? null : kongResource.ExternalPort, targetPort: Ports.Kong, name: "http", isProxied: isPublishMode)
             .WaitFor(stack.Auth)
@@ -885,12 +882,14 @@ public static class SupabaseBuilderExtensions
             // Note: We use sed instead of envsubst to avoid needing to install gettext
             // This is more compatible across different container environments
             kongBuilder
-                // Built when the environment is evaluated, not now: keys (WithAnonKey/...) and
-                // tracing (WithKongOpenTelemetry) are usually set after Kong exists, and an eager
-                // value froze the template without them — deployed Kong never sent a trace.
+                // Built when the environment is evaluated, not now: tracing (WithKongOpenTelemetry)
+                // is usually set after Kong exists, and an eager value froze the template without
+                // it — deployed Kong never sent a trace. The keys stay placeholders, filled from
+                // SUPABASE_ANON_KEY / SUPABASE_SERVICE_KEY when Kong starts: they are secrets.
                 .WithEnvironment(context => context.EnvironmentVariables["KONG_CONFIG_TEMPLATE_BASE64"] =
                     Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(
-                        SupabaseSqlGenerator.GetKongConfigTemplateForPublish(stack.AnonKey, stack.ServiceRoleKey, tracing: stack.KongTracing))))
+                        SupabaseSqlGenerator.GetKongConfigTemplateForPublish(
+                            "${SUPABASE_ANON_KEY}", "${SUPABASE_SERVICE_KEY}", tracing: stack.KongTracing))))
                 .WithEnvironment("AUTH_URL", authEndpoint)
                 .WithEnvironment("REST_URL", restEndpoint)
                 .WithEnvironment("STORAGE_URL", storageEndpoint)
@@ -918,13 +917,15 @@ public static class SupabaseBuilderExtensions
                     "echo '[Kong Init] Starting configuration...' && " +
                     "echo '[Kong Init] Decoding config template...' && " +
                     "echo \"$KONG_CONFIG_TEMPLATE_BASE64\" | base64 -d > /tmp/kong.yml.template && " +
-                    "echo '[Kong Init] Substituting URLs using sed...' && " +
+                    "echo '[Kong Init] Substituting URLs and keys using sed...' && " +
                     "sed -e \"s|\\${AUTH_URL}|$AUTH_URL|g\" " +
                         "-e \"s|\\${REST_URL}|$REST_URL|g\" " +
                         "-e \"s|\\${STORAGE_URL}|$STORAGE_URL|g\" " +
                         "-e \"s|\\${META_URL}|$META_URL|g\" " +
                         "-e \"s|\\${EDGE_URL}|$EDGE_URL|g\" " +
                         "-e \"s|\\${REALTIME_URL}|$REALTIME_URL|g\" " +
+                        "-e \"s|\\${SUPABASE_ANON_KEY}|$SUPABASE_ANON_KEY|g\" " +
+                        "-e \"s|\\${SUPABASE_SERVICE_KEY}|$SUPABASE_SERVICE_KEY|g\" " +
                         "/tmp/kong.yml.template > /tmp/kong.yml && " +
                     "echo '[Kong Init] Config created. URLs:' && " +
                     "echo \"AUTH=$AUTH_URL REST=$REST_URL STORAGE=$STORAGE_URL META=$META_URL REALTIME=$REALTIME_URL\" && " +
@@ -956,17 +957,17 @@ public static class SupabaseBuilderExtensions
             .WithImage(Images.Studio, Images.StudioTag)
             .WithContainerName(name)
             .WithEnvironment("STUDIO_PG_META_URL", studioMetaUrl)
-            .WithEnvironment("POSTGRES_PASSWORD", dbPassword)
+            .WithStackValue("POSTGRES_PASSWORD", () => stack.DatabasePassword)
             .WithEnvironment("POSTGRES_DB", "postgres")
             .WithEnvironment("POSTGRES_USER", "supabase_admin")
             .WithEnvironment("DEFAULT_ORGANIZATION_NAME", "Default Organization")
             .WithEnvironment("DEFAULT_PROJECT_NAME", "Default Project")
             .WithEnvironment("SUPABASE_URL", studioKongUrl)
             .WithEnvironment("SUPABASE_PUBLIC_URL", studioKongUrl)
-            .WithStackValue("SUPABASE_ANON_KEY", () => stack.AnonKey)
-            .WithStackValue("SUPABASE_SERVICE_KEY", () => stack.ServiceRoleKey)
+            .WithStackValue("SUPABASE_ANON_KEY", () => stack.AnonKeyValue.EnvironmentValue)
+            .WithStackValue("SUPABASE_SERVICE_KEY", () => stack.ServiceRoleKeyValue.EnvironmentValue)
             .WithEnvironment("GOTRUE_URL", studioAuthUrl)
-            .WithStackValue("AUTH_JWT_SECRET", () => stack.JwtSecret)
+            .WithStackValue("AUTH_JWT_SECRET", () => stack.JwtSecretValue.EnvironmentValue)
             .WithEnvironment("PG_META_CRYPTO_KEY", cryptoKey)
             .WithEnvironment("LOGFLARE_API_KEY", "")
             .WithEnvironment("LOGFLARE_URL", "")
@@ -1007,8 +1008,10 @@ public static class SupabaseBuilderExtensions
                                   // Connect as supabase_admin (superuser); postgres is not a member
                                   // of supabase_admin in the supabase/postgres image, which causes
                                   // CREATE SCHEMA ... AUTHORIZATION supabase_admin to fail silently.
+                                  // psql variables (PostInitSqlVariables): POST_INIT_VAR_<name> -> -v <name>=...
+                                  "VARS=(); for n in $POST_INIT_VAR_NAMES; do v=\"POST_INIT_VAR_$n\"; VARS+=(-v \"$n=${!v}\"); done && " +
                                   "PGPASSWORD=\"$DB_PASSWORD\" psql -h \"$DB_HOST\" -p \"$DB_PORT\" -U supabase_admin -d postgres " +
-                                  "-v new_password=\"$DB_PASSWORD\" -f /tmp/post_init.sql && " +
+                                  "-v new_password=\"$DB_PASSWORD\" \"${VARS[@]}\" -f /tmp/post_init.sql && " +
                                   "echo '[Post-Init] Completed successfully'";
 
             initContainer = builder.AddContainer($"{containerPrefix}-init", Images.Postgres, Images.PostgresTag)
@@ -1037,11 +1040,15 @@ public static class SupabaseBuilderExtensions
                             len > 0 ? b64.Substring(start, len) : "";
                     }
                     context.EnvironmentVariables["POST_INIT_SQL_GZ_PARTS"] = parts.ToString();
+
+                    context.EnvironmentVariables["POST_INIT_VAR_NAMES"] = string.Join(' ', stack.PostInitSqlVariables.Keys);
+                    foreach (var (name, value) in stack.PostInitSqlVariables)
+                        context.EnvironmentVariables[$"POST_INIT_VAR_{name}"] = value;
                 })
                 // Azure Container Apps has internal DNS - container name works without FQDN
                 .WithEnvironment("DB_HOST", dbEndpoint.Property(EndpointProperty.Host))
                 .WithEnvironment("DB_PORT", dbEndpoint.Property(EndpointProperty.Port))
-                .WithEnvironment("DB_PASSWORD", dbPassword)
+                .WithStackValue("DB_PASSWORD", () => stack.DatabasePassword)
                 .WithEntrypoint("/bin/bash")
                 .WithArgs("-c", postInitCommand)
                 .WaitFor(dbWait)
@@ -1062,11 +1069,11 @@ public static class SupabaseBuilderExtensions
             // EXTERNAL DB only: override post_init.sh's baked password/host with the injected resource's
             // runtime password + resolved endpoint host (the bare resource name isn't resolvable). In
             // internal mode we deliberately do NOT set these — post_init.sh uses the values baked at
-            // event fire-time, which are already correct (and the early dbPassword ref would be stale).
+            // event fire-time, which are already correct.
             if (useExternalDb)
             {
                 initContainer
-                    .WithEnvironment("DB_PASSWORD", dbPassword)
+                    .WithStackValue("DB_PASSWORD", () => stack.DatabasePassword)
                     .WithEnvironment("SUPABASE_DB_HOST", dbEndpoint.Property(EndpointProperty.Host));
             }
         }
@@ -1281,7 +1288,11 @@ public static class SupabaseBuilderExtensions
     internal static string BuildCombinedPostInitSql(SupabaseStackResource stack)
     {
         var combinedSql = new System.Text.StringBuilder();
-        var dbPassword = stack.Database?.Resource.Password ?? Defaults.Password;
+
+        // psql substitutes :'name' in plain statements only, not inside DO blocks — those read
+        // the session setting.
+        foreach (var name in stack.PostInitSqlVariables.Keys)
+            combinedSql.AppendLine($"SELECT set_config('nextended.{name}', :'{name}', false) IS NULL AS unset;");
 
         // Synced schema SQL (from WithProjectSync)
         if (stack.InitSqlPath is not null)
@@ -1301,7 +1312,8 @@ public static class SupabaseBuilderExtensions
 
         // Generate post_init SQL in memory with the final password
         combinedSql.AppendLine("-- Post Init (Triggers)");
-        combinedSql.AppendLine(SupabaseSqlGenerator.GeneratePostInitSql(dbPassword));
+        // The password reaches it as :'new_password' at runtime.
+        combinedSql.AppendLine(SupabaseSqlGenerator.GeneratePostInitSql(string.Empty));
         combinedSql.AppendLine();
 
         // Append migrations and users from scripts directory
@@ -1331,17 +1343,13 @@ public static class SupabaseBuilderExtensions
                 }
             }
 
-            var usersSqlPath = Path.Combine(stack.ScriptsDir, "users.sql");
-            if (File.Exists(usersSqlPath))
-            {
-                var usersSql = File.ReadAllText(usersSqlPath);
-                if (usersSql.Length < 50000)
-                {
-                    combinedSql.AppendLine("-- Users");
-                    combinedSql.AppendLine(usersSql);
-                    combinedSql.AppendLine();
-                }
-            }
+        }
+
+        if (stack.RegisteredUsers.Count > 0)
+        {
+            combinedSql.AppendLine("-- Users");
+            combinedSql.AppendLine(SupabaseStackExtensions.GenerateRegisteredUsersSql(stack));
+            combinedSql.AppendLine();
         }
 
         foreach (var snippet in stack.AdditionalPostInitSql)

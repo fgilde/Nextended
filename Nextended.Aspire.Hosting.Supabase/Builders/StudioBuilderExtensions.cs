@@ -124,6 +124,22 @@ public static class StudioBuilderExtensions
     }
 
     /// <summary>
+    /// Enables login protection for Supabase Studio Dashboard with the password from an Aspire
+    /// parameter — deployed it is a secret, never plain text in the container's settings.
+    /// </summary>
+    public static IResourceBuilder<SupabaseStackResource> WithLogin(
+        this IResourceBuilder<SupabaseStackResource> builder,
+        string username,
+        IResourceBuilder<ParameterResource> password)
+    {
+        builder.Resource.DashboardUsername = username;
+        builder.Resource.DashboardPassword = "param";
+        builder.WithEnvironment("DASHBOARD_USERNAME", username);
+        builder.WithEnvironment("DASHBOARD_PASSWORD", password);
+        return ApplyAuthProxy(builder);
+    }
+
+    /// <summary>
     /// Injects a lightweight Node.js Basic Auth reverse proxy in front of Studio.
     /// The proxy reads DASHBOARD_USERNAME/DASHBOARD_PASSWORD from env vars at runtime,
     /// starts Studio on PORT+1, and proxies authenticated requests to it.
@@ -154,7 +170,9 @@ public static class StudioBuilderExtensions
                         res.writeHead(401, {'WWW-Authenticate': 'Basic realm="Supabase Studio"'});
                         return res.end('Unauthorized');
                     }
-                    const [u, p] = Buffer.from(auth.slice(6), 'base64').toString().split(':');
+                    const credentials = Buffer.from(auth.slice(6), 'base64').toString();
+                    const colon = credentials.indexOf(':');
+                    const u = credentials.slice(0, colon), p = credentials.slice(colon + 1);
                     if (u !== user || p !== pass) {
                         res.writeHead(401, {'WWW-Authenticate': 'Basic realm="Supabase Studio"'});
                         return res.end('Invalid credentials');

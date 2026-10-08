@@ -97,33 +97,39 @@ public static class KongBuilderExtensions
         // a future `azd up` run, and so other code can read it if needed.
         stack.KongTracing = config;
 
-        // Re-write the local-dev kong.yml in place. AddSupabase already wrote it
-        // (without the OTel block); we replace its content here. The Kong
-        // container reads the bind-mounted file when it starts, so as long as
-        // we're called before .Build()/.Run(), Kong picks up the new YAML.
-        //
-        // We don't have access to the service URLs the original write used, but
-        // we don't need them — we re-generate from the same container-name
-        // convention SupabaseBuilderExtensions uses internally.
-        var configDir = Path.Combine(stack.InfraRootDir, "config");
-        var kongYmlPath = Path.Combine(configDir, "kong.yml");
-        if (!File.Exists(kongYmlPath))
-            throw new InvalidOperationException($"Kong config not found at {kongYmlPath}");
+        // Deployed, Kong renders its config from the template when the environment is evaluated
+        // (tracing included), and the keys there are placeholders — nothing to rewrite, and
+        // reading the keys here would demand values for parameters only the deployment knows.
+        if (builder.ApplicationBuilder.ExecutionContext.IsRunMode)
+        {
+            // Re-write the local-dev kong.yml in place. AddSupabase already wrote it
+            // (without the OTel block); we replace its content here. The Kong
+            // container reads the bind-mounted file when it starts, so as long as
+            // we're called before .Build()/.Run(), Kong picks up the new YAML.
+            //
+            // We don't have access to the service URLs the original write used, but
+            // we don't need them — we re-generate from the same container-name
+            // convention SupabaseBuilderExtensions uses internally.
+            var configDir = Path.Combine(stack.InfraRootDir, "config");
+            var kongYmlPath = Path.Combine(configDir, "kong.yml");
+            if (!File.Exists(kongYmlPath))
+                throw new InvalidOperationException($"Kong config not found at {kongYmlPath}");
 
-        // Reuse the same container-prefix that AddSupabase used (the stack name).
-        var prefix = stack.Name;
-        SupabaseSqlGenerator.WriteKongConfig(
-            kongYmlPath,
-            stack.AnonKey,
-            stack.ServiceRoleKey,
-            prefix,
-            goTruePort: 9999,       // values mirrored from SupabaseBuilderExtensions
-            postRestPort: 3000,     // .Ports constants. If those change, update here.
-            storagePort: 5000,
-            metaPort: 8080,
-            edgeRuntimePort: 9000,
-            realtimePort: 4000,
-            tracing: config);
+            // Reuse the same container-prefix that AddSupabase used (the stack name).
+            var prefix = stack.Name;
+            SupabaseSqlGenerator.WriteKongConfig(
+                kongYmlPath,
+                stack.AnonKey,
+                stack.ServiceRoleKey,
+                prefix,
+                goTruePort: 9999,       // values mirrored from SupabaseBuilderExtensions
+                postRestPort: 3000,     // .Ports constants. If those change, update here.
+                storagePort: 5000,
+                metaPort: 8080,
+                edgeRuntimePort: 9000,
+                realtimePort: 4000,
+                tracing: config);
+        }
 
         // Make sure the opentelemetry plugin is in Kong's allowed-plugins list.
         // Without this, Kong refuses to load any plugin not in KONG_PLUGINS.

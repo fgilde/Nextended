@@ -198,15 +198,24 @@ public sealed class ObservabilityStackTests : IDisposable
         var grafana = await Env(builder, "monitoring-grafana");
         Assert.Equal("postgres", grafana["GF_DATABASE_TYPE"]);
         Assert.Equal(ObservabilityStack.GrafanaRole, grafana["GF_DATABASE_USER"]);
-        Assert.Matches("^[0-9a-f]{32}$", grafana["GF_DATABASE_PASSWORD"]);
-        Assert.Matches("^[0-9a-f]{32}$", grafana["APP_DB_PASSWORD"]);
-        Assert.NotEqual(grafana["GF_DATABASE_PASSWORD"], grafana["APP_DB_PASSWORD"]);
+        // Passwords of their own, generated once per environment and never part of the model.
+        Assert.Equal("{sb-grafana-db-password.value}", grafana["GF_DATABASE_PASSWORD"]);
+        Assert.Equal("{sb-grafana-reader-password.value}", grafana["APP_DB_PASSWORD"]);
+        foreach (var name in new[] { "sb-grafana-db-password", "sb-grafana-reader-password" })
+        {
+            var parameter = builder.Resources.OfType<ParameterResource>().Single(p => p.Name == name);
+            Assert.True(parameter.Secret);
+            Assert.IsType<GenerateParameterDefault>(parameter.Default);
+        }
         Assert.Contains($"user: '{ObservabilityStack.ReaderRole}'",
             File.ReadAllText(Path.Combine(_root, ".generated", "publish", "monitoring-grafana", "files", "0", "datasources", "datasources.yml")));
 
-        var sql = PostInitSql(await Env(builder, "sb-init"));
-        Assert.Contains($"CREATE ROLE {ObservabilityStack.ReaderRole} LOGIN BYPASSRLS PASSWORD '{grafana["APP_DB_PASSWORD"]}'", sql);
-        Assert.Contains($"CREATE ROLE {ObservabilityStack.GrafanaRole} LOGIN PASSWORD '{grafana["GF_DATABASE_PASSWORD"]}'", sql);
+        var init = await Env(builder, "sb-init");
+        Assert.Equal("{sb-grafana-db-password.value}", init[$"POST_INIT_VAR_{ObservabilityStack.GrafanaPasswordVariable}"]);
+        Assert.Equal("{sb-grafana-reader-password.value}", init[$"POST_INIT_VAR_{ObservabilityStack.ReaderPasswordVariable}"]);
+        var sql = PostInitSql(init);
+        Assert.Contains($"ALTER ROLE {ObservabilityStack.ReaderRole} WITH LOGIN BYPASSRLS PASSWORD :'{ObservabilityStack.ReaderPasswordVariable}';", sql);
+        Assert.Contains($"ALTER ROLE {ObservabilityStack.GrafanaRole} WITH LOGIN PASSWORD :'{ObservabilityStack.GrafanaPasswordVariable}';", sql);
         Assert.Contains($"GRANT pg_read_all_data TO {ObservabilityStack.ReaderRole};", sql);
         Assert.Contains("\\gexec", sql);
     }

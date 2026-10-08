@@ -361,26 +361,41 @@ anon/service-role keys. They are fine for local development, but **must be repla
 anything is exposed**: `service_role` bypasses RLS, and the default key is public knowledge.
 
 ```csharp
+var adminPassword = builder.AddParameter("admin-password", secret: true);
+builder.AddMinioS3OnNfs("supabasenfs", builder.AddParameter("minio-password", secret: true));
+
 builder.AddSupabase("sb")
     .WithJwtSecret(builder.AddParameter("jwt-secret", secret: true))
     .WithAnonKey(builder.AddParameter("anon-key", secret: true))
     .WithServiceRoleKey(builder.AddParameter("service-key", secret: true))
-    .ConfigureDatabase(db => db.WithPassword(builder.AddParameter("db-password", secret: true)));
+    .ConfigureDatabase(db => db.WithPassword(builder.AddParameter("db-password", secret: true)))
+    .ConfigureStudio(studio => studio.WithLogin("admin", adminPassword))
+    .WithRegisteredUser("admin@example.com", adminPassword, "Admin");
 ```
 
-Both a `string` and an `IResourceBuilder<ParameterResource>` overload exist for all four. The
-parameter overloads resolve to the configured value (user secrets, a gitignored settings file,
-`Parameters__…` in the environment), because the password and secret are written into generated
-SQL, connection strings and container environments while the model is built.
+Each of these has a `string` and an `IResourceBuilder<ParameterResource>` overload. A parameter
+**stays a reference**:
+
+- **Locally** it resolves from configuration (user secrets, a gitignored settings file,
+  `Parameters__…` in the environment) — also for the generated `kong.yml` and SQL files.
+- **Deployed** every container gets it as a container app secret (`secretRef`), also inside
+  connection strings; the value is in neither the manifest nor the bicep, and Azure asks the
+  deployment for it as a secure parameter (azd: `infra.parameters.<name>`, or it prompts). Kong's
+  config carries placeholders its entrypoint fills from `SUPABASE_ANON_KEY` /
+  `SUPABASE_SERVICE_KEY`; the init container hands a registered user's password to the post-init
+  SQL as a psql variable at runtime. The user is created once — a later value leaves an existing
+  user's password alone.
+- A plain `string` is written as is — fine for development values, never for a deployment.
 
 Two things worth knowing:
 
 - The anon and service-role keys are **JWTs signed with the JWT secret** — replacing the secret
   without re-signing both keys makes GoTrue and PostgREST reject them.
 - Every container — Auth, REST, Storage, Realtime, Studio, Kong, the Edge Functions — and every
-  `WithSupabaseVite`/`WithSupabaseReference` reads the secret and both keys when its environment
-  is evaluated, so the three calls can come at any point, also after `WithEdgeFunctions` and the
-  references. (Containers used to copy a key when they were created and then kept the demo value.)
+  `WithSupabaseVite`/`WithSupabaseReference` reads the secret, both keys and the database password
+  when its environment is evaluated, so these calls can come at any point, also after
+  `WithEdgeFunctions` and the references. (Containers used to copy a value when they were created
+  and then kept the demo value.)
 
 ---
 
@@ -589,11 +604,22 @@ builder.AddMinioS3OnNfs("supabasenfs",
 
 - **Grafana's own state** goes into a `grafana` database of the Supabase Postgres (owner `grafana`) instead of SQLite on an ephemeral disk.
 - **Grafana's Postgres datasource** logs in as `grafana_reader` (`BYPASSRLS` + `pg_read_all_data`): it sees every row, RLS included, and cannot write. Locally it keeps the DB superuser.
-- The init container creates both logins (idempotent, on every start, through `SupabaseStackResource.AdditionalPostInitSql` — usable for your own SQL too). Their passwords are derived from the DB password, so nothing new has to be stored.
+- The init container creates both logins (idempotent, on every start, through `SupabaseStackResource.AdditionalPostInitSql` — usable for your own SQL too). Each has a password of its own: the generated secret parameters `<stack>-grafana-db-password` and `<stack>-grafana-reader-password` (azd creates them once per environment and keeps them in its environment config — a pipeline that starts with a fresh azd environment has to keep them, too). The SQL receives them at runtime as psql variables and sets them on every start; Grafana and its datasource get them as secrets.
 - **Loki and Tempo** keep their data in the MinIO buckets `loki` and `tempo` when `AddMinioS3OnNfs` is in use; `minio-init` creates them (`SupabaseStorageS3Options.AdditionalBuckets`). Behind the ACA ingress that is HTTPS on 443.
 - Prometheus keeps 3 days on its container disk. Every component runs as exactly one replica, the internal ones with their TCP port exposed.
 
-A deployed Grafana is reachable from the internet and can read the whole database — give it a sign-in, e.g. Entra ID:
+A deployed Grafana is reachable from the internet and can read the whole database — give it a sign-in: its own login with a password from a secret parameter, which works under any URL,
+
+```csharp
+builder.AddObservabilityStack(supabase, opts =>
+{
+    opts.GrafanaAnonymousAdmin = false;
+    opts.GrafanaAdminUser = "admin";
+    opts.GrafanaAdminPasswordParameter = builder.AddParameter("grafana-admin-password", secret: true);
+});
+```
+
+or Entra ID, which needs the deployed URL registered as redirect URI:
 
 ```csharp
 builder.AddObservabilityStack(supabase, opts =>

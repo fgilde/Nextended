@@ -15,10 +15,20 @@ public sealed class SupabaseDatabaseResource : ContainerResource
     {
     }
 
+    internal StackSecret PasswordSecret { get; } = new("postgres-insecure-dev-password");
+
     /// <summary>
-    /// Gets or sets the database password.
+    /// Gets or sets the database password. Set from a parameter (<c>WithPassword(parameter)</c>)
+    /// it is that parameter's configured value.
     /// </summary>
-    public string Password { get; internal set; } = "postgres-insecure-dev-password";
+    public string Password
+    {
+        get => PasswordSecret.Value;
+        internal set => PasswordSecret.Set(value);
+    }
+
+    /// <summary>The parameter the password comes from, if it was set from one.</summary>
+    public ParameterResource? PasswordParameter => PasswordSecret.Parameter;
 
     /// <summary>
     /// Gets or sets the external port for PostgreSQL connections.
