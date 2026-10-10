@@ -48,6 +48,11 @@ namespace Nextended.Core.Attributes
         public bool GenerateBeforeAndAfterAssignPartialsInMapping { get; set; }
 
         /// <summary>
+        /// Gets or sets how the mapping is generated. <see cref="DtoMappingStrategy.Default"/> takes the strategy from the configuration.
+        /// </summary>
+        public DtoMappingStrategy MappingStrategy { get; set; }
+
+        /// <summary>
         /// Gets or sets the name of the generated mapping method.
         /// </summary>
         public string? ToDtoMethodName { get; set; }

@@ -74,6 +74,11 @@ public class DtoGenerationConfig: CodeGenerationConfigBase
     public string[]? Interfaces { get; set; }
 
     /// <summary>
+    /// Property names that are never generated, for all types whose attribute does not set PropertiesToIgnore (e.g. TenantId or audit columns).
+    /// </summary>
+    public string[]? PropertiesToIgnore { get; set; }
+
+    /// <summary>
     /// Default mapping generation settings.
     /// </summary>
     public DefaultMappingSettings? DefaultMappingSettings { get; set; }

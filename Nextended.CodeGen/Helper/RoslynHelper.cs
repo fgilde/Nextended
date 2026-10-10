@@ -5,6 +5,7 @@ using System.Linq;
 using Microsoft.CodeAnalysis;
 using System.Reflection;
 using Nextended.Core.Attributes;
+using Nextended.Core.Enums;
 using Nextended.CodeGen.Generators.DtoGeneration;
 using System.Text;
 
@@ -288,6 +289,9 @@ internal static class RoslynHelper
         res.PreInterfaceString ??= cfg.PreInterfaceString;
         res.ToSourceMethodName ??= cfg.DefaultMappingSettings?.ToSourceMethodName;
         res.ToDtoMethodName ??= cfg.DefaultMappingSettings?.ToDtoMethodName;
+        res.PropertiesToIgnore ??= cfg.PropertiesToIgnore;
+        if (res.MappingStrategy == DtoMappingStrategy.Default)
+            res.MappingStrategy = cfg.DefaultMappingSettings?.Strategy ?? DtoMappingStrategy.Extensions;
         return res;
     }
 
