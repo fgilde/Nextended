@@ -140,6 +140,8 @@ _No description._
 
 - `MapWithClassMapper : bool? { get; set; }`
 - `ToDtoMethodName : string { get; set; }`
+- `Strategy : DtoMappingStrategy? { get; set; }`
+  <br>Mapping strategy for all types whose attribute leaves MappingStrategy at Default.
 - `ToSourceMethodName : string { get; set; }`
 
 ### `DtoGenerationConfig`
@@ -189,6 +191,8 @@ _No description._
   <br>A string that will be added before the generated class, useful for adding attributes or something.
 - `PreInterfaceString : string { get; set; }`
   <br>A string that will be added before the generated interface, useful for adding attributes or something.
+- `PropertiesToIgnore : string[] { get; set; }`
+  <br>Property names that are never generated, for all types whose attribute does not set PropertiesToIgnore (e.g. TenantId or audit columns).
 - `Usings : string[] { get; set; }`
 
 ### `ExcelGenerationConfig`

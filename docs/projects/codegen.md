@@ -962,6 +962,7 @@ public class User { }
 | `GenerateMapping` | bool | true | Generate extension methods for mapping (ToDto/ToSource) |
 | `ToDtoMethodName` | string | null | Name of the method to convert source to DTO (e.g., "ToDto") |
 | `ToSourceMethodName` | string | null | Name of the method to convert DTO back to source (e.g., "ToEntity") |
+| `MappingStrategy` | DtoMappingStrategy | Default | `Extensions` (generated extension methods) or `Mapperly` (generated partial Mapperly mapper, see [Mapperly instead of extension methods](#mapperly-instead-of-extension-methods)); `Default` follows `DefaultMappingSettings.Strategy` |
 
 **Example:**
 ```csharp
@@ -1991,9 +1992,13 @@ Address back = dto.AsSrc();
 "DefaultMappingSettings": {
   "MapWithClassMapper": true,
   "ToDtoMethodName": "ToDto",
-  "ToSourceMethodName": "ToEntity"
+  "ToSourceMethodName": "ToEntity",
+  "Strategy": "Extensions"
 }
 ```
+
+`Strategy` (`Extensions` or `Mapperly`) is the mapping strategy for every type whose attribute leaves
+`MappingStrategy` at `Default`.
 
 `MapWithClassMapper = true` routes the property through
 [`Nextended.Core`'s class mapper](../api/class-mapping.md) instead of a direct assignment — which is

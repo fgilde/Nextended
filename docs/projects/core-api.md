@@ -1454,6 +1454,8 @@ Attribute to automatically generate a COM interface and a COM class for the clas
   <br>If set to true, the generated property on classes will keep the attributes from the original class.
 - `KeepPropertyAttributesOnGeneratedInterface : bool { get; set; }`
   <br>If set to true, the generated property on interfaces will keep the attributes from the original class.
+- `MappingStrategy : DtoMappingStrategy { get; set; }`
+  <br>Gets or sets how the mapping is generated. `Default` takes the strategy from the configuration.
 - `Namespace : string { get; set; }`
   <br>Gets or sets the namespace used for the generated classes and interfaces.
 - `PreClassString : string { get; set; }`
@@ -2324,6 +2326,22 @@ _No description._
 - `Encrypt(this string str, string key = null) : string`
 
 ## Nextended.Core.Enums
+
+### `DtoMappingStrategy`
+
+`enum`
+
+Specifies how the mapping between a source type and its generated DTO is generated.
+
+**Values**
+
+- `Default`
+  <br>Uses the strategy from the generator configuration, or `Extensions` when none is configured.
+- `Extensions`
+  <br>Generates plain extension methods (AssignTo, ToDto, ToNet) in the partial MappingExtensions class.
+- `Mapperly`
+  <br>Generates a partial Riok.Mapperly mapper class (e.g. ProductMapper) that Mapperly implements. Requires a reference to Riok.Mapperly and files written to disk (OutputPath / MappingOutputPath). Every method or the [Mapper] attribute you declare in your own part of the class replaces the generated one.
+- `value__`
 
 ### `GeneratedModelType`
 
