@@ -1055,12 +1055,15 @@ public static partial class MimeType
     /// <summary>
     /// Gets all archive MIME types
     /// </summary>
-    public static string[] ArchiveTypes => new[] {"application/x-compressed"}.Concat(_mimeTypeMap.Value.Values.Where(x => Matches(x, "application/x-*-compressed") 
+    // built once (and again after AddOrUpdate): IsArchive asks for it on every call, and building it runs regular expressions over every type
+    public static string[] ArchiveTypes => _archiveTypes ??= new[] {"application/x-compressed"}.Concat(_mimeTypeMap.Value.Values.Where(x => Matches(x, "application/x-*-compressed") 
     || x.Contains("compressed") 
     || IsRar(x) 
     || IsZip(x) 
     || Is7Zip(x) 
     || IsTar(x))).Concat(new []{ "application/x-zip-compressed" }).ToArray();
+
+    private static string[] _archiveTypes;
 
     /// <summary>
     /// Determines whether the specified content type is an archive
@@ -1193,8 +1196,11 @@ public static partial class MimeType
     /// </summary>
     /// <param name="mime">The MIME type</param>
     /// <param name="extension">The file extension</param>
-    public static void AddOrUpdate(string mime, string extension) 
-        => _mimeTypeMap.Value[extension] = mime;
+    public static void AddOrUpdate(string mime, string extension)
+    {
+        _mimeTypeMap.Value[extension] = mime;
+        _archiveTypes = null;
+    }
 
     private static bool IsValidUrl(string s) => System.Uri.TryCreate(s, UriKind.Absolute, out var uriResult) && (uriResult.Scheme == System.Uri.UriSchemeHttp || uriResult.Scheme == System.Uri.UriSchemeHttps);
 

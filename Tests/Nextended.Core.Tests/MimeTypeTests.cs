@@ -21,6 +21,16 @@ namespace Nextended.Core.Tests
         }
 
         [TestMethod]
+        public void ArchiveTypes_AreBuiltOnce_AndAgainAfterAddOrUpdate()
+        {
+            Assert.AreSame(MimeType.ArchiveTypes, MimeType.ArchiveTypes);
+
+            MimeType.AddOrUpdate("application/x-nextended-test-compressed", "nxtestz");
+
+            Assert.IsTrue(MimeType.IsArchive("application/x-nextended-test-compressed"));
+        }
+
+        [TestMethod]
         public void ArchiveTypes_Contain_CommonArchiveTypes()
         {
             var types = MimeType.ArchiveTypes;
