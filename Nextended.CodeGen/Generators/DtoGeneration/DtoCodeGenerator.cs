@@ -17,12 +17,14 @@ public class DtoCodeGenerator
 {
     private readonly DtoGenerationConfig _config;
     private readonly DtoGenerationSymbols _symbols;
+    private readonly Compilation? _compilation;
     private readonly Dictionary<string, string> _comIds = new();
 
-    public DtoCodeGenerator(DtoGenerationConfig config, DtoGenerationSymbols symbols)
+    public DtoCodeGenerator(DtoGenerationConfig config, DtoGenerationSymbols symbols, Compilation? compilation = null)
     {
         _config = config;
         _symbols = symbols;
+        _compilation = compilation;
     }
 
     public bool HasGuids => _comIds.Any();
@@ -329,6 +331,26 @@ public class DtoCodeGenerator
         return ($"\t\t\tresult.{targetName} = src.{sourceName};", false);
     }
 
+    // required members are set by AssignTo right after construction
+    private static string RequiredInitializer(IEnumerable<string> members)
+    {
+        var list = members.Distinct().ToList();
+        return list.Count == 0 ? "()" : $" {{ {string.Join(", ", list.Select(m => $"{m} = default!"))} }}";
+    }
+
+    private IEnumerable<string> DtoRequiredMembers(INamedTypeSymbol type)
+        => _symbols.GetDtoPropertiesDeep(type, _symbols.Ignore)
+            .Where(p => p.IsRequired)
+            .Select(p => DtoGenerationSymbols.GetDtoPropertyName(p, p.PropertyCfg(_symbols)));
+
+    private static IEnumerable<string> SourceRequiredMembers(INamedTypeSymbol type)
+    {
+        for (var t = type; t != null; t = t.BaseType)
+            foreach (var m in t.GetMembers())
+                if (m is IPropertySymbol { IsRequired: true } or IFieldSymbol { IsRequired: true })
+                    yield return m.Name;
+    }
+
     public IReadOnlyList<GeneratedFile> GenerateMappingExtensions(List<INamedTypeSymbol> types)
     {
         var resultFiles = new List<GeneratedFile>();
@@ -356,6 +378,13 @@ public class DtoCodeGenerator
 
             if (!autoGenAttr.GenerateMapping)
                 continue;
+
+            if (MapperlyMapperEmitter.CanUse(type, autoGenAttr))
+            {
+                resultFiles.Add(new MapperlyMapperEmitter(_config!, _symbols, _compilation)
+                    .Emit(type, autoGenAttr, dtoTypeDict, ns, _config?.MappingOutputPath ?? _config?.OutputPath));
+                continue;
+            }
 
             bool classMapperUsedForType = false;
             bool atLeastOneGeneratedForType = false;
@@ -526,7 +555,7 @@ public class DtoCodeGenerator
                         sb.AppendLine($"\t\t{autoGenAttr.ClassModifier.ToCSharpKeyword()} static {comTypeNs}{dtoTypeName}{genericParams} {toDtoMethod}{genericParams}(this {netTypeName} src) {genericConstr}");
                         sb.AppendLine("\t\t{");
                         sb.AppendLine("\t\t\tif (src == null) return null;");
-                        sb.AppendLine($"\t\t\tvar result = new {comTypeNs}{dtoTypeName}{genericParams}();");
+                        sb.AppendLine($"\t\t\tvar result = new {comTypeNs}{dtoTypeName}{genericParams}{RequiredInitializer(DtoRequiredMembers(type))};");
                         sb.AppendLine("\t\t\tsrc.AssignTo{genericParams}(result);".Replace("{genericParams}", string.IsNullOrEmpty(genericParams) ? "" : genericParams));
                         sb.AppendLine("\t\t\treturn result;");
                         sb.AppendLine("\t\t}");
@@ -534,7 +563,7 @@ public class DtoCodeGenerator
                         sb.AppendLine($"\t\t{autoGenAttr.ClassModifier.ToCSharpKeyword()} static {netTypeName} {toNetMethod}{genericParams}(this {comTypeNs}{dtoTypeName}{genericParams} src) {genericConstr}");
                         sb.AppendLine("\t\t{");
                         sb.AppendLine("\t\t\tif (src == null) return null;");
-                        sb.AppendLine($"\t\t\tvar result = new {netTypeName}();");
+                        sb.AppendLine($"\t\t\tvar result = new {netTypeName}{RequiredInitializer(SourceRequiredMembers(type))};");
                         sb.AppendLine("\t\t\tsrc.AssignTo{genericParams}(result);".Replace("{genericParams}", string.IsNullOrEmpty(genericParams) ? "" : genericParams));
                         sb.AppendLine("\t\t\treturn result;");
                         sb.AppendLine("\t\t}");
@@ -939,7 +968,7 @@ public class DtoCodeGenerator
             var propName = DtoGenerationSymbols.GetDtoPropertyName(prop, propAttr);
             var ns = _symbols.GetNamespaceForProperty(prop, dtoTypeDict);
 
-            sb.AppendLine($"\t\tpublic {ns}{propTypeString} {propName} {{ get; set; }}");
+            sb.AppendLine($"\t\tpublic {(prop.IsRequired ? "required " : "")}{ns}{propTypeString} {propName} {{ get; set; }}");
         }
         foreach (var prop in classPropsForThisType)
         {
