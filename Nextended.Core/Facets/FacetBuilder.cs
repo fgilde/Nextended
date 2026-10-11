@@ -551,24 +551,33 @@ public sealed class FacetBuilder(
 
     private ValueLiteral ToValueLiteral(object? rawValue, Type clrType)
     {
-        var display = rawValue?.ToString() ?? "";
-        object? coerced = rawValue;
-
-        try
-        {
-            var t = Nullable.GetUnderlyingType(clrType) ?? clrType;
-            if (rawValue is not null && rawValue.GetType() != t)
-                coerced = t == typeof(Guid)
-                    ? Guid.Parse(display)
-                    : Convert.ChangeType(rawValue, t, CultureInfo.InvariantCulture);
-        }
-        catch { coerced = display; }
+        var coerced = Coerce(rawValue, clrType);
+        // a bool read back as 1/0 (SQL Server, SQLite) shows like one read back as true/false
+        var display = (coerced is bool ? coerced : rawValue)?.ToString() ?? "";
 
         var literal = _options.BuildLiterals
             ? _literal.ToLiteral(coerced, clrType)
             : DefaultODataLiteralFormatter.ToSimpleLiteral(coerced, clrType);
 
         return new ValueLiteral(display, literal);
+    }
+
+    internal static object? Coerce(object? rawValue, Type clrType)
+    {
+        var type = Nullable.GetUnderlyingType(clrType) ?? clrType;
+        if (rawValue is null || rawValue.GetType() == type)
+            return rawValue;
+
+        var text = rawValue.ToString() ?? "";
+        try
+        {
+            if (type == typeof(Guid))
+                return Guid.Parse(text);
+            if (type == typeof(bool) && long.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var number))
+                return number != 0;
+            return Convert.ChangeType(rawValue, type, CultureInfo.InvariantCulture);
+        }
+        catch { return text; }
     }
 
     private FacetRangeDefinition DefaultDateOrNumberRange(string odataPath, Type type)
