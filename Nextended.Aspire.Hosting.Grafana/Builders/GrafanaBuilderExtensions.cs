@@ -273,14 +273,9 @@ public static class GrafanaBuilderExtensions
         var ctx = grafana.Resource.Context;
         if (ctx.PostgresExporter is not null) return grafana;
 
-        var dsn = new ReferenceExpressionBuilder();
-        dsn.AppendLiteral("postgresql://");
-        if (postgres.Resource.UserNameParameter is { } user) dsn.Append($"{user}");
-        else dsn.AppendLiteral("postgres");
-        dsn.Append($":{postgres.Resource.PasswordParameter}");
-        dsn.AppendLiteral($"@{postgres.Resource.Name}:5432/{database}?sslmode={sslMode}");
-
-        StackComponents.AddPostgresExporter(grafana.ApplicationBuilder, ctx, name, dsn.Build());
+        object user = postgres.Resource.UserNameParameter is { } userName ? ReferenceExpression.Create($"{userName}") : "postgres";
+        StackComponents.AddPostgresExporter(grafana.ApplicationBuilder, ctx, name, $"{postgres.Resource.Name}:5432/{database}?sslmode={sslMode}",
+            user, ReferenceExpression.Create($"{postgres.Resource.PasswordParameter}"));
         return grafana;
     }
 
@@ -299,8 +294,7 @@ public static class GrafanaBuilderExtensions
         var ctx = grafana.Resource.Context;
         if (ctx.PostgresExporter is not null) return grafana;
 
-        var dsn = $"postgresql://{userName}:{password}@{host}:{port}/{database}?sslmode={sslMode}";
-        StackComponents.AddPostgresExporter(grafana.ApplicationBuilder, ctx, name, dsn);
+        StackComponents.AddPostgresExporter(grafana.ApplicationBuilder, ctx, name, $"{host}:{port}/{database}?sslmode={sslMode}", userName, password);
         return grafana;
     }
 

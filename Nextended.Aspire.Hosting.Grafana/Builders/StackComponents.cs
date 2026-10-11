@@ -150,24 +150,31 @@ internal static class StackComponents
         return cadvisor;
     }
 
+    /// <summary>
+    /// User and password go to the exporter on their own (<c>DATA_SOURCE_USER</c>/<c>DATA_SOURCE_PASS</c>): inside a
+    /// <c>postgresql://</c> DSN a generated password with characters like <c>}</c> or <c>(</c> would have to be URL-encoded.
+    /// </summary>
     public static IResourceBuilder<PostgresExporterResource> AddPostgresExporter(
-        IDistributedApplicationBuilder builder, ObservabilityStackContext ctx, string name, object dataSourceName)
+        IDistributedApplicationBuilder builder, ObservabilityStackContext ctx, string name, string uri, object user, object password)
     {
         var exporter = builder.AddResource(new PostgresExporterResource(name))
             .WithImage(GrafanaStackDefaults.PostgresExporterImage, GrafanaStackDefaults.PostgresExporterImageTag)
             .WithEndpoint(targetPort: PostgresExporterResource.DefaultTargetPort, port: ctx.InternalPort(PostgresExporterResource.DefaultTargetPort),
-                name: "metrics", scheme: ctx.InternalScheme);
-
-        exporter = dataSourceName switch
-        {
-            ReferenceExpression expr => exporter.WithEnvironment("DATA_SOURCE_NAME", expr),
-            string dsn => exporter.WithEnvironment("DATA_SOURCE_NAME", dsn),
-            _ => throw new ArgumentException("DSN must be a string or ReferenceExpression", nameof(dataSourceName)),
-        };
+                name: "metrics", scheme: ctx.InternalScheme)
+            .WithEnvironment("DATA_SOURCE_URI", uri);
+        exporter = WithValue(exporter, "DATA_SOURCE_USER", user);
+        exporter = WithValue(exporter, "DATA_SOURCE_PASS", password);
 
         ctx.PostgresExporter = exporter;
         ctx.ScrapeJobs.Add(new PrometheusScrapeJob("postgres", $"{name}:{PostgresExporterResource.DefaultTargetPort}"));
         ctx.EnsureSubscribed(builder);
         return exporter;
     }
+
+    private static IResourceBuilder<T> WithValue<T>(IResourceBuilder<T> resource, string name, object value) where T : IResourceWithEnvironment => value switch
+    {
+        ReferenceExpression expression => resource.WithEnvironment(name, expression),
+        string text => resource.WithEnvironment(name, text),
+        _ => throw new ArgumentException($"{name} must be a string or ReferenceExpression", nameof(value)),
+    };
 }

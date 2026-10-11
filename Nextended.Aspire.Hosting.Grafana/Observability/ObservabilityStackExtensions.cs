@@ -63,7 +63,7 @@ public static class ObservabilityStackExtensions
 
         if (options.PostgresExporter is { } pgOpt)
         {
-            StackComponents.AddPostgresExporter(builder, ctx, N("postgres-exporter"), pgOpt.ToDataSourceName())
+            StackComponents.AddPostgresExporter(builder, ctx, N("postgres-exporter"), pgOpt.DataSourceUri, pgOpt.Username, pgOpt.PasswordValue)
                 .WithImage(options.PostgresExporterImage, options.PostgresExporterImageTag);
         }
 

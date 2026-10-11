@@ -304,10 +304,11 @@ public sealed class PostgresExporterOptions
     /// <summary>Password of <see cref="GrafanaUsername"/> as an expression; wins over <see cref="GrafanaPassword"/>.</summary>
     public ReferenceExpression? GrafanaPasswordExpression { get; set; }
 
-    /// <summary>Builds the libpq-style DSN that postgres_exporter expects.</summary>
-    internal object ToDataSourceName() => PasswordExpression is { } password
-        ? ReferenceExpression.Create($"postgresql://{Username}:{password}@{Host}:{Port.ToString()}/{Database}?sslmode={SslMode}")
-        : $"postgresql://{Username}:{Password}@{Host}:{Port}/{Database}?sslmode={SslMode}";
+    /// <summary>The <c>host:port/database</c> part of postgres_exporter's data source; user and password go separately.</summary>
+    internal string DataSourceUri => $"{Host}:{Port}/{Database}?sslmode={SslMode}";
+
+    /// <summary>The exporter's password, for an environment variable.</summary>
+    internal object PasswordValue => (object?)PasswordExpression ?? Password;
 
     /// <summary>The password of Grafana's datasource login, for an environment variable.</summary>
     internal object GrafanaPasswordValue() =>

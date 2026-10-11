@@ -136,7 +136,7 @@ public sealed class SecretParameterPublishTests : IDisposable
     [InlineData("monitoring-grafana", "GF_SECURITY_ADMIN_PASSWORD")]
     [InlineData("monitoring-grafana", "GF_DATABASE_PASSWORD")]
     [InlineData("monitoring-grafana", "APP_DB_PASSWORD")]
-    [InlineData("monitoring-postgres-exporter", "DATA_SOURCE_NAME")]
+    [InlineData("monitoring-postgres-exporter", "DATA_SOURCE_PASS")]
     [InlineData("monitoring-loki", "LOKI_S3_SECRET_KEY")]
     public void Each_secret_reaches_its_container_app_as_a_secret(string app, string variable)
     {
