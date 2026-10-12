@@ -495,4 +495,21 @@ public class AspireUISeedTests
         Assert.Equal("llama3.2", env["ASPIREUI_AI_MODEL"]);
         Assert.Equal("http", env["ASPIREUI_SET_AiKind"]);
     }
+
+    [Fact]
+    public async Task The_retrieve_api_is_anonymous_or_keyed_and_hides_names()
+    {
+        var open = await EnvAsync(Add().WithRetrieveApi().Resource);
+        Assert.Equal("true", open["ASPIREUI_RETRIEVE_API"]);
+        Assert.DoesNotContain("ASPIREUI_RETRIEVE_API_KEY", open.Keys);
+
+        var keyed = await EnvAsync(Add().WithRetrieveApi("s3cret").WithRetrieveApiHidden("grafana").WithRetrieveApiHidden("n8n", "grafana").Resource);
+        Assert.Equal("s3cret", keyed["ASPIREUI_RETRIEVE_API_KEY"]);
+        Assert.Equal("grafana;n8n", keyed["ASPIREUI_RETRIEVE_API_HIDDEN"]);
+
+        var b = DistributedApplication.CreateBuilder();
+        b.Configuration["Parameters:retrieve-key"] = "from-param";
+        var fromParam = await EnvAsync(b.AddAspireUI().WithRetrieveApi(b.AddParameter("retrieve-key", secret: true)).Resource);
+        Assert.Equal("from-param", fromParam["ASPIREUI_RETRIEVE_API_KEY"]);
+    }
 }

@@ -102,6 +102,8 @@ This adds the `ghcr.io/fgilde/aspireui` container with:
 | `.WithS3Backups(bucket, accessKey, secretKey, endpoint?, region?, pathStyle?)` | Copy every backup to an S3-compatible bucket. |
 | `.WithWebDavBackups(baseUrl, user, password)` | Copy every backup to a WebDAV share. |
 | `.WithSshBackups(host, user, path, keyFile?, port?)` | Copy every backup to a directory on another machine over scp; the key file is mounted read-only. |
+| `.WithRetrieveApi(apiKey?)` | `GET /api/retrieve/apps` lists the hosted apps and running stacks as `[{ name, kind, healthy, urls }]`. Anonymous without a key; with one (a string or an Aspire `ParameterResource`) callers send it as `X-Api-Key`. Each app or stack can be hidden from its menu. |
+| `.WithRetrieveApiHidden(params names)` | Apps and stacks of these names start out hidden from the retrieve API; they can be shown again from their menu. |
 | `.WithAuditRetention(days)` | How long the activity log keeps an entry (0 = keep everything). |
 | `.WithSettings(s => { … })` | Every setting under AspireUI's own settings, typed: public host, bundled dashboards, proxy, notifications, backup schedule, import limits, activity-log retention and the assistant's backend. Anything left null is not sent. |
 | `.WithSetting(key, parameter)` | One setting whose value is a secret, from an Aspire `ParameterResource`. |
