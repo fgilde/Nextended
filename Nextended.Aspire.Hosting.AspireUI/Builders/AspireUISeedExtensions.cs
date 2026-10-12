@@ -526,11 +526,41 @@ public static class AspireUISeedExtensions
         ArgumentException.ThrowIfNullOrWhiteSpace(authority);
         ArgumentException.ThrowIfNullOrWhiteSpace(clientId);
 
+        builder.WithSetting("OidcAuthority", authority.Trim().TrimEnd('/'));
+        if (!string.IsNullOrWhiteSpace(clientSecret)) builder.WithSetting("OidcClientSecret", clientSecret!);
+        return builder.WithSingleSignOnOptions(clientId, label, scopes, usernameClaim, groupsClaim, adminGroup, autoCreate, defaultPermissions);
+    }
+
+    /// <inheritdoc cref="WithSingleSignOn(IResourceBuilder{AspireUIResource}, string, string, string?, string?, string?, string?, string?, string?, bool, string?)"/>
+    /// <param name="authority">
+    /// The issuer url as the container reaches it, resolved when the stack runs — e.g. the realm of a
+    /// Keycloak resource of the app host on its endpoint: <c>ReferenceExpression.Create($"{keycloak.GetEndpoint("http")}/realms/main")</c>.
+    /// Without a trailing slash. Like every seeded setting it only fills an empty value: an authority whose
+    /// address changes between runs needs <see cref="WithForcedSettings"/> or a container without a data volume.
+    /// </param>
+    /// <param name="clientSecret">The client secret from an Aspire parameter, or null for a public client.</param>
+    public static IResourceBuilder<AspireUIResource> WithSingleSignOn(
+        this IResourceBuilder<AspireUIResource> builder, ReferenceExpression authority, string clientId,
+        IResourceBuilder<ParameterResource>? clientSecret = null, string? label = null, string? scopes = null,
+        string? usernameClaim = null, string? groupsClaim = null, string? adminGroup = null,
+        bool autoCreate = true, string? defaultPermissions = null)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(authority);
+        ArgumentException.ThrowIfNullOrWhiteSpace(clientId);
+
+        builder.WithEnvironment("ASPIREUI_SET_OidcAuthority", authority);
+        if (clientSecret is not null) builder.WithEnvironment("ASPIREUI_SET_OidcClientSecret", clientSecret);
+        return builder.WithSingleSignOnOptions(clientId, label, scopes, usernameClaim, groupsClaim, adminGroup, autoCreate, defaultPermissions);
+    }
+
+    private static IResourceBuilder<AspireUIResource> WithSingleSignOnOptions(
+        this IResourceBuilder<AspireUIResource> builder, string clientId, string? label, string? scopes,
+        string? usernameClaim, string? groupsClaim, string? adminGroup, bool autoCreate, string? defaultPermissions)
+    {
         builder.WithSetting("OidcEnabled", "true")
-               .WithSetting("OidcAuthority", authority.Trim().TrimEnd('/'))
                .WithSetting("OidcClientId", clientId.Trim())
                .WithSetting("OidcAutoCreate", autoCreate ? "true" : "false");
-        if (!string.IsNullOrWhiteSpace(clientSecret)) builder.WithSetting("OidcClientSecret", clientSecret!);
         if (!string.IsNullOrWhiteSpace(label)) builder.WithSetting("OidcLabel", label!.Trim());
         if (!string.IsNullOrWhiteSpace(scopes)) builder.WithSetting("OidcScopes", scopes!.Trim());
         if (!string.IsNullOrWhiteSpace(usernameClaim)) builder.WithSetting("OidcUsernameClaim", usernameClaim!.Trim());

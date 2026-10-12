@@ -286,6 +286,25 @@ public class AspireUISeedTests
     }
 
     [Fact]
+    public async Task Single_sign_on_takes_an_authority_that_is_only_known_when_the_stack_runs()
+    {
+        var b = DistributedApplication.CreateBuilder();
+        var keycloak = b.AddContainer("keycloak", "keycloak/keycloak").WithHttpEndpoint(targetPort: 8080, name: "http");
+        var secret = b.AddParameter("sso-secret", secret: true, value: "from-the-parameter");
+        var env = await EnvAsync(b.AddAspireUI()
+            .WithSingleSignOn(ReferenceExpression.Create($"{keycloak.GetEndpoint("http")}/realms/main"), "aspireui", secret,
+                groupsClaim: "roles", adminGroup: "Administrator")
+            .Resource);
+
+        Assert.Equal("{keycloak.bindings.http.url}/realms/main", env["ASPIREUI_SET_OidcAuthority"]);
+        Assert.Equal("true", env["ASPIREUI_SET_OidcEnabled"]);
+        Assert.Equal("aspireui", env["ASPIREUI_SET_OidcClientId"]);
+        Assert.Equal("roles", env["ASPIREUI_SET_OidcGroupsClaim"]);
+        Assert.Equal("Administrator", env["ASPIREUI_SET_OidcAdminGroup"]);
+        Assert.Equal("from-the-parameter", env["ASPIREUI_SET_OidcClientSecret"]);
+    }
+
+    [Fact]
     public async Task Off_site_backups_pick_one_kind_and_its_own_fields()
     {
         var s3 = await EnvAsync(Add().WithS3Backups("bucket", "AKIA", "shh", endpoint: "https://minio.local",
