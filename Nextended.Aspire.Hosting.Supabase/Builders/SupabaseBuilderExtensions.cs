@@ -211,6 +211,31 @@ public static class SupabaseBuilderExtensions
 
     #endregion
 
+    /// <summary>Where the supabase/postgres image's <c>pgsodium_getkey.sh</c> reads (or creates) the pgsodium/Vault root key.</summary>
+    internal const string PgSodiumImageKeyPath = "/etc/postgresql-custom/pgsodium_root.key";
+
+    /// <summary>
+    /// File name of the persisted root key: beside the data directory on the deployed share, in the
+    /// config folder of a local run.
+    /// </summary>
+    internal const string PgSodiumKeyFile = "pgsodium_root.key";
+
+    /// <summary>
+    /// The root key of a local run, created once: 32 random bytes as 64 hex characters, the format
+    /// the image's script produces. A key written before stays — Vault secrets are encrypted with it.
+    /// </summary>
+    internal static string EnsurePgSodiumKey(string configDir)
+    {
+        var path = Path.Combine(configDir, PgSodiumKeyFile);
+        var existing = File.Exists(path) ? File.ReadAllText(path).Trim() : "";
+        if (existing.Length != 64 || !existing.All(Uri.IsHexDigit))
+        {
+            File.WriteAllText(path, Convert.ToHexString(System.Security.Cryptography.RandomNumberGenerator.GetBytes(32)).ToLowerInvariant());
+            LogInformation($"pgsodium root key created: {path}");
+        }
+        return path;
+    }
+
     /// <summary>
     /// Runs PostgreSQL only while holding an exclusive lock on the data share
     /// (<c>argv[1]</c>), then execs the rest of argv. A POSIX lock belongs to the process and
@@ -478,6 +503,19 @@ public static class SupabaseBuilderExtensions
                 "chown postgres:postgres \"$ROOT\" \"$PGDATA\"\n" +
                 "chmod 0700 \"$ROOT\" \"$PGDATA\"\n" +
                 "echo \"[DB-Init] Step 4b: data directory $PGDATA\"\n" +
+                "\n" +
+                "# Step 4c: pgsodium/Vault root key on the share. The image's pgsodium_getkey.sh keeps it in\n" +
+                "# /etc/postgresql-custom inside the container, so every new container (revision update,\n" +
+                "# node move) started with a new key and Vault secrets written before could no longer be\n" +
+                "# decrypted. The key now lives beside the data directory; the image's script reads it\n" +
+                "# through the link. Created once, exclusively (noclobber), never replaced.\n" +
+                $"KEY_FILE=\"$ROOT/{PgSodiumKeyFile}\"\n" +
+                "[ -s \"$KEY_FILE\" ] || rm -f \"$KEY_FILE\"\n" +
+                "( set -C; umask 077; head -c 32 /dev/urandom | od -A n -t x1 | tr -d ' \\n' > \"$KEY_FILE\" ) 2>/dev/null || true\n" +
+                "chown postgres:postgres \"$KEY_FILE\"\n" +
+                "chmod 0600 \"$KEY_FILE\"\n" +
+                $"ln -sf \"$KEY_FILE\" {PgSodiumImageKeyPath}\n" +
+                "echo '[DB-Init] Step 4c: pgsodium root key kept on the share'\n" +
                 "cat > /tmp/pg-lock.py << 'PYEOF'\n" +
                 PgLockScript +
                 "PYEOF\n" +
@@ -516,7 +554,10 @@ public static class SupabaseBuilderExtensions
 
             dbBuilder
                 .WithBindMount(dirs.Data, "/var/lib/postgresql/data")
-                .WithBindMount(rolesPath, "/docker-entrypoint-initdb.d/init-scripts/99-roles.sql", isReadOnly: true);
+                .WithBindMount(rolesPath, "/docker-entrypoint-initdb.d/init-scripts/99-roles.sql", isReadOnly: true)
+                // The image keeps the pgsodium/Vault root key inside the container: a new container
+                // got a new key and could not decrypt Vault secrets of the old one.
+                .WithBindMount(EnsurePgSodiumKey(dirs.Config), PgSodiumImageKeyPath, isReadOnly: true);
         }
             stack.Database = dbBuilder;
             dbEndpoint = dbBuilder.GetEndpoint("tcp");
