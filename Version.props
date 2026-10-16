@@ -35,7 +35,7 @@
     this baseline are corrected per package in Directory.Packages.props.
   -->
   <PropertyGroup Condition="$(TargetFramework.StartsWith('net10.0'))">
-    <MsVersion>10.0.12</MsVersion>
+    <MsVersion>10.0.13</MsVersion>
   </PropertyGroup>
   <PropertyGroup Condition="$(TargetFramework.StartsWith('net9.0'))">
     <MsVersion>9.0.20</MsVersion>
