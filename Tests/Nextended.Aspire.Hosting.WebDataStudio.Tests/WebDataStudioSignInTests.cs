@@ -78,6 +78,24 @@ public class WebDataStudioSignInTests
     }
 
     [Fact]
+    public async Task WithSingleSignOn_TakesAnAuthorityResolvedWhenTheStackRuns()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+        var issuer = builder.AddParameter("issuer", "https://auth.dev.internal:7302");
+        var studio = builder.AddWebDataStudio()
+            .WithSingleSignOn(ReferenceExpression.Create($"{issuer}"), "studio", label: "Sign in with Shop", scopes: ["openid", "email"]);
+
+        var env = await EnvOf(studio.Resource);
+
+        Assert.Equal("https://auth.dev.internal:7302", env["WDS_OIDC_AUTHORITY"]);
+        Assert.Equal("studio", env["WDS_OIDC_CLIENT_ID"]);
+        Assert.Equal("Sign in with Shop", env["WDS_OIDC_LABEL"]);
+        Assert.Equal("openid,email", env["WDS_OIDC_SCOPES"]);
+        Assert.DoesNotContain("WDS_OIDC_REQUIRE_HTTPS", env.Keys);
+        Assert.NotNull(studio.Resource.SignInAuthority);
+    }
+
+    [Fact]
     public async Task WithSingleSignOn_LeavesHttpsAloneBecauseItIsTheDefault()
     {
         var env = await EnvOf(Add()

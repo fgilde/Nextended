@@ -57,10 +57,45 @@ public static class WebDataStudioSignInExtensions
                 "https://login.microsoftonline.com/<tenant>/v2.0 — " + authority, nameof(authority));
 
         builder.Resource.SignInAuthority = authority;
+        builder = Client(builder.WithEnvironment("WDS_OIDC_AUTHORITY", authority), clientId, clientSecret, label, scopes);
 
-        builder = builder
-            .WithEnvironment("WDS_OIDC_AUTHORITY", authority)
-            .WithEnvironment("WDS_OIDC_CLIENT_ID", clientId);
+        // A provider on plain http is a Keycloak on a laptop, which is exactly what an app host runs.
+        // Saying so here beats a metadata request that fails for a reason nobody can see.
+        if (issuer.Scheme == Uri.UriSchemeHttp)
+            builder = builder.WithEnvironment("WDS_OIDC_REQUIRE_HTTPS", "false");
+
+        return builder;
+    }
+
+    /// <summary>
+    /// Signs people in through an identity provider whose address is only known when the app host
+    /// runs — another resource's endpoint, e.g. an auth server next to the studio, which the
+    /// container reaches by another name than the browser. The provider's metadata has to name the
+    /// browser's addresses for the sign-in page itself.
+    /// </summary>
+    /// <param name="requireHttps">False for a provider on plain http.</param>
+    public static IResourceBuilder<WebDataStudioResource> WithSingleSignOn(
+        this IResourceBuilder<WebDataStudioResource> builder,
+        ReferenceExpression authority,
+        string clientId,
+        IResourceBuilder<ParameterResource>? clientSecret = null,
+        string? label = null,
+        bool requireHttps = true,
+        params string[] scopes)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(authority);
+        ArgumentException.ThrowIfNullOrWhiteSpace(clientId);
+
+        builder.Resource.SignInAuthority = authority.ValueExpression;
+        builder = Client(builder.WithEnvironment("WDS_OIDC_AUTHORITY", authority), clientId, clientSecret, label, scopes);
+        return requireHttps ? builder : builder.WithEnvironment("WDS_OIDC_REQUIRE_HTTPS", "false");
+    }
+
+    private static IResourceBuilder<WebDataStudioResource> Client(IResourceBuilder<WebDataStudioResource> builder,
+        string clientId, IResourceBuilder<ParameterResource>? clientSecret, string? label, string[]? scopes)
+    {
+        builder = builder.WithEnvironment("WDS_OIDC_CLIENT_ID", clientId);
 
         if (clientSecret is not null)
             builder = builder.WithEnvironment("WDS_OIDC_CLIENT_SECRET", clientSecret);
@@ -73,15 +108,7 @@ public static class WebDataStudioSignInExtensions
             .Select(scope => scope.Trim())
             .ToArray();
 
-        if (asked.Length > 0)
-            builder = builder.WithEnvironment("WDS_OIDC_SCOPES", string.Join(",", asked));
-
-        // A provider on plain http is a Keycloak on a laptop, which is exactly what an app host runs.
-        // Saying so here beats a metadata request that fails for a reason nobody can see.
-        if (issuer.Scheme == Uri.UriSchemeHttp)
-            builder = builder.WithEnvironment("WDS_OIDC_REQUIRE_HTTPS", "false");
-
-        return builder;
+        return asked.Length > 0 ? builder.WithEnvironment("WDS_OIDC_SCOPES", string.Join(",", asked)) : builder;
     }
 
     /// <summary>
