@@ -320,7 +320,7 @@ internal sealed class ObservabilityStackContext
 internal static class GrafanaStackDefaults
 {
     public const string GrafanaImage = "grafana/grafana";
-    public const string GrafanaImageTag = "11.5.0";
+    public const string GrafanaImageTag = "13.2.4";
 
     public const string PrometheusImage = "prom/prometheus";
     public const string PrometheusImageTag = "v2.55.1";
