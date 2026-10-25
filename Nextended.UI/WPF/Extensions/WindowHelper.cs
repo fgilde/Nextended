@@ -103,12 +103,13 @@ namespace Nextended.UI.WPF.Extensions
 
 
 		/// <summary>
-		/// Gets the Window handle.
+		/// Gets the Window handle (IntPtr.Zero until the window has been shown). Callable from any thread.
 		/// </summary>
 		public static IntPtr GetHandle(this Window window)
 		{
-			//HwndSource source = (HwndSource)HwndSource.FromVisual(window);
-			return new WindowInteropHelper(Application.Current.MainWindow).Handle;
+			return window.CheckAccess()
+				? new WindowInteropHelper(window).Handle
+				: window.Dispatcher.Invoke(() => window.GetHandle());
 		}
 
 		/// <summary>

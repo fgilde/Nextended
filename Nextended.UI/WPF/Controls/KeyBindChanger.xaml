@@ -3,7 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-             xmlns:local="clr-namespace:Nextended.UI.WPF.Controls"
+             x:Name="Root"
              Loaded="KeyBindChanger_OnLoaded"
              Unloaded="KeyBindChanger_OnUnloaded"
              mc:Ignorable="d"
@@ -18,7 +18,7 @@
         <Grid x:Name="MainGrid" PreviewMouseRightButtonUp="ContextMenu_OnOpened">
             <Grid.ContextMenu>
                 <ContextMenu x:Name="BindContextMenu">
-                    <MenuItem x:Name="DeleteMenuItem" Header="Delete binding" Click="DeleteBinding_Click" />
+                    <MenuItem x:Name="DeleteMenuItem" Click="DeleteBinding_Click" />
                 </ContextMenu>
             </Grid.ContextMenu>
             <Grid.ColumnDefinitions>
@@ -29,16 +29,17 @@
                 <Grid>
                     <Label x:Name="TitleLabel"
                            Padding="2,10,10,10"
-                           Content=""
+                           Visibility="Collapsed"
+                           Foreground="{Binding Foreground, ElementName=Root}"
                            VerticalContentAlignment="Center"
                            FontSize="13" />
 
                     <Border HorizontalAlignment="Right"
                             x:Name="BindButton"
                             Margin="5,7,2,7"
-                            BorderBrush="#55808080"
+                            BorderBrush="{Binding ButtonBorderBrush, ElementName=Root}"
                             BorderThickness="1"
-                            Background="#22808080"
+                            Background="{Binding ButtonBackground, ElementName=Root}"
                             CornerRadius="6"
                             Cursor="Hand"
                             MouseLeftButtonDown="BindButton_OnClick"
@@ -55,6 +56,7 @@
                                        VerticalAlignment="Top" />
                             <Label x:Name="KeyLabel"
                                    Content=""
+                                   Foreground="{Binding Foreground, ElementName=Root}"
                                    FontSize="12"
                                    HorizontalContentAlignment="Center"
                                    VerticalContentAlignment="Center"
@@ -65,12 +67,12 @@
             </Border>
 
             <Label Grid.Column="1"
-                   Visibility="{Binding ShowTimeEdit, RelativeSource={RelativeSource AncestorType=local:KeyBindChanger}, Converter={StaticResource BoolToVis}}"
+                   Visibility="{Binding ShowTimeEdit, ElementName=Root, Converter={StaticResource BoolToVis}}"
                    Content="&#xEC92;"
                    Cursor="Hand"
                    Background="Transparent"
                    FontFamily="Segoe Fluent Icons,Segoe MDL2 Assets"
-                   ToolTip="Configure min hold time"
+                   ToolTip="{Binding MinTimeText, ElementName=Root}"
                    FontSize="11"
                    Margin="-6,10,4,0"
                    HorizontalAlignment="Right"
@@ -78,8 +80,9 @@
                    VerticalAlignment="Center">
                 <Label.Style>
                     <Style TargetType="Label">
+                        <Setter Property="Foreground" Value="{Binding Foreground, ElementName=Root}" />
                         <Style.Triggers>
-                            <DataTrigger Binding="{Binding HasTimeValue, RelativeSource={RelativeSource AncestorType=local:KeyBindChanger}}" Value="True">
+                            <DataTrigger Binding="{Binding HasTimeValue, ElementName=Root}" Value="True">
                                 <Setter Property="Foreground" Value="OrangeRed" />
                             </DataTrigger>
                         </Style.Triggers>
@@ -91,17 +94,18 @@
                    Placement="Mouse"
                    StaysOpen="False"
                    AllowsTransparency="True">
-                <Border Background="#F0303030"
-                        BorderBrush="#55808080"
+                <Border Background="{Binding PopupBackground, ElementName=Root}"
+                        BorderBrush="{Binding ButtonBorderBrush, ElementName=Root}"
+                        TextElement.Foreground="{Binding Foreground, ElementName=Root}"
                         CornerRadius="8"
                         MinWidth="300"
                         BorderThickness="1"
                         Padding="12">
                     <StackPanel>
                         <DockPanel>
-                            <TextBlock x:Name="MinTimeTitle" Foreground="White" Text="Min hold time (seconds)" />
-                            <TextBlock x:Name="MinTimeValueText" Foreground="White" Text="0.0"
+                            <TextBlock x:Name="MinTimeValueText" Text="0.0"
                                        DockPanel.Dock="Right" HorizontalAlignment="Right" />
+                            <TextBlock Text="{Binding MinTimeText, ElementName=Root}" />
                         </DockPanel>
                         <Slider x:Name="MinTimeSlider"
                                 Margin="0,8,0,0"

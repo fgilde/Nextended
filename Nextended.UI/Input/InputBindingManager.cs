@@ -21,12 +21,22 @@ public class InputBindingManager : IDisposable
     /// <summary>Last created instance (the typical app has exactly one).</summary>
     public static InputBindingManager? Instance { get; private set; }
 
-    public InputBindingManager(bool enableGamepad = true)
+    public InputBindingManager(bool enableGamepad = true) : this(enableGamepad, Hook.GlobalEvents)
+    { }
+
+    /// <param name="enableGamepad">Create an XInput gamepad reader lazily on first use.</param>
+    /// <param name="hookFactory">
+    ///     Source of keyboard/mouse events, created on first use. The default constructor installs the
+    ///     global low-level hook; pass another source to feed input from elsewhere (e.g. tests).
+    /// </param>
+    public InputBindingManager(bool enableGamepad, Func<IKeyboardMouseEvents> hookFactory)
     {
         EnableGamepad = enableGamepad;
+        _hookFactory = hookFactory;
         Instance = this;
     }
 
+    private readonly Func<IKeyboardMouseEvents> _hookFactory;
     private IKeyboardMouseEvents? _mEvents;
     private bool _gamepadListen;
     private IGamepadReader? _gamepadReader;
@@ -183,7 +193,7 @@ public class InputBindingManager : IDisposable
     {
         if (_mEvents == null)
         {
-            _mEvents = Hook.GlobalEvents();
+            _mEvents = _hookFactory();
             _mEvents.KeyDown += GlobalHookKeyDown!;
             _mEvents.MouseDown += GlobalHookMouseDown!;
             _mEvents.KeyUp += GlobalHookKeyUp!;

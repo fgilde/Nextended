@@ -55,6 +55,23 @@ public class StoredInputBinding
     [JsonIgnore]
     public string DeviceName => IsCombo ? "Combo" : Device.ToString();
 
+    /// <summary>The key of a single keyboard binding; null for other devices and combos.</summary>
+    [JsonIgnore]
+    public Keys? KeyboardKey => Device == InputDeviceType.Keyboard && Enum.TryParse<Keys>(Key, out var key) ? key : null;
+
+    /// <summary>The button of a single mouse binding; null for other devices and combos.</summary>
+    [JsonIgnore]
+    public MouseButtons? MouseButton => Device == InputDeviceType.Mouse && Enum.TryParse<MouseButtons>(Key, out var button) ? button : null;
+
+    /// <summary>A gamepad event for a single gamepad binding (e.g. to replay it); null for other devices and combos.</summary>
+    public GamepadEventArgs? ToGamepadEventArgs()
+        => Device == InputDeviceType.Gamepad ? new GamepadEventArgs { Button = Key! } : null;
+
+    public bool Is(Keys key) => KeyboardKey == key;
+    public bool Is(MouseButtons button) => MouseButton == button;
+    public bool Is(GamepadButton button) => Device == InputDeviceType.Gamepad && Key == button.ToDescriptionString();
+    public bool Is(GamepadSlider slider) => Device == InputDeviceType.Gamepad && Key == slider.ToDescriptionString();
+
     public static StoredInputBinding Empty => new();
 
     public StoredInputBinding()

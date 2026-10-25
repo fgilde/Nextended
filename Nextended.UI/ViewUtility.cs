@@ -610,6 +610,19 @@ namespace Nextended.UI
 		}
 
 		/// <summary>
+		/// Alle vorfahren von dependencyObject vom Typ T (nächster zuerst), optional gefiltert
+		/// </summary>
+		public static IEnumerable<T> FindAncestors<T>(this DependencyObject dependencyObject, Func<T, bool>? predicate = null)
+			where T : class
+		{
+			for (var target = VisualTreeHelper.GetParent(dependencyObject); target != null; target = VisualTreeHelper.GetParent(target))
+			{
+				if (target is T match && (predicate == null || predicate(match)))
+					yield return match;
+			}
+		}
+
+		/// <summary>
 		/// Sucht die nachfahren des übergebenen WinForm Controls, welches dem angegebenem Typen und dem übergebenem predicate entspricht  
 		/// </summary>
 		public static IEnumerable<T> FindDescendants<T>(this System.Windows.Forms.Control control, Func<T, bool> predicate)

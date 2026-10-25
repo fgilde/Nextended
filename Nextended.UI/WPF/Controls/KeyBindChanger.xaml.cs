@@ -12,14 +12,31 @@ namespace Nextended.UI.WPF.Controls
 {
     public class KeyBindChangedEventArgs : EventArgs
     {
-        public KeyBindChangedEventArgs(StoredInputBinding? oldValue, StoredInputBinding? newValue)
+        public KeyBindChangedEventArgs(StoredInputBinding? oldValue, StoredInputBinding? newValue, bool isUserChange = false)
+        {
+            OldValue = oldValue;
+            NewValue = newValue;
+            IsUserChange = isUserChange;
+        }
+
+        public StoredInputBinding? OldValue { get; }
+        public StoredInputBinding? NewValue { get; }
+
+        /// <summary>True when the user recorded, deleted or re-timed the binding (not a programmatic set).</summary>
+        public bool IsUserChange { get; }
+    }
+
+    /// <summary>Raised before a user edit (record or delete) is applied; set <see cref="CancelEventArgs.Cancel"/> to reject it.</summary>
+    public class KeyBindChangingEventArgs : CancelEventArgs
+    {
+        public KeyBindChangingEventArgs(StoredInputBinding? oldValue, StoredInputBinding newValue)
         {
             OldValue = oldValue;
             NewValue = newValue;
         }
 
         public StoredInputBinding? OldValue { get; }
-        public StoredInputBinding? NewValue { get; }
+        public StoredInputBinding NewValue { get; }
     }
 
     /// <summary>
@@ -27,13 +44,17 @@ namespace Nextended.UI.WPF.Controls
     ///     gamepad — singles and chords like Ctrl+X or LT+A), records a new one on click
     ///     (commit-on-release via the <see cref="BindingManager"/>), supports a per-binding
     ///     min-hold-time and context-menu delete. Persistence is the consumer's job — listen to
-    ///     <see cref="KeyBindChanged"/>.
+    ///     <see cref="KeyBindChanged"/> (and <see cref="KeyBindChanging"/> to veto user edits).
+    ///     Texts and colors are dependency properties so apps can localize and theme it.
     /// </summary>
     public partial class KeyBindChanger : INotifyPropertyChanged, IDisposable
     {
         private readonly string _autoId = $"keybind_{Guid.NewGuid():N}";
         private bool _subscribed;
+        private bool _userChange;
+        private string? _registeredId;
 
+        public event EventHandler<KeyBindChangingEventArgs>? KeyBindChanging;
         public event EventHandler<KeyBindChangedEventArgs>? KeyBindChanged;
         public event EventHandler? KeyDeleted;
         /// <summary>Raised when the registered binding is pressed globally (outside record mode).</summary>
@@ -42,6 +63,8 @@ namespace Nextended.UI.WPF.Controls
         public KeyBindChanger()
         {
             InitializeComponent();
+            // The context menu lives outside the element tree, so its header can't bind to this control.
+            DeleteMenuItem.Header = DeleteBindingText;
         }
 
         #region Dependency properties
@@ -68,7 +91,7 @@ namespace Nextended.UI.WPF.Controls
 
         public static readonly DependencyProperty KeyConfigNameProperty =
             DependencyProperty.Register(nameof(KeyConfigName), typeof(string), typeof(KeyBindChanger),
-                new PropertyMetadata(null));
+                new PropertyMetadata(null, (d, _) => ((KeyBindChanger)d).RefreshRegistration()));
 
         /// <summary>Registration id used with the <see cref="BindingManager"/>. Auto-generated when unset.</summary>
         public string? KeyConfigName
@@ -79,9 +102,14 @@ namespace Nextended.UI.WPF.Controls
 
         public static readonly DependencyProperty TextProperty =
             DependencyProperty.Register(nameof(Text), typeof(string), typeof(KeyBindChanger),
-                new PropertyMetadata(string.Empty, (d, e) => ((KeyBindChanger)d).TitleLabel.Content = e.NewValue));
+                new PropertyMetadata(string.Empty, (d, e) =>
+                {
+                    var title = ((KeyBindChanger)d).TitleLabel;
+                    title.Content = e.NewValue;
+                    title.Visibility = string.IsNullOrEmpty((string?)e.NewValue) ? Visibility.Collapsed : Visibility.Visible;
+                }));
 
-        /// <summary>Optional title shown left of the bind button.</summary>
+        /// <summary>Optional title shown left of the bind button (collapsed while empty).</summary>
         public string Text
         {
             get => (string)GetValue(TextProperty);
@@ -90,13 +118,99 @@ namespace Nextended.UI.WPF.Controls
 
         public static readonly DependencyProperty InvalidTextProperty =
             DependencyProperty.Register(nameof(InvalidText), typeof(string), typeof(KeyBindChanger),
-                new PropertyMetadata("None"));
+                new PropertyMetadata("None", (d, _) => ((KeyBindChanger)d).SetContent(((KeyBindChanger)d).KeyBind)));
 
         /// <summary>Shown on the bind button while no binding is set.</summary>
         public string InvalidText
         {
             get => (string)GetValue(InvalidTextProperty);
             set => SetValue(InvalidTextProperty, value);
+        }
+
+        public static readonly DependencyProperty EmptyToolTipProperty =
+            DependencyProperty.Register(nameof(EmptyToolTip), typeof(string), typeof(KeyBindChanger),
+                new PropertyMetadata("Click to record a binding", (d, _) => ((KeyBindChanger)d).SetContent(((KeyBindChanger)d).KeyBind)));
+
+        /// <summary>Tooltip while no binding is set.</summary>
+        public string EmptyToolTip
+        {
+            get => (string)GetValue(EmptyToolTipProperty);
+            set => SetValue(EmptyToolTipProperty, value);
+        }
+
+        public static readonly DependencyProperty BoundToolTipFormatProperty =
+            DependencyProperty.Register(nameof(BoundToolTipFormat), typeof(string), typeof(KeyBindChanger),
+                new PropertyMetadata("{0}: {1}", (d, _) => ((KeyBindChanger)d).SetContent(((KeyBindChanger)d).KeyBind)));
+
+        /// <summary>Tooltip while a binding is set; {0} = device name (see <see cref="DeviceNameProvider"/>), {1} = key name.</summary>
+        public string BoundToolTipFormat
+        {
+            get => (string)GetValue(BoundToolTipFormatProperty);
+            set => SetValue(BoundToolTipFormatProperty, value);
+        }
+
+        public static readonly DependencyProperty RecordingToolTipProperty =
+            DependencyProperty.Register(nameof(RecordingToolTip), typeof(string), typeof(KeyBindChanger),
+                new PropertyMetadata("Press the key(s) for the new binding"));
+
+        /// <summary>Tooltip while a new binding is being recorded.</summary>
+        public string RecordingToolTip
+        {
+            get => (string)GetValue(RecordingToolTipProperty);
+            set => SetValue(RecordingToolTipProperty, value);
+        }
+
+        public static readonly DependencyProperty DeleteBindingTextProperty =
+            DependencyProperty.Register(nameof(DeleteBindingText), typeof(string), typeof(KeyBindChanger),
+                new PropertyMetadata("Delete binding", (d, e) => ((KeyBindChanger)d).DeleteMenuItem.Header = e.NewValue));
+
+        /// <summary>Header of the context-menu entry that deletes the binding.</summary>
+        public string DeleteBindingText
+        {
+            get => (string)GetValue(DeleteBindingTextProperty);
+            set => SetValue(DeleteBindingTextProperty, value);
+        }
+
+        public static readonly DependencyProperty MinTimeTextProperty =
+            DependencyProperty.Register(nameof(MinTimeText), typeof(string), typeof(KeyBindChanger),
+                new PropertyMetadata("Min hold time (seconds)"));
+
+        /// <summary>Title of the min-hold-time popup and tooltip of its clock icon.</summary>
+        public string MinTimeText
+        {
+            get => (string)GetValue(MinTimeTextProperty);
+            set => SetValue(MinTimeTextProperty, value);
+        }
+
+        public static readonly DependencyProperty ButtonBackgroundProperty =
+            DependencyProperty.Register(nameof(ButtonBackground), typeof(Brush), typeof(KeyBindChanger),
+                new PropertyMetadata(new SolidColorBrush(Color.FromArgb(0x22, 0x80, 0x80, 0x80))));
+
+        public Brush ButtonBackground
+        {
+            get => (Brush)GetValue(ButtonBackgroundProperty);
+            set => SetValue(ButtonBackgroundProperty, value);
+        }
+
+        public static readonly DependencyProperty ButtonBorderBrushProperty =
+            DependencyProperty.Register(nameof(ButtonBorderBrush), typeof(Brush), typeof(KeyBindChanger),
+                new PropertyMetadata(new SolidColorBrush(Color.FromArgb(0x55, 0x80, 0x80, 0x80))));
+
+        public Brush ButtonBorderBrush
+        {
+            get => (Brush)GetValue(ButtonBorderBrushProperty);
+            set => SetValue(ButtonBorderBrushProperty, value);
+        }
+
+        public static readonly DependencyProperty PopupBackgroundProperty =
+            DependencyProperty.Register(nameof(PopupBackground), typeof(Brush), typeof(KeyBindChanger),
+                new PropertyMetadata(SystemColors.ControlBrush));
+
+        /// <summary>Background of the min-hold-time popup; its text uses <see cref="Control.Foreground"/>.</summary>
+        public Brush PopupBackground
+        {
+            get => (Brush)GetValue(PopupBackgroundProperty);
+            set => SetValue(PopupBackgroundProperty, value);
         }
 
         public static readonly DependencyProperty CanRemoveBindingProperty =
@@ -143,7 +257,8 @@ namespace Nextended.UI.WPF.Controls
         public bool HasKeySet { get; private set; }
         public bool InUpdateMode { get; private set; }
 
-        private string EffectiveId => !string.IsNullOrEmpty(KeyConfigName) ? KeyConfigName! : _autoId;
+        /// <summary>The id this control registers its binding under: <see cref="KeyConfigName"/>, or a generated one.</summary>
+        public string BindingId => !string.IsNullOrEmpty(KeyConfigName) ? KeyConfigName! : _autoId;
 
         private static void HandleKeyBindChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
@@ -155,18 +270,23 @@ namespace Nextended.UI.WPF.Controls
 
             self.SetContent(newValue);
             self.SyncRegistration(newValue);
-            self.KeyBindChanged?.Invoke(self, new KeyBindChangedEventArgs(oldValue, newValue));
+            self.KeyBindChanged?.Invoke(self, new KeyBindChangedEventArgs(oldValue, newValue, self._userChange));
             self.OnPropertyChanged(nameof(ShowTimeEdit));
             self.OnPropertyChanged(nameof(HasTimeValue));
         }
 
+        private void RefreshRegistration() => SyncRegistration(KeyBind);
+
         private void SyncRegistration(StoredInputBinding? binding)
         {
             if (BindingManager == null) return;
+            if (_registeredId != null && _registeredId != BindingId)
+                BindingManager.RemoveBinding(_registeredId);
+            _registeredId = BindingId;
             if (binding is { IsValid: true })
-                BindingManager.RegisterBinding(EffectiveId, binding);
+                BindingManager.RegisterBinding(_registeredId, binding);
             else
-                BindingManager.RemoveBinding(EffectiveId);
+                BindingManager.RemoveBinding(_registeredId);
         }
 
         private void KeyBindChanger_OnLoaded(object sender, RoutedEventArgs e)
@@ -186,11 +306,17 @@ namespace Nextended.UI.WPF.Controls
 
         private void OnGlobalKeyHandler(string key)
         {
-            if (!HasKeySet || key != EffectiveId || InUpdateMode) return;
+            if (!HasKeySet || key != BindingId || InUpdateMode) return;
             if (KeyBind?.Device == InputDeviceType.Mouse && (IsMouseOver || BindContextMenu.IsOpen))
                 return;
             BindingPressed?.Invoke(this, EventArgs.Empty);
         }
+
+        /// <summary>
+        ///     Device name shown in the tooltip; defaults to <see cref="StoredInputBinding.DeviceName"/>
+        ///     ("Keyboard", "Mouse", "Gamepad", "Combo"). Set it to localize.
+        /// </summary>
+        public Func<StoredInputBinding, string>? DeviceNameProvider { get; set; }
 
         private void SetContent(StoredInputBinding? keybind)
         {
@@ -199,33 +325,25 @@ namespace Nextended.UI.WPF.Controls
             if (!HasKeySet)
             {
                 KeyLabel.Content = InvalidText;
-                ToolTip = "Click to record a binding";
+                ToolTip = EmptyToolTip;
                 return;
             }
 
-            if (keybind!.IsCombo)
-            {
-                // Chord: pick a device glyph from the components (gamepad > mouse > keyboard) and
-                // join the per-component names. Never feed the synthetic joined Key to
-                // KeyDisplayName.For (it parses a single key and would fail on "Ctrl+X").
-                SetDeviceIcon(GetDeviceGlyph(keybind));
-                var comboName = string.Join(" + ", keybind.Components!.ConvertAll(c => KeyDisplayName.For(c.Key)));
-                ToolTip = comboName;
-                KeyLabel.Content = comboName;
-                return;
-            }
-
+            // Combos join the per-component names; never feed the synthetic joined Key to
+            // KeyDisplayName.For (it parses a single key and would fail on "Ctrl+X").
+            var keyName = keybind!.IsCombo
+                ? string.Join(" + ", keybind.Components!.ConvertAll(c => KeyDisplayName.For(c.Key)))
+                : KeyDisplayName.For(keybind.Key);
             SetDeviceIcon(GetDeviceGlyph(keybind));
-            var keyName = KeyDisplayName.For(keybind.Key);
-            ToolTip = $"{keybind.DeviceName}: {keyName}";
+            ToolTip = string.Format(BoundToolTipFormat, DeviceNameProvider?.Invoke(keybind) ?? keybind.DeviceName, keyName);
             KeyLabel.Content = keyName;
         }
 
         // Segoe Fluent Icons glyphs: gamepad, mouse, keyboard, record-dot.
-        private const string GamepadGlyph = "\uE7FC";
-        private const string MouseGlyph = "\uF8AF";
-        private const string KeyboardGlyph = "\uE765";
-        private const string RecordGlyph = "\uEA3B";
+        private const string GamepadGlyph = "";
+        private const string MouseGlyph = "";
+        private const string KeyboardGlyph = "";
+        private const string RecordGlyph = "";
 
         private static string GetDeviceGlyph(StoredInputBinding keybind)
         {
@@ -265,6 +383,7 @@ namespace Nextended.UI.WPF.Controls
             RecordNewBinding();
         }
 
+        /// <summary>Records the next input(s) from the <see cref="BindingManager"/> as the new binding.</summary>
         public void RecordNewBinding()
         {
             if (InUpdateMode || BindingManager == null)
@@ -275,16 +394,27 @@ namespace Nextended.UI.WPF.Controls
             MainGrid.ContextMenu = null;
             SetDeviceIcon(RecordGlyph, Brushes.Red);
             KeyLabel.Content = "...";
-            ToolTip = "Press the key(s) for the new binding";
-            BindingManager.StartListeningForBinding(EffectiveId);
+            ToolTip = RecordingToolTip;
+            BindingManager.StartListeningForBinding(BindingId);
 
             Action<string, StoredInputBinding>? bindingSetHandler = null;
             bindingSetHandler = (bindingId, key) =>
             {
-                if (bindingId != EffectiveId) return;
+                if (bindingId != BindingId) return;
                 BindingManager.OnBindingSet -= bindingSetHandler;
-                Dispatcher.Invoke(() => KeyBind = key);
-                Task.Delay(700).ContinueWith(_ => Dispatcher.Invoke(() =>
+                var applied = Dispatcher.Invoke(() =>
+                {
+                    if (!ApplyUserChange(key))
+                    {
+                        // Rejected: drop the manager's copy of the recorded binding again.
+                        SyncRegistration(KeyBind);
+                        SetContent(KeyBind);
+                        return false;
+                    }
+                    return true;
+                });
+                // Keep record mode briefly after a commit so the releasing key doesn't fire the new binding.
+                Task.Delay(applied ? 700 : 10).ContinueWith(_ => Dispatcher.BeginInvoke(() =>
                 {
                     InUpdateMode = false;
                     OnPropertyChanged(nameof(ShowTimeEdit));
@@ -295,12 +425,27 @@ namespace Nextended.UI.WPF.Controls
             BindingManager.OnBindingSet += bindingSetHandler;
         }
 
-        private void DeleteBinding_Click(object sender, RoutedEventArgs e)
+        /// <summary>Clears the binding as if the user chose "delete" (subject to <see cref="KeyBindChanging"/>).</summary>
+        public void DeleteBinding()
         {
-            BindingManager?.RemoveBinding(EffectiveId);
-            KeyBind = StoredInputBinding.Empty;
-            KeyDeleted?.Invoke(this, EventArgs.Empty);
+            if (ApplyUserChange(StoredInputBinding.Empty))
+                KeyDeleted?.Invoke(this, EventArgs.Empty);
         }
+
+        private bool ApplyUserChange(StoredInputBinding newValue)
+        {
+            var args = new KeyBindChangingEventArgs(KeyBind, newValue);
+            KeyBindChanging?.Invoke(this, args);
+            if (args.Cancel)
+                return false;
+
+            _userChange = true;
+            try { KeyBind = newValue; }
+            finally { _userChange = false; }
+            return true;
+        }
+
+        private void DeleteBinding_Click(object sender, RoutedEventArgs e) => DeleteBinding();
 
         private void ContextMenu_OnOpened(object sender, MouseButtonEventArgs e)
         {
@@ -324,7 +469,7 @@ namespace Nextended.UI.WPF.Controls
                 return;
             bind.MinTime = e.NewValue;
             SyncRegistration(bind);
-            KeyBindChanged?.Invoke(this, new KeyBindChangedEventArgs(bind, bind));
+            KeyBindChanged?.Invoke(this, new KeyBindChangedEventArgs(bind, bind, isUserChange: true));
             OnPropertyChanged(nameof(HasTimeValue));
         }
 
