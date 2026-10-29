@@ -83,6 +83,13 @@ public class DtoGenerationConfig: CodeGenerationConfigBase
     /// </summary>
     public DefaultMappingSettings? DefaultMappingSettings { get; set; }
 
+    /// <summary>
+    /// When true (default), generated files carry "#nullable enable annotations" if the project enables nullable reference types,
+    /// so the DTOs keep the nullable annotations of their source types. Set to false to keep the generated files nullable-oblivious,
+    /// e.g. when non-nullable reference properties can still be null at runtime and mappers like Mapperly must keep their null checks.
+    /// </summary>
+    public bool EmitNullableAnnotations { get; set; } = true;
+
     public bool OneFilePerClass { get; set; } = true;
     public string[]? Usings { get; set; }
     public bool CreateRegions { get; set; } = true;
