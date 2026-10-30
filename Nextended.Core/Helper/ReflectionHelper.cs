@@ -377,6 +377,8 @@ namespace Nextended.Core.Helper
 		/// <summary>
 		/// Eine instance erzeugen
 		/// </summary>
+		private const int MaxCreationDepth = 32;
+
 		public static object CreateInstance(Type t, bool checkCyclicDependencies = true)
 		{
 			return CreateInstance(t, true, false, checkCyclicDependencies);
@@ -392,6 +394,11 @@ namespace Nextended.Core.Helper
         public static object CreateInstance(Type t, bool allowInterfacesAndAbstractClasses, bool coverUpAbstractMembers, bool checkCyclicDependencies = true, HashSet<Type> processedTypes = null)
         {
             processedTypes ??= new HashSet<Type>();
+
+            // processedTypes is the current creation path. An implementation whose constructor needs an ever larger
+            // generic type (Impl<T>(IFoo<List<T>>)) never repeats a type, so only the depth ends it before the stack does
+            if (processedTypes.Count > MaxCreationDepth)
+                return null;
 
             // Detect recursion or cyclic dependency
             if (checkCyclicDependencies && processedTypes.Contains(t))
