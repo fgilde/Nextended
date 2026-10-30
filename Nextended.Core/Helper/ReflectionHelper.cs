@@ -399,9 +399,6 @@ namespace Nextended.Core.Helper
                 throw new InvalidOperationException($"Cyclic dependency detected while creating an instance of type {t.FullName}");
             }
 
-            // Mark type as processed
-            processedTypes.Add(t);
-
             object result = null;
 
             try
@@ -430,10 +427,20 @@ namespace Nextended.Core.Helper
                     var constructorInfo = t.GetConstructors().OrderBy(info => info.GetParameters().Count()).FirstOrDefault();
                     if (constructorInfo != null)
                     {
-                        var parameters = constructorInfo.GetParameters()
-                                                        .Select(param => CreateInstance(param.ParameterType, true, false, checkCyclicDependencies, processedTypes))
-                                                        .ToArray();
-                        result = constructorInfo.Invoke(parameters);
+                        // t is on the creation path only while its parameters are created, so a parameter needing t is a cycle
+                        // but two parameters of the same type are not
+                        processedTypes.Add(t);
+                        try
+                        {
+                            var parameters = constructorInfo.GetParameters()
+                                                            .Select(param => CreateInstance(param.ParameterType, true, false, checkCyclicDependencies, processedTypes))
+                                                            .ToArray();
+                            result = constructorInfo.Invoke(parameters);
+                        }
+                        finally
+                        {
+                            processedTypes.Remove(t);
+                        }
                     }
                 }
                 catch (Exception ex)
@@ -512,9 +519,20 @@ namespace Nextended.Core.Helper
                 throw new InvalidOperationException($"Cyclic dependency detected while creating an instance for interface/abstract type {interfaceType.FullName}");
             }
 
-            // Add type to the processed list to avoid recursion
+            // Add type to the processed list to avoid recursion, removed again when done so siblings of the same type are no cycle
             processedTypes.Add(interfaceType);
+            try
+            {
+                return CreateInstanceFromInterfaceOrAbstractTypeCore(interfaceType, coverUpAbstractMembers, checkCyclicDependencies, processedTypes);
+            }
+            finally
+            {
+                processedTypes.Remove(interfaceType);
+            }
+        }
 
+        private static object CreateInstanceFromInterfaceOrAbstractTypeCore(Type interfaceType, bool coverUpAbstractMembers, bool checkCyclicDependencies, HashSet<Type> processedTypes)
+        {
             // If the type is an IEnumerable, create an appropriate list or dictionary
             if (typeof(IEnumerable).IsAssignableFrom(interfaceType))
             {
