@@ -1,7 +1,7 @@
 <Project>
   <PropertyGroup>
-    <UsedCorePackageVersion>10.1.47</UsedCorePackageVersion>
-    <PackageVersion>10.1.48</PackageVersion>
+    <UsedCorePackageVersion>10.1.50</UsedCorePackageVersion>
+    <PackageVersion>10.1.51</PackageVersion>
     <AspireVersion>13.6.4</AspireVersion>
   </PropertyGroup>
 
