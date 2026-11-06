@@ -246,6 +246,17 @@ public sealed class SupabaseStackResource : ContainerResource, IResourceWithConn
     /// </summary>
     internal string? ScriptsDir { get; set; }
 
+    // --- OAuth (Supabase Auth as provider) ---
+
+    /// <summary>Clients signing in with this stack's accounts (<c>AddOAuthClient</c>), registered on every start.</summary>
+    internal List<SupabaseOAuthClient> OAuthClients { get; } = [];
+
+    /// <summary>
+    /// The address browsers reach the API (Kong) under, when it is not Kong's own endpoint — a
+    /// custom domain (<c>WithPublicUrl</c>). Sign-in redirects are built from it.
+    /// </summary>
+    internal string? PublicUrl { get; set; }
+
     // --- Dashboard Login ---
 
     /// <summary>Dashboard login username (null = no login required).</summary>

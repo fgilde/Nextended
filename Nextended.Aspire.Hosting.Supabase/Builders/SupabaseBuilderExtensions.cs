@@ -1082,9 +1082,12 @@ public static class SupabaseBuilderExtensions
                     }
                     context.EnvironmentVariables["POST_INIT_SQL_GZ_PARTS"] = parts.ToString();
 
-                    context.EnvironmentVariables["POST_INIT_VAR_NAMES"] = string.Join(' ', stack.PostInitSqlVariables.Keys);
+                    var oauthVariables = stack.OAuthClients.Select((_, i) => SupabaseOAuthClient.RedirectVariable(i));
+                    context.EnvironmentVariables["POST_INIT_VAR_NAMES"] = string.Join(' ', stack.PostInitSqlVariables.Keys.Concat(oauthVariables));
                     foreach (var (name, value) in stack.PostInitSqlVariables)
                         context.EnvironmentVariables[$"POST_INIT_VAR_{name}"] = value;
+                    for (var i = 0; i < stack.OAuthClients.Count; i++)
+                        context.EnvironmentVariables[$"POST_INIT_VAR_{SupabaseOAuthClient.RedirectVariable(i)}"] = stack.OAuthClients[i].JoinedRedirectUris();
                 })
                 // Azure Container Apps has internal DNS - container name works without FQDN
                 .WithEnvironment("DB_HOST", dbEndpoint.Property(EndpointProperty.Host))
@@ -1103,6 +1106,16 @@ public static class SupabaseBuilderExtensions
             initContainer = builder.AddContainer($"{containerPrefix}-init", Images.Postgres, Images.PostgresTag)
                 .WithContainerName($"{containerPrefix}-init")
                 .WithBindMount(stack.ScriptsDir, "/scripts", isReadOnly: true)
+                // OAuth clients: their redirect URIs as psql variables, resolved to the addresses on
+                // the host (what the browser is sent back to) — see oauth_clients.sql below.
+                .WithEnvironment(async context =>
+                {
+                    context.EnvironmentVariables["POST_INIT_VAR_NAMES"] =
+                        string.Join(' ', stack.OAuthClients.Select((_, i) => SupabaseOAuthClient.RedirectVariable(i)));
+                    for (var i = 0; i < stack.OAuthClients.Count; i++)
+                        context.EnvironmentVariables[$"POST_INIT_VAR_{SupabaseOAuthClient.RedirectVariable(i)}"] =
+                            await OAuthBuilderExtensions.HostValueAsync(stack.OAuthClients[i].JoinedRedirectUris(), context.CancellationToken);
+                })
                 .WithEntrypoint("/bin/bash")
                 .WithArgs("/scripts/post_init.sh")
                 .WaitFor(dbWait)
@@ -1298,6 +1311,13 @@ public static class SupabaseBuilderExtensions
             var postInitShPath = Path.Combine(scriptsDir, "post_init.sh");
             SupabaseSqlGenerator.WritePostInitScript(postInitShPath, postInitDbHost, seedPassword);
 
+            // Rewritten every start (the folder persists): without clients the file must go.
+            var oauthClientsPath = Path.Combine(scriptsDir, "oauth_clients.sql");
+            if (stack.OAuthClients.Count > 0)
+                File.WriteAllText(oauthClientsPath, SupabaseOAuthClient.RegistrationSql(stack.OAuthClients).Replace("\r\n", "\n"));
+            else if (File.Exists(oauthClientsPath))
+                File.Delete(oauthClientsPath);
+
             LogInformation("Post-init SQL files written.");
             return Task.CompletedTask;
         });
@@ -1398,6 +1418,8 @@ public static class SupabaseBuilderExtensions
             combinedSql.AppendLine(snippet);
             combinedSql.AppendLine();
         }
+
+        combinedSql.AppendLine(SupabaseOAuthClient.RegistrationSql(stack.OAuthClients));
 
         return combinedSql.ToString();
     }

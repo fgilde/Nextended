@@ -32,6 +32,8 @@ Ebenso ausführlich und ebenfalls englisch ist das Paket-README:
 
 Auf Azure Container Apps lassen sich auch Datenbank und Dateien dauerhaft halten (NFS + MinIO) und der Observability-Stack mitdeployen: Grafana speichert seinen Zustand in einer eigenen Datenbank `grafana` der Supabase-Postgres und liest über das Nur-Lese-Login `grafana_reader`, Loki und Tempo speichern in die MinIO-Buckets `loki` und `tempo`, angemeldet wird mit eigenem Admin-Login oder per Entra ID. Details in der englischen Referenz.
 
+Anmeldung über die eigenen Konten: `WithOAuthServer()` macht Supabase Auth zum OAuth-2.1-Anbieter, `AddOAuthClient(…)` registriert Clients (öffentlich, PKCE, feste Client-ID), `WithCustomAccessTokenHook()` ergänzt Claims wie Rechte. Studio meldet sich damit statt per Basic Auth an (`WithSupabaseLogin(claim, value)`, oder über Keycloak: `WithOAuthLogin(StudioOAuthOptions.Keycloak(…))`), Grafana mit `grafana.WithSupabaseLogin(supabase, …)`. Für die App selbst gibt es fremde Anbieter: `WithKeycloak(…)`, `WithExternalProvider("github", …)`. Details in der englischen Referenz.
+
 Secrets (JWT-Secret, Keys, DB-, MinIO- und Admin-Passwort) lassen sich als Aspire-Parameter übergeben (`builder.AddParameter(..., secret: true)`). Lokal werden sie aus der Konfiguration aufgelöst; deployed bleiben sie Referenzen und landen als Container-App-Secrets in den Containern, nie als Klartext in Manifest oder Bicep.
 
 ## Ausführbares Beispiel

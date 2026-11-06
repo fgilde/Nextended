@@ -459,6 +459,58 @@ These users:
 
 ---
 
+## Sign-in: OAuth provider, external providers, Studio login
+
+**Supabase Auth as OAuth 2.1 provider** — other tools sign in with the app's accounts
+("Sign in with MyApp"):
+
+```csharp
+var supabase = builder.AddSupabase("supabase")
+    .WithOAuthServer()                 // consent page of the app: /oauth/consent (default)
+    .WithCustomAccessTokenHook();      // public.custom_access_token_hook adds claims, e.g. "permissions"
+
+// Any client: public, PKCE, a stable client id per stack and name, upserted on every start.
+var tool = supabase.AddOAuthClient("My Tool", ReferenceExpression.Create($"https://tool.example.com/callback"));
+// tool.ClientId → hand it to the tool
+```
+
+The app serves the consent page: it reads `authorization_id`, shows the request with
+`supabase.auth.oauth.getAuthorizationDetails(id)` and answers with `approveAuthorization(id)` /
+`denyAuthorization(id)`; after a first approval Auth forwards at once (`redirect_url`). Kong lets
+`/auth/v1/oauth/*` through without an apikey. With the usual HS256 JWT secret Auth signs no ID
+tokens — request no `openid` scope and read the claims from the access token (both integrations
+below do). Locally the site URL is the frontend's address on the host, so the consent redirect
+reaches the browser.
+
+**Studio behind a sign-in instead of basic auth** — the login proxy in front of Studio does
+OpenID Connect with PKCE and a signed session cookie (8 h); only a token whose claim holds the
+value gets in:
+
+```csharp
+// The stack's own accounts (registers the client "Supabase Studio"):
+supabase.WithSupabaseLogin(claim: "permissions", value: "studio.manage", publicUrl: "https://studio.example.com");
+
+// Or any OpenID Connect provider, e.g. a Keycloak realm (client role "studio-admin" in a "roles" claim):
+supabase.WithOAuthLogin(StudioOAuthOptions.Keycloak("https://sso.example.com/realms/company", "studio", secret));
+```
+
+The redirect URI is `{studio-url}/__oauth/callback`. Grafana signs in the same way with
+`grafana.WithSupabaseLogin(supabase, GrafanaOAuthOptions.Roles("permissions", grafanaAdmins: ["grafana.manage"]))`
+— in `AddObservabilityStack(supabase, o => o.ConfigureGrafana = g => …)`.
+
+**External providers for the app** — "Sign in with Keycloak / Azure / Google …" on the app's
+own login page (`supabase.auth.signInWithOAuth({ provider })`):
+
+```csharp
+supabase.WithKeycloak("https://sso.example.com/realms/company", "my-app", keycloakSecret);
+supabase.WithExternalProvider("github", "client-id", githubSecret);
+supabase.WithPublicUrl("https://api.example.com");  // custom domain of the API: links and redirects
+```
+
+Register `{api-url}/auth/v1/callback` at the provider.
+
+---
+
 ## Dashboard Commands
 
 Add a "Clear All Data" button to the Aspire dashboard:

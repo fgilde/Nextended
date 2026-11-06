@@ -373,6 +373,14 @@ if [ -f /scripts/users.sql ]; then
     psql -h $DB_HOST -U $DB_USER -d postgres -f /scripts/users.sql
 fi
 
+# OAuth-Clients (WithOAuthClient): die Redirect-URIs kommen als POST_INIT_VAR_<name> an
+if [ -f /scripts/oauth_clients.sql ]; then
+    echo "[Post-Init] Registriere OAuth-Clients..."
+    set --
+    for n in $POST_INIT_VAR_NAMES; do set -- "$@" -v "$n=$(printenv "POST_INIT_VAR_$n")"; done
+    psql -h $DB_HOST -U $DB_USER -d postgres "$@" -f /scripts/oauth_clients.sql
+fi
+
 echo "[Post-Init] Erfolgreich abgeschlossen"
 """;
     }
@@ -692,6 +700,20 @@ services:
         strip_path: true
         paths:
           - /auth/v1/authorize
+    plugins:
+      - name: cors
+
+  # Supabase Auth as OAuth 2.1 provider (WithOAuthServer): the browser (authorize) and the
+  # clients (token, userinfo) come without an apikey — client id, PKCE and the user's token
+  # authenticate there, Auth checks them itself. One prefix, as /auth/v1/oauth/authorize would
+  # also catch the consent API /auth/v1/oauth/authorizations/….
+  - name: auth-v1-open-oauth
+    url: {authUrl}/oauth/
+    routes:
+      - name: auth-v1-open-oauth
+        strip_path: true
+        paths:
+          - /auth/v1/oauth/
     plugins:
       - name: cors
 

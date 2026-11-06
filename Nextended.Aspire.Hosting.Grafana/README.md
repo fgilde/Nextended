@@ -129,6 +129,8 @@ Where the browser and Grafana reach Keycloak differently — a Keycloak containe
 
 The preset reads the client roles `grafana-admin`, `admin`, `editor` and `viewer` from a `roles` claim — in Keycloak a "User Client Role" mapper with token claim name `roles`, added to the ID token and userinfo. `GrafanaOAuthOptions.Roles("groups", admins: ["ops"], viewers: ["staff"])` maps names in any claim array instead; someone matching none is turned away.
 
+**The accounts of a Supabase stack** sign in with `grafana.WithSupabaseLogin(supabase, roleAttributePath)` from `Nextended.Aspire.Hosting.Supabase` — Supabase Auth as provider, a public client with PKCE, the role from a claim of the access token (e.g. `GrafanaOAuthOptions.Roles("permissions", grafanaAdmins: ["grafana.manage"])`). In `AddObservabilityStack` it goes into `ConfigureGrafana`, which runs on the Grafana resource after all other options.
+
 With `Nextended.Aspire.Hosting.Supabase`, `AddObservabilityStack(supabase, …)` sets storage and database up from the Supabase stack itself.
 
 ## Notes

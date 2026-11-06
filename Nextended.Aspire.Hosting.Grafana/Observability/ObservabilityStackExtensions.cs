@@ -140,6 +140,7 @@ public static class ObservabilityStackExtensions
             // Last, so it overrides the anonymous/admin settings above.
             if (options.GrafanaEntraId is { } entra) grafana.WithEntraIdLogin(entra);
             if (options.GrafanaOAuth is { } oauth) grafana.WithOAuthLogin(oauth);
+            options.ConfigureGrafana?.Invoke(grafana);
         }
 
         return builder;

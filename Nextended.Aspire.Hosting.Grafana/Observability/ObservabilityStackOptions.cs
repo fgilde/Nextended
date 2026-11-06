@@ -142,6 +142,12 @@ public sealed class ObservabilityStackOptions
 
     /// <summary>Sign-in through another OpenID Connect provider (Keycloak, Authentik, Auth0, Okta …); replaces the login form and basic auth.</summary>
     public GrafanaOAuthOptions? GrafanaOAuth { get; set; }
+
+    /// <summary>
+    /// Runs on the Grafana resource after everything above is applied — for what the options do not
+    /// cover, e.g. <c>grafana.WithSupabaseLogin(supabase, …)</c> from the Supabase package.
+    /// </summary>
+    public Action<IResourceBuilder<GrafanaResource>>? ConfigureGrafana { get; set; }
 }
 
 /// <summary>An S3-compatible bucket (e.g. MinIO) for Loki or Tempo.</summary>

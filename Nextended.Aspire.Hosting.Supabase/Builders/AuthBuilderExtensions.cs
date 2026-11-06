@@ -45,8 +45,7 @@ public static class AuthBuilderExtensions
         if (stack.Auth is null)
             throw new InvalidOperationException("Auth not configured. Ensure AddSupabase() has been called.");
 
-        var frontendEndpoint = frontendResource.GetEndpoint("http");
-        stack.Auth.WithEnvironment("GOTRUE_SITE_URL", frontendEndpoint);
+        stack.Auth.WithFrontendSiteUrl(frontendResource);
         return builder;
     }
 
@@ -172,9 +171,22 @@ public static class AuthBuilderExtensions
         this IResourceBuilder<SupabaseAuthResource> builder,
         IResourceBuilder<T> frontendResource) where T : IResourceWithEndpoints
     {
+        return builder.WithFrontendSiteUrl(frontendResource);
+    }
+
+    /// <summary>
+    /// The frontend's address as site URL — the one a browser has: deployed the public endpoint,
+    /// locally the address on the host. (Locally the reference resolved to the container-network
+    /// name, e.g. aspire.dev.internal:60349, and every link and sign-in redirect built from the site
+    /// URL — mails, the OAuth consent page — pointed at an address no browser reaches.)
+    /// </summary>
+    private static IResourceBuilder<SupabaseAuthResource> WithFrontendSiteUrl<T>(
+        this IResourceBuilder<SupabaseAuthResource> auth, IResourceBuilder<T> frontendResource) where T : IResourceWithEndpoints
+    {
         var frontendEndpoint = frontendResource.GetEndpoint("http");
-        builder.WithEnvironment("GOTRUE_SITE_URL", frontendEndpoint);
-        return builder;
+        if (auth.ApplicationBuilder.ExecutionContext.IsPublishMode)
+            return auth.WithEnvironment("GOTRUE_SITE_URL", frontendEndpoint);
+        return auth.WithEnvironment(context => context.EnvironmentVariables["GOTRUE_SITE_URL"] = frontendEndpoint.Url);
     }
 
     /// <summary>

@@ -414,20 +414,36 @@ public static class GrafanaBuilderExtensions
             if (!Uri.TryCreate(url, UriKind.Absolute, out var uri) || (uri.Scheme != Uri.UriSchemeHttps && uri.Scheme != Uri.UriSchemeHttp))
                 throw new ArgumentException($"{name} is an absolute http(s) URL of the provider — {url}", nameof(oauth));
 
-        grafana
-            .WithEnvironment("GF_AUTH_GENERIC_OAUTH_ENABLED", "true")
-            .WithEnvironment("GF_AUTH_GENERIC_OAUTH_NAME", oauth.Name)
-            .WithEnvironment("GF_AUTH_GENERIC_OAUTH_CLIENT_ID", oauth.ClientId)
-            .WithEnvironment("GF_AUTH_GENERIC_OAUTH_CLIENT_SECRET", oauth.ClientSecret)
-            .WithEnvironment("GF_AUTH_GENERIC_OAUTH_SCOPES", oauth.Scopes)
+        return grafana
+            .WithGenericOAuth(oauth.Name, oauth.ClientId, oauth.ClientSecret, oauth.Scopes, oauth.RoleAttributePath)
             .WithEnvironment("GF_AUTH_GENERIC_OAUTH_AUTH_URL", oauth.AuthUrl)
             .WithEnvironment("GF_AUTH_GENERIC_OAUTH_TOKEN_URL", oauth.TokenUrl)
-            .WithEnvironment("GF_AUTH_GENERIC_OAUTH_API_URL", oauth.ApiUrl)
+            .WithEnvironment("GF_AUTH_GENERIC_OAUTH_API_URL", oauth.ApiUrl);
+    }
+
+    /// <summary>
+    /// Generic OAuth without its three endpoint URLs, which the caller sets — they may be known only
+    /// at run time (a provider in the same app model, see the Supabase package). No
+    /// <paramref name="clientSecret"/> = a public client: PKCE alone, client id in the token request body.
+    /// </summary>
+    internal static IResourceBuilder<GrafanaResource> WithGenericOAuth(this IResourceBuilder<GrafanaResource> grafana,
+        string name, string clientId, ReferenceExpression? clientSecret, string scopes, string roleAttributePath)
+    {
+        grafana
+            .WithEnvironment("GF_AUTH_GENERIC_OAUTH_ENABLED", "true")
+            .WithEnvironment("GF_AUTH_GENERIC_OAUTH_NAME", name)
+            .WithEnvironment("GF_AUTH_GENERIC_OAUTH_CLIENT_ID", clientId)
+            .WithEnvironment("GF_AUTH_GENERIC_OAUTH_SCOPES", scopes)
             .WithEnvironment("GF_AUTH_GENERIC_OAUTH_ALLOW_SIGN_UP", "true")
             .WithEnvironment("GF_AUTH_GENERIC_OAUTH_USE_PKCE", "true")
-            .WithEnvironment("GF_AUTH_GENERIC_OAUTH_ROLE_ATTRIBUTE_PATH", oauth.RoleAttributePath)
+            .WithEnvironment("GF_AUTH_GENERIC_OAUTH_ROLE_ATTRIBUTE_PATH", roleAttributePath)
             .WithEnvironment("GF_AUTH_GENERIC_OAUTH_ROLE_ATTRIBUTE_STRICT", "true")
             .WithEnvironment("GF_AUTH_GENERIC_OAUTH_ALLOW_ASSIGN_GRAFANA_ADMIN", "true");
+
+        if (clientSecret is not null)
+            grafana.WithEnvironment("GF_AUTH_GENERIC_OAUTH_CLIENT_SECRET", clientSecret);
+        else
+            grafana.WithEnvironment("GF_AUTH_GENERIC_OAUTH_AUTH_STYLE", "InParams");
 
         return grafana.WithSignInOnly();
     }

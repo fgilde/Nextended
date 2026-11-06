@@ -34,4 +34,9 @@
     <PackageReference Include="Microsoft.IdentityModel.JsonWebTokens" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- The login proxy in front of Studio (WithLogin / WithOAuthLogin / WithSupabaseLogin). -->
+    <EmbeddedResource Include="Resources\studio-auth-proxy.js" LogicalName="studio-auth-proxy.js" />
+  </ItemGroup>
+
 </Project>

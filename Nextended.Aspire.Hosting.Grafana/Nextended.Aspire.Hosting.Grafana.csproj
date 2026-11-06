@@ -21,4 +21,9 @@
     <PackageReference Include="Aspire.Hosting.PostgreSQL" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- Supabase as Grafana's sign-in (WithSupabaseLogin) uses the generic OAuth core. -->
+    <InternalsVisibleTo Include="Nextended.Aspire.Hosting.Supabase" />
+  </ItemGroup>
+
 </Project>
