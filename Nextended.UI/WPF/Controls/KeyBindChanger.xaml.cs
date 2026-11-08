@@ -182,6 +182,17 @@ namespace Nextended.UI.WPF.Controls
             set => SetValue(MinTimeTextProperty, value);
         }
 
+        public static readonly DependencyProperty RangeTextProperty =
+            DependencyProperty.Register(nameof(RangeText), typeof(string), typeof(KeyBindChanger),
+                new PropertyMetadata("Press range (min / max)"));
+
+        /// <summary>Title of the trigger press-range section (shown for LT/RT bindings only).</summary>
+        public string RangeText
+        {
+            get => (string)GetValue(RangeTextProperty);
+            set => SetValue(RangeTextProperty, value);
+        }
+
         public static readonly DependencyProperty ButtonBackgroundProperty =
             DependencyProperty.Register(nameof(ButtonBackground), typeof(Brush), typeof(KeyBindChanger),
                 new PropertyMetadata(new SolidColorBrush(Color.FromArgb(0x22, 0x80, 0x80, 0x80))));
@@ -253,7 +264,7 @@ namespace Nextended.UI.WPF.Controls
         #endregion
 
         public bool ShowTimeEdit => KeyBind is { IsValid: true } && CanEditMinTime;
-        public bool HasTimeValue => KeyBind is { IsValid: true, MinTime: > 0 };
+        public bool HasTimeValue => KeyBind is { IsValid: true } k && (k.MinTime > 0 || k is { IsAnalog: true, HasRange: true });
         public bool HasKeySet { get; private set; }
         public bool InUpdateMode { get; private set; }
 
@@ -267,6 +278,8 @@ namespace Nextended.UI.WPF.Controls
             var oldValue = (StoredInputBinding?)e.OldValue;
             if (newValue != null && oldValue is { IsValid: true, MinTime: > 0 } && newValue.MinTime <= 0)
                 newValue.SetMinTime(oldValue.MinTime);
+            if (newValue is { IsAnalog: true, HasRange: false } && oldValue is { IsAnalog: true, HasRange: true })
+                (newValue.MinValue, newValue.MaxValue) = (oldValue.MinValue, oldValue.MaxValue);
 
             self.SetContent(newValue);
             self.SyncRegistration(newValue);
@@ -459,7 +472,38 @@ namespace Nextended.UI.WPF.Controls
         private void ConfigureMinTimeLabel_OnClick(object sender, MouseButtonEventArgs e)
         {
             MinTimeSlider.Value = KeyBind?.MinTime ?? 0;
+            _settingRange = true;
+            RangeMaxSlider.Value = (KeyBind?.MaxValue ?? 1) * 100;
+            RangeMinSlider.Value = (KeyBind?.MinValue ?? 0) * 100;
+            _settingRange = false;
+            ShowRange();
+            RangePanel.Visibility = KeyBind is { IsAnalog: true } ? Visibility.Visible : Visibility.Collapsed;
             TimeSliderPopup.IsOpen = true;
+        }
+
+        private bool _settingRange;
+
+        private void ShowRange() => RangeValueText.Text = $"{RangeMinSlider.Value:0} - {RangeMaxSlider.Value:0} %";
+
+        private void RangeSlider_OnValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        {
+            if (RangeMinSlider == null || RangeMaxSlider == null || RangeValueText == null) return; // during InitializeComponent
+            if (_settingRange) return;
+            _settingRange = true;
+            // Keep min <= max: dragging one past the other pushes it along.
+            if (RangeMinSlider.Value > RangeMaxSlider.Value)
+            {
+                if (sender == RangeMinSlider) RangeMaxSlider.Value = RangeMinSlider.Value;
+                else RangeMinSlider.Value = RangeMaxSlider.Value;
+            }
+            _settingRange = false;
+            ShowRange();
+            if (KeyBind is not { IsAnalog: true } bind) return;
+            bind.MinValue = RangeMinSlider.Value > 0 ? RangeMinSlider.Value / 100 : null;
+            bind.MaxValue = RangeMaxSlider.Value < 100 ? RangeMaxSlider.Value / 100 : null;
+            SyncRegistration(bind);
+            KeyBindChanged?.Invoke(this, new KeyBindChangedEventArgs(bind, bind, isUserChange: true));
+            OnPropertyChanged(nameof(HasTimeValue));
         }
 
         private void MinTimeSlider_OnValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)

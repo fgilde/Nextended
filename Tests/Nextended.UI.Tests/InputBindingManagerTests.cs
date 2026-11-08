@@ -1,5 +1,6 @@
 using System.Windows.Forms;
 using Nextended.UI.Input;
+using Nextended.UI.Input.Gamepad;
 
 namespace Nextended.UI.Tests;
 
@@ -58,4 +59,43 @@ public class InputBindingManagerTests
         Assert.Equal(Keys.LShiftKey, recorded.Value.Binding.Components![0].KeyboardKey);
         Assert.Same(recorded.Value.Binding, _manager.Bindings["rec"]);
     }
+
+    private sealed class FakePad : IGamepadReader
+    {
+        public bool IsConnected => true;
+        public event EventHandler<GamepadEventArgs>? ButtonEvent;
+        public bool IsPressed(string button) => false;
+        // Like the readers: pressed by a fixed global threshold, value always reported.
+        public void Trigger(string name, float value)
+            => ButtonEvent?.Invoke(this, new GamepadEventArgs { Button = name, Value = value, IsPressed = value >= 0.7f });
+        public void Dispose() { }
+    }
+
+    [Fact]
+    public void A_trigger_range_decides_held_instead_of_the_global_threshold()
+    {
+        var pad = new FakePad();
+        _manager.AttachGamepadReader(pad);
+        var events = new List<string>();
+        _manager.OnBindingPressed += id => events.Add("down:" + id);
+        _manager.OnBindingReleased += id => events.Add("up:" + id);
+        var light = new StoredInputBinding(GamepadSlider.LeftTrigger) { MinValue = 0.1, MaxValue = 0.5 };
+        _manager.RegisterBinding("light", light);
+        _manager.RegisterBinding("plain", GamepadSlider.LeftTrigger);
+
+        pad.Trigger("LT", 0.3f); // below the global 70 %, inside the range
+        Assert.Equal(["down:light"], events);
+        Assert.True(light.IsHolding());
+
+        pad.Trigger("LT", 0.9f); // past the range, past the global threshold
+        Assert.Equal(["down:light", "up:light", "down:plain"], events);
+        Assert.False(light.IsHolding());
+
+        pad.Trigger("LT", 0f);
+        Assert.Equal(["down:light", "up:light", "down:plain", "up:plain"], events);
+    }
+
+    [Fact]
+    public void A_range_starting_at_zero_does_not_count_a_released_trigger()
+        => Assert.False(new StoredInputBinding(GamepadSlider.RightTrigger) { MaxValue = 0.4 }.InRange(0));
 }

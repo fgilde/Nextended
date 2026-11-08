@@ -51,6 +51,8 @@ public class InputBindingManager : IDisposable
     private static readonly ConcurrentDictionary<string, byte> _heldKeys = new();
     // When each currently-held chord first became fully held (for combo MinTime).
     private static readonly ConcurrentDictionary<StoredInputBinding, DateTime> _comboHeldSince = new();
+    // Last analog value (0..1) per device-qualified input, for bindings with a press range.
+    private static readonly ConcurrentDictionary<string, double> _analogValues = new();
     // Recording accumulator — press order preserved so a modifier held first is listed first.
     private readonly List<StoredInputBinding> _recordPressed = new();
     private bool _recordStarted;
@@ -103,9 +105,10 @@ public class InputBindingManager : IDisposable
     {
         if (binding is not { IsValid: true }) return false;
 
-        if (binding.IsCombo)
+        if (binding.IsCombo || binding.HasRange)
         {
-            // A chord counts as held only while ALL its components are in the live held set.
+            // A chord counts as held only while ALL its components are in the live held set; a ranged
+            // trigger only while its value is inside the range.
             if (!IsHeldNow(binding)) { _comboHeldSince.TryRemove(binding, out _); return false; }
             if (duration == null || duration <= TimeSpan.Zero) return true;
             // Lazily stamp when the chord first became fully held — works whether or not the chord
@@ -139,9 +142,13 @@ public class InputBindingManager : IDisposable
     // True when the binding is fully held right now: a single → its key in the held set; a combo
     // → every component key in the held set.
     private static bool IsHeldNow(StoredInputBinding b) =>
-        b.IsCombo
-            ? b.Components!.All(c => _heldKeys.ContainsKey(Qual(c)))
-            : _heldKeys.ContainsKey(Qual(b));
+        b.IsCombo ? b.Components!.All(IsSingleHeld) : IsSingleHeld(b);
+
+    // A ranged trigger is held by its live value, everything else by the reader's pressed state.
+    private static bool IsSingleHeld(StoredInputBinding s) =>
+        s.HasRange
+            ? _analogValues.TryGetValue(Qual(s), out var v) && s.InRange(v)
+            : _heldKeys.ContainsKey(Qual(s));
 
     private void UpdateHoldingState(StoredInputBinding binding, bool isPressed)
     {
@@ -214,7 +221,9 @@ public class InputBindingManager : IDisposable
     private void GamepadReader_ButtonEvent(object? sender, GamepadEventArgs e)
     {
         if (e.IsStickEvent) return; // sticks are never bindings
-        OnRawInput(new StoredInputBinding(e), e.IsPressed == true);
+        var raw = new StoredInputBinding(e);
+        if (e.Value is { } value && raw.IsValid) _analogValues[Qual(raw)] = value;
+        OnRawInput(raw, e.IsPressed == true);
     }
 
     private void InvokeBindingReleased(KeyValuePair<string, StoredInputBinding> binding)

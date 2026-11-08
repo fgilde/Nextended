@@ -114,6 +114,19 @@
                                 TickFrequency="0.1"
                                 IsSnapToTickEnabled="True"
                                 ValueChanged="MinTimeSlider_OnValueChanged" />
+                        <StackPanel x:Name="RangePanel" Margin="0,14,0,0" Visibility="Collapsed">
+                            <DockPanel>
+                                <TextBlock x:Name="RangeValueText" Text="0 - 100 %"
+                                           DockPanel.Dock="Right" HorizontalAlignment="Right" />
+                                <TextBlock Text="{Binding RangeText, ElementName=Root}" />
+                            </DockPanel>
+                            <Slider x:Name="RangeMinSlider" Margin="0,8,0,0" Minimum="0" Maximum="100"
+                                    TickFrequency="5" IsSnapToTickEnabled="True"
+                                    ValueChanged="RangeSlider_OnValueChanged" />
+                            <Slider x:Name="RangeMaxSlider" Margin="0,4,0,0" Minimum="0" Maximum="100" Value="100"
+                                    TickFrequency="5" IsSnapToTickEnabled="True"
+                                    ValueChanged="RangeSlider_OnValueChanged" />
+                        </StackPanel>
                     </StackPanel>
                 </Border>
             </Popup>

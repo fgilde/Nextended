@@ -41,6 +41,27 @@ public class StoredInputBinding
     /// </summary>
     public List<StoredInputBinding>? Components { get; set; }
 
+    /// <summary>
+    ///     Press range (0..1) of an analog trigger binding (see <see cref="IsAnalog"/>): it counts as held
+    ///     only while the trigger is pressed and its value lies in [MinValue, MaxValue]. Both null = the
+    ///     reader's own pressed state. Not part of <see cref="Equals(StoredInputBinding?)"/> (like MinTime).
+    /// </summary>
+    public double? MinValue { get; set; }
+
+    /// <inheritdoc cref="MinValue"/>
+    public double? MaxValue { get; set; }
+
+    /// <summary>True when a press range is set (<see cref="MinValue"/> or <see cref="MaxValue"/>).</summary>
+    [JsonIgnore]
+    public bool HasRange => MinValue != null || MaxValue != null;
+
+    /// <summary>A single gamepad trigger (LT/RT) whose pressure can be given a <see cref="MinValue"/>/<see cref="MaxValue"/> range.</summary>
+    [JsonIgnore]
+    public bool IsAnalog => !IsCombo && Device == InputDeviceType.Gamepad && (Key == "LT" || Key == "RT");
+
+    /// <summary>Whether an analog <paramref name="value"/> (0..1) counts as held under this binding's range.</summary>
+    public bool InRange(double value) => value > 0 && value >= (MinValue ?? 0) && value <= (MaxValue ?? 1);
+
     /// <summary>True when this binding is a multi-input chord rather than a single input.</summary>
     [JsonIgnore]
     public bool IsCombo => Components is { Count: > 0 };
@@ -156,6 +177,8 @@ public class StoredInputBinding
     {
         Key = Key,
         Device = Device,
+        MinValue = MinValue,
+        MaxValue = MaxValue,
         Components = Components?.Select(c => c.WithoutMinTime()).ToList(),
     };
 
