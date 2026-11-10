@@ -7,10 +7,12 @@ namespace MyGenerated.Code.Test {
 		public static void AssignTo(this CodeGenSample.Entities.DerivedGenericClassWithInt src, MyGenerated.Code.Test.DerivedGenericClassWithIntDto dest) 
 		{
 			if (src == null || dest == null) return;
+			((CodeGenSample.Entities.DerivedGenericClass<int>)src).AssignTo(( DerivedGenericClassDto<int> )dest);
 		}
 		public static void AssignTo(this MyGenerated.Code.Test.DerivedGenericClassWithIntDto src, CodeGenSample.Entities.DerivedGenericClassWithInt dest) 
 		{
 			if (src == null || dest == null) return;
+			((DerivedGenericClassDto<int>)src).AssignTo(( CodeGenSample.Entities.DerivedGenericClass<int> )dest);
 		}
 		public static MyGenerated.Code.Test.DerivedGenericClassWithIntDto ToDto(this CodeGenSample.Entities.DerivedGenericClassWithInt src) 
 		{

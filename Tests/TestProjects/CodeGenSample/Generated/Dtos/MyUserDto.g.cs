@@ -26,6 +26,7 @@ namespace MyGenerated.Code.Test {
 	[System.Text.Json.Serialization.JsonNumberHandling(System.Text.Json.Serialization.JsonNumberHandling.AllowReadingFromString)]
 	public partial class MyUserDto :  MyGenerated.Code.Test.EntityBaseDto, IMyUserDto 
 	{
+		[System.ComponentModel.DataAnnotations.MaxLength(3)]
 		public string Name { get; set; }
 		public MyGeneration.AddressDto ThatUserAddress { get; set; }
 		public MyGeneration.AddressDto? AnotherAddress { get; set; }
