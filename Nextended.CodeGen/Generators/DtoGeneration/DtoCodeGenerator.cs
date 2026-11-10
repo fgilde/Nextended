@@ -434,6 +434,7 @@ public class DtoCodeGenerator
         // einmalig, wird in den einzelnen Typ-Dateien wiederverwendet
         var dtoTypeDict = types.ToDictionary(t => t.ToDisplayString(), t => t);
 
+        var mapperly = new MapperlyMapperEmitter(_config!, _symbols, _compilation);
         foreach (var type in types)
         {
             var autoGenAttr = type.ClassCfg(_symbols);
@@ -445,12 +446,10 @@ public class DtoCodeGenerator
 
             if (MapperlyMapperEmitter.CanUse(type, autoGenAttr))
             {
-                resultFiles.Add(new MapperlyMapperEmitter(_config!, _symbols, _compilation)
-                    .Emit(type, autoGenAttr, dtoTypeDict, ns, _config?.MappingOutputPath ?? _config?.OutputPath));
+                resultFiles.Add(mapperly.Emit(type, autoGenAttr, dtoTypeDict, ns, _config?.MappingOutputPath ?? _config?.OutputPath));
                 continue;
             }
 
-            var mapperly = new MapperlyMapperEmitter(_config!, _symbols, _compilation);
             if (mapperly.HasDerivedTypeMapper(type, autoGenAttr, dtoTypeDict)
                 && mapperly.EmitDerivedTypeMapper(type, autoGenAttr, dtoTypeDict, ns, _config?.MappingOutputPath ?? _config?.OutputPath) is { } derivedTypeMapper)
                 resultFiles.Add(derivedTypeMapper);
