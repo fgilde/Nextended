@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "name": "Nextended",
+  "repository": "https://github.com/fgilde/Nextended",
+  "revision": "main",
+  "output": ".libmentor",
+  "exclude": [
+    "**/*.de.md",
+    "docs/de/**",
+    "**/node_modules/**"
+  ],
+  "examples": [],
+  "guidance": [
+    "This is a source snapshot. Check the installed package version and API evidence before suggesting code."
+  ],
+  "description": "Extension packages for .NET, Blazor, EF Core and Aspire.",
+  "version": "10.1.51-source",
+  "documents": [
+    "README.md",
+    "Nextended.*/README.md",
+    "docs/**/*.md"
+  ],
+  "sources": [
+    "Nextended.*/**/*.cs"
+  ],
+  "packages": [
+    "Nextended.Core",
+    "Nextended.Blazor",
+    "Nextended.EF",
+    "Nextended.Aspire"
+  ],
+  "baseUrl": "https://fgilde.github.io/Nextended/ai"
+}
