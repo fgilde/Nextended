@@ -33,6 +33,7 @@ Binding rules for every step:
 | Fluent configuration, phase 1 (same assembly) | done, not released | branch `feat/codegen-fluent`, design: `docs/projects/codegen-fluent-design.md` |
 | Fluent configuration, phase 2 (central config project) | idea | |
 | Coworkee: views and fluent config shown in the template and docs | open | CoworkeeLib |
+| Qualified DTO names (constraints, base casts), mapping without `DeepProperties` | done, not released | branch `fix/codegen-qualified-names` |
 
 ### DTO views — done (branch `feat/codegen-views`)
 
@@ -80,6 +81,27 @@ Binding rules for every step:
 - [ ] Next fluent steps: `AddMember<T>(name)` for views (shadow keys, PoC d), `Property(...).Type<T>()` with a converter (PoC d),
       `EmitAll` (one file for all DTOs), TypeScript hooks on the same builders, phase 2 (central config project, needs the symbol-free spec),
       real incremental pipeline (profiles → equatable spec).
+
+### Qualified DTO names — done (branch `fix/codegen-qualified-names`)
+
+- [x] `DtoGenerationSymbols.DtoTypeReference`: a DTO/view named in generated code is the bare name where it lives in the namespace of the
+      file, else `global::Namespace.Name`. Used where the name was written without any namespace: the DTO of a generic constraint
+      (`where TUnitDto : HubCodeDto`, PoC c; DTO files and mapping files) and the base mapping cast in `AssignTo` (`(( BaseDto )dest)`).
+      Same namespace → output unchanged (CodeGenSample, CargonerdsApp). CoShipee can drop its `global using HubCodeDto = ...` alias.
+- [x] Every other place that writes a DTO/view/enum name already prefixed it with its explicit `Namespace` (property types, explicit
+      interface implementations, base DTOs, mapping signatures, `new`, `MapTo<...>` targets, enum casts, Mapperly `MapDerivedType`,
+      `UseStaticMapper` (mapper names are qualified with the mapping namespace)); left as it is for byte-identical output.
+- [x] The base mapping call of a generic type with a non generic base no longer passes the type's own type arguments
+      (`((Entity)src).AssignTo<T>(...)` did not compile); a generic base keeps them (sample unchanged).
+- [x] Extension mapping without `DeepProperties` maps every member its DTO class declares (the declared-only name filter is gone): a member
+      the derived DTO re-declares because the base DTO leaves it out is mapped. With `DeepProperties` (CargonerdsApp, CoShipee) the filter
+      never removed anything, so the output is the same.
+- [x] Tests: `DtoGenerationTests` +4 methods, 5 cases (constraint and base cast in another namespace, extensions and Mapperly; the CoShipee view case for
+      both strategies; re-declared member without `DeepProperties`); `FluentConfigTests` runs the specific-rule test without its two
+      workarounds (`DeepProperties`, base DTO moved into the mapping namespace). All 57 tests of the project green.
+- [x] Golden: CodeGenSample and CodeGenFluentSample unchanged. CargonerdsApp Hub.Domain (HEAD 7421d3805, package 10.1.57-local.qualify1):
+      181 generated files byte-identical, the same 13 stale leftovers.
+- [x] Docs EN ("Where the files land") and DE (settings table).
 
 ### TypeScript generation — to redo
 
@@ -206,9 +228,8 @@ flowchart TB
 - From the CoShipee PoC on 10.1.55 (2026-11-11): (a) `PreClassString`/kept attributes of a member typed by a DTO class go onto the
   explicit interface implementation (`DtoCodeGenerator`: "gets its attributes on the explicit interface implementation below"), so JSON
   attributes such as `[JsonPropertyOrder]` have no effect there — should optionally go on the public property; (b) member order of views
-  (fluent `BaseMembersFirst`/`Order`, see the fluent design); (c) BUG: `MappingExtensions.g.Dimension.HubDimensionDto.cs` writes
-  `where TUnitDto : HubCodeDto` without namespace (a view type in a generic constraint is not fully qualified; CoShipee uses a global
-  alias); (d) views with extra members (shadow keys like `QuotationId`) and member type changes (`Guid` → `Guid?` with a converter) —
+  (fluent `BaseMembersFirst`/`Order`, see the fluent design); (c) fixed on `fix/codegen-qualified-names` (constraint names the view
+  qualified); (d) views with extra members (shadow keys like `QuotationId`) and member type changes (`Guid` → `Guid?` with a converter) —
   planned fluent operations `AddMember<T>`/`Property(...).Type<T>()`; (e) a view of an abstract type cannot merge members of several
   subtypes (`MarginPlaceDto`).
 
@@ -216,11 +237,16 @@ flowchart TB
   (`Properties = [...]` instead of a long `PropertiesToIgnore`) does not exist; `[IgnoreOnGeneration]` cannot be undone for one view;
   a `PropertyNames` rename on a default DTO reaches only the members that DTO declares (inherited ones live in the base DTO).
 - Shared views of unrelated entities (no common base) are not supported by design (`NCG011`); a shared base type is required.
-- Extension mapping without `DeepProperties`: a derived type maps only the members it declares itself (`GetDtoProperties`), so a member
-  its DTO class re-declares because the base DTO leaves it out (attribute `PropertiesToIgnore` on the base, or a fluent `Include`) is not
-  mapped. With `DeepProperties` (CargonerdsApp, CoShipee) it is. Fix later (changes output for non-deep users).
-- BUG (same family as PoC c): the base mapping cast in `AssignTo` (`(( BaseDto )dest)`) is not namespace-qualified, so a base DTO in
-  another namespace than the mapping file does not compile.
+- `DeepProperties = false` does not do what the docs say ("the DTO only carries its own declared properties"): the DTO class always takes
+  the members of non generated bases (`GetDtoPropertiesDeep`), while `PropertyInBaseType` looks only at the members a generated base
+  declares itself. With `Plain { Origin }`, `[AutoGenerateDto] Entity : Plain`, `[AutoGenerateDto] Customer : Entity` both `EntityDto` and
+  `CustomerDto` declare `Origin` (CS0108). Owner decision: follow the docs (changes DTO output for non-deep users) or treat the members
+  of non generated bases as always taken (then `DeepProperties` only decides what a generated base DTO owns).
+- Without any `Namespace` (none in the json, none on the attribute) a DTO lands in `<source namespace>.Generated` and the mapping files in
+  `Nextended.CodeGen.Generated`; property types, mapping signatures and Mapperly attributes prefix only an explicit `Namespace`, so
+  references across those namespaces stay bare (the mapping files have no usings; from reading the code, not reproduced). Constraints
+  and base casts already qualify there.
+  Fix would thread the file namespace into `GetNamespacePrefixString`/`GetQualifiedDtoTypeName`.
 - Generated files written to disk are side effects of the generator: with the shared compiler server (`UseSharedCompilation`, the
   default) deleted files are not written again while the generator's inputs are unchanged (the incremental pipeline caches the step).
   For a golden check build with `-p:UseSharedCompilation=false` (that is how the CargonerdsApp check runs).

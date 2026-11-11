@@ -657,11 +657,10 @@ public class FluentConfigTests
                 }
             }
             """;
-        // DeepProperties as in CargonerdsApp/CoShipee: without it the extension mapping of a derived type maps only the members the type
-        // declares itself (an open point of the mapping, the same for attributes), the DTO class carries TenantId either way
-        // (base DTO in the mapping namespace: a base mapping cast to a DTO of another namespace is not qualified, an open point)
-        var entities = CodeEntities.Replace(", Namespace = \"Shop.Codes\"", "");
-        var (files, diagnostics) = Run(Config(c => c.DeepProperties = true), entities, profile);
+        // without DeepProperties: the mapping of Currency maps the TenantId its DTO declares; the DTOs live in Shop.Codes, the mapping
+        // in Shop.Contracts, so the base mapping casts to the qualified base DTO
+        var entities = CodeEntities;
+        var (files, diagnostics) = Run(Config(), entities, profile);
 
         NoDiagnostics(diagnostics);
         File(files, "CodeEntityDto.g.cs").ShouldNotContain("TenantId");
@@ -670,7 +669,9 @@ public class FluentConfigTests
         File(files, "CurrencyRowDto.g.cs").ShouldContain("TenantId");
         File(files, "CountryRowDto.g.cs").ShouldContain("TenantId");
         File(files, "CountryLiteDto.g.cs").ShouldNotContain("TenantId");
-        files.Single(f => f.FileName == "MappingExtensions.g.Currency.cs").Content.ShouldContain("dest.TenantId = src.TenantId");
+        var currencyMapping = File(files, "MappingExtensions.g.Currency.cs");
+        currencyMapping.ShouldContain("dest.TenantId = src.TenantId");
+        currencyMapping.ShouldContain("((Shop.Domain.CodeEntity)src).AssignTo(( global::Shop.Codes.CodeEntityDto )dest);");
         CompileWithGenerated(CompileWithInTreeAttributes(entities, profile), files);
     }
 

@@ -2569,6 +2569,11 @@ Writing to `OutputPath` puts the generated code **in your repository** rather th
 makes review diffs meaningful and lets you inspect what the generator actually produced — which is why
 the sample project checks its output in.
 
+The mapping files share one namespace (the configuration's `Namespace`), while a DTO or view can have
+a `Namespace` of its own. Generated code names such a DTO with its namespace wherever the file lives
+in another one, also in generic constraints (`where TUnitDto : global::MyApp.Contracts.Hub.HubCodeDto`)
+and in the casts to a base DTO; no `global using` or alias is needed for it.
+
 ---
 
 ## Walkthrough: the CodeGenSample project

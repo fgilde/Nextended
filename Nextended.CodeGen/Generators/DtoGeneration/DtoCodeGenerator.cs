@@ -365,7 +365,7 @@ public class DtoCodeGenerator
     /// The base type whose generated AssignTo the mapping calls first, as cast targets for both sides: null when the base has no DTO.
     /// A constructed generic base (Item : Base&lt;int&gt;) is found through its open definition, its DTO arguments are replaced by their DTOs.
     /// </summary>
-    private (string NetName, string DtoName)? BaseMapping(INamedTypeSymbol? baseType, Dictionary<string, INamedTypeSymbol> dtoTypeDict, Func<string, string>? renameTypeParameter)
+    private (string NetName, string DtoName)? BaseMapping(INamedTypeSymbol? baseType, Dictionary<string, INamedTypeSymbol> dtoTypeDict, Func<string, string>? renameTypeParameter, string ns)
     {
         if (baseType == null)
             return null;
@@ -386,7 +386,7 @@ public class DtoCodeGenerator
         var baseAutoGenAttr = baseTypeSymbol!.ClassCfg(_symbols);
         if (baseAutoGenAttr == null)
             return null;
-        var baseDtoName = DtoGenerationSymbols.GetDtoClassName(baseType, baseAutoGenAttr, false); // ohne Generics
+        var baseDtoName = _symbols.DtoTypeReference(baseTypeSymbol, baseAutoGenAttr, ns); // ohne Generics
         return (baseType.ToDisplayString(), baseDtoName + _symbols.GenericArgumentsWithDtoSubstitution(baseType, dtoTypeDict, renameTypeParameter));
     }
 
@@ -505,10 +505,10 @@ public class DtoCodeGenerator
             var genericConstr = split
                 ? string.Join(" ", new[]
                 {
-                    type.GenerateGenericConstraintsWithDtoSubstitution(_symbols, dtoTypeDict, substitute: false),
-                    type.GenerateGenericConstraintsWithDtoSubstitution(_symbols, dtoTypeDict, tp => dtoTypeParameters.ContainsKey(tp.Name), RenameToDto)
+                    type.GenerateGenericConstraintsWithDtoSubstitution(_symbols, dtoTypeDict, ns, substitute: false),
+                    type.GenerateGenericConstraintsWithDtoSubstitution(_symbols, dtoTypeDict, ns, tp => dtoTypeParameters.ContainsKey(tp.Name), RenameToDto)
                 }.Where(c => c.Length > 0))
-                : type.GenerateGenericConstraintsWithDtoSubstitution(_symbols, dtoTypeDict);
+                : type.GenerateGenericConstraintsWithDtoSubstitution(_symbols, dtoTypeDict, ns);
             var callGenerics = split ? "" : genericParams; // with two parameter lists the compiler infers them from src and dest
             var reverseMapping = !(_config?.DefaultMappingSettings?.SkipReverseMapping ?? false);
 
@@ -526,12 +526,6 @@ public class DtoCodeGenerator
             {
                 var comProps = _symbols.GetDtoPropertiesDeep(type, _symbols.Ignore).ToList();
                 var baseType = type.BaseType;
-
-                // --- Hilfsmenge: Welche DTO-Propertynamen werden für DIESEN Typ generiert? ---
-                var generatedDtoPropNamesThisType = new HashSet<string>(
-                    _symbols.GetDtoProperties(type, _symbols.Ignore)
-                        .Select(p => DtoGenerationSymbols.GetDtoPropertyName(p, p.PropertyCfg(_symbols))),
-                    StringComparer.Ordinal);
 
                 // === AssignTo: Net -> DTO ===
                 if (shouldGenerateBeforeAfterAssigns)
@@ -551,18 +545,14 @@ public class DtoCodeGenerator
                 }
 
                 // Basismapping (Net -> DTO)
-                var baseMapping = isView ? null : BaseMapping(baseType, dtoTypeDict, split ? RenameToDto : null);
-                var callGen = callGenerics;
+                var baseMapping = isView ? null : BaseMapping(baseType, dtoTypeDict, split ? RenameToDto : null, ns);
+                var callGen = baseType is { IsGenericType: true } ? callGenerics : ""; // a non generic base has a non generic AssignTo
                 if (baseMapping != null)
                     sb.AppendLine($"\t\t\t(({baseMapping.Value.NetName})src).AssignTo{callGen}(( {baseMapping.Value.DtoName} )dest);");
 
-                // Eigene Properties (Net -> DTO)
+                // Eigene Properties (Net -> DTO): every member the DTO class declares (the same selection as GenerateClass)
                 foreach (var prop in comProps.Where(prop => !InBaseDto(prop, type, dtoTypeDict)))
                 {
-                    var dtoName = DtoGenerationSymbols.GetDtoPropertyName(prop, prop.PropertyCfg(_symbols));
-                    if (!generatedDtoPropNamesThisType.Contains(dtoName))
-                        continue;
-
                     var m = GeneratePropertyMappingAssignment(prop, dtoTypeDict, reverse: false, dtoTypeParameters);
                     classMapperUsedForType = classMapperUsedForType || m.ClassMapperUsed;
                     sb.AppendLine(m.Result.Replace("result.", "dest."));
@@ -601,10 +591,6 @@ public class DtoCodeGenerator
 
                     foreach (var prop in comProps.Where(prop => !InBaseDto(prop, type, dtoTypeDict)))
                     {
-                        var dtoName = DtoGenerationSymbols.GetDtoPropertyName(prop, prop.PropertyCfg(_symbols));
-                        if (!generatedDtoPropNamesThisType.Contains(dtoName))
-                            continue;
-
                         var m = GeneratePropertyMappingAssignment(prop, dtoTypeDict, reverse: true, dtoTypeParameters);
                         classMapperUsedForType = classMapperUsedForType || m.ClassMapperUsed;
                         sb.AppendLine(m.Result.Replace("result.", "dest."));
@@ -971,7 +957,7 @@ public class DtoCodeGenerator
         var comCompatible = classAttr.IsComCompatible;
 
         var genericConstraints =
-            type.GenerateGenericConstraintsWithDtoSubstitution(_symbols, dtoTypeDict);
+            type.GenerateGenericConstraintsWithDtoSubstitution(_symbols, dtoTypeDict, Namespace(type));
         classAttr.Interfaces ??= _config.Interfaces;
 
         var baseTypeStr = _symbols.GetBaseTypeString(type, classAttr, dtoTypeDict, true);
@@ -1024,7 +1010,7 @@ public class DtoCodeGenerator
         var genericParams = addGeneric ? DtoGenerationSymbols.GetGenericTypeParameters(type) : "";
         var comCompatible = classAttr.IsComCompatible;
 
-        var genericConstraints = type.GenerateGenericConstraintsWithDtoSubstitution(_symbols, dtoTypeDict);
+        var genericConstraints = type.GenerateGenericConstraintsWithDtoSubstitution(_symbols, dtoTypeDict, Namespace(type));
 
         var baseTypeStr = _symbols.GetBaseTypeString(type, [], dtoTypeDict, false)?.Replace(":", "");
         if (string.IsNullOrWhiteSpace(baseTypeStr))
