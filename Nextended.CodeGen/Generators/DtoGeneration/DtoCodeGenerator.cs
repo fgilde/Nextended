@@ -142,7 +142,8 @@ public class DtoCodeGenerator
     private (string Result, bool ClassMapperUsed) GeneratePropertyMappingAssignment(
         IPropertySymbol netProp,
         Dictionary<string, INamedTypeSymbol> dtoTypeDict,
-        bool reverse)
+        bool reverse,
+        IReadOnlyDictionary<string, string>? dtoTypeParameters = null)
     {
         var propAttr = netProp.PropertyCfg(_symbols);
         var netPropName = netProp.Name;
@@ -155,9 +156,13 @@ public class DtoCodeGenerator
 
         static ITypeSymbol Normalize(ITypeSymbol t) => DtoGenerationSymbols.NormalizeForLookup(t);
 
+        Func<string, string>? renameTypeParameter = dtoTypeParameters is { Count: > 0 }
+            ? name => dtoTypeParameters.TryGetValue(name, out var dtoName) ? dtoName : name
+            : null;
+
         (string Line, bool Used) MapAssign(string dst, string src, ITypeSymbol type, bool toNet, bool isNullable)
         {
-            var targetType = DtoGenerationSymbols.BuildMappingTargetTypeString(type, toNet, dtoTypeDict, _symbols);
+            var targetType = DtoGenerationSymbols.BuildMappingTargetTypeString(type, toNet, dtoTypeDict, _symbols, renameTypeParameter);
             var expr = isNullable ? $"{src}?.MapTo<{targetType}>()" : $"{src}.MapTo<{targetType}>()";
             return ($"\t\t\t{dst} = {expr};", true);
         }
@@ -188,6 +193,10 @@ public class DtoCodeGenerator
             return ($"\t\t\t// skipped '{netPropName}': source not publicly readable", false);
         if (!destWritable)
             return ($"\t\t\t// skipped '{netPropName}': destination not publicly writable", false);
+
+        // A member typed by a type parameter that has its own DTO side counterpart (TUnit -> TUnitDto): only the class mapper knows both
+        if (dtoTypeParameters is { Count: > 0 } && ContainsTypeParameter(netPropType, dtoTypeParameters))
+            return MapAssign($"result.{targetName}", $"src.{sourceName}", netPropType, reverse, netProp.IsNullable());
 
         // ------------------------------
         // 1) Enums
@@ -331,6 +340,61 @@ public class DtoCodeGenerator
         return ($"\t\t\tresult.{targetName} = src.{sourceName};", false);
     }
 
+    /// <summary>
+    /// Type parameters whose constraints name a type with a DTO, with the name of their DTO side counterpart (TUnit -> TUnitDto).
+    /// Empty when the DTO can use the source's type parameters as they are.
+    /// </summary>
+    private static Dictionary<string, string> DtoTypeParameterNames(INamedTypeSymbol type, Dictionary<string, INamedTypeSymbol> dtoTypeDict)
+    {
+        var result = new Dictionary<string, string>(StringComparer.Ordinal);
+        var taken = new HashSet<string>(type.TypeParameters.Select(tp => tp.Name), StringComparer.Ordinal);
+        foreach (var tp in type.TypeParameters.Where(tp => tp.ConstraintTypes.Any(c => DtoGenerationSymbols.HasDtoSubstitution(c, dtoTypeDict))))
+        {
+            var name = tp.Name + "Dto";
+            while (!taken.Add(name))
+                name += "Dto";
+            result[tp.Name] = name;
+        }
+        return result;
+    }
+
+    /// <summary>
+    /// The base type whose generated AssignTo the mapping calls first, as cast targets for both sides: null when the base has no DTO.
+    /// A constructed generic base (Item : Base&lt;int&gt;) is found through its open definition, its DTO arguments are replaced by their DTOs.
+    /// </summary>
+    private (string NetName, string DtoName)? BaseMapping(INamedTypeSymbol? baseType, Dictionary<string, INamedTypeSymbol> dtoTypeDict, Func<string, string>? renameTypeParameter)
+    {
+        if (baseType == null)
+            return null;
+        var exact = dtoTypeDict.TryGetValue(baseType.ToDisplayString(), out var baseTypeSymbol);
+        if (!exact)
+        {
+            // the open definition of a constructed generic base; its mapping exists only when it generates one
+            baseTypeSymbol = DtoGenerationSymbols.FindDtoType(baseType, dtoTypeDict);
+            if (baseTypeSymbol == null || !baseTypeSymbol.ClassCfg(_symbols).GenerateMapping)
+                return null;
+            // AssignTo<T>(Base<T>, BaseDto<T>) cannot take Base<Address> and BaseDto<AddressDto>; only a parameter with a DTO side
+            // counterpart (AssignTo<TUnit, TUnitDto>) can. ponytail: those members stay unmapped as before; the Mapperly strategy maps them.
+            var baseSplit = DtoTypeParameterNames(baseTypeSymbol, dtoTypeDict);
+            for (var i = 0; i < baseType.TypeArguments.Length; i++)
+                if (DtoGenerationSymbols.HasDtoSubstitution(baseType.TypeArguments[i], dtoTypeDict) && !baseSplit.ContainsKey(baseTypeSymbol.TypeParameters[i].Name))
+                    return null;
+        }
+        var baseAutoGenAttr = baseTypeSymbol!.ClassCfg(_symbols);
+        if (baseAutoGenAttr == null)
+            return null;
+        var baseDtoName = DtoGenerationSymbols.GetDtoClassName(baseType, baseAutoGenAttr, false); // ohne Generics
+        return (baseType.ToDisplayString(), baseDtoName + _symbols.GenericArgumentsWithDtoSubstitution(baseType, dtoTypeDict, renameTypeParameter));
+    }
+
+    private static bool ContainsTypeParameter(ITypeSymbol type, IReadOnlyDictionary<string, string> names) => type switch
+    {
+        ITypeParameterSymbol tp => names.ContainsKey(tp.Name),
+        IArrayTypeSymbol array => ContainsTypeParameter(array.ElementType, names),
+        INamedTypeSymbol named => named.TypeArguments.Any(a => ContainsTypeParameter(a, names)),
+        _ => false
+    };
+
     // required members are set by AssignTo right after construction
     private static string RequiredInitializer(IEnumerable<string> members)
     {
@@ -370,6 +434,7 @@ public class DtoCodeGenerator
         // einmalig, wird in den einzelnen Typ-Dateien wiederverwendet
         var dtoTypeDict = types.ToDictionary(t => t.ToDisplayString(), t => t);
 
+        var mapperly = new MapperlyMapperEmitter(_config!, _symbols, _compilation);
         foreach (var type in types)
         {
             var autoGenAttr = type.ClassCfg(_symbols);
@@ -381,10 +446,13 @@ public class DtoCodeGenerator
 
             if (MapperlyMapperEmitter.CanUse(type, autoGenAttr))
             {
-                resultFiles.Add(new MapperlyMapperEmitter(_config!, _symbols, _compilation)
-                    .Emit(type, autoGenAttr, dtoTypeDict, ns, _config?.MappingOutputPath ?? _config?.OutputPath));
+                resultFiles.Add(mapperly.Emit(type, autoGenAttr, dtoTypeDict, ns, _config?.MappingOutputPath ?? _config?.OutputPath));
                 continue;
             }
+
+            if (mapperly.HasDerivedTypeMapper(type, autoGenAttr, dtoTypeDict)
+                && mapperly.EmitDerivedTypeMapper(type, autoGenAttr, dtoTypeDict, ns, _config?.MappingOutputPath ?? _config?.OutputPath) is { } derivedTypeMapper)
+                resultFiles.Add(derivedTypeMapper);
 
             bool classMapperUsedForType = false;
             bool atLeastOneGeneratedForType = false;
@@ -402,7 +470,24 @@ public class DtoCodeGenerator
                 var dtoTypeName = DtoGenerationSymbols.GetDtoClassName(type, autoGenAttr, false);
                 var comTypeNs = !string.IsNullOrWhiteSpace(autoGenAttr.Namespace) ? $"{autoGenAttr.Namespace}." : string.Empty;
                 var genericParams = DtoGenerationSymbols.GetGenericTypeParameters(type); // "<T, T2>" oder ""
-                var genericConstr = type.GenerateGenericConstraintsWithDtoSubstitution(_symbols.AutoGenerateDto, dtoTypeDict);
+                // A type parameter constrained to a type with a DTO ("where TUnit : Unit") is "TUnit : UnitDto" on the DTO, so the
+                // mapping methods get a second parameter for the DTO side: AssignTo<TUnit, TUnitDto>(Dimension<TUnit>, DimensionDto<TUnitDto>).
+                var dtoTypeParameters = DtoTypeParameterNames(type, dtoTypeDict);
+                var split = dtoTypeParameters.Count > 0;
+                string RenameToDto(string name) => dtoTypeParameters.TryGetValue(name, out var dtoName) ? dtoName : name;
+                var dtoGenericParams = split ? "<" + string.Join(", ", type.TypeParameters.Select(tp => RenameToDto(tp.Name))) + ">" : genericParams;
+                var methodGenericParams = split
+                    ? "<" + string.Join(", ", type.TypeParameters.Select(tp => tp.Name).Concat(type.TypeParameters.Where(tp => dtoTypeParameters.ContainsKey(tp.Name)).Select(tp => dtoTypeParameters[tp.Name]))) + ">"
+                    : genericParams;
+                var genericConstr = split
+                    ? string.Join(" ", new[]
+                    {
+                        type.GenerateGenericConstraintsWithDtoSubstitution(_symbols, dtoTypeDict, substitute: false),
+                        type.GenerateGenericConstraintsWithDtoSubstitution(_symbols, dtoTypeDict, tp => dtoTypeParameters.ContainsKey(tp.Name), RenameToDto)
+                    }.Where(c => c.Length > 0))
+                    : type.GenerateGenericConstraintsWithDtoSubstitution(_symbols, dtoTypeDict);
+                var callGenerics = split ? "" : genericParams; // with two parameter lists the compiler infers them from src and dest
+                var reverseMapping = !(_config?.DefaultMappingSettings?.SkipReverseMapping ?? false);
 
                 // === Enums: unverändert, aber in eigener Datei ===
                 if (isEnum)
@@ -429,43 +514,24 @@ public class DtoCodeGenerator
                     if (shouldGenerateBeforeAfterAssigns)
                     {
                         sb.AppendLine(
-                            $"\t\tstatic partial void BeforeAssignTo{genericParams}({netTypeName} src, {comTypeNs}{dtoTypeName}{genericParams} dest) {genericConstr};");
+                            $"\t\tstatic partial void BeforeAssignTo{methodGenericParams}({netTypeName} src, {comTypeNs}{dtoTypeName}{dtoGenericParams} dest) {genericConstr};");
                         sb.AppendLine(
-                            $"\t\tstatic partial void AfterAssignTo{genericParams}({netTypeName} src, {comTypeNs}{dtoTypeName}{genericParams} dest) {genericConstr};");
+                            $"\t\tstatic partial void AfterAssignTo{methodGenericParams}({netTypeName} src, {comTypeNs}{dtoTypeName}{dtoGenericParams} dest) {genericConstr};");
                     }
 
-                    sb.AppendLine($"\t\t{autoGenAttr.ClassModifier.ToCSharpKeyword()} static void AssignTo{genericParams}(this {netTypeName} src, {comTypeNs}{dtoTypeName}{genericParams} dest) {genericConstr}");
+                    sb.AppendLine($"\t\t{autoGenAttr.ClassModifier.ToCSharpKeyword()} static void AssignTo{methodGenericParams}(this {netTypeName} src, {comTypeNs}{dtoTypeName}{dtoGenericParams} dest) {genericConstr}");
                     sb.AppendLine("\t\t{");
                     sb.AppendLine("\t\t\tif (src == null || dest == null) return;");
                     if (shouldGenerateBeforeAfterAssigns)
                     {
-                        sb.AppendLine("\t\t\tBeforeAssignTo" + genericParams + "(src, dest);");
+                        sb.AppendLine("\t\t\tBeforeAssignTo" + callGenerics + "(src, dest);");
                     }
 
                     // Basismapping (Net -> DTO)
-                    if (baseType != null && dtoTypeDict.TryGetValue(baseType.ToDisplayString(), out var baseTypeSymbol))
-                    {
-                        var baseAutoGenAttr = baseTypeSymbol.ClassCfg(_symbols);
-                        if (baseAutoGenAttr != null)
-                        {
-                            var baseDtoName = DtoGenerationSymbols.GetDtoClassName(baseType, baseAutoGenAttr, false); // ohne Generics
-                            var baseNetName = baseType.ToDisplayString(); // inkl. Generics
-
-                            string baseGenericArgs;
-                            if (baseType.IsGenericType && baseType.TypeArguments.Length > 0)
-                            {
-                                baseGenericArgs = "<" + string.Join(", ",
-                                    baseType.TypeArguments.Select(a => a.ToDisplayString(SymbolDisplayFormat.CSharpErrorMessageFormat))) + ">";
-                            }
-                            else
-                            {
-                                baseGenericArgs = DtoGenerationSymbols.GetGenericTypeParameters(baseType);
-                            }
-
-                            var callGen = string.IsNullOrEmpty(genericParams) ? "" : genericParams;
-                            sb.AppendLine($"\t\t\t(({baseNetName})src).AssignTo{callGen}(( {baseDtoName}{baseGenericArgs} )dest);");
-                        }
-                    }
+                    var baseMapping = BaseMapping(baseType, dtoTypeDict, split ? RenameToDto : null);
+                    var callGen = callGenerics;
+                    if (baseMapping != null)
+                        sb.AppendLine($"\t\t\t(({baseMapping.Value.NetName})src).AssignTo{callGen}(( {baseMapping.Value.DtoName} )dest);");
 
                     // Eigene Properties (Net -> DTO)
                     foreach (var prop in comProps.Where(prop => !_symbols.PropertyInBaseType(prop, type.BaseType, dtoTypeDict)))
@@ -474,121 +540,109 @@ public class DtoCodeGenerator
                         if (!generatedDtoPropNamesThisType.Contains(dtoName))
                             continue;
 
-                        var m = GeneratePropertyMappingAssignment(prop, dtoTypeDict, reverse: false);
+                        var m = GeneratePropertyMappingAssignment(prop, dtoTypeDict, reverse: false, dtoTypeParameters);
                         classMapperUsedForType = classMapperUsedForType || m.ClassMapperUsed;
                         sb.AppendLine(m.Result.Replace("result.", "dest."));
                     }
 
                     if (shouldGenerateBeforeAfterAssigns)
                     {
-                        sb.AppendLine("\t\t\tAfterAssignTo" + genericParams + "(src, dest);");
+                        sb.AppendLine("\t\t\tAfterAssignTo" + callGenerics + "(src, dest);");
                     }
 
                     sb.AppendLine("\t\t}");
                     atLeastOneGeneratedForType = true;
 
                     // === AssignTo: DTO -> Net ===
-                    if (shouldGenerateBeforeAfterAssigns)
+                    if (reverseMapping)
                     {
-                        sb.AppendLine(
-                            $"\t\tstatic partial void BeforeAssignTo{genericParams}({comTypeNs}{dtoTypeName}{genericParams} src, {netTypeName} dest) {genericConstr};");
-                        sb.AppendLine(
-                            $"\t\tstatic partial void AfterAssignTo{genericParams}({comTypeNs}{dtoTypeName}{genericParams} src, {netTypeName} dest) {genericConstr};");
-                    }
-
-                    sb.AppendLine($"\t\t{autoGenAttr.ClassModifier.ToCSharpKeyword()} static void AssignTo{genericParams}(this {comTypeNs}{dtoTypeName}{genericParams} src, {netTypeName} dest) {genericConstr}");
-                    sb.AppendLine("\t\t{");
-                    sb.AppendLine("\t\t\tif (src == null || dest == null) return;");
-                    if (shouldGenerateBeforeAfterAssigns)
-                    {
-                        sb.AppendLine("\t\t\tBeforeAssignTo" + genericParams + "(src, dest);");
-                    }
-
-                    // Basismapping (DTO -> Net)
-                    if (baseType != null && dtoTypeDict.TryGetValue(baseType.ToDisplayString(), out var baseTypeSymbol2))
-                    {
-                        var baseAutoGenAttr2 = baseTypeSymbol2.ClassCfg(_symbols);
-                        if (baseAutoGenAttr2 != null)
+                        if (shouldGenerateBeforeAfterAssigns)
                         {
-                            var baseDtoName = DtoGenerationSymbols.GetDtoClassName(baseType, baseAutoGenAttr2, false);
-                            var baseNetName = baseType.ToDisplayString();
-
-                            string baseGenericArgs;
-                            if (baseType.IsGenericType && baseType.TypeArguments.Length > 0)
-                            {
-                                baseGenericArgs = "<" + string.Join(", ",
-                                    baseType.TypeArguments.Select(a => a.ToDisplayString(SymbolDisplayFormat.CSharpErrorMessageFormat))) + ">";
-                            }
-                            else
-                            {
-                                baseGenericArgs = DtoGenerationSymbols.GetGenericTypeParameters(baseType);
-                            }
-
-                            var callGen = string.IsNullOrEmpty(genericParams) ? "" : genericParams;
-                            sb.AppendLine($"\t\t\t(({baseDtoName}{baseGenericArgs})src).AssignTo{callGen}(( {baseNetName} )dest);");
+                            sb.AppendLine(
+                                $"\t\tstatic partial void BeforeAssignTo{methodGenericParams}({comTypeNs}{dtoTypeName}{dtoGenericParams} src, {netTypeName} dest) {genericConstr};");
+                            sb.AppendLine(
+                                $"\t\tstatic partial void AfterAssignTo{methodGenericParams}({comTypeNs}{dtoTypeName}{dtoGenericParams} src, {netTypeName} dest) {genericConstr};");
                         }
+
+                        sb.AppendLine($"\t\t{autoGenAttr.ClassModifier.ToCSharpKeyword()} static void AssignTo{methodGenericParams}(this {comTypeNs}{dtoTypeName}{dtoGenericParams} src, {netTypeName} dest) {genericConstr}");
+                        sb.AppendLine("\t\t{");
+                        sb.AppendLine("\t\t\tif (src == null || dest == null) return;");
+                        if (shouldGenerateBeforeAfterAssigns)
+                        {
+                            sb.AppendLine("\t\t\tBeforeAssignTo" + callGenerics + "(src, dest);");
+                        }
+
+                        // Basismapping (DTO -> Net)
+                        if (baseMapping != null)
+                            sb.AppendLine($"\t\t\t(({baseMapping.Value.DtoName})src).AssignTo{callGen}(( {baseMapping.Value.NetName} )dest);");
+
+                        foreach (var prop in comProps.Where(prop => !_symbols.PropertyInBaseType(prop, type.BaseType, dtoTypeDict)))
+                        {
+                            var dtoName = DtoGenerationSymbols.GetDtoPropertyName(prop, prop.PropertyCfg(_symbols));
+                            if (!generatedDtoPropNamesThisType.Contains(dtoName))
+                                continue;
+
+                            var m = GeneratePropertyMappingAssignment(prop, dtoTypeDict, reverse: true, dtoTypeParameters);
+                            classMapperUsedForType = classMapperUsedForType || m.ClassMapperUsed;
+                            sb.AppendLine(m.Result.Replace("result.", "dest."));
+                        }
+
+                        if (shouldGenerateBeforeAfterAssigns)
+                        {
+                            sb.AppendLine("\t\t\tAfterAssignTo" + callGenerics + "(src, dest);");
+                        }
+
+                        sb.AppendLine("\t\t}");
                     }
-
-                    foreach (var prop in comProps.Where(prop => !_symbols.PropertyInBaseType(prop, type.BaseType, dtoTypeDict)))
-                    {
-                        var dtoName = DtoGenerationSymbols.GetDtoPropertyName(prop, prop.PropertyCfg(_symbols));
-                        if (!generatedDtoPropNamesThisType.Contains(dtoName))
-                            continue;
-
-                        var m = GeneratePropertyMappingAssignment(prop, dtoTypeDict, reverse: true);
-                        classMapperUsedForType = classMapperUsedForType || m.ClassMapperUsed;
-                        sb.AppendLine(m.Result.Replace("result.", "dest."));
-                    }
-
-                    if (shouldGenerateBeforeAfterAssigns)
-                    {
-                        sb.AppendLine("\t\t\tAfterAssignTo" + genericParams + "(src, dest);");
-                    }
-
-                    sb.AppendLine("\t\t}");
 
                     // === ToDto / ToNet ===
                     var canGenerateNewBasedTo = !isAbstract || generateToForAbstract;
 
                     if (canGenerateNewBasedTo)
                     {
-                        sb.AppendLine($"\t\t{autoGenAttr.ClassModifier.ToCSharpKeyword()} static {comTypeNs}{dtoTypeName}{genericParams} {toDtoMethod}{genericParams}(this {netTypeName} src) {genericConstr}");
+                        sb.AppendLine($"\t\t{autoGenAttr.ClassModifier.ToCSharpKeyword()} static {comTypeNs}{dtoTypeName}{dtoGenericParams} {toDtoMethod}{methodGenericParams}(this {netTypeName} src) {genericConstr}");
                         sb.AppendLine("\t\t{");
                         sb.AppendLine("\t\t\tif (src == null) return null;");
-                        sb.AppendLine($"\t\t\tvar result = new {comTypeNs}{dtoTypeName}{genericParams}{RequiredInitializer(DtoRequiredMembers(type))};");
-                        sb.AppendLine("\t\t\tsrc.AssignTo{genericParams}(result);".Replace("{genericParams}", string.IsNullOrEmpty(genericParams) ? "" : genericParams));
+                        sb.AppendLine($"\t\t\tvar result = new {comTypeNs}{dtoTypeName}{dtoGenericParams}{RequiredInitializer(DtoRequiredMembers(type))};");
+                        sb.AppendLine($"\t\t\tsrc.AssignTo{callGenerics}(result);");
                         sb.AppendLine("\t\t\treturn result;");
                         sb.AppendLine("\t\t}");
 
-                        sb.AppendLine($"\t\t{autoGenAttr.ClassModifier.ToCSharpKeyword()} static {netTypeName} {toNetMethod}{genericParams}(this {comTypeNs}{dtoTypeName}{genericParams} src) {genericConstr}");
-                        sb.AppendLine("\t\t{");
-                        sb.AppendLine("\t\t\tif (src == null) return null;");
-                        sb.AppendLine($"\t\t\tvar result = new {netTypeName}{RequiredInitializer(SourceRequiredMembers(type))};");
-                        sb.AppendLine("\t\t\tsrc.AssignTo{genericParams}(result);".Replace("{genericParams}", string.IsNullOrEmpty(genericParams) ? "" : genericParams));
-                        sb.AppendLine("\t\t\treturn result;");
-                        sb.AppendLine("\t\t}");
+                        if (reverseMapping)
+                        {
+                            sb.AppendLine($"\t\t{autoGenAttr.ClassModifier.ToCSharpKeyword()} static {netTypeName} {toNetMethod}{methodGenericParams}(this {comTypeNs}{dtoTypeName}{dtoGenericParams} src) {genericConstr}");
+                            sb.AppendLine("\t\t{");
+                            sb.AppendLine("\t\t\tif (src == null) return null;");
+                            sb.AppendLine($"\t\t\tvar result = new {netTypeName}{RequiredInitializer(SourceRequiredMembers(type))};");
+                            sb.AppendLine($"\t\t\tsrc.AssignTo{callGenerics}(result);");
+                            sb.AppendLine("\t\t\treturn result;");
+                            sb.AppendLine("\t\t}");
+                        }
                     }
 
                     // === Factory-Overloads ===
                     if ((isAbstract && generateFactoryForAbstract) || alwaysGenerateFactory)
                     {
-                        sb.AppendLine($"\t\t{autoGenAttr.ClassModifier.ToCSharpKeyword()} static {comTypeNs}{dtoTypeName}{genericParams} {toDtoMethod}{genericParams}(this {netTypeName} src, Func<{comTypeNs}{dtoTypeName}{genericParams}> factory) {genericConstr}");
+                        sb.AppendLine($"\t\t{autoGenAttr.ClassModifier.ToCSharpKeyword()} static {comTypeNs}{dtoTypeName}{dtoGenericParams} {toDtoMethod}{methodGenericParams}(this {netTypeName} src, Func<{comTypeNs}{dtoTypeName}{dtoGenericParams}> factory) {genericConstr}");
                         sb.AppendLine("\t\t{");
                         sb.AppendLine("\t\t\tif (src == null) return null;");
                         sb.AppendLine("\t\t\tvar result = factory != null ? factory() : null;");
                         sb.AppendLine("\t\t\tif (result == null) return null;");
-                        sb.AppendLine("\t\t\tsrc.AssignTo{genericParams}(result);".Replace("{genericParams}", string.IsNullOrEmpty(genericParams) ? "" : genericParams));
+                        sb.AppendLine($"\t\t\tsrc.AssignTo{callGenerics}(result);");
                         sb.AppendLine("\t\t\treturn result;");
                         sb.AppendLine("\t\t}");
 
-                        sb.AppendLine($"\t\t{autoGenAttr.ClassModifier.ToCSharpKeyword()} static {netTypeName} {toNetMethod}{genericParams}(this {comTypeNs}{dtoTypeName}{genericParams} src, Func<{netTypeName}> factory) {genericConstr}");
-                        sb.AppendLine("\t\t{");
-                        sb.AppendLine("\t\t\tif (src == null) return null;");
-                        sb.AppendLine("\t\t\tvar result = factory != null ? factory() : null;");
-                        sb.AppendLine("\t\t\tif (result == null) return null;");
-                        sb.AppendLine("\t\t\tsrc.AssignTo{genericParams}(result);".Replace("{genericParams}", string.IsNullOrEmpty(genericParams) ? "" : genericParams));
-                        sb.AppendLine("\t\t\treturn result;");
-                        sb.AppendLine("\t\t}");
+                        if (reverseMapping)
+                        {
+                            sb.AppendLine($"\t\t{autoGenAttr.ClassModifier.ToCSharpKeyword()} static {netTypeName} {toNetMethod}{methodGenericParams}(this {comTypeNs}{dtoTypeName}{dtoGenericParams} src, Func<{netTypeName}> factory) {genericConstr}");
+                            sb.AppendLine("\t\t{");
+                            sb.AppendLine("\t\t\tif (src == null) return null;");
+                            sb.AppendLine("\t\t\tvar result = factory != null ? factory() : null;");
+                            sb.AppendLine("\t\t\tif (result == null) return null;");
+                            sb.AppendLine($"\t\t\tsrc.AssignTo{callGenerics}(result);");
+                            sb.AppendLine("\t\t\treturn result;");
+                            sb.AppendLine("\t\t}");
+                        }
                     }
                 } // !isEnum
             } // using ClassScope
@@ -856,7 +910,18 @@ public class DtoCodeGenerator
         sb.AppendLineIf("\t[ComVisible(true)]", classAttr.IsComCompatible);
         if (classAttr.IsComCompatible)
             sb.AppendLine($"\t[Guid({GetGuid(comName).ClassName})]");
-        sb.AppendLine($"\t{classAttr.ClassModifier.ToCSharpKeyword()} enum {comName}");
+        sb.AppendAttributesIf(enumType, classAttr.KeepAttributesOnGeneratedClass);
+        var keepShape = _config.KeepEnumFlagsAndUnderlyingType;
+        if (keepShape && !classAttr.KeepAttributesOnGeneratedClass
+                      && enumType.GetAttributes().Any(a => a.AttributeClass?.ToDisplayString() == "System.FlagsAttribute"))
+            sb.AppendLine("\t[System.Flags]");
+        // only the enum's own attribute: a PreClassString of the configuration is meant for classes
+        var ownPreClassString = enumType.GetAttributeInstance<AutoGenerateDtoAttribute>(_symbols.AutoGenerateDto!)?.PreClassString;
+        sb.AppendLineIf(ownPreClassString!, !string.IsNullOrEmpty(ownPreClassString));
+        var underlying = keepShape && enumType.EnumUnderlyingType is { SpecialType: not SpecialType.System_Int32 } u
+            ? $" : {u.ToDisplayString()}"
+            : "";
+        sb.AppendLine($"\t{classAttr.ClassModifier.ToCSharpKeyword()} enum {comName}{underlying}");
         sb.AppendLine("\t{");
         int dispId = 0;
         foreach (var member in enumType.GetMembers().OfType<IFieldSymbol>().Where(f => f.IsConst))
@@ -882,7 +947,7 @@ public class DtoCodeGenerator
         var comCompatible = classAttr.IsComCompatible;
 
         var genericConstraints =
-            type.GenerateGenericConstraintsWithDtoSubstitution(_symbols.AutoGenerateDto, dtoTypeDict);
+            type.GenerateGenericConstraintsWithDtoSubstitution(_symbols, dtoTypeDict);
         classAttr.Interfaces ??= _config.Interfaces;
 
         var baseTypeStr = _symbols.GetBaseTypeString(type, classAttr, dtoTypeDict, true);
@@ -935,7 +1000,7 @@ public class DtoCodeGenerator
         var genericParams = addGeneric ? DtoGenerationSymbols.GetGenericTypeParameters(type) : "";
         var comCompatible = classAttr.IsComCompatible;
 
-        var genericConstraints = type.GenerateGenericConstraintsWithDtoSubstitution(_symbols.AutoGenerateDto, dtoTypeDict);
+        var genericConstraints = type.GenerateGenericConstraintsWithDtoSubstitution(_symbols, dtoTypeDict);
 
         var baseTypeStr = _symbols.GetBaseTypeString(type, [], dtoTypeDict, false)?.Replace(":", "");
         if (string.IsNullOrWhiteSpace(baseTypeStr))
@@ -968,13 +1033,24 @@ public class DtoCodeGenerator
             var propName = DtoGenerationSymbols.GetDtoPropertyName(prop, propAttr);
             var ns = _symbols.GetNamespaceForProperty(prop, dtoTypeDict);
 
-            sb.AppendLine($"\t\tpublic {(prop.IsRequired ? "required " : "")}{ns}{propTypeString} {propName} {{ get; set; }}");
+            // a member typed by a DTO class gets its attributes on the explicit interface implementation below
+            if (!IsDtoClassMember(prop, dtoTypeDict))
+            {
+                sb.AppendAttributesIf(prop, propAttr?.KeepAttributesOnGeneratedClass ?? classAttr?.KeepPropertyAttributesOnGeneratedClass ?? false, 2);
+                sb.AppendLineIf(propAttr?.PreClassString!, !string.IsNullOrEmpty(propAttr?.PreClassString));
+            }
+
+            var initializer = _config.InitializeCollections && modelType is GeneratedModelType.Class or GeneratedModelType.Record or GeneratedModelType.Unset
+                                                             && !prop.IsNullable() && IsCollection(prop.Type)
+                ? " = [];"
+                : "";
+            sb.AppendLine($"\t\tpublic {(prop.IsRequired ? "required " : "")}{ns}{propTypeString} {propName} {{ get; set; }}{initializer}");
         }
         foreach (var prop in classPropsForThisType)
         {
             var propType = prop.Type;
 
-            if (DtoGenerationSymbols.IsDtoType(propType, dtoTypeDict) && !DtoGenerationSymbols.IsDtoEnumType(propType, dtoTypeDict))
+            if (IsDtoClassMember(prop, dtoTypeDict))
             {
                 var propAttr = prop.PropertyCfg(_symbols);
 
@@ -1003,6 +1079,15 @@ public class DtoCodeGenerator
         sb.AppendLine("\t}\n");
         return sb.ToString();
     }
+
+    private static bool IsDtoClassMember(IPropertySymbol prop, Dictionary<string, INamedTypeSymbol> dtoTypeDict)
+        => DtoGenerationSymbols.IsDtoType(prop.Type, dtoTypeDict) && !DtoGenerationSymbols.IsDtoEnumType(prop.Type, dtoTypeDict);
+
+    private static bool IsCollection(ITypeSymbol type)
+        => type is IArrayTypeSymbol
+           || type is INamedTypeSymbol { IsGenericType: true } named
+           && (DtoGenerationSymbols.IsSimpleEnumerableType(named)
+               || named.ConstructedFrom.ToDisplayString(SymbolDisplayFormat.CSharpErrorMessageFormat).StartsWith("System.Collections.Generic.Dictionary<"));
 
     public GeneratedFile GenerateComIdFile(IEnumerable<INamedTypeSymbol> allTypes)
     {
