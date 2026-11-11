@@ -1,4 +1,5 @@
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Nextended.CodeGen.Config;
 using Nextended.CodeGen.Contracts;
 using Nextended.Core.Enums;
@@ -569,6 +570,41 @@ public class FluentConfigTests
         line.ShouldContain("namespace Shop.Partial.Lines");
         line.ShouldContain("Article { get; set; }");
     }
+
+    [TestMethod]
+    public void Without_codegen_json_a_profile_drives_the_source_generator_including_other_generators()
+    {
+        var json = Path.GetFullPath(Path.Combine(SampleSources(), "appsettings.json")).Replace(Path.DirectorySeparatorChar, '/');
+        var profile = $$"""
+            using Nextended.Core.CodeGen;
+            using Nextended.Core.Enums;
+            using Shop.Domain;
+
+            public sealed class NoJson : CodeGenConfig
+            {
+                public NoJson()
+                {
+                    Defaults(d => d.Namespace("Shop.Api"));
+                    Dto<OrderLine>();
+                    StructureGeneration(s => s.SourceFile("{{json}}").Namespace("Shop.Settings").RootClassName("ServerConfiguration")
+                        .ModelType(GeneratedModelType.Record).Prefix("Cfg"));
+                }
+            }
+            """;
+        var compilation = CompileWithInTreeAttributes(Entities, profile);
+
+        var result = CSharpGeneratorDriver.Create(new MainGenerator()).RunGenerators(compilation).GetRunResult();
+
+        var generated = result.GeneratedTrees.ToDictionary(t => Path.GetFileName(t.FilePath), t => t.ToString());
+        generated.Keys.ShouldContain("OrderLineDto.g.cs");
+        generated["OrderLineDto.g.cs"].ShouldContain("namespace Shop.Api");
+        generated.Keys.ShouldContain("appsettings.g.cs");
+        generated["appsettings.g.cs"].ShouldContain("namespace Shop.Settings");
+        generated["appsettings.g.cs"].ShouldContain("public partial record ServerConfiguration");
+    }
+
+    private static string SampleSources([System.Runtime.CompilerServices.CallerFilePath] string file = "")
+        => Path.Combine(Path.GetDirectoryName(file)!, "..", "TestProjects", "CodeGenSample", "Sources");
 
     [TestMethod]
     public void Without_a_configuration_class_nothing_changes()
