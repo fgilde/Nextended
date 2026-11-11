@@ -25,7 +25,7 @@ namespace Nextended.CodeGen.Generators.CodeToText
                 if (cfg == null || cfg.DisableGeneration)
                     continue;
 
-                var path = NamespaceResolver.GetAbsolutePath(cfg.InputFolder, context.AdditionalFile.Path);
+                var path = NamespaceResolver.GetAbsolutePath(cfg.InputFolder, context.BasePath);
 
             if (string.IsNullOrWhiteSpace(cfg.InputFolder) || !Directory.Exists(path))
                     continue;

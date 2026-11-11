@@ -131,6 +131,42 @@ or it may not work as expected.
 ---
 
 
+### Fluent configuration (recommended)
+
+Configure the generators in code instead of (or on top of) attributes and `codegen.json` — like a `ResponseFilter<T>`. The classes are
+found automatically and **read** at compile time, never executed; `codegen.json` becomes optional.
+
+```csharp
+using Nextended.Core.CodeGen;
+
+public sealed class ProductDtoConfig : DtoConfig<Product>
+{
+    public ProductDtoConfig()
+    {
+        Ignore(x => x.InternalNote);
+        Property(x => x.Sku).PropertyName("ArticleNumber");
+        View("ProductRow", v => v.Ignore(x => x.Tags).BaseMembersFirst().ToDtoMethodName("ToRow"));
+    }
+}
+
+public sealed class AppCodeGen : CodeGenConfig
+{
+    public AppCodeGen()
+    {
+        Defaults(d => d.Namespace("MyApp.Contracts").OutputPath("./Generated/Dtos/"));   // = codegen.json "DtoGeneration"
+        Dto<Entity>(e => e.Ignore(x => x.TenantId));                                     // every entity DTO and view
+        Dto<Category>();                                                                  // no attribute needed
+        ForNamespace("MyApp.Domain.Codes", n => n.Namespace("MyApp.Contracts.Codes"));
+    }
+}
+```
+
+Settings are named exactly like the attribute/json properties they mirror (short aliases: `Name`, `Attribute(s)`, `KeepAttributes`);
+precedence is json → fluent `Defaults` → attributes → `ForNamespace` → `Dto<T>`, and `Dto<T>` only refines what a type already gets. The
+more specific member rule wins (`Include` on a derived type or view undoes an `Ignore` on its base). Anything dynamic is reported (`NCG020`-`NCG026`). Full reference:
+[Fluent configuration](https://fgilde.github.io/Nextended/projects/codegen#fluent-configuration); runnable:
+[CodeGenFluentSample](https://github.com/fgilde/Nextended/tree/main/Tests/TestProjects/CodeGenFluentSample).
+
 ### Usage
 With this package you can generate DTOs, Interfaces and other code from your classes and enums.
 It is a code generation library that uses attributes to define how the code should be generated.

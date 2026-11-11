@@ -50,6 +50,44 @@ public class SampleGoldenTests
         changed.ShouldBeEmpty($"generated into {actualDir}");
     }
 
+    private static string FluentSampleDir([System.Runtime.CompilerServices.CallerFilePath] string file = "")
+        => Path.GetFullPath(Path.Combine(Path.GetDirectoryName(file)!, "..", "TestProjects", "CodeGenFluentSample"));
+
+    /// <summary>
+    /// The CodeGenFluentSample has no codegen.json and no attributes: its CodeGen/*.cs classes configure everything. Its checked-in
+    /// Generated folder is what generating from them gives.
+    /// </summary>
+    [TestMethod]
+    public void Fluent_sample_output_is_unchanged()
+    {
+        var dir = FluentSampleDir();
+        var sources = new[] { "Entities", "CodeGen" }
+            .SelectMany(d => Directory.GetFiles(Path.Combine(dir, d), "*.cs", SearchOption.AllDirectories))
+            .Select(File.ReadAllText)
+            .Append(ImplicitUsings)
+            .ToArray();
+
+        var (files, diagnostics) = GenerateWithDiagnostics(CompileWithInTreeAttributes(sources), new DtoGenerationConfig());
+
+        diagnostics.ShouldBeEmpty();
+        var actualDir = Path.Combine(AppContext.BaseDirectory, "golden-fluent-actual");
+        var changed = new List<string>();
+        foreach (var file in files)
+        {
+            file.OutputPath.ShouldNotBeNull(file.FileName);
+            var path = Path.Combine(dir, file.OutputPath!, file.FileName);
+            var actual = Path.Combine(actualDir, file.OutputPath!, file.FileName);
+            Directory.CreateDirectory(Path.GetDirectoryName(actual)!);
+            File.WriteAllText(actual, file.Content);
+            if (!File.Exists(path) || Normalize(file.Content) != Normalize(File.ReadAllText(path)))
+                changed.Add(Path.Combine(file.OutputPath!, file.FileName));
+        }
+        changed.ShouldBeEmpty($"generated into {actualDir}");
+        var expected = files.Select(f => Path.GetFullPath(Path.Combine(dir, f.OutputPath!, f.FileName))).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        Directory.GetFiles(Path.Combine(dir, "Generated"), "*", SearchOption.AllDirectories)
+            .Where(f => !expected.Contains(Path.GetFullPath(f))).ShouldBeEmpty("stale files in Generated");
+    }
+
     private const string ImplicitUsings = """
         global using System;
         global using System.Collections.Generic;

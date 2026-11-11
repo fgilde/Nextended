@@ -15,7 +15,7 @@ public class StructureGenerator : ISourceSubGenerator
     {
         foreach (var config in (context.Config?.StructureGenerations ?? []).OfType<ClassStructureCodeGenerationConfig>())
         {
-            var path = NamespaceResolver.GetAbsolutePath(config.SourceFile, context.AdditionalFile.Path);
+            var path = NamespaceResolver.GetAbsolutePath(config.SourceFile, context.BasePath);
             if (File.Exists(path))
             {
                 var isXmlFile = Path.GetExtension(path).Equals(".xml", StringComparison.OrdinalIgnoreCase);

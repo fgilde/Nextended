@@ -3,6 +3,7 @@ using Microsoft.CodeAnalysis.Diagnostics;
 using Newtonsoft.Json;
 using Nextended.CodeGen.Config;
 using Nextended.CodeGen.Contracts;
+using Nextended.CodeGen.Fluent;
 using Nextended.CodeGen.Helper;
 using System;
 using System.Collections.Generic;
@@ -75,11 +76,14 @@ namespace Nextended.CodeGen
             if (attachDebugger && !System.Diagnostics.Debugger.IsAttached)
                 System.Diagnostics.Debugger.Launch();
 
+            // a fluent configuration class makes codegen.json optional
+            var fluent = FluentConfigReader.Read(compilation);
+
             if (additionalFiles.IsDefaultOrEmpty || additionalFiles.Length == 0)
             {
                 Console.WriteLine("Nextended.CodeGen didnt find an config file");
                 context.ReportDiagnostic(Diagnostic.Create(InfoNoAdditionalFiles, Location.None));
-                if (!allowWithoutConfig)
+                if (!allowWithoutConfig && !fluent.HasProfiles)
                     return;
             }
 
@@ -112,6 +116,20 @@ namespace Nextended.CodeGen
                     // Verhalten wie vorher: Diagnostic war auskommentiert
                     Console.WriteLine("Nextended.CodeGen config error: " + e.Message);
                 }
+            }
+
+            // Excel and structure generations of the fluent configuration, relative to the project directory
+            if (fluent.ExcelGenerations.Count > 0 || fluent.StructureGenerations.Count > 0)
+            {
+                var fluentConfig = new MainConfig
+                {
+                    DtoGeneration = null,
+                    ExcelGenerations = fluent.ExcelGenerations,
+                    StructureGenerations = fluent.StructureGenerations,
+                    CodeToDocs = []
+                };
+                var fluentCtx = new GenerationContext(new NamespaceResolver("", compilation, optionsProvider), context, compilation, optionsProvider, fluentConfig);
+                ExecuteGenerators(CachedSubGenerators.Value.Where(g => g.RequireConfig), fluentCtx);
             }
 
             if (!executed)
@@ -157,7 +175,7 @@ namespace Nextended.CodeGen
                 }
                 else
                 {
-                    var path = NamespaceResolver.GetAbsolutePath(generatedFile.OutputPath!, context.AdditionalFile.Path);
+                    var path = NamespaceResolver.GetAbsolutePath(generatedFile.OutputPath!, context.BasePath);
 
                     if (Directory.Exists(path) ||
                         path.EndsWith(Path.DirectorySeparatorChar.ToString(), StringComparison.Ordinal) ||
