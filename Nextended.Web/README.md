@@ -205,7 +205,7 @@ The other 18 packages in the suite:
 **Code generation & tooling**
 
 - [Nextended.Imaging](https://github.com/fgilde/Nextended/blob/main/Nextended.Imaging/README.md) — Image processing — aspect-preserving resize, crop, colour replacement, brightness-based foreground picking, thumbnail generation, byte/data-URL conversion and MIME detection from magic bytes.
-- [Nextended.CodeGen](https://github.com/fgilde/Nextended/blob/main/Nextended.CodeGen/README.md) — Roslyn source generator — DTOs and interfaces from your entities, strongly typed classes from JSON/XML, lookup tables from Excel, and documentation from source files.
+- [Nextended.CodeGen](https://github.com/fgilde/Nextended/blob/main/Nextended.CodeGen/README.md) — Roslyn source generator — DTOs and interfaces from your entities, strongly typed classes from JSON/XML, lookup tables from Excel, documentation from source files, and TypeScript declarations of your contracts.
 
 **.NET Aspire hosting**
 
