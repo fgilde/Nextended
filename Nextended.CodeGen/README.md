@@ -161,8 +161,9 @@ public sealed class AppCodeGen : CodeGenConfig
 }
 ```
 
-Settings are named exactly like the attribute/json properties they mirror; precedence is json → fluent `Defaults` → attributes →
-`ForNamespace` → `Dto<T>`. Anything dynamic is reported (`NCG020`-`NCG026`). Full reference:
+Settings are named exactly like the attribute/json properties they mirror (short aliases: `Name`, `Attribute(s)`, `KeepAttributes`);
+precedence is json → fluent `Defaults` → attributes → `ForNamespace` → `Dto<T>`, and `Dto<T>` only refines what a type already gets. The
+more specific member rule wins (`Include` on a derived type or view undoes an `Ignore` on its base). Anything dynamic is reported (`NCG020`-`NCG026`). Full reference:
 [Fluent configuration](https://fgilde.github.io/Nextended/projects/codegen#fluent-configuration); runnable:
 [CodeGenFluentSample](https://github.com/fgilde/Nextended/tree/main/Tests/TestProjects/CodeGenFluentSample).
 
