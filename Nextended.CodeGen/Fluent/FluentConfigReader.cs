@@ -6,6 +6,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Operations;
 using Nextended.CodeGen.Config;
+using Nextended.CodeGen.Generators.TypescriptGeneration;
 using Nextended.Core.Attributes;
 
 namespace Nextended.CodeGen.Fluent;
@@ -517,6 +518,13 @@ internal sealed class FluentConfigReader
                     model.StructureGenerations.Add(config);
                     return this;
                 }
+                case "Typescript":
+                {
+                    var config = new TypescriptGenerationConfig { IsFluent = true };
+                    call.Lambda(0, new TypescriptGenerationContext(config));
+                    model.TypescriptGenerations.Add(config);
+                    return this;
+                }
                 default:
                     return Unknown;
             }
@@ -609,6 +617,14 @@ internal sealed class FluentConfigReader
                     if (reader.ReadEmit(call) is { } emit)
                         rules.Emits.Add(emit);
                     return this;
+                case "Typescript" when !isView && type != null:
+                {
+                    var key = TypescriptNames.Key(type);
+                    if (!model.TypescriptTypes.TryGetValue(key, out var ts))
+                        model.TypescriptTypes[key] = ts = new TypescriptTypeConfig();
+                    call.Lambda(0, new TypescriptTypeContext(ts, type));
+                    return this;
+                }
                 case "GeneratedClassName" when isView:
                     reader.Report(NotReadable, call.Location, "The name of a view is set by View(name).");
                     return this;
@@ -639,6 +655,147 @@ internal sealed class FluentConfigReader
             if (call.TryConstant(0, out var value))
                 reader.Set(rules.Settings, name, AliasValue(call.Name, value), call.Location, target);
             return this;
+        }
+    }
+
+    /// <summary>Typescript(t => ...): settings by name onto a TypescriptGenerationConfig, lists, type map and per-type rules.</summary>
+    private sealed class TypescriptGenerationContext(TypescriptGenerationConfig config) : Context
+    {
+        private static readonly HashSet<string> Lists = ["IncludeNamespaces", "IncludeTypes", "IncludeBaseTypes", "ExcludeNamespaces", "ExcludeTypes", "ExcludeBaseTypes"];
+        private static readonly HashSet<string> Settings = Without(FluentModel.SettingNames(typeof(TypescriptGenerationConfig)), "TypeMap", "Types", "IsFluent");
+
+        public override Context? Invoke(FluentConfigReader reader, Call call)
+        {
+            switch (call.Name)
+            {
+                case "Include":
+                case "Exclude":
+                case "IncludeDerivedFrom":
+                case "ExcludeDerivedFrom":
+                {
+                    if ((call.TypeArgument ?? call.TypeOf(0)) is not { } type)
+                        return this;
+                    var list = call.Name switch
+                    {
+                        "Include" => config.IncludeTypes,
+                        "Exclude" => config.ExcludeTypes,
+                        "IncludeDerivedFrom" => config.IncludeBaseTypes,
+                        _ => config.ExcludeBaseTypes
+                    };
+                    list.Add(TypescriptNames.Key(type));
+                    return this;
+                }
+                case "TypeMap":
+                {
+                    string? key;
+                    int index;
+                    if (call.TypeArgument != null || call.Method.Parameters[0].Type.Name == "Type")
+                    {
+                        var type = call.TypeArgument ?? call.TypeOf(0);
+                        key = type == null ? null : TypescriptNames.Key(type);
+                        index = call.TypeArgument != null ? 0 : 1;
+                    }
+                    else
+                    {
+                        if (!call.TryString(0, out key) || key == null)
+                            return this;
+                        key = TypescriptNames.Normalize(key);
+                        index = 1;
+                    }
+                    if (key != null && call.TryString(index, out var ts) && ts != null)
+                        config.TypeMap[key] = ts;
+                    return this;
+                }
+                case "Type":
+                {
+                    string? key;
+                    INamedTypeSymbol? type = null;
+                    if (call.TypeArgument != null)
+                    {
+                        type = call.TypeArgument as INamedTypeSymbol;
+                        key = TypescriptNames.Key(call.TypeArgument);
+                    }
+                    else if (!call.TryString(0, out key) || string.IsNullOrWhiteSpace(key))
+                        return this;
+                    else
+                        key = TypescriptNames.Normalize(key!);
+                    if (!config.Types.TryGetValue(key!, out var rules))
+                        config.Types[key!] = rules = new TypescriptTypeConfig();
+                    call.Lambda(call.TypeArgument != null ? 0 : 1, new TypescriptTypeContext(rules, type));
+                    return this;
+                }
+            }
+            if (Lists.Contains(call.Name))
+            {
+                if (call.TryConstant(0, out var values) && values is string[] items)
+                    ((List<string>)typeof(TypescriptGenerationConfig).GetProperty(call.Name)!.GetValue(config)!).AddRange(items);
+                return this;
+            }
+            if (!Settings.Contains(call.Name))
+                return Unknown;
+            if (call.TryConstant(0, out var value))
+                FluentModel.Set(config, call.Name, value);
+            return this;
+        }
+    }
+
+    /// <summary>The TypeScript of one type: Name, Ignore() (the type), Ignore(members), Property(member).</summary>
+    private sealed class TypescriptTypeContext(TypescriptTypeConfig rules, INamedTypeSymbol? type) : Context
+    {
+        public override Context? Invoke(FluentConfigReader reader, Call call)
+        {
+            switch (call.Name)
+            {
+                case "Name":
+                    if (call.TryString(0, out var name))
+                        rules.Name = name;
+                    return this;
+                case "Ignore" when call.Count == 0:
+                    rules.Ignore = true;
+                    return this;
+                case "Ignore":
+                    foreach (var member in reader.MemberNames(call, type))
+                        rules.Member(member).Ignore = true;
+                    return this;
+                case "Property":
+                {
+                    var member = reader.MemberNames(call, type).FirstOrDefault();
+                    return member == null ? null : new TypescriptPropertyContext(rules.Member(member));
+                }
+                default:
+                    return Unknown;
+            }
+        }
+    }
+
+    /// <summary>The TypeScript of one member.</summary>
+    private sealed class TypescriptPropertyContext(TypescriptMemberConfig rules) : Context
+    {
+        public override Context? Invoke(FluentConfigReader reader, Call call)
+        {
+            switch (call.Name)
+            {
+                case "Name":
+                case "Type":
+                    if (call.TryString(0, out var value))
+                    {
+                        if (call.Name == "Name")
+                            rules.Name = value;
+                        else
+                            rules.Type = value;
+                    }
+                    return this;
+                case "Optional":
+                    if (call.TryConstant(0, out var optional))
+                        rules.Optional = optional as bool? ?? true;
+                    return this;
+                case "Ignore":
+                case "Include":
+                    rules.Ignore = call.Name == "Ignore";
+                    return this;
+                default:
+                    return Unknown;
+            }
         }
     }
 

@@ -785,6 +785,7 @@ public class FluentConfigTests
             { SpecialType: SpecialType.System_Boolean } => "false",
             { SpecialType: SpecialType.System_Int32 } => "1",
             IArrayTypeSymbol => "\"X\"",
+            { Name: "Type" } => "typeof(Probe.Item)",
             { TypeKind: TypeKind.Enum } t => $"({t.ToDisplayString()})1",
             var t => throw new InvalidOperationException($"no sample for {t}")
         };
@@ -801,6 +802,12 @@ public class FluentConfigTests
                     Dto<Probe.Item>(i => { {{Calls("IPropertyBuilder", "i.Property(\"Name\")")}} });
                     ExcelGeneration(e => { {{Calls("IExcelGeneration", "e")}} });
                     StructureGeneration(s => { {{Calls("IStructureGeneration", "s")}} });
+                    Typescript(t => { {{Calls("ITypescriptGeneration", "t")}} });
+                    Typescript(t => t.Include<Probe.Item>().Exclude<Probe.Item>().IncludeDerivedFrom<Probe.Item>().ExcludeDerivedFrom<Probe.Item>().TypeMap<Probe.Item>("X"));
+                    Typescript(t => t.Type("Probe.Item", b => { {{Calls("ITypescriptTypeBuilder", "b")}} }));
+                    Typescript(t => t.Type<Probe.Item>(b => { {{Calls("ITypescriptType`1", "b")}} b.Ignore(x => x.Name); b.Property(x => x.Name).Name("n"); }));
+                    Typescript(t => t.Type<Probe.Item>(b => { {{Calls("ITypescriptProperty", "b.Property(\"Name\")")}} }));
+                    Dto<Probe.Item>(i => i.Typescript(b => { {{Calls("ITypescriptType`1", "b")}} }));
                 }
             }
             """;

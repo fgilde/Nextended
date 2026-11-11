@@ -8,6 +8,7 @@ public class MainConfig
     public List<ClassStructureCodeGenerationConfig> StructureGenerations { get; set; } = new();
     public List<ExcelGenerationConfig> ExcelGenerations { get; set; } = new();
     public List<CodeToDocsConfig> CodeToDocs { get; set; } = new();
+    public List<TypescriptGenerationConfig>? Typescript { get; set; } = new();
 }
 
 

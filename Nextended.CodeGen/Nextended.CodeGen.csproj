@@ -46,6 +46,9 @@
   </ItemGroup>
 
   <!-- ─────────────  Zusatzdateien fürs NuGet  ───────────── -->
+  <ItemGroup>
+    <None Include="build\Nextended.CodeGen.props" Pack="true" PackagePath="build;buildTransitive" />
+  </ItemGroup>
 
   <!-- ─────────────  Alles aus bin\* in analyzers/dotnet/cs packen  ─────────────
        Muss über TargetsForTfmSpecificContentInPackage laufen: ein <None Include="$(OutputPath)\*.dll">

@@ -1,0 +1,7 @@
+<Project>
+  <!-- Lets the generator read the TypeScript check switch: dotnet build -p:NextendedCodeGenTypescriptCheck=true fails (NCG032)
+       when a generated .ts file differs from what the build would write, instead of writing it. -->
+  <ItemGroup>
+    <CompilerVisibleProperty Include="NextendedCodeGenTypescriptCheck" />
+  </ItemGroup>
+</Project>

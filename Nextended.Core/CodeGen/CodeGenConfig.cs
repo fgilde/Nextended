@@ -32,6 +32,8 @@ public abstract class CodeGenConfig : ICodeGenBuilder
     public ICodeGenBuilder ExcelGeneration(Action<IExcelGeneration> configure) => this;
     /// <inheritdoc />
     public ICodeGenBuilder StructureGeneration(Action<IStructureGeneration> configure) => this;
+    /// <inheritdoc />
+    public ICodeGenBuilder Typescript(Action<ITypescriptGeneration> configure) => this;
 }
 
 /// <summary>The project level of the fluent configuration (see <see cref="CodeGenConfig"/>).</summary>
@@ -63,6 +65,9 @@ public interface ICodeGenBuilder
 
     /// <summary>One more JSON/XML structure generation, exactly like an entry of "StructureGenerations" in codegen.json.</summary>
     ICodeGenBuilder StructureGeneration(Action<IStructureGeneration> configure);
+
+    /// <summary>One more TypeScript generation, exactly like an entry of "Typescript" in codegen.json (needs an OutputPath).</summary>
+    ICodeGenBuilder Typescript(Action<ITypescriptGeneration> configure);
 }
 
 /// <summary>Defaults for every DTO, named like the "DtoGeneration" settings of codegen.json.</summary>

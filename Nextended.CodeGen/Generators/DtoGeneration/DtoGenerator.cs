@@ -122,6 +122,22 @@ public class DtoGenerator : ISourceSubGenerator
         }
     }
 
+    /// <summary>The DTOs of the last run (default DTOs and views): source type and DTO metadata name, for the TypeScript generation.</summary>
+    public List<GeneratedDto> GeneratedDtos()
+    {
+        var result = new List<GeneratedDto>();
+        if (_symbols == null || _generator == null)
+            return result;
+        foreach (var unit in _types.Select(_symbols.DefaultUnit).Concat(_symbols.Views))
+        {
+            using var scope = _symbols.Enter(unit);
+            var cfg = unit.Type.ClassCfg(_symbols);
+            var arity = unit.Type.TypeParameters.Length;
+            result.Add(new GeneratedDto(unit.Type, $"{_generator.Namespace(unit.Type)}.{DtoGenerationSymbols.GetDtoClassName(unit.Type, cfg, false)}{(arity > 0 ? "`" + arity : "")}"));
+        }
+        return result;
+    }
+
     private IEnumerable<GeneratedFile> Generate(Compilation compilation)
     {
         Diagnostics.Clear();
