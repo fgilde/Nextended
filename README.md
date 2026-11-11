@@ -34,7 +34,7 @@
 | **Documentation portal** | [fgilde.github.io/Nextended](https://fgilde.github.io/Nextended/) | [Dokumentationsportal](docs/de/index.md) |
 | **Getting started** | [Installation](docs/guides/installation.md) | [Installation](docs/de/guides/installation.md) |
 | **Architecture** | [Overview](docs/guides/architecture.md) | [Überblick](docs/de/guides/architecture.md) |
-| **Per-package guides** | [Projects](docs/projects/README.md) | [Projekte](docs/de/projects/README.md) |
+| **Per-package guides** | [Projects](docs/projects/index.md) | [Projekte](docs/de/projects/index.md) |
 | **Examples** | [Common use cases](docs/examples/common-use-cases.md) | [Typische Anwendungsfälle](docs/de/examples/common-use-cases.md) |
 
 ## Packages

@@ -12,6 +12,13 @@ on:
     branches: [main]
     paths:
       - 'docs/**'
+      - 'Nextended.*/**'
+      - 'Version.props'
+      - 'README.md'
+      - 'libmentor.json'
+      - '.config/dotnet-tools.json'
+      - '.github/actions/libmentor/**'
+      - '.github/scripts/libmentor-version.py'
       - 'icon.png'
       - '.github/workflows/pages.yml'
   workflow_dispatch:
@@ -51,6 +58,11 @@ jobs:
       - name: Build
         working-directory: docs
         run: npm run build
+
+      - uses: ./.github/actions/libmentor
+
+      - name: Include AI documentation
+        run: cp -R .libmentor docs/.vitepress/dist/ai
 
       - uses: actions/configure-pages@v5
 
