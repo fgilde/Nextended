@@ -234,8 +234,8 @@
       ],
       "sample": "Tests/TestProjects/CodeGenSample",
       "summary": {
-        "en": "Roslyn source generator — DTOs and interfaces from your entities, strongly typed classes from JSON/XML, lookup tables from Excel, and documentation from source files.",
-        "de": "Roslyn-Source-Generator — DTOs und Interfaces aus Ihren Entities, stark typisierte Klassen aus JSON/XML, Lookup-Tabellen aus Excel und Dokumentation aus Quelldateien."
+        "en": "Roslyn source generator — DTOs and interfaces from your entities, strongly typed classes from JSON/XML, lookup tables from Excel, documentation from source files, and TypeScript declarations of your contracts.",
+        "de": "Roslyn-Source-Generator — DTOs und Interfaces aus Ihren Entities, stark typisierte Klassen aus JSON/XML, Lookup-Tabellen aus Excel, Dokumentation aus Quelldateien und TypeScript-Deklarationen Ihrer Contracts."
       }
     },
     {

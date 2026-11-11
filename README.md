@@ -73,7 +73,7 @@
 | Package | Description | NuGet | Docs |
 | --- | --- | --- | --- |
 | **[Nextended.Imaging](Nextended.Imaging/README.md)** | Image processing — aspect-preserving resize, crop, colour replacement, brightness-based foreground picking, thumbnail generation, byte/data-URL conversion and MIME detection from magic bytes. | [![NuGet](https://img.shields.io/nuget/v/Nextended.Imaging.svg)](https://www.nuget.org/packages/Nextended.Imaging/) | [Docs](https://fgilde.github.io/Nextended/projects/imaging) |
-| **[Nextended.CodeGen](Nextended.CodeGen/README.md)** | Roslyn source generator — DTOs and interfaces from your entities, strongly typed classes from JSON/XML, lookup tables from Excel, and documentation from source files. | [![NuGet](https://img.shields.io/nuget/v/Nextended.CodeGen.svg)](https://www.nuget.org/packages/Nextended.CodeGen/) | [Docs](https://fgilde.github.io/Nextended/projects/codegen) · [Sample](https://github.com/fgilde/Nextended/tree/main/Tests/TestProjects/CodeGenSample) |
+| **[Nextended.CodeGen](Nextended.CodeGen/README.md)** | Roslyn source generator — DTOs and interfaces from your entities, strongly typed classes from JSON/XML, lookup tables from Excel, documentation from source files, and TypeScript declarations of your contracts. | [![NuGet](https://img.shields.io/nuget/v/Nextended.CodeGen.svg)](https://www.nuget.org/packages/Nextended.CodeGen/) | [Docs](https://fgilde.github.io/Nextended/projects/codegen) · [Sample](https://github.com/fgilde/Nextended/tree/main/Tests/TestProjects/CodeGenSample) |
 
 ### .NET Aspire hosting
 
@@ -132,6 +132,7 @@ Every Aspire integration and the source generator ship with a sample project you
 | [AspireUI.AppHost](Tests/TestProjects/AspireUI.AppHost) | The visual AppHost builder as a resource |
 | [Php.AppHost](Tests/TestProjects/Php.AppHost) | PHP + MySQL + phpMyAdmin + Mailpit next to a .NET web form |
 | [CodeGenSample](Tests/TestProjects/CodeGenSample) | DTO, JSON, Excel and documentation generation, with the generated output checked in |
+| [CodeGenTsSample](Tests/TestProjects/CodeGenTsSample) | TypeScript generation (ABP and Coworkee presets), output checked in and compiled with `tsc --strict` |
 
 ## Repository layout
 

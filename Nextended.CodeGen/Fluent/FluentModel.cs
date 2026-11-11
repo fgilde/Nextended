@@ -96,6 +96,10 @@ internal sealed class FluentModel
     public Dictionary<string, (INamedTypeSymbol Type, Location Location)> IgnoredTypes { get; } = new(StringComparer.Ordinal);
     public List<ExcelGenerationConfig> ExcelGenerations { get; } = [];
     public List<ClassStructureCodeGenerationConfig> StructureGenerations { get; } = [];
+    public List<TypescriptGenerationConfig> TypescriptGenerations { get; } = [];
+
+    /// <summary>The TypeScript rules of DtoConfig&lt;T&gt;.Typescript(...), by TypeScript type key; they apply to every TypeScript generation.</summary>
+    public Dictionary<string, TypescriptTypeConfig> TypescriptTypes { get; } = new(StringComparer.Ordinal);
     public List<Diagnostic> Diagnostics { get; } = [];
 
     /// <summary>True when nothing but diagnostics came out: the generators then take their exact old code paths.</summary>

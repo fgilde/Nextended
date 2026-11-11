@@ -54,6 +54,7 @@ public abstract class DtoConfig<T> : IDtoBuilder<T>
     public IPropertyBuilder Property<TProperty>(Expression<Func<T, TProperty>> member) => null!;
     public IDtoBuilder<T> Order(params Expression<Func<T, object?>>[] members) => this;
     public IDtoBuilder<T> View(string name, Action<IDtoViewBuilder<T>>? configure = null) => this;
+    public IDtoBuilder<T> Typescript(Action<ITypescriptType<T>> configure) => this;
 #pragma warning restore CS1591
 }
 
@@ -152,6 +153,12 @@ public interface IDtoBuilder<T> : IDtoSettings<IDtoBuilder<T>>, IDtoMembers<T, I
     /// Its settings and member rules apply to the view alone; member rules of the type apply to it unless it has its own.
     /// </summary>
     IDtoBuilder<T> View(string name, Action<IDtoViewBuilder<T>>? configure = null);
+
+    /// <summary>
+    /// The TypeScript of the DTOs of <typeparamref name="T"/> (its default DTO and its views, members by their DTO name) and of
+    /// <typeparamref name="T"/> itself when a TypeScript generation selects it.
+    /// </summary>
+    IDtoBuilder<T> Typescript(Action<ITypescriptType<T>> configure);
 }
 
 /// <summary>A view of <typeparamref name="T"/>.</summary>
