@@ -710,6 +710,8 @@ public class TypescriptGenerationTests
             TypescriptWriter.Write(root, files, check: false).ShouldBeEmpty();
             TypescriptWriter.Write(root, files, check: true).ShouldBeEmpty();
             File.GetLastWriteTimeUtc(Path.Combine(root, "B.ts")).ShouldBe(stamp);
+            File.WriteAllText(Path.Combine(root, "a", "A.ts"), "a\r\n"); // a checkout with core.autocrlf
+            TypescriptWriter.Write(root, files, check: true).ShouldBeEmpty();
 
             File.WriteAllText(Path.Combine(root, "B.ts"), "edited\n");
             TypescriptWriter.Write(root, files, check: true).ShouldBe(["B.ts"]);

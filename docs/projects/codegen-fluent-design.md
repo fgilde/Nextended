@@ -209,7 +209,9 @@ and targeting other generators (`Emit(Output.TypeScript(...))`) once they exist.
 `ExcelGeneration(e => ...)` and `StructureGeneration(s => ...)` add an entry exactly like one in `ExcelGenerations` /
 `StructureGenerations` of the json (1:1 settings; `ColumnMapping(header, property)` and `PropertyTypeOverride(property, type)` fill the
 dictionaries). Relative paths resolve against the json file, or against the project directory when there is no json.
-A future generator (TypeScript, JSON schema, message-protocol classes) adds a method on `CodeGenConfig` and a section on the per-type
+The TypeScript generation follows that pattern: `Typescript(t => ...)` on `CodeGenConfig` (an entry of the json `Typescript` list,
+read by `TypescriptGenerationContext`) and `Typescript(x => ...)` on `DtoConfig<T>` (per type, into `FluentModel.TypescriptTypes`).
+A future generator (JSON schema, message-protocol classes) adds a method on `CodeGenConfig` and a section on the per-type
 builder (`d.TypeScript(t => t.Name(...))`), read by the same reader into the same model — the reader is a generic "settings by name onto
 the generator's config object" walker plus a handful of operations.
 

@@ -167,6 +167,33 @@ more specific member rule wins (`Include` on a derived type or view undoes an `I
 [Fluent configuration](https://fgilde.github.io/Nextended/projects/codegen#fluent-configuration); runnable:
 [CodeGenFluentSample](https://github.com/fgilde/Nextended/tree/main/Tests/TestProjects/CodeGenFluentSample).
 
+### TypeScript generation
+
+TypeScript declarations of your contracts that follow the server's serializer (camelCase, `[JsonPropertyName]`, `[JsonIgnore]`, enum
+converters, `[JsonPolymorphic]` unions). **Off by default**: nothing happens without a generation with an `OutputPath`, the files are
+written to disk (never compiled), unchanged files are not rewritten and stale ones are removed through a manifest.
+
+```csharp
+public sealed class AppCodeGen : CodeGenConfig
+{
+    public AppCodeGen()
+    {
+        Typescript(t => t
+            .OutputPath("../frontend/src/types/generated")
+            .Preset(TypescriptPreset.Abp)                 // enums as numbers (Coworkee: strings), camelCase
+            .IncludeNamespaces("MyApp.Contracts")         // or IncludeTypes("*Dto"), IncludeDerivedFrom(typeof(EntityDto<>)), FromGeneratedDtos()
+            .RootNamespace("MyApp.Contracts")
+            .TypeMap(typeof(PagedResultDto<>), "PagedResult from '../abp'"));
+    }
+}
+```
+
+The same as a `Typescript` list in `codegen.json`, or per type with `[GenerateTypescript]`, `[TypescriptIgnore]`, `[TypescriptProperty]`.
+Output: one file per type in namespace folders (or flat), relative `import type`, `index.ts`, explicit enum values, `T | null` for
+nullable members. CI: `dotnet build -p:NextendedCodeGenTypescriptCheck=true` fails (`NCG032`) when the generated TypeScript is stale.
+Full reference: [TypeScript generation](https://fgilde.github.io/Nextended/projects/codegen#typescript-generation); runnable:
+[CodeGenTsSample](https://github.com/fgilde/Nextended/tree/main/Tests/TestProjects/CodeGenTsSample).
+
 ### Usage
 With this package you can generate DTOs, Interfaces and other code from your classes and enums.
 It is a code generation library that uses attributes to define how the code should be generated.
