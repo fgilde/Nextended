@@ -66,6 +66,24 @@ public sealed class GenerationContext
     public NamespaceResolver NamespaceResolver { get; }
     public AdditionalText AdditionalFile { get; } = null!;
 
+    /// <summary>
+    /// What relative paths resolve against: the json configuration file, or the project directory when there is none
+    /// (a fluent configuration without codegen.json).
+    /// </summary>
+    public string? BasePath
+    {
+        get
+        {
+            if (AdditionalFile != null)
+                return AdditionalFile.Path;
+            string? projectDir = null;
+            if (OptionsProvider?.GlobalOptions.TryGetValue("build_property.projectdir", out projectDir) == true
+                || ExecutionContext?.AnalyzerConfigOptions.GlobalOptions.TryGetValue("build_property.projectdir", out projectDir) == true)
+                return projectDir;
+            return null;
+        }
+    }
+
     // Classic-only
     public GeneratorExecutionContext? ExecutionContext { get; }
 
