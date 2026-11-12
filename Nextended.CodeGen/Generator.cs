@@ -214,11 +214,13 @@ namespace Nextended.CodeGen
             }
         }
 
-        /// <summary>The files of this run on disk, and the folders whose stale generated files go (DeleteStaleFiles).</summary>
+        /// <summary>The files of this run on disk, the folders whose stale generated files go (DeleteStaleFiles), and the hint names
+        /// of the files added to the compilation (Roslyn compares them ignoring case).</summary>
         private sealed class DiskFiles
         {
             public HashSet<string> Written { get; } = new(StringComparer.OrdinalIgnoreCase);
             public HashSet<string> CleanupFolders { get; } = new(StringComparer.OrdinalIgnoreCase);
+            public HashSet<string> HintNames { get; } = new(StringComparer.OrdinalIgnoreCase);
         }
 
         private bool ExecuteGenerators(IEnumerable<ISourceSubGenerator> generators, GenerationContext context, List<GeneratedFile> collected, DiskFiles disk)
@@ -248,12 +250,12 @@ namespace Nextended.CodeGen
                         disk.CleanupFolders.Add(Path.GetDirectoryName(path)!);
             }
 
-            WriteOrAddFiles(context, generatedFiles);
+            WriteOrAddFiles(context, generatedFiles, disk.HintNames);
             collected.AddRange(generatedFiles.Where(f => f != null));
             return generatedFiles.Any();
         }
 
-        private void WriteOrAddFiles(GenerationContext context, IEnumerable<GeneratedFile> generatedFiles)
+        private void WriteOrAddFiles(GenerationContext context, IEnumerable<GeneratedFile> generatedFiles, HashSet<string> hintNames)
         {
             foreach (var generatedFile in generatedFiles.Where(f => f != null))
             {
@@ -261,7 +263,7 @@ namespace Nextended.CodeGen
 
                 if (string.IsNullOrWhiteSpace(generatedFile.OutputPath))
                 {
-                    context.AddSource(generatedFile.FileName, generatedFile.Content);
+                    context.AddSource(UniqueHintName(generatedFile, hintNames), generatedFile.Content);
                 }
                 else
                 {
@@ -287,6 +289,24 @@ namespace Nextended.CodeGen
                     }
                     File.WriteAllText(path, contents);
                 }
+            }
+        }
+
+        /// <summary>
+        /// The hint name of a file added to the compilation: its file name; when a file of this run already took it (same name in
+        /// another namespace, e.g. two OfferDto), the namespace goes in front ("B.Contracts.OfferDto.g.cs"), then a number.
+        /// A duplicate hint name would throw and the whole generator would add nothing (CS8785).
+        /// </summary>
+        private static string UniqueHintName(GeneratedFile file, HashSet<string> used)
+        {
+            if (used.Add(file.FileName))
+                return file.FileName;
+            var prefix = new string((file.Namespace ?? "").Select(c => char.IsLetterOrDigit(c) || c == '.' || c == '_' ? c : '_').ToArray()).Trim('.');
+            for (var i = 1; ; i++)
+            {
+                var hint = (prefix.Length > 0 ? prefix + "." : "") + (i > 1 ? i + "." : "") + file.FileName;
+                if (used.Add(hint))
+                    return hint;
             }
         }
 
@@ -357,6 +377,8 @@ namespace Nextended.CodeGen
         }
     }
 }
+
+
 
 
 

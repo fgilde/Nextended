@@ -603,6 +603,41 @@ public class FluentConfigTests
         generated["appsettings.g.cs"].ShouldContain("public partial record ServerConfiguration");
     }
 
+    // without OutputPath the files are added to the compilation; the file name alone as hint name threw for two OfferDto (CS8785) and the
+    // generator added nothing at all
+    [TestMethod]
+    public void In_memory_DTOs_with_the_same_name_in_different_namespaces_are_all_generated()
+    {
+        const string entities = """
+            namespace A.Domain { public class Offer { public int Id { get; set; } public string? Name { get; set; } } }
+            namespace B.Domain { public class Offer { public int Id { get; set; } public decimal Price { get; set; } } }
+            """;
+        const string profile = """
+            using Nextended.Core.CodeGen;
+
+            public sealed class TwoOffers : CodeGenConfig
+            {
+                public TwoOffers()
+                {
+                    Dto<A.Domain.Offer>(d => d.Namespace("A.Contracts"));
+                    Dto<B.Domain.Offer>(d => d.Namespace("B.Contracts"));
+                }
+            }
+            """;
+
+        CSharpGeneratorDriver.Create(new MainGenerator()).RunGeneratorsAndUpdateCompilation(CompileWithInTreeAttributes(entities, profile),
+            out var final, out var generatorDiagnostics);
+
+        generatorDiagnostics.ShouldNotContain(d => d.Id == "CS8785", string.Join(Environment.NewLine, generatorDiagnostics));
+        var offers = final.SyntaxTrees.Where(t => t.ToString().Contains("class OfferDto")).ToDictionary(t => Path.GetFileName(t.FilePath), t => t.ToString());
+        offers.Keys.Order().ShouldBe(["B.Contracts.OfferDto.g.cs", "OfferDto.g.cs"]); // the first keeps its name, a later one gets its namespace
+        offers["OfferDto.g.cs"].ShouldContain("namespace A.Contracts");
+        offers["B.Contracts.OfferDto.g.cs"].ShouldContain("namespace B.Contracts");
+        offers["B.Contracts.OfferDto.g.cs"].ShouldContain("Price");
+        var errors = final.GetDiagnostics().Where(d => d.Severity == DiagnosticSeverity.Error).ToList();
+        errors.ShouldBeEmpty(string.Join(Environment.NewLine, errors));
+    }
+
     private static string SampleSources([System.Runtime.CompilerServices.CallerFilePath] string file = "")
         => Path.Combine(Path.GetDirectoryName(file)!, "..", "TestProjects", "CodeGenSample", "Sources");
 
