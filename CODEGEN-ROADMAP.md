@@ -261,6 +261,15 @@ flowchart TB
     n2 --> l2
 ```
 
+### Parallel compilations — fixed (10.1.59)
+
+The sub-generators were created once per process (`static Lazy<ImmutableArray<ISourceSubGenerator>>`) and `DtoGenerator` keeps the state of the
+compilation it runs for (`_config`, `_fluent`, `_symbols`, generated DTOs). A process that compiles several projects at once — the compiler server,
+Visual Studio, Rider — therefore wrote DTOs of one project into another project's folder (seen in the Coworkee demo: `DocumentTypeDto.g.cs` of the
+Documents module under Catalog and Sales, written by Visual Studio on opening the solution). Each run now creates its own sub-generator instances
+(`MainGenerator.CreateSubGenerators`), and the TypeScript step reads the DTOs of its own run. Test: `ConcurrentCompilationTests` (two projects in
+parallel; fails on the old code every time). Consumers can drop `UseSharedCompilation=false` workarounds (Coworkee.CodeGen does after its next release).
+
 ## Open points
 
 - From the CoShipee PoC on 10.1.55 (2026-11-11): (a) `PreClassString`/kept attributes of a member typed by a DTO class go onto the
