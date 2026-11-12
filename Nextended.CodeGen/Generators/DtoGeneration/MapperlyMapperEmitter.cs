@@ -229,7 +229,7 @@ internal sealed class MapperlyMapperEmitter(DtoGenerationConfig config, DtoGener
         var mapped = new HashSet<string>(dtoProps.Select(p => p.Name), StringComparer.Ordinal);
         var seen = new HashSet<string>(StringComparer.Ordinal);
         for (var t = type; t != null; t = t.BaseType)
-            foreach (var p in t.GetMembers().OfType<IPropertySymbol>())
+            foreach (var p in t.MembersInSourceOrder().OfType<IPropertySymbol>())
                 if (!p.IsStatic && p.SetMethod is { DeclaredAccessibility: Accessibility.Public } && !mapped.Contains(p.Name) && seen.Add(p.Name))
                     yield return p.Name;
     }

@@ -34,7 +34,8 @@ Binding rules for every step:
 | TypeScript M4 pilot (CargonerdsApp `frontend/realtime`) | done, not merged | CargonerdsApp branch `feat/ts-type-gen` |
 | TypeScript gaps of the pilot (10.1.60) | done, released 10.1.60 | `main` |
 | 10.1.61: neutral TypeScript settings, facets, view defaults, OrderLast, stale files | done, released 10.1.61 | `main` (see below) |
-| 10.1.62: unique hint names for in-memory generation | done, not released | branch `fix/codegen-hint-names` (see below) |
+| 10.1.62: unique hint names for in-memory generation | done, released 10.1.62 | `main` (see below) |
+| 10.1.63: stable member order of `partial` types | done, released 10.1.63 | `main` (see below) |
 | Fluent configuration, phase 1 (same assembly) | done, released (≤ 10.1.59) | `main`, design: `docs/projects/codegen-fluent-design.md` |
 | Fluent configuration, phase 2 (central config project) | idea | |
 | Coworkee: views and fluent config shown in the template and docs | open | CoworkeeLib |
@@ -368,7 +369,24 @@ flowchart TB
 - [x] Golden: CodeGenSample, CodeGenFluentSample, CodeGenTsSample unchanged. CargonerdsApp main (b2cd4092d) with Core + CodeGen
       10.1.62-local.1: all generated files deleted and rebuilt (`-p:UseSharedCompilation=false --no-incremental`): 181 byte-identical,
       the same 13 stale leftovers.
-- [ ] Release CodeGen 10.1.62 (Core unchanged).
+- [x] Release CodeGen 10.1.62 (Core unchanged).
+
+### 10.1.63 — stable member order of `partial` types (branch `fix/codegen-member-order`)
+
+- [x] `ITypeSymbol.GetMembers()` lists the members of a `partial` type in the order the compilation got its syntax trees, and that
+      order differs between Visual Studio, the command line and incremental builds. CoShipee's `CalculatedShipmentDto.Tags` (declared in
+      a second `partial` file under `Persistence/`) moved between first and last. `RoslynHelper.MembersInSourceOrder` orders the members
+      of a type declared in more than one file by file (the files of a folder before its subfolders, by name ignoring case, like the
+      default `Compile` glob), then by position; a type in one file keeps `GetMembers()`. Used wherever members are emitted in order:
+      DTO properties (default, deep, views, fluent `Order`/`OrderLast`/`BaseMembersFirst` on top, stable sort), required members, the
+      Mapperly emitter, the TypeScript members.
+- [x] Docs EN (`Order` paragraph, TypeScript "Following the serializer"), DE (Reihenfolge).
+- [x] Tests `MemberOrderTests`: partial type and partial base across folders in four compilation orders give identical files (and the
+      expected order), `Order`/`OrderLast`/`BaseMembersFirst` on top of it, repeated runs, TypeScript of a partial DTO. Three of the four
+      fail on the old code; CodeGen tests 99 green, 1 skipped (as before); all Nextended tests green.
+- [x] Golden: CargonerdsApp `feat/ts-type-gen` (Hub.Domain, Hub.Application.Contracts) with CodeGen 10.1.63 local: no change to the
+      generated `.cs` (a deleted DTO is rewritten byte-identical). CoShipee master: no change, clean and incremental; with the entity file
+      moved to the end of `Compile`, 10.1.62 moves `Tags` to the front, 10.1.63 keeps it last.
 
 ### Parallel compilations — fixed (10.1.59)
 

@@ -362,7 +362,7 @@ public class DtoGenerationSymbols
         var depth = 0;
         for (var t = type; t != null; t = deep ? t.BaseType : null, depth++)
         {
-            foreach (var p in t.GetMembers().OfType<IPropertySymbol>())
+            foreach (var p in t.MembersInSourceOrder().OfType<IPropertySymbol>())
             {
                 if (p.DeclaredAccessibility != Accessibility.Public || p.IsStatic) continue;
                 if (IsExcluded(type, p, ignoredByName, ignoreAttr)) continue;
@@ -376,7 +376,7 @@ public class DtoGenerationSymbols
     private static IEnumerable<IPropertySymbol> AllProperties(INamedTypeSymbol type)
     {
         for (var t = type; t != null; t = t.BaseType)
-            foreach (var p in t.GetMembers().OfType<IPropertySymbol>())
+            foreach (var p in t.MembersInSourceOrder().OfType<IPropertySymbol>())
                 yield return p;
     }
 
@@ -408,7 +408,7 @@ public class DtoGenerationSymbols
         var seen = new HashSet<string>(StringComparer.Ordinal);
         for (var t = type; t != null; t = t.BaseType)
         {
-            foreach (var p in t.GetMembers().OfType<IPropertySymbol>())
+            foreach (var p in t.MembersInSourceOrder().OfType<IPropertySymbol>())
             {
                 if (p.DeclaredAccessibility != Accessibility.Public || p.IsStatic) continue;
                 if (ignoredByName.Contains(p.Name)) continue;
@@ -427,7 +427,7 @@ public class DtoGenerationSymbols
 
         if (deepProperties || IsView(type))
             return GetDtoPropertiesDeep(type, ignoreAttr);
-        return type.GetMembers().OfType<IPropertySymbol>().Where(p =>
+        return type.MembersInSourceOrder().OfType<IPropertySymbol>().Where(p =>
             p.DeclaredAccessibility == Accessibility.Public &&
             !p.IsStatic &&
             !ignoredByName.Contains(p.Name) &&

@@ -105,7 +105,7 @@ public class DtoCodeGenerator
         var seen = new HashSet<string>(StringComparer.Ordinal);
         for (var t = type; t != null; t = t.BaseType)
         {
-            foreach (var p in t.GetMembers().OfType<IPropertySymbol>())
+            foreach (var p in t.MembersInSourceOrder().OfType<IPropertySymbol>())
             {
                 if (p.DeclaredAccessibility != Accessibility.Public) continue;
                 if (p.IsStatic) continue;
@@ -413,7 +413,7 @@ public class DtoCodeGenerator
     private static IEnumerable<string> SourceRequiredMembers(INamedTypeSymbol type)
     {
         for (var t = type; t != null; t = t.BaseType)
-            foreach (var m in t.GetMembers())
+            foreach (var m in t.MembersInSourceOrder())
                 if (m is IPropertySymbol { IsRequired: true } or IFieldSymbol { IsRequired: true })
                     yield return m.Name;
     }

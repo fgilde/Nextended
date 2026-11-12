@@ -15,6 +15,49 @@ namespace Nextended.CodeGen.Helper;
 
 internal static class RoslynHelper
 {
+    /// <summary>
+    /// The members of a type in a stable order. GetMembers lists the members of a partial type in the order the compilation got its files,
+    /// which differs between builds (IDE, command line, incremental), so a type declared in several files lists them by file (the files of
+    /// a folder before its subfolders, like the default Compile glob), then by position. A type declared in one file keeps GetMembers.
+    /// </summary>
+    public static IEnumerable<ISymbol> MembersInSourceOrder(this INamespaceOrTypeSymbol type)
+    {
+        var members = type.GetMembers();
+        if (type.DeclaringSyntaxReferences.Select(r => r.SyntaxTree).Distinct().Count() < 2)
+            return members;
+        // members without a source location (implicitly declared) go last, in their order
+        return members.OrderBy(m => SourceLocation(m)?.SourceTree!.FilePath, SourcePathComparer.Instance)
+            .ThenBy(m => SourceLocation(m)?.SourceSpan.Start ?? int.MaxValue);
+    }
+
+    private static Location? SourceLocation(ISymbol symbol) => symbol.Locations.FirstOrDefault(l => l.IsInSource);
+
+    /// <summary>Orders file paths folder by folder (ignoring case), the files of a folder before its subfolders; null last.</summary>
+    internal sealed class SourcePathComparer : IComparer<string?>
+    {
+        public static readonly SourcePathComparer Instance = new();
+        private static readonly char[] Separators = ['/', '\\'];
+
+        public int Compare(string? x, string? y)
+        {
+            if (x == null || y == null)
+                return x == null ? y == null ? 0 : 1 : -1;
+            var a = x.Split(Separators);
+            var b = y.Split(Separators);
+            for (var i = 0; ; i++)
+            {
+                bool aFile = i == a.Length - 1, bFile = i == b.Length - 1;
+                if (aFile != bFile)
+                    return aFile ? -1 : 1;
+                var c = string.Compare(a[i], b[i], StringComparison.OrdinalIgnoreCase);
+                if (c != 0)
+                    return c;
+                if (aFile)
+                    return string.CompareOrdinal(x, y);
+            }
+        }
+    }
+
     public static string ToCSharpString(this AttributeData attribute)
     {
         var sb = new StringBuilder();

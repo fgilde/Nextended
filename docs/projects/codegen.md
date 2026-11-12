@@ -150,6 +150,11 @@ Property(x => x.Sku).Name("ArticleNumber").Attribute("[JsonPropertyOrder(1)]");
   its members in that order, so a flat DTO (a view, or a DTO with `DeepProperties`) is serialized in that order — an existing JSON order
   needs no `[JsonPropertyOrder]` lists. (A default DTO with a base DTO orders its own members; the base DTO's members belong to the
   base DTO.)
+- "Its place" is the declaration order, and it is the same in every build. A type declared in several files (`partial`) lists its
+  members by file — the files of a folder before its subfolders, by name ignoring case, like the default `Compile` glob — then by
+  position in the file. The order the build hands the files to the compiler (Visual Studio, the command line, an incremental build)
+  no longer matters; before 10.1.63 a member of another `partial` file could move from last to first between builds. A type in one
+  file keeps its order. The same applies to the TypeScript generation and to the generated mappers.
 - `Property(x => x.Number, p => p.Name("No"))` does what `Property(x => x.Number).Name("No")` does but returns the DTO builder, so a
   chain goes on: `d.Property(x => x.A, p => p.Name("B")).Ignore(x => x.C)`. The string form exists too: `Property("A", p => ...)`.
 
@@ -469,7 +474,7 @@ Real compiled types, so hand-written DTOs, partial classes (all parts) and DTOs 
 
 ### Following the serializer
 
-- Members: public instance properties with a public getter (and `[JsonInclude]` members); order of declaration, `[JsonPropertyOrder]` first.
+- Members: public instance properties with a public getter (and `[JsonInclude]` members); order of declaration (a `partial` type: by file, then by position, see `Order`), `[JsonPropertyOrder]` first.
 - Names: `[JsonPropertyName]` (or Newtonsoft `[JsonProperty]`), else the naming policy; names that are no identifier are quoted (`'my-name'`).
 - `[JsonIgnore]` (or `Condition = Always`) leaves the member out; `WhenWritingNull`/`WhenWritingDefault` make it optional (`?`);
   `Never` keeps it. `[JsonExtensionData]` becomes `[key: string]: unknown`.

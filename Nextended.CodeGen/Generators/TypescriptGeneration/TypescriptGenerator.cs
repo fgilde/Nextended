@@ -10,6 +10,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Nextended.CodeGen.Config;
 using Nextended.CodeGen.Contracts;
 using Nextended.CodeGen.Fluent;
+using Nextended.CodeGen.Helper;
 
 namespace Nextended.CodeGen.Generators.TypescriptGeneration;
 
@@ -387,7 +388,7 @@ public sealed class TypescriptGenerator
     private List<(ISymbol Symbol, ITypeSymbol Type, int Order)> DeclaredMembers(INamedTypeSymbol type)
     {
         var result = new List<(ISymbol, ITypeSymbol, int)>();
-        foreach (var symbol in type.GetMembers())
+        foreach (var symbol in type.MembersInSourceOrder())
         {
             if (symbol.IsStatic || symbol.IsImplicitlyDeclared)
                 continue;
