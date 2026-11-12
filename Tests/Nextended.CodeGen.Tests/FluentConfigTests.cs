@@ -803,7 +803,8 @@ public class FluentConfigTests
                     ExcelGeneration(e => { {{Calls("IExcelGeneration", "e")}} });
                     StructureGeneration(s => { {{Calls("IStructureGeneration", "s")}} });
                     Typescript(t => { {{Calls("ITypescriptGeneration", "t")}} });
-                    Typescript(t => t.Include<Probe.Item>().Exclude<Probe.Item>().IncludeDerivedFrom<Probe.Item>().ExcludeDerivedFrom<Probe.Item>().TypeMap<Probe.Item>("X"));
+                    Typescript(t => t.Include<Probe.Item>().Exclude<Probe.Item>().IncludeDerivedFrom<Probe.Item>().ExcludeDerivedFrom<Probe.Item>().TypeMap<Probe.Item>("X").IncludeMembersWithAttribute<System.ObsoleteAttribute>());
+                    Typescript(t => t.Type<Probe.Item>(b => b.IncludeMembersWithAttribute<System.ObsoleteAttribute>().DerivedType<Probe.Item>("x")));
                     Typescript(t => t.Type("Probe.Item", b => { {{Calls("ITypescriptTypeBuilder", "b")}} }));
                     Typescript(t => t.Type<Probe.Item>(b => { {{Calls("ITypescriptType`1", "b")}} b.Ignore(x => x.Name); b.Property(x => x.Name).Name("n"); }));
                     Typescript(t => t.Type<Probe.Item>(b => { {{Calls("ITypescriptProperty", "b.Property(\"Name\")")}} }));

@@ -32,7 +32,13 @@ public interface ITypescriptGeneration
     ITypescriptGeneration ExcludeNamespaces(params string[] value);
     ITypescriptGeneration ExcludeTypes(params string[] value);
     ITypescriptGeneration ExcludeBaseTypes(params string[] value);
+    ITypescriptGeneration Header(string? value);
+    ITypescriptGeneration OptionalDefaultValues(bool value = true);
+    ITypescriptGeneration IncludeMembersWithAttributes(params string[] value);
 #pragma warning restore CS1591
+
+    /// <summary>Adds the attribute to <c>IncludeMembersWithAttributes</c>: only members carrying it are generated.</summary>
+    ITypescriptGeneration IncludeMembersWithAttribute<TAttribute>() where TAttribute : Attribute;
 
     /// <summary>Adds the type to <c>IncludeTypes</c>.</summary>
     ITypescriptGeneration Include<T>();
@@ -92,6 +98,30 @@ public interface ITypescriptTypeSettings<out TSelf>
 
     /// <summary>The TypeScript settings of one member, by name.</summary>
     ITypescriptProperty Property(string memberName);
+
+    /// <summary>Members with a default value (initializer or [DefaultValue]) optional, for this type (overrides the generation's setting).</summary>
+    TSelf OptionalDefaultValues(bool value = true);
+
+    /// <summary>Only the members carrying one of these attributes (full or simple name, "Attribute" optional); replaces the generation's list.</summary>
+    TSelf IncludeMembersWithAttributes(params string[] attributeNames);
+
+    /// <summary>Only the members carrying <typeparamref name="TAttribute"/> (adds it to this type's <c>IncludeMembersWithAttributes</c>).</summary>
+    TSelf IncludeMembersWithAttribute<TAttribute>() where TAttribute : Attribute;
+
+    /// <summary>
+    /// The type becomes a union of these derived types (full or simple names, <c>*</c> globs; <c>"*"</c> = every non-abstract derived type
+    /// found), for a base type without [JsonDerivedType]. <c>"Name=value"</c> gives the derived type a discriminator value.
+    /// </summary>
+    TSelf DerivedTypes(params string[] typeNames);
+
+    /// <summary>Adds <typeparamref name="TDerived"/> to <c>DerivedTypes</c>, optionally with the discriminator value the server writes.</summary>
+    TSelf DerivedType<TDerived>(string? discriminator = null);
+
+    /// <summary>Adds the type to <c>DerivedTypes</c>, optionally with the discriminator value the server writes.</summary>
+    TSelf DerivedType(Type type, string? discriminator = null);
+
+    /// <summary>The name of the discriminator property of the union (<c>$type</c> when not set and a derived type has a value).</summary>
+    TSelf Discriminator(string propertyName);
 }
 
 /// <summary>The TypeScript of a type given by name.</summary>

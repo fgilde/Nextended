@@ -27,6 +27,15 @@ public class TypescriptGenerationConfig
     /// <summary>Nullable members also optional (<c>name?: T | null</c>).</summary>
     public bool OptionalNullable { get; set; }
 
+    /// <summary>Members with a default value (an initializer other than <c>null</c>/<c>default</c>, or <c>[DefaultValue]</c>) optional.</summary>
+    public bool OptionalDefaultValues { get; set; }
+
+    /// <summary>The text written at the top of every file; <c>null</c> = <see cref="Generators.TypescriptGeneration.TypescriptGenerator.Header"/>, <c>""</c> = none.</summary>
+    public string? Header { get; set; }
+
+    /// <summary>Only members carrying one of these attributes (full or simple name, "Attribute" optional); a type's own list replaces it.</summary>
+    public List<string> IncludeMembersWithAttributes { get; set; } = [];
+
     /// <summary>Guid and date/time members typed by aliases (<c>Guid</c>, <c>DateTime</c>, ... = <c>string</c>) from <c>scalars.ts</c>.</summary>
     public bool TypeAliases { get; set; }
 
@@ -74,6 +83,18 @@ public class TypescriptTypeConfig
     public string? Name { get; set; }
     public bool? Ignore { get; set; }
     public Dictionary<string, TypescriptMemberConfig> Members { get; set; } = new();
+
+    /// <summary>Members with a default value optional; null = the generation's setting.</summary>
+    public bool? OptionalDefaultValues { get; set; }
+
+    /// <summary>Only members carrying one of these attributes; null = the generation's list.</summary>
+    public List<string>? IncludeMembersWithAttributes { get; set; }
+
+    /// <summary>The type becomes a union of these derived types (names, <c>*</c> globs, <c>"Name=discriminator"</c>).</summary>
+    public List<string> DerivedTypes { get; set; } = [];
+
+    /// <summary>The discriminator property of a <see cref="DerivedTypes"/> union (<c>$type</c> when not set).</summary>
+    public string? Discriminator { get; set; }
 
     public TypescriptMemberConfig Member(string name)
     {

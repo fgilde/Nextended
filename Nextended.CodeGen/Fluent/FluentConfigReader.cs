@@ -661,7 +661,7 @@ internal sealed class FluentConfigReader
     /// <summary>Typescript(t => ...): settings by name onto a TypescriptGenerationConfig, lists, type map and per-type rules.</summary>
     private sealed class TypescriptGenerationContext(TypescriptGenerationConfig config) : Context
     {
-        private static readonly HashSet<string> Lists = ["IncludeNamespaces", "IncludeTypes", "IncludeBaseTypes", "ExcludeNamespaces", "ExcludeTypes", "ExcludeBaseTypes"];
+        private static readonly HashSet<string> Lists = ["IncludeNamespaces", "IncludeTypes", "IncludeBaseTypes", "ExcludeNamespaces", "ExcludeTypes", "ExcludeBaseTypes", "IncludeMembersWithAttributes"];
         private static readonly HashSet<string> Settings = Without(FluentModel.SettingNames(typeof(TypescriptGenerationConfig)), "TypeMap", "Types", "IsFluent");
 
         public override Context? Invoke(FluentConfigReader reader, Call call)
@@ -685,6 +685,10 @@ internal sealed class FluentConfigReader
                     list.Add(TypescriptNames.Key(type));
                     return this;
                 }
+                case "IncludeMembersWithAttribute":
+                    if (call.TypeArgument != null)
+                        config.IncludeMembersWithAttributes.Add(TypescriptNames.Key(call.TypeArgument));
+                    return this;
                 case "TypeMap":
                 {
                     string? key;
@@ -739,7 +743,7 @@ internal sealed class FluentConfigReader
         }
     }
 
-    /// <summary>The TypeScript of one type: Name, Ignore() (the type), Ignore(members), Property(member).</summary>
+    /// <summary>The TypeScript of one type: Name, Ignore() (the type), Ignore(members), Property(member), member attribute filter, derived types.</summary>
     private sealed class TypescriptTypeContext(TypescriptTypeConfig rules, INamedTypeSymbol? type) : Context
     {
         public override Context? Invoke(FluentConfigReader reader, Call call)
@@ -762,6 +766,33 @@ internal sealed class FluentConfigReader
                     var member = reader.MemberNames(call, type).FirstOrDefault();
                     return member == null ? null : new TypescriptPropertyContext(rules.Member(member));
                 }
+                case "OptionalDefaultValues":
+                    if (call.TryConstant(0, out var optional))
+                        rules.OptionalDefaultValues = optional as bool? ?? true;
+                    return this;
+                case "IncludeMembersWithAttributes":
+                    if (call.TryConstant(0, out var attributes) && attributes is string[] names)
+                        rules.IncludeMembersWithAttributes = [.. names];
+                    return this;
+                case "IncludeMembersWithAttribute":
+                    if (call.TypeArgument != null)
+                        (rules.IncludeMembersWithAttributes ??= []).Add(TypescriptNames.Key(call.TypeArgument));
+                    return this;
+                case "DerivedTypes":
+                    if (call.TryConstant(0, out var derived) && derived is string[] patterns)
+                        rules.DerivedTypes.AddRange(patterns);
+                    return this;
+                case "DerivedType":
+                {
+                    var derivedType = call.TypeArgument ?? call.TypeOf(0);
+                    if (derivedType != null && call.TryString(call.TypeArgument != null ? 0 : 1, out var value))
+                        rules.DerivedTypes.Add(TypescriptNames.Key(derivedType) + (value == null ? "" : "=" + value));
+                    return this;
+                }
+                case "Discriminator":
+                    if (call.TryString(0, out var property))
+                        rules.Discriminator = property;
+                    return this;
                 default:
                     return Unknown;
             }

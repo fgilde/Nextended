@@ -6,6 +6,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Nextended.CodeGen.Config;
 using Nextended.CodeGen.Contracts;
 using Nextended.CodeGen.Fluent;
@@ -45,6 +46,8 @@ public sealed class TypescriptGenerator
     private bool _discovering;
     private readonly Dictionary<string, string> _typeMap;
     private readonly Dictionary<string, TypescriptTypeConfig> _types;
+    private readonly string _prefix;
+    private List<INamedTypeSymbol>? _classes;
 
     private TypescriptGenerator(Compilation compilation, TypescriptGenerationConfig config, FluentModel fluent)
     {
@@ -60,6 +63,9 @@ public sealed class TypescriptGenerator
             TypescriptEnumValues.String => EnumMode.String,
             _ => config.Preset == TypescriptPreset.Coworkee ? EnumMode.String : EnumMode.Number
         };
+        // the header, then an empty line; no header: the declarations start at the top
+        var header = config.Header == null ? Header : config.Header.Replace("\r\n", "\n");
+        _prefix = header.Trim().Length == 0 ? "" : header.TrimEnd('\n') + "\n\n";
     }
 
     /// <summary>
@@ -144,7 +150,7 @@ public sealed class TypescriptGenerator
         foreach (var decl in _decls.Values.OrderBy(d => d.Path, StringComparer.Ordinal))
             result.Files[decl.Path] = Render(decl);
         if (_config.TypeAliases)
-            result.Files["scalars.ts"] = Header + "\n" + string.Concat(Scalars.Select(s => $"export type {s} = string;\n"));
+            result.Files["scalars.ts"] = _prefix + string.Concat(Scalars.Select(s => $"export type {s} = string;\n"));
         if (_config.Barrel && result.Files.Count > 0)
             result.Files["index.ts"] = Barrel();
 
@@ -159,7 +165,7 @@ public sealed class TypescriptGenerator
         if (_decls.TryGetValue(type, out var decl))
             return decl;
         _decls[type] = decl = new Decl(type);
-        if (Polymorphic(type) is { } poly)
+        if ((Polymorphic(type) ?? ConfiguredUnion(type)) is { } poly)
         {
             decl.DiscriminatorProperty = poly.Property;
             decl.Derived.AddRange(poly.Derived);
@@ -435,6 +441,11 @@ public sealed class TypescriptGenerator
 
         // json "Types" → attributes → fluent
         var layers = TypeLayers(owner).ToList();
+        if ((layers.LastOrDefault(l => l.OptionalDefaultValues != null)?.OptionalDefaultValues ?? _config.OptionalDefaultValues) && HasDefaultValue(symbol))
+            optional = true;
+        var only = layers.LastOrDefault(l => l.IncludeMembersWithAttributes != null)?.IncludeMembersWithAttributes ?? _config.IncludeMembersWithAttributes;
+        if (only.Count > 0 && !sources.Any(s => s.GetAttributes().Any(a => a.AttributeClass is { } c && IsAttribute(c, only))))
+            ignore = true;
         var jsonLayer = JsonLayer(owner);
         void Apply(TypescriptMemberConfig? m)
         {
@@ -469,6 +480,49 @@ public sealed class TypescriptGenerator
         return new Member(symbol, type, tsName, optional, typeOverride, ConverterMode(symbol));
     }
 
+    /// <summary>An attribute class named in the list: full or simple name, with or without "Attribute".</summary>
+    private static bool IsAttribute(INamedTypeSymbol attribute, List<string> names)
+    {
+        var key = TypescriptNames.Key(attribute);
+        foreach (var raw in names.Where(n => !string.IsNullOrWhiteSpace(n)))
+        {
+            var name = TypescriptNames.Normalize(raw);
+            var full = name.EndsWith("Attribute", StringComparison.Ordinal) ? name : name + "Attribute";
+            if (key == name || key == full || attribute.Name == name || attribute.Name == full)
+                return true;
+        }
+        return false;
+    }
+
+    /// <summary>[DefaultValue], or an initializer (property, field, record parameter) that is not <c>null</c>/<c>default</c> (also with <c>!</c>).</summary>
+    private static bool HasDefaultValue(ISymbol symbol)
+    {
+        if (Attr(symbol, "System.ComponentModel.DefaultValueAttribute") != null)
+            return true;
+        foreach (var reference in symbol.DeclaringSyntaxReferences)
+        {
+            var value = reference.GetSyntax() switch
+            {
+                PropertyDeclarationSyntax p => p.Initializer?.Value,
+                VariableDeclaratorSyntax v => v.Initializer?.Value,
+                ParameterSyntax p => p.Default?.Value,
+                _ => null
+            };
+            while (true)
+            {
+                if (value is PostfixUnaryExpressionSyntax bang && bang.IsKind(SyntaxKind.SuppressNullableWarningExpression))
+                    value = bang.Operand;
+                else if (value is ParenthesizedExpressionSyntax parenthesized)
+                    value = parenthesized.Expression;
+                else
+                    break;
+            }
+            if (value != null && !value.IsKind(SyntaxKind.NullLiteralExpression) && !value.IsKind(SyntaxKind.DefaultLiteralExpression) && value is not DefaultExpressionSyntax)
+                return true;
+        }
+        return false;
+    }
+
     private static IEnumerable<ISymbol> AllMembers(INamedTypeSymbol type)
     {
         for (var t = type; t != null; t = t.BaseType)
@@ -499,6 +553,56 @@ public sealed class TypescriptGenerator
             return null;
         var poly = Attr(type, "System.Text.Json.Serialization.JsonPolymorphicAttribute");
         return new PolymorphicInfo(Named(poly, "TypeDiscriminatorPropertyName") as string ?? "$type", derived);
+    }
+
+    /// <summary>
+    /// "DerivedTypes" of a base type without [JsonDerivedType]: the derived classes of the compilation (and of the base's assembly) whose
+    /// name, or the name of the entity a generated DTO comes from, matches an entry; "Name=value" gives the discriminator value.
+    /// </summary>
+    private PolymorphicInfo? ConfiguredUnion(INamedTypeSymbol type)
+    {
+        var layers = TypeLayers(type).ToList();
+        var entries = layers.LastOrDefault(l => l.DerivedTypes.Count > 0)?.DerivedTypes;
+        if (entries == null || type.Arity > 0)
+            return null;
+        _classes ??= Classes(_compilation.Assembly);
+        var candidates = SymbolEqualityComparer.Default.Equals(type.ContainingAssembly, _compilation.Assembly)
+            ? _classes
+            : _classes.Concat(Classes(type.ContainingAssembly));
+        var derivedClasses = candidates.Where(c => Inherits(c, type)).ToList();
+
+        var derived = new List<(INamedTypeSymbol, object?)>();
+        if (!type.IsAbstract && type.TypeKind == TypeKind.Class)
+            derived.Add((type, null)); // a base that can be instantiated is sent as itself too
+        foreach (var entry in entries.Where(e => !string.IsNullOrWhiteSpace(e)))
+        {
+            var split = entry.IndexOf('=');
+            var pattern = new List<string> { split < 0 ? entry : entry.Substring(0, split) };
+            object? value = split < 0 ? null : entry.Substring(split + 1).Trim();
+            foreach (var candidate in derivedClasses)
+                if (derived.All(d => !SymbolEqualityComparer.Default.Equals(d.Item1, candidate))
+                    && (Matches(candidate, pattern) || _dtoSources.TryGetValue(candidate, out var source) && Matches(source, pattern)))
+                    derived.Add((candidate, value));
+        }
+        if (derived.All(d => SymbolEqualityComparer.Default.Equals(d.Item1, type)))
+            return null;
+        return new PolymorphicInfo(layers.LastOrDefault(l => l.Discriminator is { Length: > 0 })?.Discriminator ?? "$type", derived);
+    }
+
+    /// <summary>The non-generic, non-abstract classes of an assembly, in key order.</summary>
+    private static List<INamedTypeSymbol> Classes(IAssemblySymbol assembly)
+    {
+        var all = new List<INamedTypeSymbol>();
+        Collect(assembly.GlobalNamespace, all, _ => true);
+        return all.Where(t => t is { TypeKind: TypeKind.Class, IsAbstract: false, Arity: 0 }).OrderBy(TypescriptNames.Key, StringComparer.Ordinal).ToList();
+    }
+
+    private static bool Inherits(INamedTypeSymbol type, INamedTypeSymbol baseType)
+    {
+        for (var b = type.BaseType; b != null; b = b.BaseType)
+            if (SymbolEqualityComparer.Default.Equals(b.OriginalDefinition, baseType))
+                return true;
+        return false;
     }
 
     /// <summary>The discriminator a derived type carries: from the nearest polymorphic base that lists it.</summary>
@@ -595,7 +699,7 @@ public sealed class TypescriptGenerator
     private string Barrel()
     {
         var counts = _decls.Values.SelectMany(d => d.Exports).GroupBy(n => n, StringComparer.Ordinal).ToDictionary(g => g.Key, g => g.Count(), StringComparer.Ordinal);
-        var sb = new StringBuilder(Header).Append('\n');
+        var sb = new StringBuilder(_prefix);
         if (_config.TypeAliases)
             sb.Append("export * from './scalars';\n");
         foreach (var decl in _decls.Values.OrderBy(d => d.Path, StringComparer.Ordinal))
@@ -655,7 +759,7 @@ public sealed class TypescriptGenerator
         var body = decl.IsEnum ? RenderEnum(decl) : RenderInterface(decl, file);
         if (_discovering)
             return "";
-        var sb = new StringBuilder(Header).Append('\n');
+        var sb = new StringBuilder(_prefix);
         foreach (var module in file.Imports.GroupBy(i => i.Key.Module).OrderBy(g => g.Key, StringComparer.Ordinal))
         {
             var names = module.OrderBy(i => i.Key.Export, StringComparer.Ordinal).Select(i => i.Value == i.Key.Export ? i.Key.Export : $"{i.Key.Export} as {i.Value}");

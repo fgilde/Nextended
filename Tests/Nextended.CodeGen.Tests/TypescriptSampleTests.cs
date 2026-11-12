@@ -42,7 +42,7 @@ public class TypescriptSampleTests
     {
         var (compilation, generations) = Sample();
         compilation.GetDiagnostics().Where(d => d.Severity == DiagnosticSeverity.Error).ShouldBeEmpty();
-        generations.Select(g => g.OutputPath).ShouldBe(["ts", "ts-const"]);
+        generations.Select(g => g.OutputPath).ShouldBe(["ts", "ts-const", "ts-pricing"]);
 
         var changed = new List<string>();
         foreach (var generation in generations)
@@ -71,6 +71,7 @@ public class TypescriptSampleTests
         Tsc.Check(dir, Directory.GetFiles(Path.Combine(dir, "ts"), "*.ts", SearchOption.AllDirectories));
         // the const generation also fits erasableSyntaxOnly (no enums)
         Tsc.Check(dir, Directory.GetFiles(Path.Combine(dir, "ts-const"), "*.ts", SearchOption.AllDirectories), "--erasableSyntaxOnly");
+        Tsc.Check(dir, Directory.GetFiles(Path.Combine(dir, "ts-pricing"), "*.ts", SearchOption.AllDirectories));
     }
 }
 
