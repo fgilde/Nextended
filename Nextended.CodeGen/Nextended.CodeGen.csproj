@@ -64,6 +64,11 @@
                               Exclude="$(OutputPath)System*.dll;$(OutputPath)Microsoft*.dll;$(OutputPath)mscorlib.dll;$(OutputPath)netstandard.dll">
         <PackagePath>analyzers/dotnet/cs</PackagePath>
       </TfmSpecificPackageFile>
+      <!-- ClosedXML needs these two and neither the .NET compiler (dotnet build, CI) nor its runtime has them: without them
+           the Excel generation fails there with "type initializer for XLStyleValue" (Visual Studio happens to load them itself) -->
+      <TfmSpecificPackageFile Include="$(OutputPath)Microsoft.Bcl.HashCode.dll;$(OutputPath)System.IO.Packaging.dll">
+        <PackagePath>analyzers/dotnet/cs</PackagePath>
+      </TfmSpecificPackageFile>
     </ItemGroup>
   </Target>
   <ItemGroup>
