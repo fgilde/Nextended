@@ -48,15 +48,15 @@ namespace Nextended.CodeGen
             "NCG033", "TypeScript generation failed", "The TypeScript in {0} could not be generated: {1}",
             "Nextended.CodeGen", DiagnosticSeverity.Warning, isEnabledByDefault: true);
 
-        private static readonly Lazy<ImmutableArray<ISourceSubGenerator>> CachedSubGenerators =
-            new(() =>
-            {
-                Console.WriteLine("Nextended.CodeGen Initialize (incremental)");
-                return typeof(MainGenerator).Assembly.GetTypes()
-                    .Where(t => typeof(ISourceSubGenerator).IsAssignableFrom(t) && !t.IsAbstract)
-                    .Select(t => (ISourceSubGenerator)Activator.CreateInstance(t)!)
-                    .ToImmutableArray();
-            });
+        // the types only: sub-generators keep state of the compilation they run for (config, symbols, generated DTOs), and one process compiles
+        // several projects at once (the compiler server, Visual Studio, Rider), so each run gets instances of its own
+        private static readonly Lazy<Type[]> SubGeneratorTypes =
+            new(() => typeof(MainGenerator).Assembly.GetTypes()
+                .Where(t => typeof(ISourceSubGenerator).IsAssignableFrom(t) && !t.IsAbstract)
+                .ToArray());
+
+        private static ImmutableArray<ISourceSubGenerator> CreateSubGenerators() =>
+            SubGeneratorTypes.Value.Select(t => (ISourceSubGenerator)Activator.CreateInstance(t)!).ToImmutableArray();
 
         public void Initialize(IncrementalGeneratorInitializationContext context)
         {
@@ -108,7 +108,8 @@ namespace Nextended.CodeGen
             // DTO Generator: erst portieren/adapter bauen, dann wieder aktivieren
             // new DtoGenerator(new DtoGenerationConfig()).Execute(...);
 
-            var generators = CachedSubGenerators.Value.ToList();
+            var all = CreateSubGenerators();
+            var generators = all.ToList();
             bool executed = false;
             var generatedFiles = new List<GeneratedFile>();
             var typescript = new List<(TypescriptGenerationConfig Config, string? BasePath)>();
@@ -131,8 +132,7 @@ namespace Nextended.CodeGen
                             typescript.Add((ts, genCtx.BasePath));
 
                     // remove generators that do not require a config, so they are not executed again
-                    foreach (var g in CachedSubGenerators.Value.Where(g => !g.RequireConfig))
-                        generators.Remove(g);
+                    generators.RemoveAll(g => !g.RequireConfig);
                 }
                 catch (Exception e)
                 {
@@ -155,7 +155,7 @@ namespace Nextended.CodeGen
                     CodeToDocs = []
                 };
                 var fluentCtx = new GenerationContext(new NamespaceResolver("", compilation, optionsProvider), context, compilation, optionsProvider, fluentConfig);
-                ExecuteGenerators(CachedSubGenerators.Value.Where(g => g.RequireConfig), fluentCtx, generatedFiles);
+                ExecuteGenerators(all.Where(g => g.RequireConfig), fluentCtx, generatedFiles);
             }
 
             if (!executed)
@@ -168,17 +168,18 @@ namespace Nextended.CodeGen
 
             // TypeScript last: it may take the DTOs generated above; it never adds sources, it writes files below its OutputPath
             if (typescript.Count > 0)
-                RunTypescript(context, compilation, optionsProvider, typescript, generatedFiles);
+                RunTypescript(context, compilation, optionsProvider, typescript, generatedFiles, all);
 
             context.ReportDiagnostic(Diagnostic.Create(InfoGenerationCompleted, Location.None, DateTime.Now));
         }
 
         private void RunTypescript(SourceProductionContext context, Compilation compilation, AnalyzerConfigOptionsProvider optionsProvider,
-            List<(TypescriptGenerationConfig Config, string? BasePath)> generations, List<GeneratedFile> generatedFiles)
+            List<(TypescriptGenerationConfig Config, string? BasePath)> generations, List<GeneratedFile> generatedFiles, ImmutableArray<ISourceSubGenerator> all)
         {
             var check = optionsProvider.GlobalOptions.TryGetValue("build_property.NextendedCodeGenTypescriptCheck", out var value)
                         && string.Equals(value?.Trim(), "true", StringComparison.OrdinalIgnoreCase);
-            var dtos = CachedSubGenerators.Value.OfType<DtoGenerator>().FirstOrDefault()?.GeneratedDtos();
+            // the DTOs of this run: a shared instance could hand over those of another project compiled at the same time
+            var dtos = all.OfType<DtoGenerator>().FirstOrDefault()?.GeneratedDtos();
             foreach (var (config, basePath) in generations)
             {
                 if (config.DisableGeneration)
@@ -282,6 +283,9 @@ namespace Nextended.CodeGen
         }
     }
 }
+
+
+
 
 
 
