@@ -191,6 +191,13 @@ public sealed class AppCodeGen : CodeGenConfig
 The same as a `Typescript` list in `codegen.json`, or per type with `[GenerateTypescript]`, `[TypescriptIgnore]`, `[TypescriptProperty]`.
 Output: one file per type in namespace folders (or flat), relative `import type`, `index.ts`, explicit enum values, `T | null` for
 nullable members. CI: `dotnet build -p:NextendedCodeGenTypescriptCheck=true` fails (`NCG032`) when the generated TypeScript is stale.
+
+Opt-in per generation or per type: `Header("...")` (own header, `""` = none, e.g. without `/* eslint-disable */`),
+`OptionalDefaultValues()` (members with an initializer or `[DefaultValue]` optional, for request DTOs),
+`IncludeMembersWithAttribute<PublicConfigurationAttribute>()` (only marked members, options without their secrets) and
+`Type<PlaceDto>(p => p.DerivedTypes("*"))` (an abstract base becomes the union of its derived types without `[JsonPolymorphic]`).
+ABP writes enums as numbers, OData as names: one generation per serializer (`Preset(TypescriptPreset.Abp)` and
+`EnumValues(TypescriptEnumValues.String)`, each with its own `OutputPath`).
 Full reference: [TypeScript generation](https://fgilde.github.io/Nextended/projects/codegen#typescript-generation); runnable:
 [CodeGenTsSample](https://github.com/fgilde/Nextended/tree/main/Tests/TestProjects/CodeGenTsSample).
 

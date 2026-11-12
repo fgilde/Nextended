@@ -72,6 +72,9 @@ public class TypescriptOptionsTests
             public int Plain { get; set; }
             [JsonInclude] public int Field = 3;
             public int Forced { get; set; } = 1;
+            [System.ComponentModel.DataAnnotations.Required] public string Term { get; set; } = "";
+            [JsonRequired] public int Page { get; set; } = 1;
+            public required string Name { get; set; } = "";
         }
         public record PageDto(int Skip, int Take = 20);
         """;
@@ -98,6 +101,9 @@ public class TypescriptOptionsTests
                 plain: number;
                 field?: number;
                 forced: number;
+                term: string;
+                page: number;
+                name: string;
             }
 
             """));

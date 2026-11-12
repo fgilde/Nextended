@@ -494,9 +494,15 @@ public sealed class TypescriptGenerator
         return false;
     }
 
-    /// <summary>[DefaultValue], or an initializer (property, field, record parameter) that is not <c>null</c>/<c>default</c> (also with <c>!</c>).</summary>
+    /// <summary>
+    /// [DefaultValue], or an initializer (property, field, record parameter) that is not <c>null</c>/<c>default</c> (also with <c>!</c>);
+    /// never for a member the client must send (<c>required</c>, [Required], [JsonRequired]).
+    /// </summary>
     private static bool HasDefaultValue(ISymbol symbol)
     {
+        if (symbol is IPropertySymbol { IsRequired: true } or IFieldSymbol { IsRequired: true }
+            || Attr(symbol, "System.ComponentModel.DataAnnotations.RequiredAttribute") != null || Attr(symbol, "System.Text.Json.Serialization.JsonRequiredAttribute") != null)
+            return false;
         if (Attr(symbol, "System.ComponentModel.DefaultValueAttribute") != null)
             return true;
         foreach (var reference in symbol.DeclaringSyntaxReferences)
