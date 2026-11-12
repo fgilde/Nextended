@@ -3086,9 +3086,26 @@ Because the sample writes to `OutputPath`, a build regenerates the files under `
 `git diff` afterwards to see exactly what the generator produced — an effective way to understand a
 config change, and a reasonable regression check to keep in CI.
 
-### Inspecting generation without an output path
+### Generation without an output path (in memory)
 
-When `OutputPath` is `null`, generated code goes into the compilation only. Make it visible with:
+When `OutputPath` is `null` (json, attribute or fluent), generated code goes into the compilation only, nothing is written to disk.
+
+- **Direction.** The generated types exist in the project that runs the generator and in the projects that reference it, nowhere else.
+  A source generator can add code only to the compilation it runs in; it cannot write into another project. To have the DTOs in a
+  contracts project, run the generation in that project (it references the entities), or set `OutputPath` to a folder of that project
+  (a relative path such as `../MyApp.Contracts/Dtos/`).
+- **File names.** The files keep the names they would have on disk. When a run produces two files with the same name (`OfferDto` in
+  `A.Contracts` and in `B.Contracts`), the first keeps its name and a later one is added as `<namespace>.<file name>`
+  (`B.Contracts.OfferDto.g.cs`), then with a number. Only the name of the added source changes, never a namespace or a class; with
+  `OutputPath` the names on disk are not affected.
+- **Mapperly.** The Mapperly strategy needs `OutputPath` and `MappingOutputPath`: Mapperly does not see code another source generator
+  adds, so without them the mapper file holds an `#error` (see [Mapperly instead of extension methods](#mapperly-instead-of-extension-methods)).
+  The extension methods work in memory.
+- **TypeScript.** The TypeScript generation reads the compilation without generated code, so `IncludeNamespaces`, `IncludeTypes` and
+  `IncludeBaseTypes` do not find in-memory DTOs. `FromGeneratedDtos: true` (fluent `FromGeneratedDtos()`) takes them, see
+  [TypeScript generation](#typescript-generation).
+- **Seeing the code.** In Visual Studio under *Dependencies > Analyzers > Nextended.CodeGen > Nextended.CodeGen.MainGenerator*, in Rider
+  under *Dependencies > Source Generators*, or as files with:
 
 ```xml
 <PropertyGroup>
@@ -3097,7 +3114,8 @@ When `OutputPath` is `null`, generated code goes into the compilation only. Make
 </PropertyGroup>
 ```
 
-Both lines are present, commented out, in the sample's `.csproj`.
+Both lines are present, commented out, in the sample's `.csproj`. The emitted files are a copy for reading; the compilation does not
+use them.
 
 ## Best Practices
 

@@ -33,7 +33,8 @@ Binding rules for every step:
 | TypeScript generation (M1-M3) | done, released (≤ 10.1.59) | `main` |
 | TypeScript M4 pilot (CargonerdsApp `frontend/realtime`) | done, not merged | CargonerdsApp branch `feat/ts-type-gen` |
 | TypeScript gaps of the pilot (10.1.60) | done, released 10.1.60 | `main` |
-| 10.1.61: neutral TypeScript settings, facets, view defaults, OrderLast, stale files | done, not released | branch `feat/codegen-1061` (see below) |
+| 10.1.61: neutral TypeScript settings, facets, view defaults, OrderLast, stale files | done, released 10.1.61 | `main` (see below) |
+| 10.1.62: unique hint names for in-memory generation | done, not released | branch `fix/codegen-hint-names` (see below) |
 | Fluent configuration, phase 1 (same assembly) | done, released (≤ 10.1.59) | `main`, design: `docs/projects/codegen-fluent-design.md` |
 | Fluent configuration, phase 2 (central config project) | idea | |
 | Coworkee: views and fluent config shown in the template and docs | open | CoworkeeLib |
@@ -350,6 +351,24 @@ flowchart TB
     n3 --> l2
     n2 --> l2
 ```
+
+### 10.1.62 — unique hint names for in-memory generation (branch `fix/codegen-hint-names`)
+
+- [x] Without `OutputPath` every file went into the compilation with its file name as hint name. Two DTOs with the same name in
+      different namespaces (`OfferDto` in `A.Contracts` and `B.Contracts`) threw `ArgumentException` (CS8785) and the generator added
+      nothing at all. All sub-generators (DTOs, views, mappings, Mapperly `#error` stubs, `Emit` files, facet registrations, structure,
+      Excel, CodeToText) add through the one call in `MainGenerator.WriteOrAddFiles`, so the fix is there: the hint names of a run are
+      tracked (ignoring case, like Roslyn); a file whose name is taken gets `<namespace>.<file name>`, then a number. The first file
+      keeps its old hint name, so every project that built before has exactly the same hint names; disk output is not touched.
+- [x] Docs (EN "Generation without an output path (in memory)", DE, README): the project direction (types only in the generating
+      project and the ones referencing it; a generator cannot write into another project), Mapperly needs disk output, TypeScript sees
+      in-memory DTOs only with `FromGeneratedDtos`, where to see the generated code, the hint names of same-named files.
+- [x] Test `FluentConfigTests.In_memory_DTOs_with_the_same_name_in_different_namespaces_are_all_generated` (fails on the old code with
+      CS8785); all 96 tests green with `tsc`.
+- [x] Golden: CodeGenSample, CodeGenFluentSample, CodeGenTsSample unchanged. CargonerdsApp main (b2cd4092d) with Core + CodeGen
+      10.1.62-local.1: all generated files deleted and rebuilt (`-p:UseSharedCompilation=false --no-incremental`): 181 byte-identical,
+      the same 13 stale leftovers.
+- [ ] Release CodeGen 10.1.62 (Core unchanged).
 
 ### Parallel compilations — fixed (10.1.59)
 

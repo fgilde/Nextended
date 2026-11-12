@@ -271,6 +271,36 @@ Generische Typen: ein Typ mit generiertem DTO wird auch als Typargument ersetzt,
 (`HolderDto<AddressDto>`, `where TUnit : UnitDto`). Ist ein Typparameter auf einen Typ mit DTO eingeschränkt, bekommen die
 Mapping-Methoden einen zweiten Typparameter für die DTO-Seite (`AssignTo<TUnit, TUnitDto>`).
 
+## Generierung ohne Ausgabepfad (im Speicher)
+
+Ist `OutputPath` `null` (json, Attribut oder Fluent), kommt der generierte Code nur in die Kompilierung, auf die Platte wird nichts geschrieben.
+
+- **Richtung.** Die generierten Typen gibt es im Projekt, in dem der Generator läuft, und in den Projekten, die es referenzieren, sonst
+  nirgends. Ein Source Generator kann Code nur der Kompilierung hinzufügen, in der er läuft; in ein anderes Projekt schreiben kann er nicht.
+  Sollen die DTOs in einem Contracts-Projekt liegen, läuft die Generierung dort (es referenziert die Entities), oder `OutputPath` zeigt in
+  einen Ordner dieses Projekts (relativ, etwa `../MyApp.Contracts/Dtos/`).
+- **Dateinamen.** Die Dateien heißen wie auf der Platte. Erzeugt ein Lauf zwei gleichnamige Dateien (`OfferDto` in `A.Contracts` und in
+  `B.Contracts`), behält die erste ihren Namen, eine spätere kommt als `<Namespace>.<Dateiname>` dazu (`B.Contracts.OfferDto.g.cs`),
+  danach mit Nummer. Nur der Name der hinzugefügten Quelle ändert sich, nie ein Namespace oder eine Klasse; mit `OutputPath` bleiben die
+  Namen auf der Platte unberührt.
+- **Mapperly.** Die Mapperly-Strategie braucht `OutputPath` und `MappingOutputPath`: Mapperly sieht keinen Code, den ein anderer Source
+  Generator hinzufügt, ohne sie enthält die Mapper-Datei ein `#error`
+  ([Mapperly instead of extension methods](/projects/codegen#mapperly-instead-of-extension-methods)). Die Extension-Methoden funktionieren
+  im Speicher.
+- **TypeScript.** Die TypeScript-Generierung liest die Kompilierung ohne generierten Code; `IncludeNamespaces`, `IncludeTypes` und
+  `IncludeBaseTypes` finden DTOs im Speicher daher nicht. `FromGeneratedDtos: true` (Fluent `FromGeneratedDtos()`) nimmt sie dazu.
+- **Code ansehen.** In Visual Studio unter *Abhängigkeiten > Analysetools > Nextended.CodeGen > Nextended.CodeGen.MainGenerator*, in Rider
+  unter *Dependencies > Source Generators*, oder als Dateien mit:
+
+```xml
+<PropertyGroup>
+  <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+  <CompilerGeneratedFilesOutputPath>GeneratedFiles</CompilerGeneratedFilesOutputPath>
+</PropertyGroup>
+```
+
+Die ausgegebenen Dateien sind eine Kopie zum Lesen; die Kompilierung verwendet sie nicht.
+
 ## Ausführbares Beispiel
 
 Im Repository liegt ein vollständiger, startbarer AppHost:
