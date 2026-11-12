@@ -77,6 +77,29 @@ internal sealed class FluentTypeRules
     public object? Get(string name) => Settings.TryGetValue(name, out var v) ? v.Value : null;
 }
 
+/// <summary>One facet of Facet(x => x.Member, o => ...): settings named like [ProvideFacet]'s properties, as C# expressions.</summary>
+internal sealed class FluentFacet(INamedTypeSymbol type, string member, Location location)
+{
+    public INamedTypeSymbol Type { get; } = type;
+    public string Member { get; } = member;
+    public Location Location { get; } = location;
+    public Dictionary<string, FluentValue> Settings { get; } = new(StringComparer.Ordinal);
+
+    /// <summary>The type as written in typeof: generic type definitions unbound (<c>global::Ns.Box&lt;&gt;</c>).</summary>
+    public static string TypeOfName(ITypeSymbol type)
+        => (type is INamedTypeSymbol { IsGenericType: true } named && SymbolEqualityComparer.Default.Equals(named, named.OriginalDefinition)
+            ? named.ConstructUnboundGenericType()
+            : type).ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+
+    /// <summary>The enum member with the value (a cast for a value without a member, e.g. combined flags).</summary>
+    public static string EnumMember(INamedTypeSymbol enumType, object value)
+    {
+        var name = enumType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+        var member = enumType.GetMembers().OfType<IFieldSymbol>().FirstOrDefault(f => f.HasConstantValue && Equals(f.ConstantValue, value));
+        return member != null ? $"{name}.{member.Name}" : $"(({name}){System.Convert.ToString(value, System.Globalization.CultureInfo.InvariantCulture)})";
+    }
+}
+
 /// <summary>
 /// Everything the fluent configuration classes of a compilation say, merged (several profiles in the order of their full names).
 /// Types are keyed by their original definition, members by name.
@@ -102,8 +125,23 @@ internal sealed class FluentModel
     public Dictionary<string, TypescriptTypeConfig> TypescriptTypes { get; } = new(StringComparer.Ordinal);
     public List<Diagnostic> Diagnostics { get; } = [];
 
+    /// <summary>ViewDefaults(...): settings and member rules for every view (the view's own win).</summary>
+    public FluentTypeRules? ViewDefaults { get; set; }
+
+    /// <summary>Facet(...) by type key and member; written as a FacetRegistry registration, not used by the DTO generation.</summary>
+    public Dictionary<string, FluentFacet> Facets { get; } = new(StringComparer.Ordinal);
+
     /// <summary>True when nothing but diagnostics came out: the generators then take their exact old code paths.</summary>
-    public bool HasRules => Defaults.Count > 0 || DefaultEmits.Count > 0 || Types.Count > 0 || Namespaces.Count > 0 || IgnoredTypes.Count > 0;
+    public bool HasRules => Defaults.Count > 0 || DefaultEmits.Count > 0 || Types.Count > 0 || Namespaces.Count > 0 || IgnoredTypes.Count > 0
+                            || ViewDefaults != null;
+
+    public FluentFacet Facet(INamedTypeSymbol type, string member, Location location)
+    {
+        var key = Key(type) + "|" + member;
+        if (!Facets.TryGetValue(key, out var facet))
+            Facets[key] = facet = new FluentFacet((INamedTypeSymbol)type.OriginalDefinition, member, location);
+        return facet;
+    }
 
     public static string Key(ITypeSymbol type) => type.OriginalDefinition.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
 

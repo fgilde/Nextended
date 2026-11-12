@@ -75,18 +75,14 @@ public sealed class FacetBuilder(
 
     private static readonly ConcurrentDictionary<Type, FacetTypeCache> _facetCache = new();
 
+    // [ProvideFacet] and FacetRegistry; rebuilt when a registration comes in later
     private static FacetTypeCache GetFacetCache(Type t)
-        => _facetCache.GetOrAdd(t, static type =>
-        {
-            var props = type
-                .GetProperties(BindingFlags.Instance | BindingFlags.Public)
-                .SelectMany(p => p.GetCustomAttributes<ProvideFacetAttribute>(true)
-                                  .Select(facet => (Prop: p, Facet: facet)))
-                .OrderBy(x => x.Facet.Order)
-                .ToArray();
-
-            return new FacetTypeCache(props);
-        });
+    {
+        var cache = _facetCache.GetOrAdd(t, static type => new FacetTypeCache(FacetRegistry.GetFacets(type), FacetRegistry.Version));
+        if (cache.Version == FacetRegistry.Version)
+            return cache;
+        return _facetCache[t] = new FacetTypeCache(FacetRegistry.GetFacets(t), FacetRegistry.Version);
+    }
 
     // ── Core build ──────────────────────────────────────────────────────────
 
@@ -681,7 +677,7 @@ public sealed class FacetBuilder(
         public int Count { get; set; }
     }
 
-    private sealed record FacetTypeCache((PropertyInfo Prop, ProvideFacetAttribute Facet)[] Props);
+    private sealed record FacetTypeCache((PropertyInfo Prop, ProvideFacetAttribute Facet)[] Props, int Version);
 }
 
 #endif

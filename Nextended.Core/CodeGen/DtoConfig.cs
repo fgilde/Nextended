@@ -46,13 +46,18 @@ public abstract class DtoConfig<T> : IDtoBuilder<T>
     public IDtoBuilder<T> Ignore(params string[] memberNames) => this;
     public IDtoBuilder<T> Include(params string[] memberNames) => this;
     public IPropertyBuilder Property(string memberName) => null!;
+    public IDtoBuilder<T> Property(string memberName, Action<IPropertyBuilder> configure) => this;
     public IDtoBuilder<T> Order(params string[] memberNames) => this;
+    public IDtoBuilder<T> OrderLast(params string[] memberNames) => this;
     public IDtoBuilder<T> BaseMembersFirst(bool value = true) => this;
     public IDtoBuilder<T> Emit(string fileName, string template, string? outputPath = null) => this;
     public IDtoBuilder<T> Ignore(params Expression<Func<T, object?>>[] members) => this;
     public IDtoBuilder<T> Include(params Expression<Func<T, object?>>[] members) => this;
     public IPropertyBuilder Property<TProperty>(Expression<Func<T, TProperty>> member) => null!;
+    public IDtoBuilder<T> Property<TProperty>(Expression<Func<T, TProperty>> member, Action<IPropertyBuilder> configure) => this;
     public IDtoBuilder<T> Order(params Expression<Func<T, object?>>[] members) => this;
+    public IDtoBuilder<T> OrderLast(params Expression<Func<T, object?>>[] members) => this;
+    public IDtoBuilder<T> Facet<TProperty>(Expression<Func<T, TProperty>> member, Action<IFacetBuilder>? configure = null) => this;
     public IDtoBuilder<T> View(string name, Action<IDtoViewBuilder<T>>? configure = null) => this;
     public IDtoBuilder<T> Typescript(Action<ITypescriptType<T>> configure) => this;
 #pragma warning restore CS1591
@@ -112,8 +117,14 @@ public interface IDtoSettings<out TSelf>
     /// <summary>The settings of one member, by name.</summary>
     IPropertyBuilder Property(string memberName);
 
+    /// <summary>The settings of one member, by name; returns this builder for further calls.</summary>
+    TSelf Property(string memberName, Action<IPropertyBuilder> configure);
+
     /// <summary>These members first, in this order; the others follow in their usual order.</summary>
     TSelf Order(params string[] memberNames);
+
+    /// <summary>These members last, in this order (after the members of <see cref="Order(string[])"/> and all others).</summary>
+    TSelf OrderLast(params string[] memberNames);
 
     /// <summary>Inherited members before the own ones (flat DTOs: views and DeepProperties). Combines with <see cref="Order(string[])"/>.</summary>
     TSelf BaseMembersFirst(bool value = true);
@@ -138,12 +149,26 @@ public interface IDtoMembers<T, out TSelf>
     /// <summary>The settings of one member.</summary>
     IPropertyBuilder Property<TProperty>(Expression<Func<T, TProperty>> member);
 
+    /// <summary>The settings of one member; returns this builder for further calls: <c>Property(x =&gt; x.A, p =&gt; p.Name("B")).Ignore(...)</c>.</summary>
+    TSelf Property<TProperty>(Expression<Func<T, TProperty>> member, Action<IPropertyBuilder> configure);
+
     /// <summary>These members first, in this order; the others follow in their usual order.</summary>
     TSelf Order(params Expression<Func<T, object?>>[] members);
+
+    /// <summary>These members last, in this order (after the members of <c>Order</c> and all others).</summary>
+    TSelf OrderLast(params Expression<Func<T, object?>>[] members);
 }
 
-/// <summary>A type configured without a type argument (<c>typeof</c>) or all types of a namespace.</summary>
-public interface IDtoTypeBuilder : IDtoSettings<IDtoTypeBuilder>;
+/// <summary>A type configured without a type argument (<c>typeof</c>), all types of a namespace, or the defaults of every view.</summary>
+public interface IDtoTypeBuilder : IDtoSettings<IDtoTypeBuilder>
+{
+    /// <summary>
+    /// One more DTO of the type given by <c>typeof</c> (e.g. an open generic type), a view keyed by <paramref name="name"/>; members by name.
+    /// Only on <c>Dto(typeof(...))</c>: a namespace or the view defaults cannot have views. <c>Dto&lt;Page&lt;int&gt;&gt;</c> configures the
+    /// generic type definition too, with member selectors.
+    /// </summary>
+    IDtoTypeBuilder View(string name, Action<IDtoTypeBuilder>? configure = null);
+}
 
 /// <summary>The DTO of <typeparamref name="T"/>.</summary>
 public interface IDtoBuilder<T> : IDtoSettings<IDtoBuilder<T>>, IDtoMembers<T, IDtoBuilder<T>>
@@ -159,6 +184,33 @@ public interface IDtoBuilder<T> : IDtoSettings<IDtoBuilder<T>>, IDtoMembers<T, I
     /// <typeparamref name="T"/> itself when a TypeScript generation selects it.
     /// </summary>
     IDtoBuilder<T> Typescript(Action<ITypescriptType<T>> configure);
+
+    /// <summary>
+    /// A facet of the member for <c>Nextended.Core.Facets.FacetBuilder</c>, like <c>[ProvideFacet]</c> on it, without touching the type:
+    /// <c>Facet(x =&gt; x.Delivered, f =&gt; f.Label("Delivered").Type(FacetType.DateRange))</c>. Settings named like the attribute's properties;
+    /// on a member with <c>[ProvideFacet]</c> they override the attribute's values. The generator writes the registration
+    /// (<c>Nextended.Core.Facets.FacetRegistry</c>, called from a module initializer); a facet on a base type reaches the derived types.
+    /// </summary>
+    IDtoBuilder<T> Facet<TProperty>(Expression<Func<T, TProperty>> member, Action<IFacetBuilder>? configure = null);
+}
+
+/// <summary>The settings of one facet, named exactly like the properties of <c>[ProvideFacet]</c>.</summary>
+public interface IFacetBuilder
+{
+#pragma warning disable CS1591 // named exactly like the ProvideFacetAttribute properties documented there
+    IFacetBuilder Label(string? value);
+    IFacetBuilder Type(Nextended.Core.Facets.FacetType value);
+    IFacetBuilder MultiSelect(bool value = true);
+    IFacetBuilder GroupOperator(Nextended.Core.Facets.FacetGroupOperator value);
+    IFacetBuilder Order(int value);
+    IFacetBuilder TopDistinct(int value);
+    IFacetBuilder ValuePath(string? value);
+    IFacetBuilder LabelPath(string? value);
+    IFacetBuilder ValueType(Type? value);
+#pragma warning restore CS1591
+
+    /// <summary><see cref="ValueType(Type)"/> as a type argument.</summary>
+    IFacetBuilder ValueType<TValue>();
 }
 
 /// <summary>A view of <typeparamref name="T"/>.</summary>

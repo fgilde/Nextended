@@ -115,4 +115,10 @@ public class DtoGenerationConfig: CodeGenerationConfigBase
     public bool GeneratePartial { get; set; } = true;
     public string? MappingOutputPath { get; set; }
 
+    /// <summary>
+    /// Deletes the files of earlier runs that this run no longer writes: only .cs files directly in a folder the DTO generation writes to
+    /// in this run, starting with the generator's header line <c>// &lt;auto-generated/&gt;</c>; never other files. Off by default.
+    /// </summary>
+    public bool DeleteStaleFiles { get; set; }
+
 }

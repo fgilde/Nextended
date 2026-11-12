@@ -112,6 +112,7 @@ namespace Nextended.CodeGen
             var generators = all.ToList();
             bool executed = false;
             var generatedFiles = new List<GeneratedFile>();
+            var disk = new DiskFiles();
             var typescript = new List<(TypescriptGenerationConfig Config, string? BasePath)>();
 
             foreach (var cfg in jsonConfigs)
@@ -125,7 +126,7 @@ namespace Nextended.CodeGen
 
                     var genCtx = new GenerationContext(cfg.File, context, compilation, optionsProvider, config);
 
-                    if (ExecuteGenerators(generators, genCtx, generatedFiles))
+                    if (ExecuteGenerators(generators, genCtx, generatedFiles, disk))
                         executed = true;
                     foreach (var ts in config?.Typescript ?? [])
                         if (ts != null)
@@ -155,7 +156,7 @@ namespace Nextended.CodeGen
                     CodeToDocs = []
                 };
                 var fluentCtx = new GenerationContext(new NamespaceResolver("", compilation, optionsProvider), context, compilation, optionsProvider, fluentConfig);
-                ExecuteGenerators(all.Where(g => g.RequireConfig), fluentCtx, generatedFiles);
+                ExecuteGenerators(all.Where(g => g.RequireConfig), fluentCtx, generatedFiles, disk);
             }
 
             if (!executed)
@@ -163,8 +164,11 @@ namespace Nextended.CodeGen
                 var fallbackResolver = new NamespaceResolver("", compilation, optionsProvider);
                 var fallbackCtx = new GenerationContext(fallbackResolver, context, compilation, optionsProvider, null);
 
-                ExecuteGenerators(generators.Where(g => !g.RequireConfig), fallbackCtx, generatedFiles);
+                ExecuteGenerators(generators.Where(g => !g.RequireConfig), fallbackCtx, generatedFiles, disk);
             }
+
+            if (disk.CleanupFolders.Count > 0 && !HasSyntaxErrors(compilation) && !fluent.Diagnostics.Any(d => d.Severity == DiagnosticSeverity.Error))
+                DeleteStaleFiles(disk);
 
             // TypeScript last: it may take the DTOs generated above; it never adds sources, it writes files below its OutputPath
             if (typescript.Count > 0)
@@ -210,20 +214,38 @@ namespace Nextended.CodeGen
             }
         }
 
-        private bool ExecuteGenerators(IEnumerable<ISourceSubGenerator> generators, GenerationContext context, List<GeneratedFile> collected)
+        /// <summary>The files of this run on disk, and the folders whose stale generated files go (DeleteStaleFiles).</summary>
+        private sealed class DiskFiles
+        {
+            public HashSet<string> Written { get; } = new(StringComparer.OrdinalIgnoreCase);
+            public HashSet<string> CleanupFolders { get; } = new(StringComparer.OrdinalIgnoreCase);
+        }
+
+        private bool ExecuteGenerators(IEnumerable<ISourceSubGenerator> generators, GenerationContext context, List<GeneratedFile> collected, DiskFiles disk)
         {
             var generatedFiles = new List<GeneratedFile>();
 
             foreach (var gen in generators)
             {
+                var start = generatedFiles.Count;
+                var complete = false;
                 try
                 {
                     generatedFiles.AddRange(gen.Execute(context));
+                    complete = true;
                 }
                 catch (Exception e)
                 {
                     Console.WriteLine("Nextended.CodeGen ERROR: " + e.Message);
                 }
+
+                var paths = generatedFiles.Skip(start).Where(f => f != null).Select(f => DiskPath(context, f)).Where(p => p != null)
+                    .Select(p => Path.GetFullPath(p!)).ToList();
+                disk.Written.UnionWith(paths);
+                // only after a complete run of the DTO generation (an exception leaves its files unknown)
+                if (complete && gen is DtoGenerator { DeleteStaleFiles: true })
+                    foreach (var path in paths)
+                        disk.CleanupFolders.Add(Path.GetDirectoryName(path)!);
             }
 
             WriteOrAddFiles(context, generatedFiles);
@@ -243,15 +265,7 @@ namespace Nextended.CodeGen
                 }
                 else
                 {
-                    var path = NamespaceResolver.GetAbsolutePath(generatedFile.OutputPath!, context.BasePath);
-
-                    if (Directory.Exists(path) ||
-                        path.EndsWith(Path.DirectorySeparatorChar.ToString(), StringComparison.Ordinal) ||
-                        path.EndsWith(Path.AltDirectorySeparatorChar.ToString(), StringComparison.Ordinal))
-                    {
-                        path = Path.Combine(path, generatedFile.FileName);
-                    }
-
+                    var path = DiskPath(context, generatedFile)!;
                     var directory = Path.GetDirectoryName(path);
                     if (!Directory.Exists(directory))
                         Directory.CreateDirectory(directory!);
@@ -274,6 +288,66 @@ namespace Nextended.CodeGen
                     File.WriteAllText(path, contents);
                 }
             }
+        }
+
+        /// <summary>Where a file goes on disk; null for a file added to the compilation.</summary>
+        private static string? DiskPath(GenerationContext context, GeneratedFile generatedFile)
+        {
+            if (string.IsNullOrWhiteSpace(generatedFile.OutputPath))
+                return null;
+            var path = NamespaceResolver.GetAbsolutePath(generatedFile.OutputPath!, context.BasePath);
+            if (Directory.Exists(path) ||
+                path.EndsWith(Path.DirectorySeparatorChar.ToString(), StringComparison.Ordinal) ||
+                path.EndsWith(Path.AltDirectorySeparatorChar.ToString(), StringComparison.Ordinal))
+            {
+                path = Path.Combine(path, generatedFile.FileName);
+            }
+            return path;
+        }
+
+        // a half-typed source (the IDE runs the generator on every keystroke) could drop a DTO for a moment: no cleanup then
+        private static bool HasSyntaxErrors(Compilation compilation)
+            => compilation.SyntaxTrees.Any(t => t.GetDiagnostics().Any(d => d.Severity == DiagnosticSeverity.Error));
+
+        /// <summary>
+        /// DeleteStaleFiles: deletes the .cs files directly in <paramref name="folders"/> that are not in <paramref name="written"/> (full paths)
+        /// and start with the DTO generator's header line. Other files are never touched. Returns the deleted files.
+        /// </summary>
+        internal static List<string> DeleteStaleFiles(IEnumerable<string> folders, ICollection<string> written)
+        {
+            var deleted = new List<string>();
+            foreach (var folder in folders.Where(Directory.Exists))
+            {
+                foreach (var file in Directory.GetFiles(folder, "*.cs", SearchOption.TopDirectoryOnly))
+                {
+                    if (written.Contains(Path.GetFullPath(file)))
+                        continue;
+                    try
+                    {
+                        string? first;
+                        using (var reader = new StreamReader(file))
+                            first = reader.ReadLine();
+                        if (first?.TrimEnd() != DtoGenerator.HeaderLine)
+                            continue;
+                        File.Delete(file);
+                        deleted.Add(file);
+                    }
+                    catch (IOException)
+                    {
+                        // another build of the same project (a second target framework) is on it
+                    }
+                    catch (UnauthorizedAccessException)
+                    {
+                    }
+                }
+            }
+            return deleted;
+        }
+
+        private static void DeleteStaleFiles(DiskFiles disk)
+        {
+            foreach (var file in DeleteStaleFiles(disk.CleanupFolders, disk.Written))
+                Console.WriteLine("Nextended.CodeGen deleted stale file: " + file);
         }
 
         private readonly record struct JsonConfigInput(AdditionalText File, string? Content)

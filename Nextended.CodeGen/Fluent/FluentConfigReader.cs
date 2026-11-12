@@ -284,6 +284,8 @@ internal sealed class FluentConfigReader
             return ok;
         }
 
+        public bool IsTypeOf(int index) => Argument(index) is { } op && Unwrap(op) is ITypeOfOperation;
+
         public ITypeSymbol? TypeOf(int index)
         {
             if (Argument(index) is { } op && Unwrap(op) is ITypeOfOperation typeOf)
@@ -471,6 +473,13 @@ internal sealed class FluentConfigReader
                 case "Defaults":
                     call.Lambda(0, new SettingsContext(model, model.Defaults, "", DefaultSettings, "the defaults"));
                     return this;
+                case "ViewDefaults":
+                    call.Lambda(0, new DtoContext(model.ViewDefaults ??= new FluentTypeRules(null, null, null, call.Location), null, true, model));
+                    return this;
+                case "Facets":
+                    if (call.TypeArgument is INamedTypeSymbol facetType)
+                        call.Lambda(0, new FacetsContext(facetType, model));
+                    return this;
                 case "Dto":
                 {
                     var type = call.TypeArgument ?? call.TypeOf(0);
@@ -581,7 +590,8 @@ internal sealed class FluentConfigReader
     /// <summary>Dto&lt;T&gt;, DtoConfig&lt;T&gt;, Dto(typeof), ForNamespace and View: settings, member rules, views, Emit.</summary>
     private sealed class DtoContext(FluentTypeRules rules, INamedTypeSymbol? type, bool isView, FluentModel model) : Context
     {
-        private string Target => rules.ViewKey != null ? $"view {rules.ViewKey} of {type?.Name}" : type?.Name ?? $"namespace {rules.Namespace}";
+        private string Target => rules.ViewKey != null ? $"view {rules.ViewKey} of {type?.Name}"
+            : type?.Name ?? (rules.Namespace != null ? $"namespace {rules.Namespace}" : "the view defaults");
 
         public override Context? Invoke(FluentConfigReader reader, Call call)
         {
@@ -595,14 +605,26 @@ internal sealed class FluentConfigReader
                 case "Property":
                 {
                     var name = reader.MemberNames(call, type).FirstOrDefault();
-                    return name == null ? null : new PropertyContext(rules.Member(name), $"{name} of {Target}");
-                }
-                case "Order":
-                {
-                    var names = reader.MemberNames(call, type).ToArray();
-                    reader.Set(rules.Settings, "Order", names, call.Location, Target);
+                    if (call.Count == 1)
+                        return name == null ? null : new PropertyContext(rules.Member(name), $"{name} of {Target}");
+                    // Property(x => x.A, p => ...) returns the builder itself
+                    if (name != null)
+                        call.Lambda(1, new PropertyContext(rules.Member(name), $"{name} of {Target}"));
                     return this;
                 }
+                case "Order":
+                case "OrderLast":
+                {
+                    var names = reader.MemberNames(call, type).ToArray();
+                    reader.Set(rules.Settings, call.Name, names, call.Location, Target);
+                    return this;
+                }
+                case "Facet" when !isView && type != null:
+                    reader.ReadFacet(call, type, model);
+                    return this;
+                case "View" when type == null || isView:
+                    reader.Report(NotReadable, call.Location, "Views are defined on Dto<T> or Dto(typeof(...)); a namespace, the view defaults or a view cannot have views.");
+                    return this;
                 case "View" when !isView && type != null:
                 {
                     if (!call.TryString(0, out var key) || string.IsNullOrWhiteSpace(key))
@@ -636,6 +658,59 @@ internal sealed class FluentConfigReader
                         reader.Set(rules.Settings, setting, AliasValue(call.Name, value), call.Location, Target);
                     return this;
             }
+        }
+    }
+
+    /// <summary>Facets&lt;T&gt;(f => f.Facet(x => x.Member, o => ...)).</summary>
+    private sealed class FacetsContext(INamedTypeSymbol type, FluentModel model) : Context
+    {
+        public override Context? Invoke(FluentConfigReader reader, Call call)
+        {
+            if (call.Name != "Facet")
+                return Unknown;
+            reader.ReadFacet(call, type, model);
+            return this;
+        }
+    }
+
+    // Facet(x => x.Member, o => ...): the settings become C# expressions of the generated registration
+    private void ReadFacet(Call call, INamedTypeSymbol type, FluentModel model)
+    {
+        var member = MemberNames(call, type).FirstOrDefault();
+        if (member == null)
+            return;
+        var facet = model.Facet(type, member, call.Location);
+        call.Lambda(1, new FacetContext(facet, $"facet {member} of {type.Name}"));
+    }
+
+    /// <summary>The settings of one facet, named like the properties of [ProvideFacet]; read into C# expressions.</summary>
+    private sealed class FacetContext(FluentFacet facet, string target) : Context
+    {
+        private static readonly HashSet<string> Names = ["Label", "Type", "MultiSelect", "GroupOperator", "Order", "TopDistinct", "ValuePath", "LabelPath", "ValueType"];
+
+        public override Context? Invoke(FluentConfigReader reader, Call call)
+        {
+            if (!Names.Contains(call.Name))
+                return Unknown;
+            string? expression;
+            if (call.TypeArgument != null)
+                expression = $"typeof({FluentFacet.TypeOfName(call.TypeArgument)})";
+            else if (call.Method.Parameters[0].Type is INamedTypeSymbol { Name: "Type" } && call.IsTypeOf(0))
+                expression = call.TypeOf(0) is { } t ? $"typeof({FluentFacet.TypeOfName(t)})" : null;
+            else if (!call.TryConstant(0, out var value))
+                expression = null;
+            else
+                expression = value switch
+                {
+                    null => "null",
+                    string s => Microsoft.CodeAnalysis.CSharp.SymbolDisplay.FormatLiteral(s, true),
+                    bool b => b ? "true" : "false",
+                    _ when call.Method.Parameters[0].Type is INamedTypeSymbol { TypeKind: TypeKind.Enum } e => FluentFacet.EnumMember(e, value),
+                    _ => Convert.ToString(value, System.Globalization.CultureInfo.InvariantCulture)
+                };
+            if (expression != null)
+                reader.Set(facet.Settings, call.Name, expression, call.Location, target);
+            return this;
         }
     }
 
