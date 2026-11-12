@@ -57,12 +57,7 @@ public sealed class TypescriptGenerator
         // the keys as users write them (Page<T>, Page`1, global::...) in key form
         _typeMap = config.TypeMap.GroupBy(e => TypescriptNames.Normalize(e.Key)).ToDictionary(g => g.Key, g => g.Last().Value, StringComparer.Ordinal);
         _types = config.Types.GroupBy(e => TypescriptNames.Normalize(e.Key)).ToDictionary(g => g.Key, g => g.Last().Value, StringComparer.Ordinal);
-        _enumMode = config.EnumValues switch
-        {
-            TypescriptEnumValues.Number => EnumMode.Number,
-            TypescriptEnumValues.String => EnumMode.String,
-            _ => config.Preset == TypescriptPreset.Coworkee ? EnumMode.String : EnumMode.Number
-        };
+        _enumMode = config.EnumValues == TypescriptEnumValues.String ? EnumMode.String : EnumMode.Number;
         // the header, then an empty line; no header: the declarations start at the top
         var header = config.Header == null ? Header : config.Header.Replace("\r\n", "\n");
         _prefix = header.Trim().Length == 0 ? "" : header.TrimEnd('\n') + "\n\n";

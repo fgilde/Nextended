@@ -13,7 +13,6 @@ public class TypescriptGenerationConfig
     /// <summary>The folder the .ts files go to (required); relative to the json file or the project directory.</summary>
     public string? OutputPath { get; set; }
 
-    public TypescriptPreset Preset { get; set; }
     public TypescriptNaming PropertyNaming { get; set; }
     public TypescriptEnumValues EnumValues { get; set; }
     public TypescriptEnumStyle EnumStyle { get; set; }
@@ -114,7 +113,6 @@ public class TypescriptMemberConfig
 }
 
 // the same values as Nextended.Core.Enums.Typescript* (the generator references an older Nextended.Core)
-public enum TypescriptPreset { None, Abp, Coworkee }
 public enum TypescriptNaming { CamelCase, AsIs }
 public enum TypescriptEnumValues { Default, Number, String }
 public enum TypescriptEnumStyle { Enum, Const }

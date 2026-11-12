@@ -13,7 +13,6 @@ public interface ITypescriptGeneration
 #pragma warning disable CS1591 // named exactly like the codegen.json settings documented there
     ITypescriptGeneration DisableGeneration(bool value = true);
     ITypescriptGeneration OutputPath(string value);
-    ITypescriptGeneration Preset(TypescriptPreset value);
     ITypescriptGeneration PropertyNaming(TypescriptNaming value);
     ITypescriptGeneration EnumValues(TypescriptEnumValues value);
     ITypescriptGeneration EnumStyle(TypescriptEnumStyle value);

@@ -1,18 +1,5 @@
 namespace Nextended.Core.Enums;
 
-/// <summary>Defaults of a TypeScript generation that match a known server setup.</summary>
-public enum TypescriptPreset
-{
-    /// <summary>No preset: numbers for enums (System.Text.Json default), camelCase.</summary>
-    None,
-
-    /// <summary>ABP: enums as numbers, dictionary enum keys as names, camelCase.</summary>
-    Abp,
-
-    /// <summary>Coworkee: enums as strings (JsonStringEnumConverter registered globally), camelCase.</summary>
-    Coworkee
-}
-
 /// <summary>How the server writes property names.</summary>
 public enum TypescriptNaming
 {
@@ -26,7 +13,7 @@ public enum TypescriptNaming
 /// <summary>How the server writes enum values.</summary>
 public enum TypescriptEnumValues
 {
-    /// <summary>Taken from the preset (numbers without a preset).</summary>
+    /// <summary>As numbers (the System.Text.Json default without a converter); the same as <see cref="Number"/>.</summary>
     Default,
 
     /// <summary>As numbers.</summary>

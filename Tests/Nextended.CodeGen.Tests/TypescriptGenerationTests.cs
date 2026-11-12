@@ -222,9 +222,9 @@ public class TypescriptGenerationTests
         """;
 
     [TestMethod]
-    public void Enums_as_numbers_with_explicit_values_abp_preset()
+    public void Enums_as_numbers_with_explicit_values()
     {
-        var files = Ts(Config(c => c.Preset = TypescriptPreset.Abp), Enums);
+        var files = Ts(Config(c => c.EnumValues = TypescriptEnumValues.Number), Enums);
 
         Body(files["Shop/Contracts/State.ts"]).ShouldBe("export enum State {\n    Draft = 1,\n    Done = 4,\n}\n");
         Body(files["Shop/Contracts/Channel.ts"]).ShouldBe("export enum Channel {\n    None = 0,\n    Mail = 1,\n    Push = 2,\n    All = 3,\n}\n");
@@ -243,11 +243,11 @@ public class TypescriptGenerationTests
     }
 
     [TestMethod]
-    public void Enums_as_strings_coworkee_preset_and_const_style()
+    public void Enums_as_strings_and_const_style()
     {
         var files = Ts(Config(c =>
         {
-            c.Preset = TypescriptPreset.Coworkee;
+            c.EnumValues = TypescriptEnumValues.String;
             c.EnumStyle = TypescriptEnumStyle.Const;
         }), Enums);
 
@@ -264,9 +264,8 @@ public class TypescriptGenerationTests
         files["Shop/Contracts/Holder.ts"].ShouldContain("    channels: string;\n");
         files["Shop/Contracts/Holder.ts"].ShouldContain("    stateName: State;\n");
 
-        // EnumValues overrides the preset
-        Ts(Config(c => { c.Preset = TypescriptPreset.Coworkee; c.EnumValues = TypescriptEnumValues.Number; }), Enums)["Shop/Contracts/State.ts"]
-            .ShouldContain("    Draft = 1,\n");
+        // Default writes numbers, like Number
+        Ts(Config(), Enums)["Shop/Contracts/State.ts"].ShouldContain("    Draft = 1,\n");
     }
 
     private const string Hierarchy = """
