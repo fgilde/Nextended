@@ -36,7 +36,7 @@ Binding rules for every step:
 | 10.1.61: neutral TypeScript settings, facets, view defaults, OrderLast, stale files | done, released 10.1.61 | `main` (see below) |
 | 10.1.62: unique hint names for in-memory generation | done, released 10.1.62 | `main` (see below) |
 | 10.1.63: stable member order of `partial` types | done, released 10.1.63 | `main` (see below) |
-| Next: typed `Attribute<TAttribute>(args)` in the fluent config | done, not released | branch `feat/codegen-typed-attribute` (see below) |
+| Next: typed attributes, `[GeneratedCode]` marker, TypeScript `IncludeTypesWithAttributes` | done, not released | branch `feat/codegen-typed-attribute` (see below) |
 | Fluent configuration, phase 1 (same assembly) | done, released (≤ 10.1.59) | `main`, design: `docs/projects/codegen-fluent-design.md` |
 | Fluent configuration, phase 2 (central config project) | idea | |
 | Coworkee: views and fluent config shown in the template and docs | open | CoworkeeLib |
@@ -389,7 +389,7 @@ flowchart TB
       generated `.cs` (a deleted DTO is rewritten byte-identical). CoShipee master: no change, clean and incremental; with the entity file
       moved to the end of `Compile`, 10.1.62 moves `Tags` to the front, 10.1.63 keeps it last.
 
-### Next release — typed attributes in the fluent configuration (branch `feat/codegen-typed-attribute`)
+### Next release — typed attributes, [GeneratedCode], TypeScript by attribute (branch `feat/codegen-typed-attribute`)
 
 - [x] `Attribute<TAttribute>(params object?[] args)` and `Attribute<TAttribute>(Action<TAttribute> properties, params object?[] args)`
       (`where TAttribute : System.Attribute`) on `IDtoSettings<TSelf>` (`Dto<T>`, `DtoConfig<T>`, `Dto(typeof)`, `ForNamespace`,
@@ -412,7 +412,33 @@ flowchart TB
       `nameof` in `PropertiesToIgnore` the only change in `CalculatedShipmentDto.g.cs` is the spelling of the four attributes
       (`[global::Coworkee.Contracts.Data.FacetDisplay("port")]`).
 - [x] Docs EN (aliases section: rendering table), DE (Kurzformen), README.
-- [ ] Release together with the next features (not yet).
+- [x] Typed attributes add up (owner decision 2026-11-13): `.Attribute<A>().Attribute<B>()` writes both in call order, an identical one
+      once (`FluentConfigReader.AddAttribute`, also across configuration classes, no `NCG022`); `Attribute(string)`/`Attributes`/
+      `PreClassString` keep replacing (string then typed = both, typed then string = the string). Test
+      `Typed_attributes_add_up_and_a_string_attribute_replaces`.
+- [x] `[global::System.CodeDom.Compiler.GeneratedCode("Nextended.CodeGen", null)]` on every generated type: DTO classes/records,
+      interfaces, enums, Mapperly mappers, ComGuids, structure classes, Excel model and table, facet registration
+      (`StringBuilderHelper.AppendGeneratedCodeIf`, right below the XML comment). Settings `GeneratedCodeAttribute` (default true) and
+      `GeneratedCodeVersion` (default false; the package version from assembly metadata `PackageVersion`) on `CodeGenerationConfigBase`:
+      json `DtoGeneration`/`StructureGenerations`/`ExcelGenerations`, fluent `Defaults`, `StructureGeneration`, `ExcelGeneration`.
+      Not twice: kept source attributes or a `PreClassString`/`PreInterfaceString` with `GeneratedCode`. `MappingExtensions` gets none:
+      one partial class over many files, the attribute is allowed once per type. Golden samples (CodeGenSample, CodeGenFluentSample)
+      regenerated: only these lines added.
+- [x] TypeScript `IncludeTypesWithAttributes` (json, fluent `IncludeTypesWithAttributes(...)`/`IncludeTypesWithAttribute<T>(firstArgument)`):
+      types with one of the attributes in the project and in all referenced non-framework assemblies; `"Name=value"` checks the first
+      constructor argument (needed: plain `GeneratedCode` also matches `Nextended.Core.Properties.Resources` and other generators' code).
+      Exclude wins; in-memory DTOs of the same run only with `FromGeneratedDtos`. The test project references DocumentFormat.OpenXml so
+      the Excel generation runs in tests.
+- [x] Tests `GeneratedCodeTests` (7: every type once, kept/PreClassString not doubled, MappingExtensions none, off = output without the
+      lines (json, fluent, facet registration), version, structure/Excel on/off, TypeScript by attribute incl. referenced assembly, fluent,
+      Exclude, `FromGeneratedDtos`); CodeGen tests 113 green, 1 skipped; all Nextended tests green.
+- [x] Golden with 10.1.64-local.attr2: CargonerdsApp `feat/ts-type-gen` (Hub.Domain, Hub.Application.Contracts): 181 files, +347 lines,
+      all `[GeneratedCode(...)]`, nothing else (Hub.Application builds); with `Defaults(d => d.GeneratedCodeAttribute(false))` (and a direct
+      Nextended.Core reference for the new API) all generated files deleted and rebuilt: 181 byte-identical, the same 13 stale leftovers.
+      CoShipee master: 454 files, +675 lines, all `[GeneratedCode(...)]` (DTOs, interfaces, enums, Mapperly mappers); with
+      `GeneratedCodeAttribute(false)` byte-identical.
+- [ ] Release together with the next features (not yet). Release note: updating adds one `[GeneratedCode]` line per generated type
+      (one-time diff); `GeneratedCodeAttribute(false)` keeps the files as they are.
 
 ### Parallel compilations — fixed (10.1.59)
 
