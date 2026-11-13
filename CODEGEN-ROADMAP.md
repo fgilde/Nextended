@@ -36,7 +36,7 @@ Binding rules for every step:
 | 10.1.61: neutral TypeScript settings, facets, view defaults, OrderLast, stale files | done, released 10.1.61 | `main` (see below) |
 | 10.1.62: unique hint names for in-memory generation | done, released 10.1.62 | `main` (see below) |
 | 10.1.63: stable member order of `partial` types | done, released 10.1.63 | `main` (see below) |
-| Next: typed attributes, `[GeneratedCode]` marker, TypeScript `IncludeTypesWithAttributes` | done, not released | branch `feat/codegen-typed-attribute` (see below) |
+| Next: typed attributes and type settings, `[GeneratedCode]` marker, TypeScript `IncludeTypesWithAttributes` | done, not released | branch `feat/codegen-typed-attribute` (see below) |
 | Fluent configuration, phase 1 (same assembly) | done, released (≤ 10.1.59) | `main`, design: `docs/projects/codegen-fluent-design.md` |
 | Fluent configuration, phase 2 (central config project) | idea | |
 | Coworkee: views and fluent config shown in the template and docs | open | CoworkeeLib |
@@ -437,6 +437,19 @@ flowchart TB
       Nextended.Core reference for the new API) all generated files deleted and rebuilt: 181 byte-identical, the same 13 stale leftovers.
       CoShipee master: 454 files, +675 lines, all `[GeneratedCode(...)]` (DTOs, interfaces, enums, Mapperly mappers); with
       `GeneratedCodeAttribute(false)` byte-identical.
+- [x] Typed forms of the settings that name a type (rendered like `Attribute<T>`: `global::` full name, type arguments too; open
+      generics with their type parameter names): `BaseType<T>()`/`BaseType(Type)` and `Interface<T>()`/`Interface(Type)` (adds to
+      `Interfaces`, once each; strings replace) on `IDtoSettings` (Dto<T>, DtoConfig<T>, Dto(typeof), ForNamespace, ViewDefaults, views)
+      and `IDtoDefaults`; Excel `PropertyTypeOverride<T>(name)`/`PropertyTypeOverride(name, Type)` (`FluentConfigReader.TypedSetting`,
+      `TypeName`). Not typed on purpose: `TypesToIgnore` (`IgnoreType<T>()` exists), namespaces/files/members/view names (`Namespace`,
+      `Usings`, `UseViews`, `OutputPath`, `Order`...), TypeScript `Type("...")` (a TypeScript type); TypeScript selections were typed
+      already. Side effect: `BaseType(null)` is ambiguous now, `BaseType((string?)null)`. Tests `TypedSettingsTests` (5) + API probe;
+      CodeGen 118 green, 1 skipped; all Nextended tests green.
+- [x] Golden 10.1.64-local.attr3: CargonerdsApp `origin/feat/ts-type-gen` (ebb2766d7) with the string `BaseType` and
+      `GeneratedCodeAttribute(false)`: output equal to released 10.1.63 (both rewrite the stale committed `AssociationDto.g.cs` the same
+      way, a blank line). `BaseType<Volo.Abp.Application.Dtos.IEntityDto<Guid>>()`: only `HubBaseGuidEntityDto.g.cs` changes,
+      `: Volo.Abp.Application.Dtos.IEntityDto<Guid>` → `: global::Volo.Abp.Application.Dtos.IEntityDto<global::System.Guid>`;
+      Hub.Application builds. CoShipee master (no type-name settings): byte-identical with `GeneratedCodeAttribute(false)`.
 - [ ] Release together with the next features (not yet). Release note: updating adds one `[GeneratedCode]` line per generated type
       (one-time diff); `GeneratedCodeAttribute(false)` keeps the files as they are.
 

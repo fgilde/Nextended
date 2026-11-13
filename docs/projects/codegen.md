@@ -166,6 +166,23 @@ Property(x => x.Name).Attribute<CountryCodeAttribute>().Attribute("[JsonProperty
 Typed attributes of several configuration classes add up too (in the order of their full names); strings of several classes still
 report `NCG022` when they differ.
 
+The other settings that name a type have typed forms as well, rendered the same way (full name with `global::` from the symbol, type
+arguments too); the string forms stay as they are:
+
+| String form | Typed forms | Where |
+| --- | --- | --- |
+| `BaseType("Volo.Abp.Application.Dtos.IEntityDto<Guid>")` | `BaseType<IEntityDto<Guid>>()`, `BaseType(typeof(IEntityDto<Guid>))` → `global::Volo.Abp.Application.Dtos.IEntityDto<global::System.Guid>` | `Defaults`, `Dto<T>`, `DtoConfig<T>`, `Dto(typeof)`, `ForNamespace`, `ViewDefaults`, views |
+| `Interfaces("A", "B")` (replaces the list) | `Interface<IA>()`, `Interface(typeof(IA))` (add to the list, the same one once) | the same |
+| `PropertyTypeOverride("Total", "decimal")` | `PropertyTypeOverride<decimal>("Total")`, `PropertyTypeOverride("Total", typeof(decimal))` | `ExcelGeneration` |
+| `TypesToIgnore("X")` | `IgnoreType<X>()`, `IgnoreType(typeof(X))` (existed before) | root (`CodeGenConfig`) |
+
+An open generic type (`BaseType(typeof(EntityDto<>))`) is written with its type parameter names (`global::Ns.EntityDto<TKey>`), so it
+fits a generic DTO with parameters of those names. `BaseType(null)` now needs a cast, `BaseType((string?)null)` (two overloads take
+`null`); `null` still means "the default". Settings that name namespaces, files, members or TypeScript types (`Namespace`, `Usings`,
+`UseViews`, `OutputPath`, TypeScript `Type("...")`) have no typed form; TypeScript's type selections (`Include<T>()`,
+`IncludeDerivedFrom<T>()`, `TypeMap<T>(...)`, `DerivedType<T>()`, `IncludeMembersWithAttribute<T>()`, `IncludeTypesWithAttribute<T>()`)
+were typed already.
+
 ### Members
 
 - `Ignore(x => x.A, x => x.B)` leaves members out, `Include(...)` takes members in again that `[IgnoreOnGeneration]`,

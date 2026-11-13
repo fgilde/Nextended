@@ -162,7 +162,8 @@ public sealed class AppCodeGen : CodeGenConfig
 ```
 
 Settings are named exactly like the attribute/json properties they mirror (short aliases: `Name`, `Attribute(s)`, `KeepAttributes`;
-typed attributes `Property(x => x.Port).Attribute<FacetDisplayAttribute>(Displays.Port)` → `[global::My.Ui.FacetDisplay("port")]`, they add up);
+typed attributes `Property(x => x.Port).Attribute<FacetDisplayAttribute>(Displays.Port)` → `[global::My.Ui.FacetDisplay("port")]`, they add up; typed type settings `BaseType<IEntityDto<Guid>>()`, `Interface<IAudited>()`,
+Excel `PropertyTypeOverride<decimal>("Total")`);
 precedence is json → fluent `Defaults` → attributes → `ForNamespace` → `Dto<T>`, and `Dto<T>` only refines what a type already gets. The
 more specific member rule wins (`Include` on a derived type or view undoes an `Ignore` on its base). Anything dynamic is reported (`NCG020`-`NCG026`).
 
