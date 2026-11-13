@@ -5,6 +5,7 @@ namespace MyGenerated.Code.Test {
 	#region Dto class for EntityBase
 
 	/// <summary>IEntityBaseDto - GENERATED FROM <see cref="T:CodeGenSample.Entities.Base.EntityBase"/></summary>
+	[global::System.CodeDom.Compiler.GeneratedCode("Nextended.CodeGen", null)]
 	public partial interface IEntityBaseDto  
 	{
 		System.Guid Id { get; set; }
@@ -13,6 +14,7 @@ namespace MyGenerated.Code.Test {
 
 
 	/// <summary>EntityBaseDto - GENERATED FROM <see cref="T:CodeGenSample.Entities.Base.EntityBase"/></summary>
+	[global::System.CodeDom.Compiler.GeneratedCode("Nextended.CodeGen", null)]
 	public partial class EntityBaseDto : IEntityBaseDto 
 	{
 		public System.Guid Id { get; set; }

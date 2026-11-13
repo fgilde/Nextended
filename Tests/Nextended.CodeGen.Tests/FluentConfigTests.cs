@@ -838,7 +838,7 @@ public class FluentConfigTests
                     ExcelGeneration(e => { {{Calls("IExcelGeneration", "e")}} });
                     StructureGeneration(s => { {{Calls("IStructureGeneration", "s")}} });
                     Typescript(t => { {{Calls("ITypescriptGeneration", "t")}} });
-                    Typescript(t => t.Include<Probe.Item>().Exclude<Probe.Item>().IncludeDerivedFrom<Probe.Item>().ExcludeDerivedFrom<Probe.Item>().TypeMap<Probe.Item>("X").IncludeMembersWithAttribute<System.ObsoleteAttribute>());
+                    Typescript(t => t.Include<Probe.Item>().Exclude<Probe.Item>().IncludeDerivedFrom<Probe.Item>().ExcludeDerivedFrom<Probe.Item>().TypeMap<Probe.Item>("X").IncludeMembersWithAttribute<System.ObsoleteAttribute>().IncludeTypesWithAttribute<System.ObsoleteAttribute>().IncludeTypesWithAttribute<System.ObsoleteAttribute>("x"));
                     Typescript(t => t.Type<Probe.Item>(b => b.IncludeMembersWithAttribute<System.ObsoleteAttribute>().DerivedType<Probe.Item>("x")));
                     Typescript(t => t.Type("Probe.Item", b => { {{Calls("ITypescriptTypeBuilder", "b")}} }));
                     Typescript(t => t.Type<Probe.Item>(b => { {{Calls("ITypescriptType`1", "b")}} b.Ignore(x => x.Name); b.Property(x => x.Name).Name("n"); }));
@@ -846,6 +846,7 @@ public class FluentConfigTests
                     Dto<Probe.Item>(i => i.Typescript(b => { {{Calls("ITypescriptType`1", "b")}} }));
                     ViewDefaults(v => { {{Calls("IDtoTypeBuilder", "v", "Emit", "Ignore", "Include", "Order", "OrderLast", "Property", "View", "GeneratedClassName")}} });
                     Facets<Probe.Item>(f => f.Facet(x => x.Name, o => { {{Calls("IFacetBuilder", "o")}} o.ValueType<System.Guid>(); }));
+                    Dto<Probe.Item>(i => i.Attribute<System.SerializableAttribute>().Attribute<System.ObsoleteAttribute>(a => a.DiagnosticId = "X", "m").Property(x => x.Name).Attribute<System.ObsoleteAttribute>());
                     Dto<Probe.Item>(i => i.Facet(x => x.Name, o => o.Label("X")).Property(x => x.Name, p => p.Name("N")).Property("Name", p => p.Name("N")));
                 }
             }

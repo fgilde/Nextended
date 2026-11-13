@@ -5,6 +5,7 @@ namespace FluentSample.Contracts {
 	#region Dto class for Product
 
 	/// <summary>IProductRowDto - GENERATED FROM <see cref="T:FluentSample.Domain.Product"/></summary>
+	[global::System.CodeDom.Compiler.GeneratedCode("Nextended.CodeGen", null)]
 	public partial interface IProductRowDto  
 	{
 		string Name { get; set; }
@@ -17,6 +18,7 @@ namespace FluentSample.Contracts {
 
 
 	/// <summary>ProductRowDto - GENERATED FROM <see cref="T:FluentSample.Domain.Product"/></summary>
+	[global::System.CodeDom.Compiler.GeneratedCode("Nextended.CodeGen", null)]
 	public partial class ProductRowDto : IProductRowDto 
 	{
 		public string Name { get; set; }

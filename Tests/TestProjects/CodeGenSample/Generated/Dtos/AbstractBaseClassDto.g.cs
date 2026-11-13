@@ -5,6 +5,7 @@ namespace MyGenerated.Code.Test {
 	#region Dto class for AbstractBaseClass
 
 	/// <summary>IAbstractBaseClassDto - GENERATED FROM <see cref="T:CodeGenSample.Entities.AbstractBaseClass"/></summary>
+	[global::System.CodeDom.Compiler.GeneratedCode("Nextended.CodeGen", null)]
 	public partial interface IAbstractBaseClassDto  
 	{
 		int Id { get; set; }
@@ -12,6 +13,7 @@ namespace MyGenerated.Code.Test {
 
 
 	/// <summary>AbstractBaseClassDto - GENERATED FROM <see cref="T:CodeGenSample.Entities.AbstractBaseClass"/></summary>
+	[global::System.CodeDom.Compiler.GeneratedCode("Nextended.CodeGen", null)]
 	public abstract partial class AbstractBaseClassDto : IAbstractBaseClassDto 
 	{
 		public int Id { get; set; }

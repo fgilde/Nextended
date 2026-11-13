@@ -51,7 +51,7 @@ public static class JsonClassGenerator
             fields.Add($"\t\tpublic {propType} {propName} {{ get; set; }}");
         }
 
-        var classDef = $"\tpublic partial {config.ModelType.ToCSharpKeyword()} {className}\n\t{{\n" + string.Join("\n", fields) + "\n\t}\n";
+        var classDef = new StringBuilder().AppendGeneratedCodeIf(config).ToString().Replace("\r\n", "\n") + $"\tpublic partial {config.ModelType.ToCSharpKeyword()} {className}\n\t{{\n" + string.Join("\n", fields) + "\n\t}\n";
         classDefs[className] = classDef;
     }
 

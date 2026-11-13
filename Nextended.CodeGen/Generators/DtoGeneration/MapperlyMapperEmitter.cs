@@ -60,6 +60,7 @@ internal sealed class MapperlyMapperEmitter(DtoGenerationConfig config, DtoGener
         sb.AppendLine();
         sb.AppendLine($"namespace {ns}");
         sb.AppendLine("{");
+        sb.AppendGeneratedCodeIf(config);
         if (!userHasMapper)
             sb.AppendLine("\t[Mapper(RequiredMappingStrategy = RequiredMappingStrategy.Target)]");
         foreach (var mapper in ReferencedMappers(type, props, dtoTypeDict, ns).Union(derived.Select(d => $"{ns}.{MapperName(d)}")).OrderBy(m => m, StringComparer.Ordinal))
@@ -116,6 +117,7 @@ internal sealed class MapperlyMapperEmitter(DtoGenerationConfig config, DtoGener
         sb.AppendLine();
         sb.AppendLine($"namespace {ns}");
         sb.AppendLine("{");
+        sb.AppendGeneratedCodeIf(config);
         if (!userHasMapper)
             sb.AppendLine("\t[Mapper(RequiredMappingStrategy = RequiredMappingStrategy.Target)]");
         foreach (var mapper in derived.Select(d => $"{ns}.{MapperName(d)}").OrderBy(m => m, StringComparer.Ordinal))

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using Microsoft.CodeAnalysis;
+using Nextended.CodeGen.Config;
 using Nextended.CodeGen.Contracts;
 using Nextended.CodeGen.Fluent;
 
@@ -28,14 +29,16 @@ public sealed class FacetRegistrationGenerator : ISourceSubGenerator
         var compilation = context.Compilation ?? context.ExecutionContext?.Compilation;
         if (compilation == null)
             return [];
-        var file = Generate(compilation, out var diagnostic);
+        // switched off like the DTOs' attribute: json "DtoGeneration" with the fluent defaults on top
+        var generatedCode = FluentConfigReader.Read(compilation).ApplyDefaults(context.Config?.DtoGeneration ?? new DtoGenerationConfig()).GeneratedCodeAttribute;
+        var file = Generate(compilation, out var diagnostic, generatedCode);
         if (diagnostic != null)
             context.ReportDiagnostic(diagnostic);
         return file == null ? [] : [file];
     }
 
     /// <summary>The registration file of the compilation's Facet(...) rules; null without rules (or with a diagnostic when they cannot be registered).</summary>
-    public static GeneratedFile? Generate(Compilation compilation, out Diagnostic? diagnostic)
+    public static GeneratedFile? Generate(Compilation compilation, out Diagnostic? diagnostic, bool generatedCode = true)
     {
         diagnostic = null;
         var fluent = FluentConfigReader.Read(compilation);
@@ -58,6 +61,8 @@ public sealed class FacetRegistrationGenerator : ISourceSubGenerator
         sb.Append("#pragma warning disable CA2255 // the registration has to run before the facet builder reads the types\n");
         sb.Append("namespace Nextended.CodeGen.Generated\n{\n");
         sb.Append("    /// <summary>The Facet(...) rules of the fluent configuration, registered when the assembly is loaded.</summary>\n");
+        if (generatedCode)
+            sb.Append("    [global::System.CodeDom.Compiler.GeneratedCode(\"Nextended.CodeGen\", null)]\n");
         sb.Append("    internal static class NextendedFacetRegistrations\n    {\n");
         sb.Append("        [global::System.Runtime.CompilerServices.ModuleInitializer]\n");
         sb.Append("        internal static void Register()\n        {\n");

@@ -5,6 +5,7 @@ namespace MyGenerated.Code.Test {
 	#region Dto class for Shipment
 
 	/// <summary>IShipmentDto - GENERATED FROM <see cref="T:CodeGenSample.Entities.Base.Shipment"/></summary>
+	[global::System.CodeDom.Compiler.GeneratedCode("Nextended.CodeGen", null)]
 	public partial interface IShipmentDto : MyGenerated.Code.Test.IHubBaseGuidEntityDto 
 	{
 		string TrackingNumber { get; set; }
@@ -15,6 +16,7 @@ namespace MyGenerated.Code.Test {
 
 
 	/// <summary>ShipmentDto - GENERATED FROM <see cref="T:CodeGenSample.Entities.Base.Shipment"/></summary>
+	[global::System.CodeDom.Compiler.GeneratedCode("Nextended.CodeGen", null)]
 	public partial class ShipmentDto :  MyGenerated.Code.Test.HubBaseGuidEntityDto, IShipmentDto 
 	{
 		public string TrackingNumber { get; set; }

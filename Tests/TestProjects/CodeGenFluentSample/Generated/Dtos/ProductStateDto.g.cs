@@ -5,6 +5,7 @@ namespace FluentSample.Contracts {
 	#region Dto class for ProductState
 
 	/// <summary>ProductStateDto - GENERATED FROM <see cref="T:FluentSample.Domain.ProductState"/></summary>
+	[global::System.CodeDom.Compiler.GeneratedCode("Nextended.CodeGen", null)]
 [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter))]
 	public enum ProductStateDto
 	{

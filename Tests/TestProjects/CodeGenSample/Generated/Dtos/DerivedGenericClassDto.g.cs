@@ -5,6 +5,7 @@ namespace MyGenerated.Code.Test {
 	#region Dto class for DerivedGenericClass
 
 	/// <summary>IDerivedGenericClassDto - GENERATED FROM <see cref="T:CodeGenSample.Entities.DerivedGenericClass<T>"/></summary>
+	[global::System.CodeDom.Compiler.GeneratedCode("Nextended.CodeGen", null)]
 	public partial interface IDerivedGenericClassDto<T> : MyGenerated.Code.Test.IGenericBaseClassDto<T> 
 	{
 		string Name { get; set; }
@@ -12,6 +13,7 @@ namespace MyGenerated.Code.Test {
 
 
 	/// <summary>DerivedGenericClassDto - GENERATED FROM <see cref="T:CodeGenSample.Entities.DerivedGenericClass<T>"/></summary>
+	[global::System.CodeDom.Compiler.GeneratedCode("Nextended.CodeGen", null)]
 	public partial class DerivedGenericClassDto<T> :  MyGenerated.Code.Test.GenericBaseClassDto<T>, IDerivedGenericClassDto<T> 
 	{
 		public string Name { get; set; }

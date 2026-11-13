@@ -104,6 +104,8 @@ public interface IDtoDefaults
     IDtoDefaults Prefix(string? value);
     IDtoDefaults OutputPath(string? value);
     IDtoDefaults CreateFileHeaders(bool value = true);
+    IDtoDefaults GeneratedCodeAttribute(bool value = true);
+    IDtoDefaults GeneratedCodeVersion(bool value = true);
     IDtoDefaults DeepProperties(bool value = true);
     IDtoDefaults MakeDtoAbstractWhenSourceIsAbstract(bool value = true);
     IDtoDefaults GenerateToMethodsForAbstract(bool value = true);
@@ -163,6 +165,8 @@ public interface IExcelGeneration
     IExcelGeneration Prefix(string? value);
     IExcelGeneration OutputPath(string? value);
     IExcelGeneration CreateFileHeaders(bool value = true);
+    IExcelGeneration GeneratedCodeAttribute(bool value = true);
+    IExcelGeneration GeneratedCodeVersion(bool value = true);
     IExcelGeneration SourceFile(string value);
     IExcelGeneration SheetName(string? value);
     IExcelGeneration HeaderRowIndex(int value);
@@ -195,6 +199,8 @@ public interface IStructureGeneration
     IStructureGeneration Prefix(string? value);
     IStructureGeneration OutputPath(string? value);
     IStructureGeneration CreateFileHeaders(bool value = true);
+    IStructureGeneration GeneratedCodeAttribute(bool value = true);
+    IStructureGeneration GeneratedCodeVersion(bool value = true);
     IStructureGeneration RootClassName(string value);
     IStructureGeneration SourceFile(string value);
     IStructureGeneration Ignore(params string[] value);

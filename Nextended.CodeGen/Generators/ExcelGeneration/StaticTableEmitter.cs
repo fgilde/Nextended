@@ -37,7 +37,7 @@ internal static class StaticTableEmitter
         sb.AppendLine($$"""
         namespace {{cfg.Namespace}}
         {
-            public static partial class {{cfg.StaticClassName}}
+        {{ModelClassEmitter.GeneratedCode(cfg)}}    public static partial class {{cfg.StaticClassName}}
             {
         """)
             .AppendLine();
