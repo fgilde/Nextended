@@ -36,6 +36,7 @@ Binding rules for every step:
 | 10.1.61: neutral TypeScript settings, facets, view defaults, OrderLast, stale files | done, released 10.1.61 | `main` (see below) |
 | 10.1.62: unique hint names for in-memory generation | done, released 10.1.62 | `main` (see below) |
 | 10.1.63: stable member order of `partial` types | done, released 10.1.63 | `main` (see below) |
+| Next: typed `Attribute<TAttribute>(args)` in the fluent config | done, not released | branch `feat/codegen-typed-attribute` (see below) |
 | Fluent configuration, phase 1 (same assembly) | done, released (≤ 10.1.59) | `main`, design: `docs/projects/codegen-fluent-design.md` |
 | Fluent configuration, phase 2 (central config project) | idea | |
 | Coworkee: views and fluent config shown in the template and docs | open | CoworkeeLib |
@@ -387,6 +388,31 @@ flowchart TB
 - [x] Golden: CargonerdsApp `feat/ts-type-gen` (Hub.Domain, Hub.Application.Contracts) with CodeGen 10.1.63 local: no change to the
       generated `.cs` (a deleted DTO is rewritten byte-identical). CoShipee master: no change, clean and incremental; with the entity file
       moved to the end of `Compile`, 10.1.62 moves `Tags` to the front, 10.1.63 keeps it last.
+
+### Next release — typed attributes in the fluent configuration (branch `feat/codegen-typed-attribute`)
+
+- [x] `Attribute<TAttribute>(params object?[] args)` and `Attribute<TAttribute>(Action<TAttribute> properties, params object?[] args)`
+      (`where TAttribute : System.Attribute`) on `IDtoSettings<TSelf>` (`Dto<T>`, `DtoConfig<T>`, `Dto(typeof)`, `ForNamespace`,
+      `ViewDefaults`, views) and `IPropertyBuilder`, everywhere `Attribute(string)` is; `Attribute(string)` unchanged. Sets
+      `PreClassString` like the string alias (one per DTO/member).
+- [x] Reader: full name from the symbol (`global::`, namespace, containing types, type arguments; `Attribute` suffix dropped like kept
+      attributes). Arguments as literals (`FluentFacet.Literal`, shared with the facet settings): strings/chars escaped, suffixes for
+      `long`/`uint`/`ulong`/`float`/`double`, casts for `byte`/`sbyte`/`short`/`ushort`, enums by member (cast without one), `typeof`
+      (open generics unbound), one-dimensional arrays, `null`. Named arguments from `a => a.X = value` (properties and fields),
+      written after the constructor arguments. Anything else: `NCG020`, the statement is skipped. Not checked against the attribute's
+      constructors (a wrong argument fails in the generated file).
+- [x] `nameof` and constant interpolated strings in string settings (`PropertiesToIgnore(nameof(A.B))`, `Attribute($"[{nameof(X)}]")`)
+      already worked (constants); now covered by a test.
+- [x] Tests `TypedAttributeTests` (6: literal rendering incl. reflection of the compiled attribute, generic/nested/base/framework
+      attribute types, named arguments, every builder, non-constant diagnostics, nameof/interpolation). CodeGen tests 105 green,
+      1 skipped; all Nextended tests green.
+- [x] Golden: CargonerdsApp `feat/ts-type-gen` (Hub.Domain, Hub.Application.Contracts) with CodeGen 10.1.64-local.attr1: all
+      generated files deleted and rebuilt, 181 byte-identical, the same 13 stale leftovers. CoShipee master: no change (tampered files
+      rewritten identical); with `Attribute<FacetDisplayAttribute>(HubDisplays.Port)` / `Attribute<CountryCodeAttribute>()` and
+      `nameof` in `PropertiesToIgnore` the only change in `CalculatedShipmentDto.g.cs` is the spelling of the four attributes
+      (`[global::Coworkee.Contracts.Data.FacetDisplay("port")]`).
+- [x] Docs EN (aliases section: rendering table), DE (Kurzformen), README.
+- [ ] Release together with the next features (not yet).
 
 ### Parallel compilations — fixed (10.1.59)
 

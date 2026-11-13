@@ -120,6 +120,37 @@ Three short aliases exist for the longest names (the originals stay): `Name("B")
 Property(x => x.Sku).Name("ArticleNumber").Attribute("[JsonPropertyOrder(1)]");
 ```
 
+`Attribute<TAttribute>(args)` writes an attribute from its type instead of a string: the generator takes the full name from the symbol
+(`global::`, namespace and containing types, the `Attribute` suffix dropped like kept attributes) and writes the arguments as C# literals.
+A rename of the attribute or of a constant reaches the generated code, a typo is a compile error in the configuration:
+
+```csharp
+Property(x => x.LoadingPort).Attribute<FacetDisplayAttribute>(Displays.Port);   // [global::My.Ui.FacetDisplay("port")]
+Property(x => x.OriginCountry).Attribute<CountryCodeAttribute>();               // [global::My.Ui.CountryCode]
+Property(x => x.Total).Attribute<RangeAttribute>(0, 1000.5);                    // [global::System.ComponentModel.DataAnnotations.Range(0, 1000.5D)]
+Attribute<KnownTypeAttribute>(typeof(Order));                                   // on the DTO: [global::System.Runtime.Serialization.KnownType(typeof(global::Shop.Order))]
+Property(x => x.State).Attribute<MarkAttribute>(a => { a.Label = nameof(Order.State); a.Tone = Tone.Loud; }, 1);
+                                                                                // [global::Lib.Mark(1, Label = "State", Tone = global::Lib.Tone.Loud)]
+```
+
+| Argument | Written as |
+| --- | --- |
+| `string`, `char` | escaped literal: `"a\"b"`, `'c'` (`const`, `nameof` and constant interpolated strings included) |
+| `bool`, `int`, `null` | `true`, `1`, `null` |
+| `long`, `uint`, `ulong`, `float`, `double` | with suffix: `1L`, `1U`, `1UL`, `1.5F`, `2.5D` |
+| `byte`, `sbyte`, `short`, `ushort` | with cast: `((byte)7)` |
+| enum | `global::Ns.Tone.Loud`; a value without a member `((global::Ns.Tone)5)` |
+| `typeof(X)` | `typeof(global::Ns.X)`, open generics as `typeof(global::Ns.Box<>)` |
+| array | `new int[] { 1, 2 }`, empty `new string[0]` |
+
+Generic attributes (`Attribute<TypedAttribute<int>>()` → `[global::Ns.Typed<int>]`) and nested ones (`Holder.InnerAttribute` →
+`[global::Ns.Holder.Inner(...)]`) work. Named arguments go in the lambda `a => a.Name = value` (properties and fields of the attribute,
+constants only); the constructor arguments follow it. The arguments are not checked against the attribute's constructors: a wrong
+argument is a compile error in the generated file. Anything that is not constant (`static readonly` fields, method calls) is reported
+(`NCG020`) and the statement is skipped. Like `Attribute(string)` the typed form sets `PreClassString` (one per DTO or member; for
+several attributes use `Attributes("[A]", "[B]")`). It exists everywhere `Attribute(string)` does: `Dto<T>`, `DtoConfig<T>`,
+`Dto(typeof(...))`, `ForNamespace`, `ViewDefaults`, views and `Property(...)`.
+
 ### Members
 
 - `Ignore(x => x.A, x => x.B)` leaves members out, `Include(...)` takes members in again that `[IgnoreOnGeneration]`,
