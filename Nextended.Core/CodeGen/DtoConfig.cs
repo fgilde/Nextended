@@ -107,8 +107,8 @@ public interface IDtoSettings<out TSelf>
     /// <summary>
     /// The attribute <typeparamref name="TAttribute"/> above the generated class, written with its full name:
     /// <c>Attribute&lt;DisplayAttribute&gt;("x")</c> writes <c>[global::Ns.Display("x")]</c>. <paramref name="args"/> are the constructor
-    /// arguments: constants, enum members, <c>typeof</c>, <c>nameof</c> and arrays of them. Like <see cref="Attribute(string)"/> it sets
-    /// <see cref="PreClassString"/>.
+    /// arguments: constants, enum members, <c>typeof</c>, <c>nameof</c> and arrays of them. Typed attributes add up in call order (the same
+    /// one twice is written once); <see cref="Attribute(string)"/>, <see cref="Attributes"/> and <see cref="PreClassString"/> replace them.
     /// </summary>
     TSelf Attribute<TAttribute>(params object?[] args) where TAttribute : System.Attribute;
 
@@ -251,8 +251,8 @@ public interface IPropertyBuilder
     /// <summary>
     /// The attribute <typeparamref name="TAttribute"/> above the generated property, written with its full name:
     /// <c>Attribute&lt;DisplayAttribute&gt;("x")</c> writes <c>[global::Ns.Display("x")]</c>. <paramref name="args"/> are the constructor
-    /// arguments: constants, enum members, <c>typeof</c>, <c>nameof</c> and arrays of them. Like <see cref="Attribute(string)"/> it sets
-    /// <see cref="PreClassString"/>.
+    /// arguments: constants, enum members, <c>typeof</c>, <c>nameof</c> and arrays of them. Typed attributes add up in call order (the same
+    /// one twice is written once); <see cref="Attribute(string)"/>, <see cref="Attributes"/> and <see cref="PreClassString"/> replace them.
     /// </summary>
     IPropertyBuilder Attribute<TAttribute>(params object?[] args) where TAttribute : System.Attribute;
 

@@ -436,6 +436,19 @@ internal sealed class FluentConfigReader
         settings[name] = new FluentValue(value, _profile, location);
     }
 
+    /// <summary>
+    /// A typed Attribute&lt;T&gt;(...) adds to the PreClassString the fluent configuration set before (in call order, profiles in the order of
+    /// their full names); the same attribute twice is written once. Attribute(string), Attributes and PreClassString still replace it.
+    /// </summary>
+    private void AddAttribute(Dictionary<string, FluentValue> settings, string attribute, Location location)
+    {
+        var current = settings.TryGetValue("PreClassString", out var previous) ? previous.Value as string : null;
+        // ponytail: duplicate check by text; an identical attribute inside a string argument of another one would also count
+        if (current != null && current.Contains(attribute))
+            return;
+        settings["PreClassString"] = new FluentValue(string.IsNullOrEmpty(current) ? attribute : current + " " + attribute, _profile, location);
+    }
+
     private FluentTypeRules? DtoTarget(ITypeSymbol type, Location location, FluentModel model)
     {
         if (type is not INamedTypeSymbol { TypeKind: TypeKind.Class or TypeKind.Enum, IsStatic: false } named)
@@ -652,7 +665,7 @@ internal sealed class FluentConfigReader
                     return this;
                 case "Attribute" when call.TypeArgument != null:
                     if (reader.TypedAttribute(call) is { } attribute)
-                        reader.Set(rules.Settings, "PreClassString", attribute, call.Location, Target);
+                        reader.AddAttribute(rules.Settings, attribute, call.Location);
                     return this;
                 default:
                     var setting = Resolve(call.Name, member: false);
@@ -724,7 +737,7 @@ internal sealed class FluentConfigReader
             if (call.Name == "Attribute" && call.TypeArgument != null)
             {
                 if (reader.TypedAttribute(call) is { } attribute)
-                    reader.Set(rules.Settings, "PreClassString", attribute, call.Location, target);
+                    reader.AddAttribute(rules.Settings, attribute, call.Location);
                 return this;
             }
             var name = Resolve(call.Name, member: true);
@@ -739,7 +752,7 @@ internal sealed class FluentConfigReader
     /// <summary>Typescript(t => ...): settings by name onto a TypescriptGenerationConfig, lists, type map and per-type rules.</summary>
     private sealed class TypescriptGenerationContext(TypescriptGenerationConfig config) : Context
     {
-        private static readonly HashSet<string> Lists = ["IncludeNamespaces", "IncludeTypes", "IncludeBaseTypes", "ExcludeNamespaces", "ExcludeTypes", "ExcludeBaseTypes", "IncludeMembersWithAttributes"];
+        private static readonly HashSet<string> Lists = ["IncludeNamespaces", "IncludeTypes", "IncludeBaseTypes", "ExcludeNamespaces", "ExcludeTypes", "ExcludeBaseTypes", "IncludeMembersWithAttributes", "IncludeTypesWithAttributes"];
         private static readonly HashSet<string> Settings = Without(FluentModel.SettingNames(typeof(TypescriptGenerationConfig)), "TypeMap", "Types", "IsFluent");
 
         public override Context? Invoke(FluentConfigReader reader, Call call)
@@ -766,6 +779,10 @@ internal sealed class FluentConfigReader
                 case "IncludeMembersWithAttribute":
                     if (call.TypeArgument != null)
                         config.IncludeMembersWithAttributes.Add(TypescriptNames.Key(call.TypeArgument));
+                    return this;
+                case "IncludeTypesWithAttribute":
+                    if (call.TypeArgument != null && call.TryString(0, out var firstArgument))
+                        config.IncludeTypesWithAttributes.Add(TypescriptNames.Key(call.TypeArgument) + (firstArgument == null ? "" : "=" + firstArgument));
                     return this;
                 case "TypeMap":
                 {

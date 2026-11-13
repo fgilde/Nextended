@@ -191,6 +191,33 @@ public class TypedAttributeTests
     }
 
     [TestMethod]
+    public void Typed_attributes_add_up_and_a_string_attribute_replaces()
+    {
+        var (files, diagnostics, compilation) = Run(Entities, Profile("""
+            Attribute<System.SerializableAttribute>().Attribute<FlagAttribute>().Attribute<System.SerializableAttribute>();
+            Property(x => x.Sku).Attribute("[System.ComponentModel.Description(\"s\")]").Attribute<MarkAttribute>("a").Attribute<MarkAttribute>("b");
+            Property(x => x.Quantity).Attribute<MarkAttribute>("gone").Attribute("[System.ComponentModel.Description(\"q\")]");
+            Property(x => x.Note).Attribute("[System.ComponentModel.Description(\"first\")]").Attribute("[System.ComponentModel.Description(\"last\")]");
+            """));
+        var (separate, d2, _) = Run(Entities, Profile("""
+            Property(x => x.Sku).Attribute<MarkAttribute>("a");
+            Property(x => x.Sku).Attribute<MarkAttribute>("b");
+            """));
+
+        NoDiagnostics(diagnostics);
+        NoDiagnostics(d2);
+        var dto = File(files, "OrderLineDto.g.cs");
+        dto.ShouldContain("[global::System.Serializable] [global::Lib.Marks.Flag]" + Environment.NewLine);          // in call order, once each
+        dto.ShouldContain("""[System.ComponentModel.Description("s")] [global::Lib.Marks.Mark("a")] [global::Lib.Marks.Mark("b")]""");
+        dto.ShouldContain("""[System.ComponentModel.Description("q")]""" + Environment.NewLine);                  // the string replaces
+        dto.ShouldNotContain("gone");
+        dto.ShouldContain("""[System.ComponentModel.Description("last")]""");                                     // strings: the last wins, as before
+        dto.ShouldNotContain("first");
+        File(separate, "OrderLineDto.g.cs").ShouldContain("""[global::Lib.Marks.Mark("a")] [global::Lib.Marks.Mark("b")]""");
+        CompileWithGenerated(compilation, files);
+    }
+
+    [TestMethod]
     public void Arguments_that_are_not_constant_are_reported_and_the_statement_is_skipped()
     {
         var (files, diagnostics, _) = Run(Entities, Profile("""
