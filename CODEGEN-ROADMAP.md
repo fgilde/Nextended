@@ -36,7 +36,7 @@ Binding rules for every step:
 | 10.1.61: neutral TypeScript settings, facets, view defaults, OrderLast, stale files | done, released 10.1.61 | `main` (see below) |
 | 10.1.62: unique hint names for in-memory generation | done, released 10.1.62 | `main` (see below) |
 | 10.1.63: stable member order of `partial` types | done, released 10.1.63 | `main` (see below) |
-| Next: typed attributes and type settings, `[GeneratedCode]` marker, TypeScript `IncludeTypesWithAttributes` | done, not released | branch `feat/codegen-typed-attribute` (see below) |
+| 10.1.64: typed attributes and type settings, `[GeneratedCode]` marker, TypeScript `IncludeTypesWithAttributes` | done, released 10.1.64 | `main` (see below) |
 | Fluent configuration, phase 1 (same assembly) | done, released (≤ 10.1.59) | `main`, design: `docs/projects/codegen-fluent-design.md` |
 | Fluent configuration, phase 2 (central config project) | idea | |
 | Coworkee: views and fluent config shown in the template and docs | open | CoworkeeLib |
@@ -389,7 +389,7 @@ flowchart TB
       generated `.cs` (a deleted DTO is rewritten byte-identical). CoShipee master: no change, clean and incremental; with the entity file
       moved to the end of `Compile`, 10.1.62 moves `Tags` to the front, 10.1.63 keeps it last.
 
-### Next release — typed attributes, [GeneratedCode], TypeScript by attribute (branch `feat/codegen-typed-attribute`)
+### 10.1.64 — typed attributes, [GeneratedCode], TypeScript by attribute (branch `feat/codegen-typed-attribute`)
 
 - [x] `Attribute<TAttribute>(params object?[] args)` and `Attribute<TAttribute>(Action<TAttribute> properties, params object?[] args)`
       (`where TAttribute : System.Attribute`) on `IDtoSettings<TSelf>` (`Dto<T>`, `DtoConfig<T>`, `Dto(typeof)`, `ForNamespace`,
@@ -450,8 +450,14 @@ flowchart TB
       way, a blank line). `BaseType<Volo.Abp.Application.Dtos.IEntityDto<Guid>>()`: only `HubBaseGuidEntityDto.g.cs` changes,
       `: Volo.Abp.Application.Dtos.IEntityDto<Guid>` → `: global::Volo.Abp.Application.Dtos.IEntityDto<global::System.Guid>`;
       Hub.Application builds. CoShipee master (no type-name settings): byte-identical with `GeneratedCodeAttribute(false)`.
-- [ ] Release together with the next features (not yet). Release note: updating adds one `[GeneratedCode]` line per generated type
+- [x] Release 10.1.64 (Core and CodeGen in one run). Release note: updating adds one `[GeneratedCode]` line per generated type
       (one-time diff); `GeneratedCodeAttribute(false)` keeps the files as they are.
+- [x] Core dependency (decision): nothing extra needed. `publish.ps1 -Version X` (run by `nuget-publish.yml` on the release) sets
+      `PackageVersion` **and** `UsedCorePackageVersion` to X in the CI checkout, packs Core first into `localfeed\` and packs CodeGen
+      against it (`RestoreAdditionalProjectSources`). So CodeGen 10.1.64 depends on Core 10.1.64 (as 10.1.63 on 10.1.63) and apps get
+      the new fluent API without a direct Core reference; no two-step release. The repo's `UsedCorePackageVersion` (used by local
+      builds, the samples and `Nextended.ResponseFilters`' package mode) is raised to 10.1.64 after nuget.org listed it, as 10.1.60
+      raised it to 10.1.59.
 
 ### Parallel compilations — fixed (10.1.59)
 
