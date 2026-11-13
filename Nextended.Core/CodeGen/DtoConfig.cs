@@ -26,6 +26,10 @@ public abstract class DtoConfig<T> : IDtoBuilder<T>
     public IDtoBuilder<T> IsComCompatible(bool value = true) => this;
     public IDtoBuilder<T> BaseType(string? value) => this;
     public IDtoBuilder<T> Interfaces(params string[] value) => this;
+    public IDtoBuilder<T> BaseType<TBase>() => this;
+    public IDtoBuilder<T> BaseType(Type type) => this;
+    public IDtoBuilder<T> Interface<TInterface>() => this;
+    public IDtoBuilder<T> Interface(Type type) => this;
     public IDtoBuilder<T> ClassModifier(Modifier value) => this;
     public IDtoBuilder<T> InterfaceModifier(Modifier value) => this;
     public IDtoBuilder<T> DefaultPropertyInterfaceAccess(InterfaceProperty value) => this;
@@ -100,6 +104,25 @@ public interface IDtoSettings<out TSelf>
     TSelf UseViews(params string[] value);
     TSelf OutputPath(string? value);
 #pragma warning restore CS1591
+
+    /// <summary>
+    /// <see cref="BaseType(string)"/> from a type, written with its full name: <c>BaseType&lt;IEntityDto&lt;Guid&gt;&gt;()</c> writes
+    /// <c>global::Volo.Abp.Application.Dtos.IEntityDto&lt;global::System.Guid&gt;</c>. An open generic type (<c>typeof(EntityDto&lt;&gt;)</c>)
+    /// is written with its type parameter names (<c>EntityDto&lt;TKey&gt;</c>). A <c>null</c> argument needs a cast now: <c>BaseType((string?)null)</c>.
+    /// </summary>
+    TSelf BaseType<TBase>();
+
+    /// <summary><see cref="BaseType{TBase}"/> for a type given by <c>typeof</c> (also open generic types).</summary>
+    TSelf BaseType(Type type);
+
+    /// <summary>
+    /// Adds an interface to <see cref="Interfaces"/>, written with its full name; typed interfaces add up (the same one once),
+    /// <see cref="Interfaces"/> with strings replaces the list.
+    /// </summary>
+    TSelf Interface<TInterface>();
+
+    /// <summary><see cref="Interface{TInterface}"/> for a type given by <c>typeof</c> (also open generic types).</summary>
+    TSelf Interface(Type type);
 
     /// <summary>Alias of <see cref="PreClassString"/>: an attribute (or any text) above the generated class.</summary>
     TSelf Attribute(string attribute);

@@ -436,6 +436,35 @@ internal sealed class FluentConfigReader
         settings[name] = new FluentValue(value, _profile, location);
     }
 
+    /// <summary>A type as C# text: full name with global::, type arguments too; an open generic type with its type parameter names.</summary>
+    private static string TypeName(ITypeSymbol type)
+        => (type is INamedTypeSymbol { IsUnboundGenericType: true } unbound ? unbound.OriginalDefinition : type).ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+
+    private static bool IsTypeParameter(Call call, int index)
+        => index < call.Method.Parameters.Length && call.Method.Parameters[index].Type is INamedTypeSymbol { Name: "Type", ContainingNamespace.Name: "System" };
+
+    /// <summary>
+    /// BaseType&lt;T&gt;() / BaseType(typeof(T)) set BaseType to the full name; Interface&lt;T&gt;() / Interface(typeof(T)) add it to Interfaces
+    /// (the same one once; Interfaces(...) with strings still replaces). False when the call is none of them (BaseType("...")).
+    /// </summary>
+    private bool TypedSetting(Call call, Dictionary<string, FluentValue> settings, string target)
+    {
+        if (call.Name is not ("BaseType" or "Interface") || call.Name == "BaseType" && call.TypeArgument == null && !IsTypeParameter(call, 0))
+            return false;
+        if ((call.TypeArgument ?? call.TypeOf(0)) is not { } type)
+            return true;
+        var name = TypeName(type);
+        if (call.Name == "BaseType")
+        {
+            Set(settings, "BaseType", name, call.Location, target);
+            return true;
+        }
+        var current = settings.TryGetValue("Interfaces", out var previous) && previous.Value is string[] list ? list : [];
+        if (!current.Contains(name))
+            settings["Interfaces"] = new FluentValue(current.Append(name).ToArray(), _profile, call.Location);
+        return true;
+    }
+
     /// <summary>
     /// A typed Attribute&lt;T&gt;(...) adds to the PreClassString the fluent configuration set before (in call order, profiles in the order of
     /// their full names); the same attribute twice is written once. Attribute(string), Attributes and PreClassString still replace it.
@@ -569,6 +598,8 @@ internal sealed class FluentConfigReader
                     model.DefaultEmits.Add(emit);
                 return this;
             }
+            if (prefix.Length == 0 && reader.TypedSetting(call, settings, target))
+                return this;
             if (!names.Contains(call.Name))
                 return Unknown;
             if (call.TryConstant(0, out var value))
@@ -584,7 +615,10 @@ internal sealed class FluentConfigReader
         {
             if (call.Name is "ColumnMapping" or "PropertyTypeOverride" && config is ExcelGenerationConfig excel)
             {
-                if (!call.TryString(0, out var key) || !call.TryString(1, out var value) || key == null || value == null)
+                // PropertyTypeOverride<T>(name) and PropertyTypeOverride(name, typeof(T)): the type by its full name
+                var typed = call.TypeArgument ?? (call.Count == 2 && IsTypeParameter(call, 1) ? call.TypeOf(1) : null);
+                string? value = typed == null ? null : TypeName(typed);
+                if (!call.TryString(0, out var key) || typed == null && !call.TryString(1, out value) || key == null || value == null)
                     return this;
                 var map = call.Name == "ColumnMapping"
                     ? excel.ColumnMappings ??= new Dictionary<string, string>()
@@ -666,6 +700,8 @@ internal sealed class FluentConfigReader
                 case "Attribute" when call.TypeArgument != null:
                     if (reader.TypedAttribute(call) is { } attribute)
                         reader.AddAttribute(rules.Settings, attribute, call.Location);
+                    return this;
+                case "BaseType" or "Interface" when reader.TypedSetting(call, rules.Settings, Target):
                     return this;
                 default:
                     var setting = Resolve(call.Name, member: false);

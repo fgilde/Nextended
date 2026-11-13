@@ -846,6 +846,9 @@ public class FluentConfigTests
                     Dto<Probe.Item>(i => i.Typescript(b => { {{Calls("ITypescriptType`1", "b")}} }));
                     ViewDefaults(v => { {{Calls("IDtoTypeBuilder", "v", "Emit", "Ignore", "Include", "Order", "OrderLast", "Property", "View", "GeneratedClassName")}} });
                     Facets<Probe.Item>(f => f.Facet(x => x.Name, o => { {{Calls("IFacetBuilder", "o")}} o.ValueType<System.Guid>(); }));
+                    Defaults(d => d.BaseType<Probe.Item>().BaseType(typeof(Probe.Item)).Interface<System.IDisposable>().Interface(typeof(System.IDisposable)));
+                    Dto<Probe.Item>(i => i.BaseType<Probe.Item>().BaseType(typeof(Probe.Item)).Interface<System.IDisposable>());
+                    ExcelGeneration(e => e.PropertyTypeOverride<int>("A").PropertyTypeOverride("B", typeof(int)));
                     Dto<Probe.Item>(i => i.Attribute<System.SerializableAttribute>().Attribute<System.ObsoleteAttribute>(a => a.DiagnosticId = "X", "m").Property(x => x.Name).Attribute<System.ObsoleteAttribute>());
                     Dto<Probe.Item>(i => i.Facet(x => x.Name, o => o.Label("X")).Property(x => x.Name, p => p.Name("N")).Property("Name", p => p.Name("N")));
                 }

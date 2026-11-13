@@ -137,6 +137,18 @@ public interface IDtoDefaults
     IDtoDefaults DefaultMappingSettings(Action<IMappingDefaults> configure);
 #pragma warning restore CS1591
 
+    /// <summary><see cref="BaseType(string)"/> from a type, written with its full name (see <see cref="IDtoSettings{TSelf}.BaseType{TBase}"/>).</summary>
+    IDtoDefaults BaseType<TBase>();
+
+    /// <summary><see cref="BaseType{TBase}"/> for a type given by <c>typeof</c> (also open generic types).</summary>
+    IDtoDefaults BaseType(Type type);
+
+    /// <summary>Adds an interface to <see cref="Interfaces"/>, written with its full name; typed interfaces add up.</summary>
+    IDtoDefaults Interface<TInterface>();
+
+    /// <summary><see cref="Interface{TInterface}"/> for a type given by <c>typeof</c>.</summary>
+    IDtoDefaults Interface(Type type);
+
     /// <summary>Writes one more file for every DTO (views included); see <see cref="IDtoSettings{TSelf}.Emit"/>.</summary>
     IDtoDefaults Emit(string fileName, string template, string? outputPath = null);
 }
@@ -186,6 +198,12 @@ public interface IExcelGeneration
 
     /// <summary>One entry of "PropertyTypeOverrides": the property name and its C# type.</summary>
     IExcelGeneration PropertyTypeOverride(string propertyName, string type);
+
+    /// <summary><see cref="PropertyTypeOverride(string, string)"/> with the type written by its full name from <typeparamref name="TProperty"/>.</summary>
+    IExcelGeneration PropertyTypeOverride<TProperty>(string propertyName);
+
+    /// <summary><see cref="PropertyTypeOverride(string, string)"/> with a type given by <c>typeof</c>.</summary>
+    IExcelGeneration PropertyTypeOverride(string propertyName, Type type);
 }
 
 /// <summary>Named like an entry of "StructureGenerations" in codegen.json.</summary>
