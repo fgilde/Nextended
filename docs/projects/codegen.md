@@ -120,6 +120,69 @@ Three short aliases exist for the longest names (the originals stay): `Name("B")
 Property(x => x.Sku).Name("ArticleNumber").Attribute("[JsonPropertyOrder(1)]");
 ```
 
+`Attribute<TAttribute>(args)` writes an attribute from its type instead of a string: the generator takes the full name from the symbol
+(`global::`, namespace and containing types, the `Attribute` suffix dropped like kept attributes) and writes the arguments as C# literals.
+A rename of the attribute or of a constant reaches the generated code, a typo is a compile error in the configuration:
+
+```csharp
+Property(x => x.LoadingPort).Attribute<FacetDisplayAttribute>(Displays.Port);   // [global::My.Ui.FacetDisplay("port")]
+Property(x => x.OriginCountry).Attribute<CountryCodeAttribute>();               // [global::My.Ui.CountryCode]
+Property(x => x.Total).Attribute<RangeAttribute>(0, 1000.5);                    // [global::System.ComponentModel.DataAnnotations.Range(0, 1000.5D)]
+Attribute<KnownTypeAttribute>(typeof(Order));                                   // on the DTO: [global::System.Runtime.Serialization.KnownType(typeof(global::Shop.Order))]
+Property(x => x.State).Attribute<MarkAttribute>(a => { a.Label = nameof(Order.State); a.Tone = Tone.Loud; }, 1);
+                                                                                // [global::Lib.Mark(1, Label = "State", Tone = global::Lib.Tone.Loud)]
+```
+
+| Argument | Written as |
+| --- | --- |
+| `string`, `char` | escaped literal: `"a\"b"`, `'c'` (`const`, `nameof` and constant interpolated strings included) |
+| `bool`, `int`, `null` | `true`, `1`, `null` |
+| `long`, `uint`, `ulong`, `float`, `double` | with suffix: `1L`, `1U`, `1UL`, `1.5F`, `2.5D` |
+| `byte`, `sbyte`, `short`, `ushort` | with cast: `((byte)7)` |
+| enum | `global::Ns.Tone.Loud`; a value without a member `((global::Ns.Tone)5)` |
+| `typeof(X)` | `typeof(global::Ns.X)`, open generics as `typeof(global::Ns.Box<>)` |
+| array | `new int[] { 1, 2 }`, empty `new string[0]` |
+
+Generic attributes (`Attribute<TypedAttribute<int>>()` → `[global::Ns.Typed<int>]`) and nested ones (`Holder.InnerAttribute` →
+`[global::Ns.Holder.Inner(...)]`) work. Named arguments go in the lambda `a => a.Name = value` (properties and fields of the attribute,
+constants only); the constructor arguments follow it. The arguments are not checked against the attribute's constructors: a wrong
+argument is a compile error in the generated file. Anything that is not constant (`static readonly` fields, method calls) is reported
+(`NCG020`) and the statement is skipped. It exists everywhere `Attribute(string)` does: `Dto<T>`, `DtoConfig<T>`,
+`Dto(typeof(...))`, `ForNamespace`, `ViewDefaults`, views and `Property(...)`.
+
+Typed attributes **add up** in call order; the same attribute twice is written once. `Attribute(string)`, `Attributes(...)` and
+`PreClassString(...)` keep their behaviour: they set the text and replace what was there (the last one wins). So a string first and typed
+attributes after it combine, a string after typed attributes replaces them:
+
+```csharp
+Property(x => x.Port).Attribute<FacetDisplayAttribute>(Displays.Port).Attribute<CountryCodeAttribute>();
+                                     // [global::My.Ui.FacetDisplay("port")] [global::My.Ui.CountryCode]
+Property(x => x.Code).Attribute("[JsonPropertyOrder(1)]").Attribute<CountryCodeAttribute>();
+                                     // [JsonPropertyOrder(1)] [global::My.Ui.CountryCode]
+Property(x => x.Name).Attribute<CountryCodeAttribute>().Attribute("[JsonPropertyOrder(1)]");
+                                     // [JsonPropertyOrder(1)]   (the string replaces)
+```
+
+Typed attributes of several configuration classes add up too (in the order of their full names); strings of several classes still
+report `NCG022` when they differ.
+
+The other settings that name a type have typed forms as well, rendered the same way (full name with `global::` from the symbol, type
+arguments too); the string forms stay as they are:
+
+| String form | Typed forms | Where |
+| --- | --- | --- |
+| `BaseType("Volo.Abp.Application.Dtos.IEntityDto<Guid>")` | `BaseType<IEntityDto<Guid>>()`, `BaseType(typeof(IEntityDto<Guid>))` → `global::Volo.Abp.Application.Dtos.IEntityDto<global::System.Guid>` | `Defaults`, `Dto<T>`, `DtoConfig<T>`, `Dto(typeof)`, `ForNamespace`, `ViewDefaults`, views |
+| `Interfaces("A", "B")` (replaces the list) | `Interface<IA>()`, `Interface(typeof(IA))` (add to the list, the same one once) | the same |
+| `PropertyTypeOverride("Total", "decimal")` | `PropertyTypeOverride<decimal>("Total")`, `PropertyTypeOverride("Total", typeof(decimal))` | `ExcelGeneration` |
+| `TypesToIgnore("X")` | `IgnoreType<X>()`, `IgnoreType(typeof(X))` (existed before) | root (`CodeGenConfig`) |
+
+An open generic type (`BaseType(typeof(EntityDto<>))`) is written with its type parameter names (`global::Ns.EntityDto<TKey>`), so it
+fits a generic DTO with parameters of those names. `BaseType(null)` now needs a cast, `BaseType((string?)null)` (two overloads take
+`null`); `null` still means "the default". Settings that name namespaces, files, members or TypeScript types (`Namespace`, `Usings`,
+`UseViews`, `OutputPath`, TypeScript `Type("...")`) have no typed form; TypeScript's type selections (`Include<T>()`,
+`IncludeDerivedFrom<T>()`, `TypeMap<T>(...)`, `DerivedType<T>()`, `IncludeMembersWithAttribute<T>()`, `IncludeTypesWithAttribute<T>()`)
+were typed already.
+
 ### Members
 
 - `Ignore(x => x.A, x => x.B)` leaves members out, `Include(...)` takes members in again that `[IgnoreOnGeneration]`,
@@ -433,6 +496,7 @@ export interface ApiShipment extends AuditedEntityDto<string> {
 | `OptionalDefaultValues` | `false` | members with a default value optional: an initializer other than `null`/`default` (`= 10`, `= ""`, `= []`), a record parameter default, or `[DefaultValue]`. Members marked `required`, `[Required]` or `[JsonRequired]` stay required. Meant for request DTOs: set it per type (below) when one generation holds requests and responses |
 | `Header` | — | the text at the top of every file (`\n` line breaks, an empty line follows). Not set: `// <auto-generated> ...` plus `/* eslint-disable */`; `""`: no header |
 | `IncludeMembersWithAttributes` | — | only members carrying one of these attributes (full or simple name, `Attribute` optional), e.g. options classes whose other members are secrets |
+| `IncludeTypesWithAttributes` | — | types carrying one of these attributes, in the project and in referenced assemblies; `"Name=value"` also checks the first constructor argument (`"GeneratedCode=Nextended.CodeGen"`), see [Which types](#which-types) |
 
 There are no presets for server setups: describe the serializer with the settings above. Examples: ABP and plain ASP.NET Core (System.Text.Json,
 camelCase, enums as numbers) need nothing beyond the defaults; a server that registers `JsonStringEnumConverter` globally needs
@@ -454,7 +518,8 @@ Fluent: `Typescript(t => ...)` on `CodeGenConfig` has one method per setting, pl
 `Ignore()` (the type), `Ignore(x => x.A, ...)`, `Property(x => x.A).Name(...).Type(...).Optional().Ignore()/Include()`,
 `OptionalDefaultValues()`, `IncludeMembersWithAttribute<TAttribute>()`/`IncludeMembersWithAttributes("Name", ...)`,
 `DerivedType<TDerived>("discriminator")`/`DerivedType(typeof(...))`/`DerivedTypes("*")` and `Discriminator("kind")`. The generation
-has `IncludeMembersWithAttribute<TAttribute>()` too.
+has `IncludeMembersWithAttribute<TAttribute>()` too, and `IncludeTypesWithAttribute<TAttribute>(firstArgument)`/
+`IncludeTypesWithAttributes("Name", ...)`.
 `DtoConfig<T>` (and `Dto<T>(d => ...)`) has `Typescript(x => ...)` with the same type builder: it applies to every generation, to the
 DTOs of `T` (members by their DTO name) and to `T` itself when a generation selects it.
 
@@ -466,6 +531,22 @@ Real compiled types, so hand-written DTOs, partial classes (all parts) and DTOs 
 - `IncludeTypes`: full or simple names, generic as ``Page`1`` or `Page<T>`; `*` matches any text (`*Dto`, `MyApp.Contracts.*`).
 - `IncludeBaseTypes`: every type deriving from or implementing one of them (``Volo.Abp.Application.Dtos.EntityDto`1``).
 - `[GenerateTypescript]` on a type selects it in every generation.
+- `IncludeTypesWithAttributes`: every type carrying one of the attributes (its own attributes; full or simple name, `Attribute`
+  optional), in the project **and in every referenced assembly** except the framework's (`System*`, `Microsoft*`, `Newtonsoft*`).
+  `"Name=value"` also needs the first constructor argument to be that value. Made for a frontend-types project that references the
+  contracts projects, whose generated DTOs carry `[GeneratedCode("Nextended.CodeGen", ...)]` (see
+  [Generated code marker](#generated-code-marker)):
+
+  ```csharp
+  Typescript(t => t
+      .OutputPath("../frontend/src/types/generated")
+      .IncludeTypesWithAttribute<GeneratedCodeAttribute>("Nextended.CodeGen")   // the DTOs of every referenced project
+      .ExcludeTypes("*.Internal*"));                                            // Exclude* wins, as always
+  ```
+
+  Without the argument `GeneratedCode` also matches the code of other generators (resources classes, API clients); exclude them or
+  name the tool. The DTOs the DTO generator produces **in the same run** are not in the compilation yet: they come in through
+  `FromGeneratedDtos` (with it, both select them once). DTOs written to disk by an earlier build are in the compilation and match.
 - `FromGeneratedDtos`: the DTOs (default DTOs and views) the DTO generator produces in the same run — also those it only adds to the
   compilation (no `OutputPath`), with their renames, views, ignores and `TypesToIgnore` exactly as generated.
 - Out: `Exclude*`, `[TypescriptIgnore]`, `Types[...].Ignore`/fluent `Ignore()`; static classes, attributes, exceptions; interfaces
@@ -1809,6 +1890,8 @@ These settings apply to all DTOs unless overridden by attribute properties.
 | `KeepEnumFlagsAndUnderlyingType` | bool | Generated enums keep `[Flags]` and the underlying type (default: false), see [Enums](#enums) |
 | `InitializeCollections` | bool | Collection properties start as `[]` (default: false), see [Collections start empty](#collections-start-empty) |
 | `DeleteStaleFiles` | bool | Deletes generated files that the generation no longer writes (default: false), see [Where the files land](#where-the-files-land) |
+| `GeneratedCodeAttribute` | bool | `[GeneratedCode("Nextended.CodeGen", null)]` on every generated type (default: true), see [Generated code marker](#generated-code-marker) |
+| `GeneratedCodeVersion` | bool | The generator's package version in that attribute instead of `null` (default: false) |
 
 ### StructureGeneration Options (JSON/XML)
 
@@ -1823,6 +1906,8 @@ Complete reference for generating classes from JSON and XML files.
 | `Suffix` | string | No | Suffix for all generated class names |
 | `Ignore` | string[] | No | Property paths to ignore (e.g., "Database.Password") |
 | `OutputPath` | string | No | Output directory for generated files (if null, added to compilation) |
+| `GeneratedCodeAttribute` | bool | No | `[GeneratedCode]` on the generated classes (default: true) |
+| `GeneratedCodeVersion` | bool | No | The generator's package version in it (default: false) |
 
 #### JSON Generation Examples
 
@@ -2042,6 +2127,8 @@ Complete reference for generating classes from Excel spreadsheets.
 | `ModelType` | string | No | Type of model: "Class", "RecordClass", "RecordStruct" (default: "Class") |
 | `GenerateModelClass` | bool | No | Generate the model/record class (default: true) |
 | `GenerateStaticTable` | bool | No | Generate static lookup class with data (default: false) |
+| `GeneratedCodeAttribute` | bool | No | `[GeneratedCode]` on the model and table classes (default: true) |
+| `GeneratedCodeVersion` | bool | No | The generator's package version in it (default: false) |
 | `GenerateAllCollection` | bool | No | Generate collection of all records (default: false) |
 | `ColumnMappings` | `Dictionary<string,string>` | No | Map Excel column names to property names |
 | `PropertyTypeOverrides` | `Dictionary<string,string>` | No | Override property types |
@@ -2956,6 +3043,8 @@ used through `[UseStaticMapper]`. A view of an abstract type maps only towards t
 | `CreateComments` | `true` | Carry XML documentation over to the generated members |
 | `GeneratePartial` | `true` | Generate `partial` types so you can extend them |
 | `DeleteStaleFiles` | `false` | Delete files of earlier runs that this run no longer writes (see below) |
+| `GeneratedCodeAttribute` | `true` | `[GeneratedCode("Nextended.CodeGen", null)]` on every generated type, see [Generated code marker](#generated-code-marker) |
+| `GeneratedCodeVersion` | `false` | the generator's package version in that attribute instead of `null` |
 
 Writing to `OutputPath` puts the generated code **in your repository** rather than in `obj/`. That
 makes review diffs meaningful and lets you inspect what the generator actually produced — which is why
@@ -2977,6 +3066,30 @@ keystroke; a half-typed `Dto<T>()` must not delete the file), and when the DTO g
 project its own output folders: two projects writing DTOs into the same folder would delete each other's files.
 With the compiler server (the default), a run only happens when the inputs change; a stale file therefore goes with the next real change
 or a rebuild.
+
+### Generated code marker
+
+Every type the generators write carries `[global::System.CodeDom.Compiler.GeneratedCode("Nextended.CodeGen", null)]`: DTO classes and
+records, their interfaces, enums, Mapperly mapper classes, the ComGuids class, the classes of `StructureGenerations` and
+`ExcelGenerations` (model and table) and the facet registration. Analyzers, code coverage and code metrics then treat them as generated, and
+the TypeScript generation can select them in other projects (`IncludeTypesWithAttributes`). The line sits right below the XML comment,
+above the other attributes:
+
+```csharp
+[global::System.CodeDom.Compiler.GeneratedCode("Nextended.CodeGen", null)]
+public partial class OrderDto : IOrderDto
+```
+
+- Not written twice: a type that keeps its source attributes (`KeepAttributesOnGeneratedClass`/`...Interface`) and has a `[GeneratedCode]`
+  there, or whose `PreClassString`/`PreInterfaceString` contains one, gets no second one.
+- The mapping extension class (`MappingExtensions`) gets none: it is one `partial` class spread over a file per type, and the attribute
+  may appear only once per type.
+- **Upgrading writes it once into every generated file** (one line per type), a one-time diff of checked-in generated files. To keep
+  the files as they are, switch it off: json `"GeneratedCodeAttribute": false` (`DtoGeneration`, and per entry of `StructureGenerations`/
+  `ExcelGenerations`), fluent `Defaults(d => d.GeneratedCodeAttribute(false))`, `StructureGeneration(s => s.GeneratedCodeAttribute(false))`,
+  `ExcelGeneration(e => e.GeneratedCodeAttribute(false))`. The DTO setting also covers mappers and the facet registration.
+- `GeneratedCodeVersion(true)` (json `"GeneratedCodeVersion": true`) writes the generator's package version (`"10.1.64"`) instead of
+  `null`. Off by default: with it every package update changes every generated file.
 
 The mapping files share one namespace (the configuration's `Namespace`), while a DTO or view can have
 a `Namespace` of its own. Generated code names such a DTO with its namespace wherever the file lives

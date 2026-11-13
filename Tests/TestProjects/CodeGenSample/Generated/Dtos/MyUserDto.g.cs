@@ -6,6 +6,7 @@ namespace MyGenerated.Code.Test {
 	#region Dto class for User
 
 	/// <summary>IMyUserDto - GENERATED FROM <see cref="T:CodeGenSample.Entities.User"/></summary>
+	[global::System.CodeDom.Compiler.GeneratedCode("Nextended.CodeGen", null)]
 	public partial interface IMyUserDto : MyGenerated.Code.Test.IEntityBaseDto 
 	{
 		[System.ComponentModel.DataAnnotations.MaxLength(3)]
@@ -23,6 +24,7 @@ namespace MyGenerated.Code.Test {
 
 
 	/// <summary>MyUserDto - GENERATED FROM <see cref="T:CodeGenSample.Entities.User"/></summary>
+	[global::System.CodeDom.Compiler.GeneratedCode("Nextended.CodeGen", null)]
 	[System.Text.Json.Serialization.JsonNumberHandling(System.Text.Json.Serialization.JsonNumberHandling.AllowReadingFromString)]
 	public partial class MyUserDto :  MyGenerated.Code.Test.EntityBaseDto, IMyUserDto 
 	{

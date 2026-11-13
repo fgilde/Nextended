@@ -73,7 +73,7 @@ public static class XmlClassGenerator
         if (!elem.HasElements && !string.IsNullOrWhiteSpace(elem.Value))
             fields.Add("    public string Value { get; set; }");
 
-        var classDef = $"public partial class {className}\n{{\n" + string.Join("\n", fields) + "\n}\n";
+        var classDef = new StringBuilder().AppendGeneratedCodeIf(config, "").ToString().Replace("\r\n", "\n") + $"public partial class {className}\n{{\n" + string.Join("\n", fields) + "\n}\n";
         classDefs[className] = classDef;
     }
 }

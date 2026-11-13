@@ -264,7 +264,7 @@ internal sealed class FluentConfigReader
         public ITypeSymbol? TypeArgument => Method.TypeArguments.FirstOrDefault();
         public bool FirstIsLambdaArray => Method.Parameters.FirstOrDefault()?.Type is IArrayTypeSymbol { ElementType: INamedTypeSymbol { Name: "Expression" } };
 
-        private IOperation? Argument(int index)
+        public IOperation? Argument(int index)
             => index < Method.Parameters.Length && _arguments.TryGetValue(Method.Parameters[index].Name, out var op) ? op : null;
 
         /// <summary>The constant value of an argument (also arrays of constants); false and a diagnostic when it is not constant.</summary>
@@ -436,6 +436,48 @@ internal sealed class FluentConfigReader
         settings[name] = new FluentValue(value, _profile, location);
     }
 
+    /// <summary>A type as C# text: full name with global::, type arguments too; an open generic type with its type parameter names.</summary>
+    private static string TypeName(ITypeSymbol type)
+        => (type is INamedTypeSymbol { IsUnboundGenericType: true } unbound ? unbound.OriginalDefinition : type).ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+
+    private static bool IsTypeParameter(Call call, int index)
+        => index < call.Method.Parameters.Length && call.Method.Parameters[index].Type is INamedTypeSymbol { Name: "Type", ContainingNamespace.Name: "System" };
+
+    /// <summary>
+    /// BaseType&lt;T&gt;() / BaseType(typeof(T)) set BaseType to the full name; Interface&lt;T&gt;() / Interface(typeof(T)) add it to Interfaces
+    /// (the same one once; Interfaces(...) with strings still replaces). False when the call is none of them (BaseType("...")).
+    /// </summary>
+    private bool TypedSetting(Call call, Dictionary<string, FluentValue> settings, string target)
+    {
+        if (call.Name is not ("BaseType" or "Interface") || call.Name == "BaseType" && call.TypeArgument == null && !IsTypeParameter(call, 0))
+            return false;
+        if ((call.TypeArgument ?? call.TypeOf(0)) is not { } type)
+            return true;
+        var name = TypeName(type);
+        if (call.Name == "BaseType")
+        {
+            Set(settings, "BaseType", name, call.Location, target);
+            return true;
+        }
+        var current = settings.TryGetValue("Interfaces", out var previous) && previous.Value is string[] list ? list : [];
+        if (!current.Contains(name))
+            settings["Interfaces"] = new FluentValue(current.Append(name).ToArray(), _profile, call.Location);
+        return true;
+    }
+
+    /// <summary>
+    /// A typed Attribute&lt;T&gt;(...) adds to the PreClassString the fluent configuration set before (in call order, profiles in the order of
+    /// their full names); the same attribute twice is written once. Attribute(string), Attributes and PreClassString still replace it.
+    /// </summary>
+    private void AddAttribute(Dictionary<string, FluentValue> settings, string attribute, Location location)
+    {
+        var current = settings.TryGetValue("PreClassString", out var previous) ? previous.Value as string : null;
+        // ponytail: duplicate check by text; an identical attribute inside a string argument of another one would also count
+        if (current != null && current.Contains(attribute))
+            return;
+        settings["PreClassString"] = new FluentValue(string.IsNullOrEmpty(current) ? attribute : current + " " + attribute, _profile, location);
+    }
+
     private FluentTypeRules? DtoTarget(ITypeSymbol type, Location location, FluentModel model)
     {
         if (type is not INamedTypeSymbol { TypeKind: TypeKind.Class or TypeKind.Enum, IsStatic: false } named)
@@ -556,6 +598,8 @@ internal sealed class FluentConfigReader
                     model.DefaultEmits.Add(emit);
                 return this;
             }
+            if (prefix.Length == 0 && reader.TypedSetting(call, settings, target))
+                return this;
             if (!names.Contains(call.Name))
                 return Unknown;
             if (call.TryConstant(0, out var value))
@@ -571,7 +615,10 @@ internal sealed class FluentConfigReader
         {
             if (call.Name is "ColumnMapping" or "PropertyTypeOverride" && config is ExcelGenerationConfig excel)
             {
-                if (!call.TryString(0, out var key) || !call.TryString(1, out var value) || key == null || value == null)
+                // PropertyTypeOverride<T>(name) and PropertyTypeOverride(name, typeof(T)): the type by its full name
+                var typed = call.TypeArgument ?? (call.Count == 2 && IsTypeParameter(call, 1) ? call.TypeOf(1) : null);
+                string? value = typed == null ? null : TypeName(typed);
+                if (!call.TryString(0, out var key) || typed == null && !call.TryString(1, out value) || key == null || value == null)
                     return this;
                 var map = call.Name == "ColumnMapping"
                     ? excel.ColumnMappings ??= new Dictionary<string, string>()
@@ -650,6 +697,12 @@ internal sealed class FluentConfigReader
                 case "GeneratedClassName" when isView:
                     reader.Report(NotReadable, call.Location, "The name of a view is set by View(name).");
                     return this;
+                case "Attribute" when call.TypeArgument != null:
+                    if (reader.TypedAttribute(call) is { } attribute)
+                        reader.AddAttribute(rules.Settings, attribute, call.Location);
+                    return this;
+                case "BaseType" or "Interface" when reader.TypedSetting(call, rules.Settings, Target):
+                    return this;
                 default:
                     var setting = Resolve(call.Name, member: false);
                     if (setting != "BaseMembersFirst" && !DtoSettings.Contains(setting))
@@ -700,14 +753,7 @@ internal sealed class FluentConfigReader
             else if (!call.TryConstant(0, out var value))
                 expression = null;
             else
-                expression = value switch
-                {
-                    null => "null",
-                    string s => Microsoft.CodeAnalysis.CSharp.SymbolDisplay.FormatLiteral(s, true),
-                    bool b => b ? "true" : "false",
-                    _ when call.Method.Parameters[0].Type is INamedTypeSymbol { TypeKind: TypeKind.Enum } e => FluentFacet.EnumMember(e, value),
-                    _ => Convert.ToString(value, System.Globalization.CultureInfo.InvariantCulture)
-                };
+                expression = FluentFacet.Literal(value, call.Method.Parameters[0].Type);
             if (expression != null)
                 reader.Set(facet.Settings, call.Name, expression, call.Location, target);
             return this;
@@ -724,6 +770,12 @@ internal sealed class FluentConfigReader
                 reader.Set(rules.Settings, "Ignore", call.Name == "Ignore", call.Location, target);
                 return this;
             }
+            if (call.Name == "Attribute" && call.TypeArgument != null)
+            {
+                if (reader.TypedAttribute(call) is { } attribute)
+                    reader.AddAttribute(rules.Settings, attribute, call.Location);
+                return this;
+            }
             var name = Resolve(call.Name, member: true);
             if (!PropertySettings.Contains(name))
                 return Unknown;
@@ -736,7 +788,7 @@ internal sealed class FluentConfigReader
     /// <summary>Typescript(t => ...): settings by name onto a TypescriptGenerationConfig, lists, type map and per-type rules.</summary>
     private sealed class TypescriptGenerationContext(TypescriptGenerationConfig config) : Context
     {
-        private static readonly HashSet<string> Lists = ["IncludeNamespaces", "IncludeTypes", "IncludeBaseTypes", "ExcludeNamespaces", "ExcludeTypes", "ExcludeBaseTypes", "IncludeMembersWithAttributes"];
+        private static readonly HashSet<string> Lists = ["IncludeNamespaces", "IncludeTypes", "IncludeBaseTypes", "ExcludeNamespaces", "ExcludeTypes", "ExcludeBaseTypes", "IncludeMembersWithAttributes", "IncludeTypesWithAttributes"];
         private static readonly HashSet<string> Settings = Without(FluentModel.SettingNames(typeof(TypescriptGenerationConfig)), "TypeMap", "Types", "IsFluent");
 
         public override Context? Invoke(FluentConfigReader reader, Call call)
@@ -763,6 +815,10 @@ internal sealed class FluentConfigReader
                 case "IncludeMembersWithAttribute":
                     if (call.TypeArgument != null)
                         config.IncludeMembersWithAttributes.Add(TypescriptNames.Key(call.TypeArgument));
+                    return this;
+                case "IncludeTypesWithAttribute":
+                    if (call.TypeArgument != null && call.TryString(0, out var firstArgument))
+                        config.IncludeTypesWithAttributes.Add(TypescriptNames.Key(call.TypeArgument) + (firstArgument == null ? "" : "=" + firstArgument));
                     return this;
                 case "TypeMap":
                 {
@@ -902,6 +958,107 @@ internal sealed class FluentConfigReader
                 default:
                     return Unknown;
             }
+        }
+    }
+
+    /// <summary>
+    /// Attribute&lt;TAttribute&gt;(args) and Attribute&lt;TAttribute&gt;(a => a.Name = value, args) as C# text: the full name without the
+    /// "Attribute" suffix (like kept attributes), the arguments as literals. Null and a diagnostic when an argument is not constant.
+    /// </summary>
+    private string? TypedAttribute(Call call)
+    {
+        if (call.TypeArgument is not INamedTypeSymbol type)
+            return null;
+        var arguments = new List<string>();
+        switch (call.Argument(call.Count - 1) is { } args ? Unwrap(args) : null)
+        {
+            case null:
+                break;
+            case { ConstantValue: { HasValue: true, Value: null } }:
+                arguments.Add("null"); // Attribute<X>(null) binds null to the params array itself
+                break;
+            case IArrayCreationOperation array:
+                foreach (var item in array.Initializer?.ElementValues ?? [])
+                {
+                    if (Literal(item) is not { } literal)
+                        return null;
+                    arguments.Add(literal);
+                }
+                break;
+            case var other:
+                Report(NotReadable, other.Syntax, $"'{Short(other.Syntax)}' is not a constant.");
+                return null;
+        }
+        if (call.Count == 2 && call.Argument(0) is { } properties)
+        {
+            if (AsLambda(properties) is not { Symbol.Parameters.Length: 1 } lambda)
+            {
+                Report(NotReadable, properties.Syntax, $"'{Short(properties.Syntax)}' must be a lambda (a => a.Name = value).");
+                return null;
+            }
+            foreach (var statement in lambda.Body.Operations)
+            {
+                if (statement is IReturnOperation { ReturnedValue: null })
+                    continue;
+                var (member, instance, value) = statement is IExpressionStatementOperation { Operation: ISimpleAssignmentOperation assignment }
+                    ? assignment.Target switch
+                    {
+                        IPropertyReferenceOperation p => ((ISymbol?)p.Property, p.Instance, assignment.Value),
+                        IFieldReferenceOperation f => (f.Field, f.Instance, assignment.Value),
+                        _ => (null, null, null)
+                    }
+                    : (null, null, null);
+                if (member == null || value == null || instance is not IParameterReferenceOperation pr
+                    || !SymbolEqualityComparer.Default.Equals(pr.Parameter, lambda.Symbol.Parameters[0]))
+                {
+                    Report(NotReadable, statement.Syntax, $"'{Short(statement.Syntax)}' must set a member of the attribute (a => a.Name = value).");
+                    return null;
+                }
+                if (Literal(value) is not { } literal)
+                    return null;
+                arguments.Add($"{member.Name} = {literal}");
+            }
+        }
+
+        var name = type.Name.Length > "Attribute".Length && type.Name.EndsWith("Attribute", StringComparison.Ordinal)
+            ? type.Name.Substring(0, type.Name.Length - "Attribute".Length)
+            : type.Name;
+        var container = type.ContainingType != null ? type.ContainingType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat) + "."
+            : type.ContainingNamespace is { IsGlobalNamespace: false } ns ? ns.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat) + "."
+            : "global::";
+        var typeArguments = type.TypeArguments.Length == 0 ? ""
+            : "<" + string.Join(", ", type.TypeArguments.Select(t => t.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat))) + ">";
+        return $"[{container}{name}{typeArguments}{(arguments.Count == 0 ? "" : "(" + string.Join(", ", arguments) + ")")}]";
+    }
+
+    /// <summary>A constant, typeof or a one-dimensional array of them as C# text; null and a diagnostic for anything else.</summary>
+    private string? Literal(IOperation op)
+    {
+        // boxing to object and implicit conversions go; an explicit constant cast like (byte)1 keeps its type
+        while (op is IConversionOperation conversion && (conversion.IsImplicit || !conversion.ConstantValue.HasValue))
+            op = conversion.Operand;
+        if (op.ConstantValue.HasValue)
+            return FluentFacet.Literal(op.ConstantValue.Value, op.Type);
+        switch (op)
+        {
+            case ITypeOfOperation typeOf:
+                return $"typeof({FluentFacet.TypeOfName(typeOf.TypeOperand)})";
+            case IArrayCreationOperation { Type: IArrayTypeSymbol { Rank: 1 } arrayType } array
+                when array.Initializer != null || array.DimensionSizes.All(d => d.ConstantValue is { HasValue: true, Value: 0 }):
+            {
+                var items = new List<string>();
+                foreach (var item in array.Initializer?.ElementValues ?? [])
+                {
+                    if (Literal(item) is not { } literal)
+                        return null;
+                    items.Add(literal);
+                }
+                var elementType = arrayType.ElementType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+                return items.Count == 0 ? $"new {elementType}[0]" : $"new {elementType}[] {{ {string.Join(", ", items)} }}";
+            }
+            default:
+                Report(NotReadable, op.Syntax, $"'{Short(op.Syntax)}' is not a constant.");
+                return null;
         }
     }
 

@@ -36,6 +36,7 @@ Binding rules for every step:
 | 10.1.61: neutral TypeScript settings, facets, view defaults, OrderLast, stale files | done, released 10.1.61 | `main` (see below) |
 | 10.1.62: unique hint names for in-memory generation | done, released 10.1.62 | `main` (see below) |
 | 10.1.63: stable member order of `partial` types | done, released 10.1.63 | `main` (see below) |
+| 10.1.64: typed attributes and type settings, `[GeneratedCode]` marker, TypeScript `IncludeTypesWithAttributes` | done, released 10.1.64 | `main` (see below) |
 | Fluent configuration, phase 1 (same assembly) | done, released (≤ 10.1.59) | `main`, design: `docs/projects/codegen-fluent-design.md` |
 | Fluent configuration, phase 2 (central config project) | idea | |
 | Coworkee: views and fluent config shown in the template and docs | open | CoworkeeLib |
@@ -387,6 +388,76 @@ flowchart TB
 - [x] Golden: CargonerdsApp `feat/ts-type-gen` (Hub.Domain, Hub.Application.Contracts) with CodeGen 10.1.63 local: no change to the
       generated `.cs` (a deleted DTO is rewritten byte-identical). CoShipee master: no change, clean and incremental; with the entity file
       moved to the end of `Compile`, 10.1.62 moves `Tags` to the front, 10.1.63 keeps it last.
+
+### 10.1.64 — typed attributes, [GeneratedCode], TypeScript by attribute (branch `feat/codegen-typed-attribute`)
+
+- [x] `Attribute<TAttribute>(params object?[] args)` and `Attribute<TAttribute>(Action<TAttribute> properties, params object?[] args)`
+      (`where TAttribute : System.Attribute`) on `IDtoSettings<TSelf>` (`Dto<T>`, `DtoConfig<T>`, `Dto(typeof)`, `ForNamespace`,
+      `ViewDefaults`, views) and `IPropertyBuilder`, everywhere `Attribute(string)` is; `Attribute(string)` unchanged. Sets
+      `PreClassString` like the string alias (one per DTO/member).
+- [x] Reader: full name from the symbol (`global::`, namespace, containing types, type arguments; `Attribute` suffix dropped like kept
+      attributes). Arguments as literals (`FluentFacet.Literal`, shared with the facet settings): strings/chars escaped, suffixes for
+      `long`/`uint`/`ulong`/`float`/`double`, casts for `byte`/`sbyte`/`short`/`ushort`, enums by member (cast without one), `typeof`
+      (open generics unbound), one-dimensional arrays, `null`. Named arguments from `a => a.X = value` (properties and fields),
+      written after the constructor arguments. Anything else: `NCG020`, the statement is skipped. Not checked against the attribute's
+      constructors (a wrong argument fails in the generated file).
+- [x] `nameof` and constant interpolated strings in string settings (`PropertiesToIgnore(nameof(A.B))`, `Attribute($"[{nameof(X)}]")`)
+      already worked (constants); now covered by a test.
+- [x] Tests `TypedAttributeTests` (6: literal rendering incl. reflection of the compiled attribute, generic/nested/base/framework
+      attribute types, named arguments, every builder, non-constant diagnostics, nameof/interpolation). CodeGen tests 105 green,
+      1 skipped; all Nextended tests green.
+- [x] Golden: CargonerdsApp `feat/ts-type-gen` (Hub.Domain, Hub.Application.Contracts) with CodeGen 10.1.64-local.attr1: all
+      generated files deleted and rebuilt, 181 byte-identical, the same 13 stale leftovers. CoShipee master: no change (tampered files
+      rewritten identical); with `Attribute<FacetDisplayAttribute>(HubDisplays.Port)` / `Attribute<CountryCodeAttribute>()` and
+      `nameof` in `PropertiesToIgnore` the only change in `CalculatedShipmentDto.g.cs` is the spelling of the four attributes
+      (`[global::Coworkee.Contracts.Data.FacetDisplay("port")]`).
+- [x] Docs EN (aliases section: rendering table), DE (Kurzformen), README.
+- [x] Typed attributes add up (owner decision 2026-11-13): `.Attribute<A>().Attribute<B>()` writes both in call order, an identical one
+      once (`FluentConfigReader.AddAttribute`, also across configuration classes, no `NCG022`); `Attribute(string)`/`Attributes`/
+      `PreClassString` keep replacing (string then typed = both, typed then string = the string). Test
+      `Typed_attributes_add_up_and_a_string_attribute_replaces`.
+- [x] `[global::System.CodeDom.Compiler.GeneratedCode("Nextended.CodeGen", null)]` on every generated type: DTO classes/records,
+      interfaces, enums, Mapperly mappers, ComGuids, structure classes, Excel model and table, facet registration
+      (`StringBuilderHelper.AppendGeneratedCodeIf`, right below the XML comment). Settings `GeneratedCodeAttribute` (default true) and
+      `GeneratedCodeVersion` (default false; the package version from assembly metadata `PackageVersion`) on `CodeGenerationConfigBase`:
+      json `DtoGeneration`/`StructureGenerations`/`ExcelGenerations`, fluent `Defaults`, `StructureGeneration`, `ExcelGeneration`.
+      Not twice: kept source attributes or a `PreClassString`/`PreInterfaceString` with `GeneratedCode`. `MappingExtensions` gets none:
+      one partial class over many files, the attribute is allowed once per type. Golden samples (CodeGenSample, CodeGenFluentSample)
+      regenerated: only these lines added.
+- [x] TypeScript `IncludeTypesWithAttributes` (json, fluent `IncludeTypesWithAttributes(...)`/`IncludeTypesWithAttribute<T>(firstArgument)`):
+      types with one of the attributes in the project and in all referenced non-framework assemblies; `"Name=value"` checks the first
+      constructor argument (needed: plain `GeneratedCode` also matches `Nextended.Core.Properties.Resources` and other generators' code).
+      Exclude wins; in-memory DTOs of the same run only with `FromGeneratedDtos`. The test project references DocumentFormat.OpenXml so
+      the Excel generation runs in tests.
+- [x] Tests `GeneratedCodeTests` (7: every type once, kept/PreClassString not doubled, MappingExtensions none, off = output without the
+      lines (json, fluent, facet registration), version, structure/Excel on/off, TypeScript by attribute incl. referenced assembly, fluent,
+      Exclude, `FromGeneratedDtos`); CodeGen tests 113 green, 1 skipped; all Nextended tests green.
+- [x] Golden with 10.1.64-local.attr2: CargonerdsApp `feat/ts-type-gen` (Hub.Domain, Hub.Application.Contracts): 181 files, +347 lines,
+      all `[GeneratedCode(...)]`, nothing else (Hub.Application builds); with `Defaults(d => d.GeneratedCodeAttribute(false))` (and a direct
+      Nextended.Core reference for the new API) all generated files deleted and rebuilt: 181 byte-identical, the same 13 stale leftovers.
+      CoShipee master: 454 files, +675 lines, all `[GeneratedCode(...)]` (DTOs, interfaces, enums, Mapperly mappers); with
+      `GeneratedCodeAttribute(false)` byte-identical.
+- [x] Typed forms of the settings that name a type (rendered like `Attribute<T>`: `global::` full name, type arguments too; open
+      generics with their type parameter names): `BaseType<T>()`/`BaseType(Type)` and `Interface<T>()`/`Interface(Type)` (adds to
+      `Interfaces`, once each; strings replace) on `IDtoSettings` (Dto<T>, DtoConfig<T>, Dto(typeof), ForNamespace, ViewDefaults, views)
+      and `IDtoDefaults`; Excel `PropertyTypeOverride<T>(name)`/`PropertyTypeOverride(name, Type)` (`FluentConfigReader.TypedSetting`,
+      `TypeName`). Not typed on purpose: `TypesToIgnore` (`IgnoreType<T>()` exists), namespaces/files/members/view names (`Namespace`,
+      `Usings`, `UseViews`, `OutputPath`, `Order`...), TypeScript `Type("...")` (a TypeScript type); TypeScript selections were typed
+      already. Side effect: `BaseType(null)` is ambiguous now, `BaseType((string?)null)`. Tests `TypedSettingsTests` (5) + API probe;
+      CodeGen 118 green, 1 skipped; all Nextended tests green.
+- [x] Golden 10.1.64-local.attr3: CargonerdsApp `origin/feat/ts-type-gen` (ebb2766d7) with the string `BaseType` and
+      `GeneratedCodeAttribute(false)`: output equal to released 10.1.63 (both rewrite the stale committed `AssociationDto.g.cs` the same
+      way, a blank line). `BaseType<Volo.Abp.Application.Dtos.IEntityDto<Guid>>()`: only `HubBaseGuidEntityDto.g.cs` changes,
+      `: Volo.Abp.Application.Dtos.IEntityDto<Guid>` → `: global::Volo.Abp.Application.Dtos.IEntityDto<global::System.Guid>`;
+      Hub.Application builds. CoShipee master (no type-name settings): byte-identical with `GeneratedCodeAttribute(false)`.
+- [x] Release 10.1.64 (Core and CodeGen in one run). Release note: updating adds one `[GeneratedCode]` line per generated type
+      (one-time diff); `GeneratedCodeAttribute(false)` keeps the files as they are.
+- [x] Core dependency (decision): nothing extra needed. `publish.ps1 -Version X` (run by `nuget-publish.yml` on the release) sets
+      `PackageVersion` **and** `UsedCorePackageVersion` to X in the CI checkout, packs Core first into `localfeed\` and packs CodeGen
+      against it (`RestoreAdditionalProjectSources`). So CodeGen 10.1.64 depends on Core 10.1.64 (as 10.1.63 on 10.1.63) and apps get
+      the new fluent API without a direct Core reference; no two-step release. The repo's `UsedCorePackageVersion` (used by local
+      builds, the samples and `Nextended.ResponseFilters`' package mode) is raised to 10.1.64 after nuget.org listed it, as 10.1.60
+      raised it to 10.1.59.
 
 ### Parallel compilations — fixed (10.1.59)
 

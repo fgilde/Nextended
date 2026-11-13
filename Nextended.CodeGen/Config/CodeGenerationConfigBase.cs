@@ -45,4 +45,14 @@ public class CodeGenerationConfigBase
     /// </summary>
     public bool CreateFileHeaders { get; set; } = true;
 
+    /// <summary>
+    /// Writes <c>[global::System.CodeDom.Compiler.GeneratedCode("Nextended.CodeGen", null)]</c> on every generated type (default true),
+    /// so analyzers, code coverage and tools know the code is generated. Not written when the type already carries it (kept attributes,
+    /// PreClassString). A shared partial container (MappingExtensions) does not get it: the attribute may appear once per type.
+    /// </summary>
+    public bool GeneratedCodeAttribute { get; set; } = true;
+
+    /// <summary>Writes the package version of the generator into <see cref="GeneratedCodeAttribute"/> instead of <c>null</c> (default false: no diff on updates).</summary>
+    public bool GeneratedCodeVersion { get; set; }
+
 }

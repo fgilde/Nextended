@@ -34,7 +34,16 @@ public interface ITypescriptGeneration
     ITypescriptGeneration Header(string? value);
     ITypescriptGeneration OptionalDefaultValues(bool value = true);
     ITypescriptGeneration IncludeMembersWithAttributes(params string[] value);
+    ITypescriptGeneration IncludeTypesWithAttributes(params string[] value);
 #pragma warning restore CS1591
+
+    /// <summary>
+    /// Adds the attribute to <c>IncludeTypesWithAttributes</c>: every type carrying it is generated, in the project and in referenced
+    /// assemblies. With <paramref name="firstArgument"/> only where its first constructor argument has that value:
+    /// <c>IncludeTypesWithAttribute&lt;GeneratedCodeAttribute&gt;("Nextended.CodeGen")</c> takes the generated DTOs of other projects,
+    /// not the code of other generators (resources, clients).
+    /// </summary>
+    ITypescriptGeneration IncludeTypesWithAttribute<TAttribute>(string? firstArgument = null) where TAttribute : Attribute;
 
     /// <summary>Adds the attribute to <c>IncludeMembersWithAttributes</c>: only members carrying it are generated.</summary>
     ITypescriptGeneration IncludeMembersWithAttribute<TAttribute>() where TAttribute : Attribute;

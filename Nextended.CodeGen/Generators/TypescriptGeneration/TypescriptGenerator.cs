@@ -194,6 +194,10 @@ public sealed class TypescriptGenerator
             foreach (var assembly in _compilation.SourceModule.ReferencedAssemblySymbols)
                 Collect(assembly.GlobalNamespace, candidates, Relevant);
         }
+        // types with an attribute can be anywhere: every referenced assembly except the framework's
+        if (_config.IncludeTypesWithAttributes.Any(a => !string.IsNullOrWhiteSpace(a)))
+            foreach (var assembly in _compilation.SourceModule.ReferencedAssemblySymbols.Where(a => !IsFrameworkAssembly(a.Name)))
+                Collect(assembly.GlobalNamespace, candidates, _ => true);
         foreach (var name in _config.IncludeTypes.Where(t => t.IndexOf('*') < 0))
             if (_compilation.GetTypeByMetadataName(TypescriptNames.Normalize(name)) is { } exact)
                 candidates.Add(exact);
@@ -235,8 +239,22 @@ public sealed class TypescriptGenerator
             return false;
         var ns = Namespace(type);
         return _config.IncludeNamespaces.Any(i => !string.IsNullOrWhiteSpace(i) && (ns == i.Trim() || ns.StartsWith(i.Trim() + ".", StringComparison.Ordinal)))
-               || DerivesFrom(type, _config.IncludeBaseTypes);
+               || DerivesFrom(type, _config.IncludeBaseTypes)
+               || _config.IncludeTypesWithAttributes.Count > 0 && type.GetAttributes().Any(HasIncludeAttribute);
     }
+
+    /// <summary>An entry of IncludeTypesWithAttributes: "Name" or "Name=value" (value = the first constructor argument).</summary>
+    private bool HasIncludeAttribute(AttributeData attribute)
+        => attribute.AttributeClass is { } c && _config.IncludeTypesWithAttributes.Where(e => !string.IsNullOrWhiteSpace(e)).Any(e =>
+        {
+            var eq = e.IndexOf('=');
+            return IsAttribute(c, [eq < 0 ? e : e.Substring(0, eq)])
+                   && (eq < 0 || attribute.ConstructorArguments.FirstOrDefault().Value?.ToString() == e.Substring(eq + 1).Trim());
+        });
+
+    private static bool IsFrameworkAssembly(string name)
+        => name is "mscorlib" or "netstandard" or "System" or "Microsoft.CSharp" || name.StartsWith("System.", StringComparison.Ordinal)
+           || name.StartsWith("Microsoft.", StringComparison.Ordinal) || name.StartsWith("Newtonsoft.", StringComparison.Ordinal);
 
     private bool IsExcluded(INamedTypeSymbol type)
     {

@@ -12,6 +12,9 @@ namespace Nextended.CodeGen.Generators.ExcelGeneration;
 
 internal static class ModelClassEmitter
 {
+    /// <summary>The [GeneratedCode] line (with its line break) of a type in a raw string template, or nothing.</summary>
+    internal static string GeneratedCode(CodeGenerationConfigBase cfg) => new StringBuilder().AppendGeneratedCodeIf(cfg, "    ").ToString();
+
     public static string GenerateCode(IXLWorksheet ws, ExcelGenerationConfig cfg)
     {
         var headerRow = ws.Row(cfg.HeaderRowIndex);
@@ -22,7 +25,7 @@ internal static class ModelClassEmitter
             .AppendLine($$"""
                                      namespace {{cfg.Namespace}}
                                      {
-                                         public partial {{cfg.ModelType.ToCSharpKeyword()}} {{cfg.Prefix}}{{cfg.RootClassName}}{{cfg.Suffix}}
+                                     {{GeneratedCode(cfg)}}    public partial {{cfg.ModelType.ToCSharpKeyword()}} {{cfg.Prefix}}{{cfg.RootClassName}}{{cfg.Suffix}}
                                          {
                                      """)
             .AppendLine();

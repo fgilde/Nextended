@@ -161,7 +161,9 @@ public sealed class AppCodeGen : CodeGenConfig
 }
 ```
 
-Settings are named exactly like the attribute/json properties they mirror (short aliases: `Name`, `Attribute(s)`, `KeepAttributes`);
+Settings are named exactly like the attribute/json properties they mirror (short aliases: `Name`, `Attribute(s)`, `KeepAttributes`;
+typed attributes `Property(x => x.Port).Attribute<FacetDisplayAttribute>(Displays.Port)` → `[global::My.Ui.FacetDisplay("port")]`, they add up; typed type settings `BaseType<IEntityDto<Guid>>()`, `Interface<IAudited>()`,
+Excel `PropertyTypeOverride<decimal>("Total")`);
 precedence is json → fluent `Defaults` → attributes → `ForNamespace` → `Dto<T>`, and `Dto<T>` only refines what a type already gets. The
 more specific member rule wins (`Include` on a derived type or view undoes an `Ignore` on its base). Anything dynamic is reported (`NCG020`-`NCG026`).
 
@@ -207,6 +209,12 @@ public sealed class AppCodeGen : CodeGenConfig
 The same as a `Typescript` list in `codegen.json`, or per type with `[GenerateTypescript]`, `[TypescriptIgnore]`, `[TypescriptProperty]`.
 Output: one file per type in namespace folders (or flat), relative `import type`, `index.ts`, explicit enum values, `T | null` for
 nullable members. CI: `dotnet build -p:NextendedCodeGenTypescriptCheck=true` fails (`NCG032`) when the generated TypeScript is stale.
+Types by attribute, also from referenced assemblies: `IncludeTypesWithAttribute<GeneratedCodeAttribute>("Nextended.CodeGen")` takes the
+generated DTOs of the referenced contracts projects (json `"IncludeTypesWithAttributes": [ "GeneratedCode=Nextended.CodeGen" ]`).
+
+Every generated C# type carries `[global::System.CodeDom.Compiler.GeneratedCode("Nextended.CodeGen", null)]` (not on the shared
+`MappingExtensions` partial class). Updating adds that line once to every generated file; `GeneratedCodeAttribute(false)` (json
+`"GeneratedCodeAttribute": false`) keeps the files as they were, `GeneratedCodeVersion()` writes the package version instead of `null`.
 
 Opt-in per generation or per type: `Header("...")` (own header, `""` = none, e.g. without `/* eslint-disable */`),
 `OptionalDefaultValues()` (members with an initializer or `[DefaultValue]` optional, for request DTOs),

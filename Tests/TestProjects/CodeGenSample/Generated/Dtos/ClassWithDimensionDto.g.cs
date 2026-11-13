@@ -5,6 +5,7 @@ namespace MyGenerated.Code.Test {
 	#region Dto class for ClassWithDimension
 
 	/// <summary>IClassWithDimensionDto - GENERATED FROM <see cref="T:CodeGenSample.Entities.ClassWithDimension"/></summary>
+	[global::System.CodeDom.Compiler.GeneratedCode("Nextended.CodeGen", null)]
 	public partial interface IClassWithDimensionDto  
 	{
 		string Name { get; set; }
@@ -13,6 +14,7 @@ namespace MyGenerated.Code.Test {
 
 
 	/// <summary>ClassWithDimensionDto - GENERATED FROM <see cref="T:CodeGenSample.Entities.ClassWithDimension"/></summary>
+	[global::System.CodeDom.Compiler.GeneratedCode("Nextended.CodeGen", null)]
 	public partial class ClassWithDimensionDto : IClassWithDimensionDto 
 	{
 		public string Name { get; set; }

@@ -6,6 +6,7 @@ namespace ENUMS {
 	#region COM class for UserLevel
 
 	/// <summary>UserLevelDto - GENERATED FROM <see cref="T:CodeGenSample.Entities.Enums.UserLevel"/></summary>
+	[global::System.CodeDom.Compiler.GeneratedCode("Nextended.CodeGen", null)]
 	[ComVisible(true)]
 	[Guid(MyGenerated.Code.Test.ComGuids.IdUserLevelDto)]
 	public enum UserLevelDto

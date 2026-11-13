@@ -26,6 +26,10 @@ public abstract class DtoConfig<T> : IDtoBuilder<T>
     public IDtoBuilder<T> IsComCompatible(bool value = true) => this;
     public IDtoBuilder<T> BaseType(string? value) => this;
     public IDtoBuilder<T> Interfaces(params string[] value) => this;
+    public IDtoBuilder<T> BaseType<TBase>() => this;
+    public IDtoBuilder<T> BaseType(Type type) => this;
+    public IDtoBuilder<T> Interface<TInterface>() => this;
+    public IDtoBuilder<T> Interface(Type type) => this;
     public IDtoBuilder<T> ClassModifier(Modifier value) => this;
     public IDtoBuilder<T> InterfaceModifier(Modifier value) => this;
     public IDtoBuilder<T> DefaultPropertyInterfaceAccess(InterfaceProperty value) => this;
@@ -41,6 +45,8 @@ public abstract class DtoConfig<T> : IDtoBuilder<T>
     public IDtoBuilder<T> UseViews(params string[] value) => this;
     public IDtoBuilder<T> OutputPath(string? value) => this;
     public IDtoBuilder<T> Attribute(string attribute) => this;
+    public IDtoBuilder<T> Attribute<TAttribute>(params object?[] args) where TAttribute : System.Attribute => this;
+    public IDtoBuilder<T> Attribute<TAttribute>(Action<TAttribute> properties, params object?[] args) where TAttribute : System.Attribute => this;
     public IDtoBuilder<T> Attributes(params string[] attributes) => this;
     public IDtoBuilder<T> KeepAttributes(bool value = true) => this;
     public IDtoBuilder<T> Ignore(params string[] memberNames) => this;
@@ -99,8 +105,38 @@ public interface IDtoSettings<out TSelf>
     TSelf OutputPath(string? value);
 #pragma warning restore CS1591
 
+    /// <summary>
+    /// <see cref="BaseType(string)"/> from a type, written with its full name: <c>BaseType&lt;IEntityDto&lt;Guid&gt;&gt;()</c> writes
+    /// <c>global::Volo.Abp.Application.Dtos.IEntityDto&lt;global::System.Guid&gt;</c>. An open generic type (<c>typeof(EntityDto&lt;&gt;)</c>)
+    /// is written with its type parameter names (<c>EntityDto&lt;TKey&gt;</c>). A <c>null</c> argument needs a cast now: <c>BaseType((string?)null)</c>.
+    /// </summary>
+    TSelf BaseType<TBase>();
+
+    /// <summary><see cref="BaseType{TBase}"/> for a type given by <c>typeof</c> (also open generic types).</summary>
+    TSelf BaseType(Type type);
+
+    /// <summary>
+    /// Adds an interface to <see cref="Interfaces"/>, written with its full name; typed interfaces add up (the same one once),
+    /// <see cref="Interfaces"/> with strings replaces the list.
+    /// </summary>
+    TSelf Interface<TInterface>();
+
+    /// <summary><see cref="Interface{TInterface}"/> for a type given by <c>typeof</c> (also open generic types).</summary>
+    TSelf Interface(Type type);
+
     /// <summary>Alias of <see cref="PreClassString"/>: an attribute (or any text) above the generated class.</summary>
     TSelf Attribute(string attribute);
+
+    /// <summary>
+    /// The attribute <typeparamref name="TAttribute"/> above the generated class, written with its full name:
+    /// <c>Attribute&lt;DisplayAttribute&gt;("x")</c> writes <c>[global::Ns.Display("x")]</c>. <paramref name="args"/> are the constructor
+    /// arguments: constants, enum members, <c>typeof</c>, <c>nameof</c> and arrays of them. Typed attributes add up in call order (the same
+    /// one twice is written once); <see cref="Attribute(string)"/>, <see cref="Attributes"/> and <see cref="PreClassString"/> replace them.
+    /// </summary>
+    TSelf Attribute<TAttribute>(params object?[] args) where TAttribute : System.Attribute;
+
+    /// <summary><see cref="Attribute{TAttribute}(object[])"/> with named arguments: <c>Attribute&lt;X&gt;(a =&gt; a.Label = "x", 1)</c> writes <c>[global::Ns.X(1, Label = "x")]</c>.</summary>
+    TSelf Attribute<TAttribute>(Action<TAttribute> properties, params object?[] args) where TAttribute : System.Attribute;
 
     /// <summary>Alias of <see cref="PreClassString"/> for several attributes, e.g. <c>Attributes("[A]", "[B]")</c>.</summary>
     TSelf Attributes(params string[] attributes);
@@ -234,6 +270,17 @@ public interface IPropertyBuilder
 
     /// <summary>Alias of <see cref="PreClassString"/>: an attribute (or any text) above the generated property.</summary>
     IPropertyBuilder Attribute(string attribute);
+
+    /// <summary>
+    /// The attribute <typeparamref name="TAttribute"/> above the generated property, written with its full name:
+    /// <c>Attribute&lt;DisplayAttribute&gt;("x")</c> writes <c>[global::Ns.Display("x")]</c>. <paramref name="args"/> are the constructor
+    /// arguments: constants, enum members, <c>typeof</c>, <c>nameof</c> and arrays of them. Typed attributes add up in call order (the same
+    /// one twice is written once); <see cref="Attribute(string)"/>, <see cref="Attributes"/> and <see cref="PreClassString"/> replace them.
+    /// </summary>
+    IPropertyBuilder Attribute<TAttribute>(params object?[] args) where TAttribute : System.Attribute;
+
+    /// <summary><see cref="Attribute{TAttribute}(object[])"/> with named arguments: <c>Attribute&lt;X&gt;(a =&gt; a.Label = "x", 1)</c> writes <c>[global::Ns.X(1, Label = "x")]</c>.</summary>
+    IPropertyBuilder Attribute<TAttribute>(Action<TAttribute> properties, params object?[] args) where TAttribute : System.Attribute;
 
     /// <summary>Alias of <see cref="PreClassString"/> for several attributes, e.g. <c>Attributes("[A]", "[B]")</c>.</summary>
     IPropertyBuilder Attributes(params string[] attributes);

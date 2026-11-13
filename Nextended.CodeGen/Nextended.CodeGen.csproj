@@ -74,6 +74,10 @@
   <ItemGroup>
     <Folder Include="Generators\CodeToText\" />
   </ItemGroup>
+  <ItemGroup>
+    <!-- the package version for [GeneratedCode("Nextended.CodeGen", "<version>")] (GeneratedCodeVersion) -->
+    <AssemblyMetadata Include="PackageVersion" Value="$(PackageVersion)" />
+  </ItemGroup>
 
   <Target Name="UpdateGuid" BeforeTargets="BeforeBuild">
     <Exec Command="pwsh -NoProfile -File $(SolutionDir)$(AssemblyName)\UpdateGuid.ps1 $(MSBuildProjectDirectory)\Generator.cs BuildId" />

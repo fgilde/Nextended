@@ -5,6 +5,7 @@ namespace MyGenerated.Code.Test {
 	#region Dto class for HubBaseGuidEntity
 
 	/// <summary>IHubBaseGuidEntityDto - GENERATED FROM <see cref="T:CodeGenSample.Entities.Base.HubBaseGuidEntity"/></summary>
+	[global::System.CodeDom.Compiler.GeneratedCode("Nextended.CodeGen", null)]
 	public partial interface IHubBaseGuidEntityDto  
 	{
 		string XName { get; set; }
@@ -15,6 +16,7 @@ namespace MyGenerated.Code.Test {
 
 
 	/// <summary>HubBaseGuidEntityDto - GENERATED FROM <see cref="T:CodeGenSample.Entities.Base.HubBaseGuidEntity"/></summary>
+	[global::System.CodeDom.Compiler.GeneratedCode("Nextended.CodeGen", null)]
 	public partial class HubBaseGuidEntityDto : IHubBaseGuidEntityDto 
 	{
 		public string XName { get; set; }

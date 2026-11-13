@@ -5,6 +5,7 @@ namespace MyGenerated.Code.Test {
 	#region Dto class for Address
 
 	/// <summary>IAddressLineDto - GENERATED FROM <see cref="T:CodeGenSample.Entities.Address"/></summary>
+	[global::System.CodeDom.Compiler.GeneratedCode("Nextended.CodeGen", null)]
 	public partial interface IAddressLineDto  
 	{
 		string Street { get; set; }
@@ -15,6 +16,7 @@ namespace MyGenerated.Code.Test {
 
 
 	/// <summary>AddressLineDto - GENERATED FROM <see cref="T:CodeGenSample.Entities.Address"/></summary>
+	[global::System.CodeDom.Compiler.GeneratedCode("Nextended.CodeGen", null)]
 	public partial class AddressLineDto : IAddressLineDto 
 	{
 		public string Street { get; set; }

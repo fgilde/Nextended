@@ -61,6 +61,13 @@ public class TypescriptGenerationConfig
     /// <summary>Types deriving from or implementing one of these (full names, generic as <c>EntityDto`1</c> or <c>EntityDto&lt;T&gt;</c>).</summary>
     public List<string> IncludeBaseTypes { get; set; } = [];
 
+    /// <summary>
+    /// Types carrying one of these attributes (full or simple name, "Attribute" optional; the type's own attributes), in the project and in
+    /// referenced assemblies (framework assemblies aside). <c>"Name=value"</c> also needs the first constructor argument to be that value
+    /// (<c>"GeneratedCode=Nextended.CodeGen"</c>). Interfaces only through <see cref="IncludeTypes"/>.
+    /// </summary>
+    public List<string> IncludeTypesWithAttributes { get; set; } = [];
+
     public List<string> ExcludeNamespaces { get; set; } = [];
     public List<string> ExcludeTypes { get; set; } = [];
     public List<string> ExcludeBaseTypes { get; set; } = [];

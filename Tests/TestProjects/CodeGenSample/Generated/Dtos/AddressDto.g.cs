@@ -6,6 +6,7 @@ namespace MyGeneration {
 	#region COM class for Address
 
 	/// <summary>IAddressDto - GENERATED FROM <see cref="T:CodeGenSample.Entities.Address"/></summary>
+	[global::System.CodeDom.Compiler.GeneratedCode("Nextended.CodeGen", null)]
 	[ComVisible(true)]
 	[Guid(MyGenerated.Code.Test.ComGuids.IdAddressDto)]
 	[TypeLibType(TypeLibTypeFlags.FDual | TypeLibTypeFlags.FDispatchable)]
@@ -23,6 +24,7 @@ namespace MyGeneration {
 
 
 	/// <summary>AddressDto - GENERATED FROM <see cref="T:CodeGenSample.Entities.Address"/></summary>
+	[global::System.CodeDom.Compiler.GeneratedCode("Nextended.CodeGen", null)]
 	[ComVisible(true)]
 	[Guid(MyGenerated.Code.Test.ComGuids.IdAddressDto)]
 	public partial class AddressDto :  MyGenerated.Code.Test.EntityBaseDto, IAddressDto 
