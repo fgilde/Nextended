@@ -98,6 +98,29 @@ internal sealed class FluentFacet(INamedTypeSymbol type, string member, Location
         var member = enumType.GetMembers().OfType<IFieldSymbol>().FirstOrDefault(f => f.HasConstantValue && Equals(f.ConstantValue, value));
         return member != null ? $"{name}.{member.Name}" : $"(({name}){System.Convert.ToString(value, System.Globalization.CultureInfo.InvariantCulture)})";
     }
+
+    /// <summary>A constant as a C# literal of its type: strings escaped, enums by member, suffixes or casts that keep the type (for object parameters).</summary>
+    public static string Literal(object? value, ITypeSymbol? type)
+    {
+        var inv = System.Globalization.CultureInfo.InvariantCulture;
+        return value switch
+        {
+            null => "null",
+            _ when type is INamedTypeSymbol { TypeKind: TypeKind.Enum } e => EnumMember(e, value),
+            string s => Microsoft.CodeAnalysis.CSharp.SymbolDisplay.FormatLiteral(s, true),
+            char c => Microsoft.CodeAnalysis.CSharp.SymbolDisplay.FormatLiteral(c, true),
+            bool b => b ? "true" : "false",
+            int i => i.ToString(inv),
+            long l => l.ToString(inv) + "L",
+            uint u => u.ToString(inv) + "U",
+            ulong u => u.ToString(inv) + "UL",
+            float f => float.IsNaN(f) ? "float.NaN" : float.IsPositiveInfinity(f) ? "float.PositiveInfinity" : float.IsNegativeInfinity(f) ? "float.NegativeInfinity" : f.ToString("R", inv) + "F",
+            double d => double.IsNaN(d) ? "double.NaN" : double.IsPositiveInfinity(d) ? "double.PositiveInfinity" : double.IsNegativeInfinity(d) ? "double.NegativeInfinity" : d.ToString("R", inv) + "D",
+            decimal m => m.ToString(inv) + "M",
+            byte or sbyte or short or ushort => $"(({type?.ToDisplayString() ?? "global::" + value.GetType().FullName}){System.Convert.ToString(value, inv)})",
+            _ => System.Convert.ToString(value, inv)
+        };
+    }
 }
 
 /// <summary>

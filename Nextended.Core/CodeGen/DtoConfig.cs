@@ -41,6 +41,8 @@ public abstract class DtoConfig<T> : IDtoBuilder<T>
     public IDtoBuilder<T> UseViews(params string[] value) => this;
     public IDtoBuilder<T> OutputPath(string? value) => this;
     public IDtoBuilder<T> Attribute(string attribute) => this;
+    public IDtoBuilder<T> Attribute<TAttribute>(params object?[] args) where TAttribute : System.Attribute => this;
+    public IDtoBuilder<T> Attribute<TAttribute>(Action<TAttribute> properties, params object?[] args) where TAttribute : System.Attribute => this;
     public IDtoBuilder<T> Attributes(params string[] attributes) => this;
     public IDtoBuilder<T> KeepAttributes(bool value = true) => this;
     public IDtoBuilder<T> Ignore(params string[] memberNames) => this;
@@ -101,6 +103,17 @@ public interface IDtoSettings<out TSelf>
 
     /// <summary>Alias of <see cref="PreClassString"/>: an attribute (or any text) above the generated class.</summary>
     TSelf Attribute(string attribute);
+
+    /// <summary>
+    /// The attribute <typeparamref name="TAttribute"/> above the generated class, written with its full name:
+    /// <c>Attribute&lt;DisplayAttribute&gt;("x")</c> writes <c>[global::Ns.Display("x")]</c>. <paramref name="args"/> are the constructor
+    /// arguments: constants, enum members, <c>typeof</c>, <c>nameof</c> and arrays of them. Like <see cref="Attribute(string)"/> it sets
+    /// <see cref="PreClassString"/>.
+    /// </summary>
+    TSelf Attribute<TAttribute>(params object?[] args) where TAttribute : System.Attribute;
+
+    /// <summary><see cref="Attribute{TAttribute}(object[])"/> with named arguments: <c>Attribute&lt;X&gt;(a =&gt; a.Label = "x", 1)</c> writes <c>[global::Ns.X(1, Label = "x")]</c>.</summary>
+    TSelf Attribute<TAttribute>(Action<TAttribute> properties, params object?[] args) where TAttribute : System.Attribute;
 
     /// <summary>Alias of <see cref="PreClassString"/> for several attributes, e.g. <c>Attributes("[A]", "[B]")</c>.</summary>
     TSelf Attributes(params string[] attributes);
@@ -234,6 +247,17 @@ public interface IPropertyBuilder
 
     /// <summary>Alias of <see cref="PreClassString"/>: an attribute (or any text) above the generated property.</summary>
     IPropertyBuilder Attribute(string attribute);
+
+    /// <summary>
+    /// The attribute <typeparamref name="TAttribute"/> above the generated property, written with its full name:
+    /// <c>Attribute&lt;DisplayAttribute&gt;("x")</c> writes <c>[global::Ns.Display("x")]</c>. <paramref name="args"/> are the constructor
+    /// arguments: constants, enum members, <c>typeof</c>, <c>nameof</c> and arrays of them. Like <see cref="Attribute(string)"/> it sets
+    /// <see cref="PreClassString"/>.
+    /// </summary>
+    IPropertyBuilder Attribute<TAttribute>(params object?[] args) where TAttribute : System.Attribute;
+
+    /// <summary><see cref="Attribute{TAttribute}(object[])"/> with named arguments: <c>Attribute&lt;X&gt;(a =&gt; a.Label = "x", 1)</c> writes <c>[global::Ns.X(1, Label = "x")]</c>.</summary>
+    IPropertyBuilder Attribute<TAttribute>(Action<TAttribute> properties, params object?[] args) where TAttribute : System.Attribute;
 
     /// <summary>Alias of <see cref="PreClassString"/> for several attributes, e.g. <c>Attributes("[A]", "[B]")</c>.</summary>
     IPropertyBuilder Attributes(params string[] attributes);

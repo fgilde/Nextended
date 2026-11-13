@@ -264,7 +264,7 @@ internal sealed class FluentConfigReader
         public ITypeSymbol? TypeArgument => Method.TypeArguments.FirstOrDefault();
         public bool FirstIsLambdaArray => Method.Parameters.FirstOrDefault()?.Type is IArrayTypeSymbol { ElementType: INamedTypeSymbol { Name: "Expression" } };
 
-        private IOperation? Argument(int index)
+        public IOperation? Argument(int index)
             => index < Method.Parameters.Length && _arguments.TryGetValue(Method.Parameters[index].Name, out var op) ? op : null;
 
         /// <summary>The constant value of an argument (also arrays of constants); false and a diagnostic when it is not constant.</summary>
@@ -650,6 +650,10 @@ internal sealed class FluentConfigReader
                 case "GeneratedClassName" when isView:
                     reader.Report(NotReadable, call.Location, "The name of a view is set by View(name).");
                     return this;
+                case "Attribute" when call.TypeArgument != null:
+                    if (reader.TypedAttribute(call) is { } attribute)
+                        reader.Set(rules.Settings, "PreClassString", attribute, call.Location, Target);
+                    return this;
                 default:
                     var setting = Resolve(call.Name, member: false);
                     if (setting != "BaseMembersFirst" && !DtoSettings.Contains(setting))
@@ -700,14 +704,7 @@ internal sealed class FluentConfigReader
             else if (!call.TryConstant(0, out var value))
                 expression = null;
             else
-                expression = value switch
-                {
-                    null => "null",
-                    string s => Microsoft.CodeAnalysis.CSharp.SymbolDisplay.FormatLiteral(s, true),
-                    bool b => b ? "true" : "false",
-                    _ when call.Method.Parameters[0].Type is INamedTypeSymbol { TypeKind: TypeKind.Enum } e => FluentFacet.EnumMember(e, value),
-                    _ => Convert.ToString(value, System.Globalization.CultureInfo.InvariantCulture)
-                };
+                expression = FluentFacet.Literal(value, call.Method.Parameters[0].Type);
             if (expression != null)
                 reader.Set(facet.Settings, call.Name, expression, call.Location, target);
             return this;
@@ -722,6 +719,12 @@ internal sealed class FluentConfigReader
             if (call.Name is "Ignore" or "Include")
             {
                 reader.Set(rules.Settings, "Ignore", call.Name == "Ignore", call.Location, target);
+                return this;
+            }
+            if (call.Name == "Attribute" && call.TypeArgument != null)
+            {
+                if (reader.TypedAttribute(call) is { } attribute)
+                    reader.Set(rules.Settings, "PreClassString", attribute, call.Location, target);
                 return this;
             }
             var name = Resolve(call.Name, member: true);
@@ -902,6 +905,107 @@ internal sealed class FluentConfigReader
                 default:
                     return Unknown;
             }
+        }
+    }
+
+    /// <summary>
+    /// Attribute&lt;TAttribute&gt;(args) and Attribute&lt;TAttribute&gt;(a => a.Name = value, args) as C# text: the full name without the
+    /// "Attribute" suffix (like kept attributes), the arguments as literals. Null and a diagnostic when an argument is not constant.
+    /// </summary>
+    private string? TypedAttribute(Call call)
+    {
+        if (call.TypeArgument is not INamedTypeSymbol type)
+            return null;
+        var arguments = new List<string>();
+        switch (call.Argument(call.Count - 1) is { } args ? Unwrap(args) : null)
+        {
+            case null:
+                break;
+            case { ConstantValue: { HasValue: true, Value: null } }:
+                arguments.Add("null"); // Attribute<X>(null) binds null to the params array itself
+                break;
+            case IArrayCreationOperation array:
+                foreach (var item in array.Initializer?.ElementValues ?? [])
+                {
+                    if (Literal(item) is not { } literal)
+                        return null;
+                    arguments.Add(literal);
+                }
+                break;
+            case var other:
+                Report(NotReadable, other.Syntax, $"'{Short(other.Syntax)}' is not a constant.");
+                return null;
+        }
+        if (call.Count == 2 && call.Argument(0) is { } properties)
+        {
+            if (AsLambda(properties) is not { Symbol.Parameters.Length: 1 } lambda)
+            {
+                Report(NotReadable, properties.Syntax, $"'{Short(properties.Syntax)}' must be a lambda (a => a.Name = value).");
+                return null;
+            }
+            foreach (var statement in lambda.Body.Operations)
+            {
+                if (statement is IReturnOperation { ReturnedValue: null })
+                    continue;
+                var (member, instance, value) = statement is IExpressionStatementOperation { Operation: ISimpleAssignmentOperation assignment }
+                    ? assignment.Target switch
+                    {
+                        IPropertyReferenceOperation p => ((ISymbol?)p.Property, p.Instance, assignment.Value),
+                        IFieldReferenceOperation f => (f.Field, f.Instance, assignment.Value),
+                        _ => (null, null, null)
+                    }
+                    : (null, null, null);
+                if (member == null || value == null || instance is not IParameterReferenceOperation pr
+                    || !SymbolEqualityComparer.Default.Equals(pr.Parameter, lambda.Symbol.Parameters[0]))
+                {
+                    Report(NotReadable, statement.Syntax, $"'{Short(statement.Syntax)}' must set a member of the attribute (a => a.Name = value).");
+                    return null;
+                }
+                if (Literal(value) is not { } literal)
+                    return null;
+                arguments.Add($"{member.Name} = {literal}");
+            }
+        }
+
+        var name = type.Name.Length > "Attribute".Length && type.Name.EndsWith("Attribute", StringComparison.Ordinal)
+            ? type.Name.Substring(0, type.Name.Length - "Attribute".Length)
+            : type.Name;
+        var container = type.ContainingType != null ? type.ContainingType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat) + "."
+            : type.ContainingNamespace is { IsGlobalNamespace: false } ns ? ns.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat) + "."
+            : "global::";
+        var typeArguments = type.TypeArguments.Length == 0 ? ""
+            : "<" + string.Join(", ", type.TypeArguments.Select(t => t.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat))) + ">";
+        return $"[{container}{name}{typeArguments}{(arguments.Count == 0 ? "" : "(" + string.Join(", ", arguments) + ")")}]";
+    }
+
+    /// <summary>A constant, typeof or a one-dimensional array of them as C# text; null and a diagnostic for anything else.</summary>
+    private string? Literal(IOperation op)
+    {
+        // boxing to object and implicit conversions go; an explicit constant cast like (byte)1 keeps its type
+        while (op is IConversionOperation conversion && (conversion.IsImplicit || !conversion.ConstantValue.HasValue))
+            op = conversion.Operand;
+        if (op.ConstantValue.HasValue)
+            return FluentFacet.Literal(op.ConstantValue.Value, op.Type);
+        switch (op)
+        {
+            case ITypeOfOperation typeOf:
+                return $"typeof({FluentFacet.TypeOfName(typeOf.TypeOperand)})";
+            case IArrayCreationOperation { Type: IArrayTypeSymbol { Rank: 1 } arrayType } array
+                when array.Initializer != null || array.DimensionSizes.All(d => d.ConstantValue is { HasValue: true, Value: 0 }):
+            {
+                var items = new List<string>();
+                foreach (var item in array.Initializer?.ElementValues ?? [])
+                {
+                    if (Literal(item) is not { } literal)
+                        return null;
+                    items.Add(literal);
+                }
+                var elementType = arrayType.ElementType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+                return items.Count == 0 ? $"new {elementType}[0]" : $"new {elementType}[] {{ {string.Join(", ", items)} }}";
+            }
+            default:
+                Report(NotReadable, op.Syntax, $"'{Short(op.Syntax)}' is not a constant.");
+                return null;
         }
     }
 
