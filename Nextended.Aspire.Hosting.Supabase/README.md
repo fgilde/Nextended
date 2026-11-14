@@ -36,6 +36,7 @@ A complete Supabase stack integration for .NET Aspire, providing local developme
 - [Dashboard Commands](#dashboard-commands)
 - [Accessing Resources](#accessing-resources)
 - [Environment Variables for Frontend](#environment-variables-for-frontend)
+- [Database Backups](#database-backups)
 - [Deployment](#deployment)
   - [Persistent Storage on Azure Container Apps](#persistent-storage-on-azure-container-apps)
 
@@ -579,6 +580,99 @@ var frontend = builder.AddJavaScriptApp("frontend", "../frontend", "dev")
     .WithEnvironment("VITE_SUPABASE_URL", supabase.Resource.Kong!.GetEndpoint("http"))
     .WithEnvironment("VITE_SUPABASE_PUBLISHABLE_KEY", supabase.Resource.AnonKey);
 ```
+
+---
+
+## Database Backups
+
+`WithDatabaseBackups(...)` adds a backup service to the stack (`<stack>-backup`). It runs the stack's own
+`supabase/postgres` image — so `pg_dump` always matches the server — with an embedded Python script
+(standard library only). There is no image of its own to build or push: it runs wherever the stack runs,
+locally in Docker, on Azure Container Apps (as exactly one replica) or in a compose environment.
+
+```csharp
+var supabase = builder.AddSupabase("supabase")
+    .WithDatabaseBackups(o =>
+    {
+        o.RunAt = new TimeOnly(2, 0);     // daily, local time of TimeZone
+        o.TimeZone = "Europe/Berlin";
+        o.KeepDaily = 14;                 // the newest 14 days …
+        o.KeepWeekly = 8;                 // … plus the newest backup of each of 8 weeks
+        // Optional copy outside the stack. A value that is no URL at runtime (empty, `none`) switches the target off,
+        // so one parameter serves every environment.
+        o.AddAzureBlobTarget("azure", builder.AddParameter("backup-sas-url", secret: true), prefix: "prod");
+    });
+```
+
+**A backup** is one `tar.gz` stream: `manifest.json`, `db.dump` (`pg_dump -Fc` of every schema of the app —
+`auth`, `storage`, `public` and your own — but none of Supabase's internal ones: `extensions`, `realtime`,
+`vault`, `cron`, …) and, with `IncludeFiles`, every stored file as `files/<bucket>/<name>`. It is cut into
+parts (`PartSizeMegabytes`, below the storage upload limit) and written to every target as it is produced —
+the backup never sits on the container's disk as a whole, only the database dump does for a moment.
+
+**Targets.** Always the stack's own storage (bucket `db-backups`, private), plus any external one:
+
+| Call | Target |
+|------|--------|
+| `AddAzureBlobTarget(name, containerSasUrl, prefix?)` | An Azure Blob container, addressed by a container SAS URL with the permissions read, add, create, write, delete and list. |
+| `AddS3Target(name, endpoint, bucket, accessKey, secretKey, region?, prefix?)` | An S3-compatible bucket (AWS, MinIO, …), path-style, Signature Version 4. |
+
+The `prefix` is a folder in the target, so several deployments can share one container. A target that
+fails is recorded with the backup and skipped; the backup counts when at least one target holds all of it.
+An external target is what survives losing the deployment itself: on start the service lists the backups it
+finds on its targets and shows those the database does not know — after a rebuild with a fresh database,
+yesterday's backup is there to restore.
+
+**A restore** first takes a safety backup of the current state (kind `pre_restore`), then puts the backup's
+**data** into the **current schema** in one transaction: every table of the backed-up schemas is emptied and
+refilled (`pg_restore --data-only --disable-triggers`). The schema itself — tables, functions, policies —
+stays as the migrations left it, so a restore never fights the migration runner; tables and sequences that
+no longer exist are skipped. Left as they are: the migration bookkeeping (`public._aspire_applied_migrations`,
+`auth.schema_migrations`, `storage.migrations`, plus `KeepTables`) and the rows of the backup bucket itself.
+If anything does not fit (a column the backup has and the table lost), the transaction rolls back and nothing
+changes. Afterwards the files go back into storage. Sign-ins are those of the backup: everybody signs in again.
+Vault secrets (`vault` schema) are not part of a backup; back up the pgsodium root key with the data
+(see [Persistent Storage](#persistent-storage-on-azure-container-apps)).
+
+**Settings and the list** live in the schema `nx_backup` — a schema the service never backs up or restores,
+so a restore cannot rewind its own bookkeeping. The options above are the defaults of the very first start;
+from then on the settings are data an app can change. The API (all `SECURITY DEFINER`, granted to
+`service_role` and `postgres` only):
+
+| Function | Does |
+|----------|------|
+| `nx_backup.overview()` | Settings, service heartbeat (`alive`), the newest 200 backups and 20 restores, as `jsonb`. |
+| `nx_backup.request_backup(by uuid, note text)` | Queues a manual backup (kept until deleted). |
+| `nx_backup.request_restore(backup uuid, by uuid)` | Queues a restore; the backup must be complete, one restore at a time. |
+| `nx_backup.request_delete(backup uuid)` | Removes a backup from every target. |
+| `nx_backup.save_settings(jsonb)` | `enabled`, `run_at` (`HH:MM`), `time_zone`, `keep_daily`, `keep_weekly`, `include_files`. |
+
+An app exposes them through its own functions that check its admin rule, for example:
+
+```sql
+CREATE FUNCTION public.db_backups() RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path = '' AS $$
+BEGIN
+  IF NOT public.is_admin(auth.uid()) THEN RAISE EXCEPTION 'admins only'; END IF;
+  RETURN nx_backup.overview();
+END $$;
+```
+
+The schema appears when the service first starts — write such wrappers in `plpgsql`, which resolves the names
+when called, and treat a missing schema as "no backup service".
+
+| Option | Default | |
+|--------|---------|---|
+| `Enabled` | `true` | Scheduled backups on (first start). |
+| `RunAt` / `TimeZone` | `02:00` / `UTC` | Daily backup time (first start). |
+| `KeepDaily` / `KeepWeekly` | `14` / `8` | Retention of scheduled backups; manual and safety backups stay until deleted. |
+| `IncludeFiles` | `true` | Back up the stored files too. |
+| `Bucket` | `db-backups` | Bucket in the stack's storage. |
+| `PartSizeMegabytes` | `25` | Size of one part. |
+| `PollSeconds` | `30` | How often the service looks for work. |
+| `ExcludeSchemas` / `KeepTables` | — | More schemas to leave out / tables a restore leaves alone. |
+
+The script's pure parts (retention, schedule, parts, S3 signing) check themselves:
+`python3 database-backup.py --self-test` (`DatabaseBackupBuilderExtensions.BackupScriptSource()` returns it).
 
 ---
 

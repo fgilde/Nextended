@@ -293,6 +293,38 @@ builder.AddNpmApp("frontend", "../frontend")
     .WithEnvironment("VITE_SUPABASE_ANON_KEY",  supabase.Resource.AnonKey);
 ```
 
+## Database backups
+
+`WithDatabaseBackups(...)` adds a backup service (`<stack>-backup`): the stack's own `supabase/postgres`
+image (so `pg_dump` matches the server) running an embedded Python script — no image of its own, it works
+locally, on Azure Container Apps and in a compose environment alike.
+
+```csharp
+var supabase = builder.AddSupabase("supabase")
+    .WithDatabaseBackups(o =>
+    {
+        o.RunAt = new TimeOnly(2, 0);      // daily, local time
+        o.TimeZone = "Europe/Berlin";
+        o.KeepDaily = 14;                  // newest 14 days + newest of each of 8 weeks
+        o.KeepWeekly = 8;
+        o.AddAzureBlobTarget("azure", builder.AddParameter("backup-sas-url", secret: true), prefix: "prod");
+        // or: o.AddS3Target("s3", endpoint, bucket, accessKey, secretKeyParameter);
+    });
+```
+
+- **Backup**: database (`pg_dump -Fc` of the app's schemas — `auth`, `storage`, `public`, your own; none of
+  Supabase's internal ones) plus every stored file, streamed as parts into the stack's storage (bucket
+  `db-backups`) and every external target. A target address that is no URL at runtime (empty, `none`) switches that target off.
+- **Restore**: safety backup first, then the backup's *data* into the *current* schema in one transaction —
+  all or nothing; migration bookkeeping and the backup bucket's own rows stay. Then the files.
+- **After losing the deployment**: the service lists the backups it finds on its targets, so an external
+  target brings yesterday's state back into a fresh database.
+- **State and API** in the schema `nx_backup` (never backed up or restored): `overview()`, `request_backup(…)`,
+  `request_restore(…)`, `request_delete(…)`, `save_settings(…)` — `SECURITY DEFINER`, granted to `service_role`
+  and `postgres`; the app wraps them in its own functions that check its admin rule.
+
+Details, options and a wrapper example: [package README → Database Backups](https://github.com/fgilde/Nextended/blob/main/Nextended.Aspire.Hosting.Supabase/README.md#database-backups).
+
 ## Deployment
 
 The stack is designed to deploy to Azure Container Apps via `azd`:

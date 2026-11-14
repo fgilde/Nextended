@@ -150,6 +150,9 @@ public sealed class SupabaseStackResource : ContainerResource, IResourceWithConn
     /// </summary>
     internal IResourceBuilder<ContainerResource>? InitContainer { get; set; }
 
+    /// <summary>The database backup service, when <c>WithDatabaseBackups</c> was called.</summary>
+    public IResourceBuilder<ContainerResource>? Backup { get; internal set; }
+
     // --- Connection String ---
 
     /// <summary>
