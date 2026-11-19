@@ -17,20 +17,21 @@
     <CentralPackageTransitivePinningEnabled>false</CentralPackageTransitivePinningEnabled>
   </PropertyGroup>
 
-  <!-- .NET Aspire. The hosting packages and the Aspire.AppHost.Sdk of the AppHost projects both
-       read $(AspireVersion) from Version.props, so the SDK cannot drift away from the packages. -->
+  <!-- .NET Aspire, all from $(AspireVersion) in Version.props. Since Aspire 17 the AppHost projects
+       use Microsoft.NET.Sdk with these packages instead of the obsolete Aspire.AppHost.Sdk. -->
   <ItemGroup>
     <PackageVersion Include="Aspire.Hosting.AppHost" Version="$(AspireVersion)" />
     <PackageVersion Include="Aspire.Hosting.Azure.AppContainers" Version="$(AspireVersion)" />
     <PackageVersion Include="Aspire.Hosting.Azure.Network" Version="$(AspireVersion)" />
     <PackageVersion Include="Aspire.Hosting.Azure.Storage" Version="$(AspireVersion)" />
     <PackageVersion Include="Aspire.Hosting.Docker" Version="$(AspireVersion)" />
+    <PackageVersion Include="Aspire.Hosting.Dotnet" Version="$(AspireVersion)" />
     <PackageVersion Include="Aspire.Hosting.MongoDB" Version="$(AspireVersion)" />
     <PackageVersion Include="Aspire.Hosting.MySql" Version="$(AspireVersion)" />
     <PackageVersion Include="Aspire.Hosting.PostgreSQL" Version="$(AspireVersion)" />
     <PackageVersion Include="Aspire.Hosting.Redis" Version="$(AspireVersion)" />
     <PackageVersion Include="Aspire.Hosting.SqlServer" Version="$(AspireVersion)" />
-    <PackageVersion Include="CommunityToolkit.Aspire.Hosting.Ollama" Version="13.5.0" />
+    <PackageVersion Include="CommunityToolkit.Aspire.Hosting.Ollama" Version="17.0.0-beta.1078" />
   </ItemGroup>
 
   <!--

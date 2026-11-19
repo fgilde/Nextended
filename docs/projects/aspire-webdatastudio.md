@@ -895,7 +895,7 @@ studio.Resource.Title;              // the name shown in the studio, resource na
 
 ## Supported frameworks
 
-.NET 8, .NET 9, .NET 10.
+- `net10.0` (Aspire 17 ships for .NET 10 only; Nextended versions built on Aspire 13 also target `net8.0` and `net9.0`)
 
 ## Related projects
 

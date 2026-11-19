@@ -2,14 +2,9 @@
 
   <!--
     Auto-imported into EVERY project in this repository. Its only job is to make the version knobs
-    from Version.props available everywhere - and, crucially, BEFORE the
-    <Sdk Name="Aspire.AppHost.Sdk" Version="$(AspireVersion)" /> elements in the AppHost projects
-    are resolved.
-
-    An <Import Project="..\..\..\Version.props" /> inside the csproj itself is evaluated too late
-    for that, which is why every AppHost used to hard-code the Aspire SDK version and could drift
-    away from the Aspire.Hosting.* package versions it was built against. Now both come from the
-    single $(AspireVersion) in Version.props.
+    from Version.props ($(AspireVersion), $(MsVersion), ...) available everywhere, before anything
+    else is evaluated. Since Aspire 17 the AppHost projects no longer use the obsolete
+    Aspire.AppHost.Sdk; they reference the Aspire.Hosting.* packages, all at $(AspireVersion).
 
     Everything package-version related lives in Directory.Packages.props (central package
     management); everything build/pack related stays in Shared.props / Output.props / Package.props,

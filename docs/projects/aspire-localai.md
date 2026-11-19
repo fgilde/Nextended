@@ -552,9 +552,7 @@ All UIs are dev-time only (`ExcludeFromManifest`).
 
 ## Supported frameworks
 
-- `net8.0`
-- `net9.0`
-- `net10.0`
+- `net10.0` (Aspire 17 ships for .NET 10 only; Nextended versions built on Aspire 13 also target `net8.0` and `net9.0`)
 
 ## Dependencies
 

@@ -4,6 +4,8 @@
   <PropertyGroup>
     <!--<TargetFramework>net9.0</TargetFramework>-->
     <TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
+    <!-- Aspire 17 ships for net10.0 only (an Aspire 17 app host needs .NET 10 anyway) -->
+    <TargetFrameworks Condition="$(MSBuildProjectName.StartsWith('Nextended.Aspire'))">net10.0</TargetFrameworks>
     <LangVersion>latest</LangVersion>
     <Nullable>enable</Nullable>
   </PropertyGroup>

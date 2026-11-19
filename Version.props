@@ -2,7 +2,7 @@
   <PropertyGroup>
     <UsedCorePackageVersion>10.1.64</UsedCorePackageVersion>
     <PackageVersion>10.1.51</PackageVersion>
-    <AspireVersion>13.6.4</AspireVersion>
+    <AspireVersion>17.0.0</AspireVersion>
   </PropertyGroup>
 
 

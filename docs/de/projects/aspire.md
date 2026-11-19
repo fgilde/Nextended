@@ -106,6 +106,8 @@ api.WithEnvironment<Projects.Api, SmtpOptions>(o => o.Host, "smtp.internal");
 var api = builder.AddWithAutoNaming<Projects.My_Api_Service>();
 ```
 
+Das Ergebnis ist eine `ProjectResource` über `AddProject`, das Aspire 17 zugunsten von `AddDotnetProject` als veraltet markiert; die Warnung bleibt in Nextended, Ihr App Host bekommt keine.
+
 ## Nicht an einem Container-Fehler scheitern, wenn Docker schlicht nicht läuft
 
 ```csharp
@@ -159,9 +161,7 @@ Fertige Ressourcen auf Basis dieses Pakets, jeweils mit lauffähigem Beispiel-Ap
 
 ## Unterstützte Frameworks
 
-- `net8.0`
-- `net9.0`
-- `net10.0`
+- `net10.0` (Aspire 17 gibt es nur für .NET 10; die Nextended-Versionen auf Aspire 13 zielen auch auf `net8.0` und `net9.0`)
 
 ## Abhängigkeiten
 

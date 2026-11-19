@@ -33,7 +33,10 @@ public static partial class DistributedApplicationBuilderExtensions
             launchProfileName ??= projectName;
         }
 
+        // Aspire 17 marks AddProject obsolete (AddDotnetProject replaces it, but returns another resource type); kept so callers keep their ProjectResource
+#pragma warning disable CS0618
         return builder.AddProject<TProject>(name, launchProfileName);
+#pragma warning restore CS0618
     }
 
     public static IResourceBuilder<T> WithActionIf<T>(

@@ -265,6 +265,7 @@ var api = builder.AddProject<Projects.Api>("api")
 - `WaitForIf<T>()` - Conditionally wait for resource
 - `WaitForCompletionIf<T>()` - Conditionally wait for completion
 - `WithReferenceIf<T>()` - Conditionally add reference
+- `AddWithAutoNaming<TProject>()` - Adds a project with a kebab-case resource name and the launch profile derived from the project file (`Projects.My_Api_Service` becomes `my-api-service`). It returns a `ProjectResource` through `AddProject`, which Aspire 17 marks obsolete in favour of `AddDotnetProject`; your app host gets no warning from it.
 
 ### Environment Extensions
 - `WithEnvironment<TSource, TTarget>()` - Type-safe environment variable
@@ -297,9 +298,7 @@ var api = builder.AddProject<Projects.Api>("api")
 
 ## Supported Frameworks
 
-- .NET 8.0
-- .NET 9.0
-- .NET 10.0
+- `net10.0` (Aspire 17 ships for .NET 10 only; Nextended versions built on Aspire 13 also target `net8.0` and `net9.0`)
 
 ## Dependencies
 

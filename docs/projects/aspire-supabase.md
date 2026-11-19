@@ -364,9 +364,7 @@ builder.Build().Run();
 
 ## Supported frameworks
 
-- .NET 8.0
-- .NET 9.0
-- .NET 10.0
+- `net10.0` (Aspire 17 ships for .NET 10 only; Nextended versions built on Aspire 13 also target `net8.0` and `net9.0`)
 
 ## Related projects
 

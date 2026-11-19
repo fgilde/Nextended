@@ -109,9 +109,7 @@ dotnet run
 
 ## Unterstützte Frameworks
 
-- `net8.0`
-- `net9.0`
-- `net10.0`
+- `net10.0` (Aspire 17 gibt es nur für .NET 10; die Nextended-Versionen auf Aspire 13 zielen auch auf `net8.0` und `net9.0`)
 
 ## Abhängigkeiten
 

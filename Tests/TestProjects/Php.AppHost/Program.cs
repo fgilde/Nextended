@@ -32,7 +32,7 @@ var php = builder.AddPhp("php", "./www")
     .WithEnvironment("PHPMYADMIN_URL", phpMyAdminUrl)
     .WaitFor(mysql);
 
-builder.AddProject<Projects.Php_WebDemo>("webdemo")
+builder.AddDotnetProject("webdemo", "../Php.WebDemo/Php.WebDemo.csproj")
     .WithReference(php)
     .WaitFor(php)
     .WithExternalHttpEndpoints();
