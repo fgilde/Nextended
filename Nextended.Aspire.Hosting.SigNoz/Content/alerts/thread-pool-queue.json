@@ -1,0 +1,80 @@
+{
+  "alert": "Thread pool queue growing",
+  "alertType": "METRIC_BASED_ALERT",
+  "description": "Work items waiting for a thread pool thread, per service, over five minutes: the service is starving for threads.",
+  "ruleType": "threshold_rule",
+  "schemaVersion": "v2alpha1",
+  "condition": {
+    "compositeQuery": {
+      "queryType": "builder",
+      "panelType": "graph",
+      "unit": "short",
+      "queries": [
+        {
+          "type": "builder_query",
+          "spec": {
+            "name": "A",
+            "signal": "metrics",
+            "stepInterval": 60,
+            "disabled": false,
+            "aggregations": [
+              {
+                "metricName": "dotnet.thread_pool.queue.length",
+                "timeAggregation": "avg",
+                "spaceAggregation": "sum"
+              }
+            ],
+            "groupBy": [
+              {
+                "name": "service.name",
+                "fieldContext": "resource",
+                "fieldDataType": "string"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "selectedQueryName": "A",
+    "thresholds": {
+      "kind": "basic",
+      "spec": [
+        {
+          "name": "warning",
+          "op": "above",
+          "matchType": "on_average",
+          "target": 50,
+          "channels": []
+        }
+      ]
+    }
+  },
+  "evaluation": {
+    "kind": "rolling",
+    "spec": {
+      "evalWindow": "5m",
+      "frequency": "1m"
+    }
+  },
+  "notificationSettings": {
+    "usePolicy": true,
+    "groupBy": [
+      "service.name"
+    ],
+    "renotify": {
+      "enabled": true,
+      "interval": "30m",
+      "alertStates": [
+        "firing"
+      ]
+    }
+  },
+  "labels": {
+    "severity": "warning",
+    "source": "aspire"
+  },
+  "annotations": {
+    "description": "Work items waiting for a thread pool thread, per service, over five minutes: the service is starving for threads. {{$service.name}}: {{$value}}",
+    "summary": "Thread pool queue growing"
+  }
+}

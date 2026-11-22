@@ -1,0 +1,1020 @@
+{
+  "schemaVersion": "v6",
+  "name": "aspire-dotnet-runtime",
+  "tags": [
+    {
+      "key": "stack",
+      "value": "aspire"
+    }
+  ],
+  "spec": {
+    "display": {
+      "name": ".NET runtime",
+      "description": "Garbage collector, memory, CPU, thread pool, exceptions and locks of every .NET service (System.Runtime metrics)."
+    },
+    "variables": [
+      {
+        "kind": "ListVariable",
+        "spec": {
+          "name": "service_name",
+          "display": {
+            "name": "service",
+            "description": "Services to show"
+          },
+          "allowMultiple": true,
+          "allowAllValue": true,
+          "sort": "alphabetical-asc",
+          "plugin": {
+            "kind": "signoz/DynamicVariable",
+            "spec": {
+              "name": "service.name",
+              "signal": "metrics"
+            }
+          }
+        }
+      }
+    ],
+    "panels": {
+      "27c4c4f5-9f98-5c30-be33-55bbf3925216": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "CPU",
+            "description": "Cores used: CPU time per second of the process."
+          },
+          "plugin": {
+            "kind": "signoz/TimeSeriesPanel",
+            "spec": {
+              "visualization": {
+                "timePreference": "global_time"
+              },
+              "formatting": {
+                "unit": "short",
+                "decimalPrecision": "2"
+              },
+              "legend": {
+                "position": "bottom"
+              },
+              "chartAppearance": {
+                "lineStyle": "solid",
+                "lineInterpolation": "spline",
+                "fillMode": "none"
+              }
+            }
+          },
+          "queries": [
+            {
+              "kind": "time_series",
+              "spec": {
+                "plugin": {
+                  "kind": "signoz/CompositeQuery",
+                  "spec": {
+                    "queries": [
+                      {
+                        "type": "builder_query",
+                        "spec": {
+                          "name": "A",
+                          "signal": "metrics",
+                          "stepInterval": 0,
+                          "disabled": false,
+                          "aggregations": [
+                            {
+                              "metricName": "dotnet.process.cpu.time",
+                              "timeAggregation": "rate",
+                              "spaceAggregation": "sum"
+                            }
+                          ],
+                          "filter": {
+                            "expression": "service.name IN $service_name"
+                          },
+                          "groupBy": [
+                            {
+                              "name": "service.name",
+                              "fieldContext": "resource"
+                            }
+                          ],
+                          "legend": "{{service.name}}"
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "2d1f6665-b00b-554e-aa87-508527769f2a": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "Working set",
+            "description": "Physical memory of the process."
+          },
+          "plugin": {
+            "kind": "signoz/TimeSeriesPanel",
+            "spec": {
+              "visualization": {
+                "timePreference": "global_time"
+              },
+              "formatting": {
+                "unit": "bytes",
+                "decimalPrecision": "2"
+              },
+              "legend": {
+                "position": "bottom"
+              },
+              "chartAppearance": {
+                "lineStyle": "solid",
+                "lineInterpolation": "spline",
+                "fillMode": "none"
+              }
+            }
+          },
+          "queries": [
+            {
+              "kind": "time_series",
+              "spec": {
+                "plugin": {
+                  "kind": "signoz/CompositeQuery",
+                  "spec": {
+                    "queries": [
+                      {
+                        "type": "builder_query",
+                        "spec": {
+                          "name": "A",
+                          "signal": "metrics",
+                          "stepInterval": 0,
+                          "disabled": false,
+                          "aggregations": [
+                            {
+                              "metricName": "dotnet.process.memory.working_set",
+                              "timeAggregation": "avg",
+                              "spaceAggregation": "sum"
+                            }
+                          ],
+                          "filter": {
+                            "expression": "service.name IN $service_name"
+                          },
+                          "groupBy": [
+                            {
+                              "name": "service.name",
+                              "fieldContext": "resource"
+                            }
+                          ],
+                          "legend": "{{service.name}}"
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "969388b1-ce5c-536b-9285-6165b834d335": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "GC collections / s",
+            "description": "Collections per second by generation."
+          },
+          "plugin": {
+            "kind": "signoz/TimeSeriesPanel",
+            "spec": {
+              "visualization": {
+                "timePreference": "global_time"
+              },
+              "formatting": {
+                "unit": "short",
+                "decimalPrecision": "2"
+              },
+              "legend": {
+                "position": "bottom"
+              },
+              "chartAppearance": {
+                "lineStyle": "solid",
+                "lineInterpolation": "spline",
+                "fillMode": "none"
+              }
+            }
+          },
+          "queries": [
+            {
+              "kind": "time_series",
+              "spec": {
+                "plugin": {
+                  "kind": "signoz/CompositeQuery",
+                  "spec": {
+                    "queries": [
+                      {
+                        "type": "builder_query",
+                        "spec": {
+                          "name": "A",
+                          "signal": "metrics",
+                          "stepInterval": 0,
+                          "disabled": false,
+                          "aggregations": [
+                            {
+                              "metricName": "dotnet.gc.collections",
+                              "timeAggregation": "rate",
+                              "spaceAggregation": "sum"
+                            }
+                          ],
+                          "filter": {
+                            "expression": "service.name IN $service_name"
+                          },
+                          "groupBy": [
+                            {
+                              "name": "service.name",
+                              "fieldContext": "resource"
+                            },
+                            {
+                              "name": "gc.heap.generation",
+                              "fieldContext": "attribute"
+                            }
+                          ],
+                          "legend": "{{service.name}} {{gc.heap.generation}}"
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "f508e846-a17b-5e81-9245-354dba0b0da3": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "GC pause time",
+            "description": "Share of time the process was paused for garbage collection (seconds per second)."
+          },
+          "plugin": {
+            "kind": "signoz/TimeSeriesPanel",
+            "spec": {
+              "visualization": {
+                "timePreference": "global_time"
+              },
+              "formatting": {
+                "unit": "percentunit",
+                "decimalPrecision": "2"
+              },
+              "legend": {
+                "position": "bottom"
+              },
+              "chartAppearance": {
+                "lineStyle": "solid",
+                "lineInterpolation": "spline",
+                "fillMode": "none"
+              }
+            }
+          },
+          "queries": [
+            {
+              "kind": "time_series",
+              "spec": {
+                "plugin": {
+                  "kind": "signoz/CompositeQuery",
+                  "spec": {
+                    "queries": [
+                      {
+                        "type": "builder_query",
+                        "spec": {
+                          "name": "A",
+                          "signal": "metrics",
+                          "stepInterval": 0,
+                          "disabled": false,
+                          "aggregations": [
+                            {
+                              "metricName": "dotnet.gc.pause.time",
+                              "timeAggregation": "rate",
+                              "spaceAggregation": "sum"
+                            }
+                          ],
+                          "filter": {
+                            "expression": "service.name IN $service_name"
+                          },
+                          "groupBy": [
+                            {
+                              "name": "service.name",
+                              "fieldContext": "resource"
+                            }
+                          ],
+                          "legend": "{{service.name}}"
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "42dfe4c6-c8a3-51be-b4b7-5724f0295d71": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "Heap size by generation",
+            "description": "Managed heap after the last collection."
+          },
+          "plugin": {
+            "kind": "signoz/TimeSeriesPanel",
+            "spec": {
+              "visualization": {
+                "timePreference": "global_time"
+              },
+              "formatting": {
+                "unit": "bytes",
+                "decimalPrecision": "2"
+              },
+              "legend": {
+                "position": "bottom"
+              },
+              "chartAppearance": {
+                "lineStyle": "solid",
+                "lineInterpolation": "spline",
+                "fillMode": "none"
+              }
+            }
+          },
+          "queries": [
+            {
+              "kind": "time_series",
+              "spec": {
+                "plugin": {
+                  "kind": "signoz/CompositeQuery",
+                  "spec": {
+                    "queries": [
+                      {
+                        "type": "builder_query",
+                        "spec": {
+                          "name": "A",
+                          "signal": "metrics",
+                          "stepInterval": 0,
+                          "disabled": false,
+                          "aggregations": [
+                            {
+                              "metricName": "dotnet.gc.last_collection.heap.size",
+                              "timeAggregation": "avg",
+                              "spaceAggregation": "sum"
+                            }
+                          ],
+                          "filter": {
+                            "expression": "service.name IN $service_name"
+                          },
+                          "groupBy": [
+                            {
+                              "name": "service.name",
+                              "fieldContext": "resource"
+                            },
+                            {
+                              "name": "gc.heap.generation",
+                              "fieldContext": "attribute"
+                            }
+                          ],
+                          "legend": "{{service.name}} {{gc.heap.generation}}"
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "5166abe5-4618-5718-8e66-a9726b0e88ca": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "Allocation rate",
+            "description": "Bytes allocated on the managed heap per second."
+          },
+          "plugin": {
+            "kind": "signoz/TimeSeriesPanel",
+            "spec": {
+              "visualization": {
+                "timePreference": "global_time"
+              },
+              "formatting": {
+                "unit": "binBps",
+                "decimalPrecision": "2"
+              },
+              "legend": {
+                "position": "bottom"
+              },
+              "chartAppearance": {
+                "lineStyle": "solid",
+                "lineInterpolation": "spline",
+                "fillMode": "none"
+              }
+            }
+          },
+          "queries": [
+            {
+              "kind": "time_series",
+              "spec": {
+                "plugin": {
+                  "kind": "signoz/CompositeQuery",
+                  "spec": {
+                    "queries": [
+                      {
+                        "type": "builder_query",
+                        "spec": {
+                          "name": "A",
+                          "signal": "metrics",
+                          "stepInterval": 0,
+                          "disabled": false,
+                          "aggregations": [
+                            {
+                              "metricName": "dotnet.gc.heap.total_allocated",
+                              "timeAggregation": "rate",
+                              "spaceAggregation": "sum"
+                            }
+                          ],
+                          "filter": {
+                            "expression": "service.name IN $service_name"
+                          },
+                          "groupBy": [
+                            {
+                              "name": "service.name",
+                              "fieldContext": "resource"
+                            }
+                          ],
+                          "legend": "{{service.name}}"
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "804a2945-441b-517a-8118-838161884784": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "Thread pool threads",
+            "description": "Worker threads of the thread pool."
+          },
+          "plugin": {
+            "kind": "signoz/TimeSeriesPanel",
+            "spec": {
+              "visualization": {
+                "timePreference": "global_time"
+              },
+              "formatting": {
+                "unit": "short",
+                "decimalPrecision": "2"
+              },
+              "legend": {
+                "position": "bottom"
+              },
+              "chartAppearance": {
+                "lineStyle": "solid",
+                "lineInterpolation": "spline",
+                "fillMode": "none"
+              }
+            }
+          },
+          "queries": [
+            {
+              "kind": "time_series",
+              "spec": {
+                "plugin": {
+                  "kind": "signoz/CompositeQuery",
+                  "spec": {
+                    "queries": [
+                      {
+                        "type": "builder_query",
+                        "spec": {
+                          "name": "A",
+                          "signal": "metrics",
+                          "stepInterval": 0,
+                          "disabled": false,
+                          "aggregations": [
+                            {
+                              "metricName": "dotnet.thread_pool.thread.count",
+                              "timeAggregation": "avg",
+                              "spaceAggregation": "sum"
+                            }
+                          ],
+                          "filter": {
+                            "expression": "service.name IN $service_name"
+                          },
+                          "groupBy": [
+                            {
+                              "name": "service.name",
+                              "fieldContext": "resource"
+                            }
+                          ],
+                          "legend": "{{service.name}}"
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "eaffcfda-d5ae-567b-824e-fa527ecd8329": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "Thread pool queue",
+            "description": "Work items waiting for a thread: a growing queue means starvation."
+          },
+          "plugin": {
+            "kind": "signoz/TimeSeriesPanel",
+            "spec": {
+              "visualization": {
+                "timePreference": "global_time"
+              },
+              "formatting": {
+                "unit": "short",
+                "decimalPrecision": "2"
+              },
+              "legend": {
+                "position": "bottom"
+              },
+              "chartAppearance": {
+                "lineStyle": "solid",
+                "lineInterpolation": "spline",
+                "fillMode": "none"
+              }
+            }
+          },
+          "queries": [
+            {
+              "kind": "time_series",
+              "spec": {
+                "plugin": {
+                  "kind": "signoz/CompositeQuery",
+                  "spec": {
+                    "queries": [
+                      {
+                        "type": "builder_query",
+                        "spec": {
+                          "name": "A",
+                          "signal": "metrics",
+                          "stepInterval": 0,
+                          "disabled": false,
+                          "aggregations": [
+                            {
+                              "metricName": "dotnet.thread_pool.queue.length",
+                              "timeAggregation": "avg",
+                              "spaceAggregation": "sum"
+                            }
+                          ],
+                          "filter": {
+                            "expression": "service.name IN $service_name"
+                          },
+                          "groupBy": [
+                            {
+                              "name": "service.name",
+                              "fieldContext": "resource"
+                            }
+                          ],
+                          "legend": "{{service.name}}"
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "556ede90-58a0-52d9-9471-897ab26dc6a0": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "Exceptions / s",
+            "description": "Thrown exceptions per second by type."
+          },
+          "plugin": {
+            "kind": "signoz/TimeSeriesPanel",
+            "spec": {
+              "visualization": {
+                "timePreference": "global_time"
+              },
+              "formatting": {
+                "unit": "short",
+                "decimalPrecision": "2"
+              },
+              "legend": {
+                "position": "bottom"
+              },
+              "chartAppearance": {
+                "lineStyle": "solid",
+                "lineInterpolation": "spline",
+                "fillMode": "none"
+              }
+            }
+          },
+          "queries": [
+            {
+              "kind": "time_series",
+              "spec": {
+                "plugin": {
+                  "kind": "signoz/CompositeQuery",
+                  "spec": {
+                    "queries": [
+                      {
+                        "type": "builder_query",
+                        "spec": {
+                          "name": "A",
+                          "signal": "metrics",
+                          "stepInterval": 0,
+                          "disabled": false,
+                          "aggregations": [
+                            {
+                              "metricName": "dotnet.exceptions",
+                              "timeAggregation": "rate",
+                              "spaceAggregation": "sum"
+                            }
+                          ],
+                          "filter": {
+                            "expression": "service.name IN $service_name"
+                          },
+                          "groupBy": [
+                            {
+                              "name": "service.name",
+                              "fieldContext": "resource"
+                            },
+                            {
+                              "name": "error.type",
+                              "fieldContext": "attribute"
+                            }
+                          ],
+                          "legend": "{{service.name}} {{error.type}}"
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "cc29a75d-0545-5201-84e7-93253207cacd": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "Lock contentions / s",
+            "description": "Monitor locks that had to wait."
+          },
+          "plugin": {
+            "kind": "signoz/TimeSeriesPanel",
+            "spec": {
+              "visualization": {
+                "timePreference": "global_time"
+              },
+              "formatting": {
+                "unit": "short",
+                "decimalPrecision": "2"
+              },
+              "legend": {
+                "position": "bottom"
+              },
+              "chartAppearance": {
+                "lineStyle": "solid",
+                "lineInterpolation": "spline",
+                "fillMode": "none"
+              }
+            }
+          },
+          "queries": [
+            {
+              "kind": "time_series",
+              "spec": {
+                "plugin": {
+                  "kind": "signoz/CompositeQuery",
+                  "spec": {
+                    "queries": [
+                      {
+                        "type": "builder_query",
+                        "spec": {
+                          "name": "A",
+                          "signal": "metrics",
+                          "stepInterval": 0,
+                          "disabled": false,
+                          "aggregations": [
+                            {
+                              "metricName": "dotnet.monitor.lock_contentions",
+                              "timeAggregation": "rate",
+                              "spaceAggregation": "sum"
+                            }
+                          ],
+                          "filter": {
+                            "expression": "service.name IN $service_name"
+                          },
+                          "groupBy": [
+                            {
+                              "name": "service.name",
+                              "fieldContext": "resource"
+                            }
+                          ],
+                          "legend": "{{service.name}}"
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "4488d1a1-534c-5899-81b0-b1723bf7eab1": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "Kestrel connections",
+            "description": "Open connections of the web server."
+          },
+          "plugin": {
+            "kind": "signoz/TimeSeriesPanel",
+            "spec": {
+              "visualization": {
+                "timePreference": "global_time"
+              },
+              "formatting": {
+                "unit": "short",
+                "decimalPrecision": "2"
+              },
+              "legend": {
+                "position": "bottom"
+              },
+              "chartAppearance": {
+                "lineStyle": "solid",
+                "lineInterpolation": "spline",
+                "fillMode": "none"
+              }
+            }
+          },
+          "queries": [
+            {
+              "kind": "time_series",
+              "spec": {
+                "plugin": {
+                  "kind": "signoz/CompositeQuery",
+                  "spec": {
+                    "queries": [
+                      {
+                        "type": "builder_query",
+                        "spec": {
+                          "name": "A",
+                          "signal": "metrics",
+                          "stepInterval": 0,
+                          "disabled": false,
+                          "aggregations": [
+                            {
+                              "metricName": "kestrel.active_connections",
+                              "timeAggregation": "avg",
+                              "spaceAggregation": "sum"
+                            }
+                          ],
+                          "filter": {
+                            "expression": "service.name IN $service_name"
+                          },
+                          "groupBy": [
+                            {
+                              "name": "service.name",
+                              "fieldContext": "resource"
+                            }
+                          ],
+                          "legend": "{{service.name}}"
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "e11e9b40-972c-5592-8847-e6caf13c3cfa": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "JIT compiled methods / s",
+            "description": "Methods compiled per second: high after a start, near zero afterwards."
+          },
+          "plugin": {
+            "kind": "signoz/TimeSeriesPanel",
+            "spec": {
+              "visualization": {
+                "timePreference": "global_time"
+              },
+              "formatting": {
+                "unit": "short",
+                "decimalPrecision": "2"
+              },
+              "legend": {
+                "position": "bottom"
+              },
+              "chartAppearance": {
+                "lineStyle": "solid",
+                "lineInterpolation": "spline",
+                "fillMode": "none"
+              }
+            }
+          },
+          "queries": [
+            {
+              "kind": "time_series",
+              "spec": {
+                "plugin": {
+                  "kind": "signoz/CompositeQuery",
+                  "spec": {
+                    "queries": [
+                      {
+                        "type": "builder_query",
+                        "spec": {
+                          "name": "A",
+                          "signal": "metrics",
+                          "stepInterval": 0,
+                          "disabled": false,
+                          "aggregations": [
+                            {
+                              "metricName": "dotnet.jit.compiled_methods",
+                              "timeAggregation": "rate",
+                              "spaceAggregation": "sum"
+                            }
+                          ],
+                          "filter": {
+                            "expression": "service.name IN $service_name"
+                          },
+                          "groupBy": [
+                            {
+                              "name": "service.name",
+                              "fieldContext": "resource"
+                            }
+                          ],
+                          "legend": "{{service.name}}"
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "layouts": [
+      {
+        "kind": "Grid",
+        "spec": {
+          "items": [
+            {
+              "x": 0,
+              "y": 0,
+              "width": 6,
+              "height": 6,
+              "content": {
+                "$ref": "#/spec/panels/27c4c4f5-9f98-5c30-be33-55bbf3925216"
+              }
+            },
+            {
+              "x": 6,
+              "y": 0,
+              "width": 6,
+              "height": 6,
+              "content": {
+                "$ref": "#/spec/panels/2d1f6665-b00b-554e-aa87-508527769f2a"
+              }
+            }
+          ]
+        }
+      },
+      {
+        "kind": "Grid",
+        "spec": {
+          "items": [
+            {
+              "x": 0,
+              "y": 0,
+              "width": 6,
+              "height": 6,
+              "content": {
+                "$ref": "#/spec/panels/969388b1-ce5c-536b-9285-6165b834d335"
+              }
+            },
+            {
+              "x": 6,
+              "y": 0,
+              "width": 6,
+              "height": 6,
+              "content": {
+                "$ref": "#/spec/panels/f508e846-a17b-5e81-9245-354dba0b0da3"
+              }
+            },
+            {
+              "x": 0,
+              "y": 6,
+              "width": 6,
+              "height": 6,
+              "content": {
+                "$ref": "#/spec/panels/42dfe4c6-c8a3-51be-b4b7-5724f0295d71"
+              }
+            },
+            {
+              "x": 6,
+              "y": 6,
+              "width": 6,
+              "height": 6,
+              "content": {
+                "$ref": "#/spec/panels/5166abe5-4618-5718-8e66-a9726b0e88ca"
+              }
+            }
+          ],
+          "display": {
+            "title": "Garbage collector"
+          }
+        }
+      },
+      {
+        "kind": "Grid",
+        "spec": {
+          "items": [
+            {
+              "x": 0,
+              "y": 0,
+              "width": 6,
+              "height": 6,
+              "content": {
+                "$ref": "#/spec/panels/804a2945-441b-517a-8118-838161884784"
+              }
+            },
+            {
+              "x": 6,
+              "y": 0,
+              "width": 6,
+              "height": 6,
+              "content": {
+                "$ref": "#/spec/panels/eaffcfda-d5ae-567b-824e-fa527ecd8329"
+              }
+            },
+            {
+              "x": 0,
+              "y": 6,
+              "width": 6,
+              "height": 6,
+              "content": {
+                "$ref": "#/spec/panels/556ede90-58a0-52d9-9471-897ab26dc6a0"
+              }
+            },
+            {
+              "x": 6,
+              "y": 6,
+              "width": 6,
+              "height": 6,
+              "content": {
+                "$ref": "#/spec/panels/cc29a75d-0545-5201-84e7-93253207cacd"
+              }
+            },
+            {
+              "x": 0,
+              "y": 12,
+              "width": 6,
+              "height": 6,
+              "content": {
+                "$ref": "#/spec/panels/4488d1a1-534c-5899-81b0-b1723bf7eab1"
+              }
+            },
+            {
+              "x": 6,
+              "y": 12,
+              "width": 6,
+              "height": 6,
+              "content": {
+                "$ref": "#/spec/panels/e11e9b40-972c-5592-8847-e6caf13c3cfa"
+              }
+            }
+          ],
+          "display": {
+            "title": "Threads, exceptions, locks"
+          }
+        }
+      }
+    ],
+    "duration": "1h",
+    "refreshInterval": "30s",
+    "links": []
+  }
+}

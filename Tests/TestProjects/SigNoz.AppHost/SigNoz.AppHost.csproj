@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsAspireHost>true</IsAspireHost>
+    <IsPackable>false</IsPackable>
+    <UserSecretsId>nextended-signoz-apphost-4b8d02ce</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Aspire.Hosting.AppHost" />
+    <PackageReference Include="Aspire.Hosting.PostgreSQL" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\Nextended.Aspire.Hosting.SigNoz\Nextended.Aspire.Hosting.SigNoz.csproj" IsAspireProjectResource="false" />
+    <!-- built with the app host, started by path (AddProject) -->
+    <ProjectReference Include="..\SigNoz.SampleApi\SigNoz.SampleApi.csproj" ReferenceOutputAssembly="false" IsAspireProjectResource="false" />
+  </ItemGroup>
+
+</Project>

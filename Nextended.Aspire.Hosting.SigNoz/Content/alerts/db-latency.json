@@ -1,0 +1,82 @@
+{
+  "alert": "Database p95 latency above 500 ms",
+  "alertType": "TRACES_BASED_ALERT",
+  "description": "95th percentile of the database calls' duration, per service, over five minutes.",
+  "ruleType": "threshold_rule",
+  "schemaVersion": "v2alpha1",
+  "condition": {
+    "compositeQuery": {
+      "queryType": "builder",
+      "panelType": "graph",
+      "unit": "ns",
+      "queries": [
+        {
+          "type": "builder_query",
+          "spec": {
+            "name": "A",
+            "signal": "traces",
+            "stepInterval": 60,
+            "disabled": false,
+            "aggregations": [
+              {
+                "expression": "p95(duration_nano)"
+              }
+            ],
+            "groupBy": [
+              {
+                "name": "service.name",
+                "fieldContext": "resource",
+                "fieldDataType": "string"
+              }
+            ],
+            "filter": {
+              "expression": "db.system.name EXISTS"
+            }
+          }
+        }
+      ]
+    },
+    "selectedQueryName": "A",
+    "thresholds": {
+      "kind": "basic",
+      "spec": [
+        {
+          "name": "warning",
+          "op": "above",
+          "matchType": "on_average",
+          "target": 500,
+          "channels": [],
+          "targetUnit": "ms"
+        }
+      ]
+    }
+  },
+  "evaluation": {
+    "kind": "rolling",
+    "spec": {
+      "evalWindow": "5m",
+      "frequency": "1m"
+    }
+  },
+  "notificationSettings": {
+    "usePolicy": true,
+    "groupBy": [
+      "service.name"
+    ],
+    "renotify": {
+      "enabled": true,
+      "interval": "30m",
+      "alertStates": [
+        "firing"
+      ]
+    }
+  },
+  "labels": {
+    "severity": "warning",
+    "source": "aspire"
+  },
+  "annotations": {
+    "description": "95th percentile of the database calls' duration, per service, over five minutes. {{$service.name}}: {{$value}}",
+    "summary": "Database p95 latency above 500 ms"
+  }
+}

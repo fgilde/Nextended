@@ -1,0 +1,758 @@
+{
+  "schemaVersion": "v6",
+  "name": "aspire-database",
+  "tags": [
+    {
+      "key": "stack",
+      "value": "aspire"
+    }
+  ],
+  "spec": {
+    "display": {
+      "name": "Database calls",
+      "description": "Database calls of every service from their client spans (Npgsql, SqlClient, EF Core ...) and the db.client metrics."
+    },
+    "variables": [
+      {
+        "kind": "ListVariable",
+        "spec": {
+          "name": "service_name",
+          "display": {
+            "name": "service",
+            "description": "Services to show"
+          },
+          "allowMultiple": true,
+          "allowAllValue": true,
+          "sort": "alphabetical-asc",
+          "plugin": {
+            "kind": "signoz/DynamicVariable",
+            "spec": {
+              "name": "service.name",
+              "signal": "traces"
+            }
+          }
+        }
+      }
+    ],
+    "panels": {
+      "0981d164-4e8c-51e1-bdad-0b49d22e3dcb": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "DB calls / s",
+            "description": "Database calls of the selected services per second."
+          },
+          "plugin": {
+            "kind": "signoz/NumberPanel",
+            "spec": {
+              "visualization": {
+                "timePreference": "global_time"
+              },
+              "formatting": {
+                "unit": "reqps",
+                "decimalPrecision": "2"
+              }
+            }
+          },
+          "queries": [
+            {
+              "kind": "scalar",
+              "spec": {
+                "plugin": {
+                  "kind": "signoz/CompositeQuery",
+                  "spec": {
+                    "queries": [
+                      {
+                        "type": "builder_query",
+                        "spec": {
+                          "name": "A",
+                          "signal": "traces",
+                          "stepInterval": 0,
+                          "disabled": false,
+                          "aggregations": [
+                            {
+                              "expression": "rate()"
+                            }
+                          ],
+                          "filter": {
+                            "expression": "db.system.name EXISTS AND service.name IN $service_name"
+                          }
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "e708bbc8-a5fc-5987-b760-61f93f252656": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "p95 DB latency",
+            "description": "95% of the database calls were faster."
+          },
+          "plugin": {
+            "kind": "signoz/NumberPanel",
+            "spec": {
+              "visualization": {
+                "timePreference": "global_time"
+              },
+              "formatting": {
+                "unit": "ns",
+                "decimalPrecision": "2"
+              }
+            }
+          },
+          "queries": [
+            {
+              "kind": "scalar",
+              "spec": {
+                "plugin": {
+                  "kind": "signoz/CompositeQuery",
+                  "spec": {
+                    "queries": [
+                      {
+                        "type": "builder_query",
+                        "spec": {
+                          "name": "A",
+                          "signal": "traces",
+                          "stepInterval": 0,
+                          "disabled": false,
+                          "aggregations": [
+                            {
+                              "expression": "p95(duration_nano)"
+                            }
+                          ],
+                          "filter": {
+                            "expression": "db.system.name EXISTS AND service.name IN $service_name"
+                          }
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "2c1f3e58-34fc-50fe-a22b-062ec613a9e5": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "Failed DB calls",
+            "description": "Database calls that ended with an error."
+          },
+          "plugin": {
+            "kind": "signoz/NumberPanel",
+            "spec": {
+              "visualization": {
+                "timePreference": "global_time"
+              },
+              "formatting": {
+                "unit": "short",
+                "decimalPrecision": "2"
+              }
+            }
+          },
+          "queries": [
+            {
+              "kind": "scalar",
+              "spec": {
+                "plugin": {
+                  "kind": "signoz/CompositeQuery",
+                  "spec": {
+                    "queries": [
+                      {
+                        "type": "builder_query",
+                        "spec": {
+                          "name": "A",
+                          "signal": "traces",
+                          "stepInterval": 0,
+                          "disabled": false,
+                          "aggregations": [
+                            {
+                              "expression": "count()"
+                            }
+                          ],
+                          "filter": {
+                            "expression": "db.system.name EXISTS AND service.name IN $service_name AND has_error = true"
+                          }
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "c2012d24-e9c4-5975-a153-e2360c105eeb": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "DB calls per service",
+            "description": "Database calls per second."
+          },
+          "plugin": {
+            "kind": "signoz/TimeSeriesPanel",
+            "spec": {
+              "visualization": {
+                "timePreference": "global_time"
+              },
+              "formatting": {
+                "unit": "reqps",
+                "decimalPrecision": "2"
+              },
+              "legend": {
+                "position": "bottom"
+              },
+              "chartAppearance": {
+                "lineStyle": "solid",
+                "lineInterpolation": "spline",
+                "fillMode": "none"
+              }
+            }
+          },
+          "queries": [
+            {
+              "kind": "time_series",
+              "spec": {
+                "plugin": {
+                  "kind": "signoz/CompositeQuery",
+                  "spec": {
+                    "queries": [
+                      {
+                        "type": "builder_query",
+                        "spec": {
+                          "name": "A",
+                          "signal": "traces",
+                          "stepInterval": 0,
+                          "disabled": false,
+                          "aggregations": [
+                            {
+                              "expression": "rate()"
+                            }
+                          ],
+                          "filter": {
+                            "expression": "db.system.name EXISTS AND service.name IN $service_name"
+                          },
+                          "groupBy": [
+                            {
+                              "name": "service.name",
+                              "fieldContext": "resource"
+                            }
+                          ],
+                          "legend": "{{service.name}}"
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "cd41f224-96e1-5fc2-b44e-8c09737f49fa": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "p95 DB latency per service",
+            "description": "95th percentile of the database call duration."
+          },
+          "plugin": {
+            "kind": "signoz/TimeSeriesPanel",
+            "spec": {
+              "visualization": {
+                "timePreference": "global_time"
+              },
+              "formatting": {
+                "unit": "ns",
+                "decimalPrecision": "2"
+              },
+              "legend": {
+                "position": "bottom"
+              },
+              "chartAppearance": {
+                "lineStyle": "solid",
+                "lineInterpolation": "spline",
+                "fillMode": "none"
+              }
+            }
+          },
+          "queries": [
+            {
+              "kind": "time_series",
+              "spec": {
+                "plugin": {
+                  "kind": "signoz/CompositeQuery",
+                  "spec": {
+                    "queries": [
+                      {
+                        "type": "builder_query",
+                        "spec": {
+                          "name": "A",
+                          "signal": "traces",
+                          "stepInterval": 0,
+                          "disabled": false,
+                          "aggregations": [
+                            {
+                              "expression": "p95(duration_nano)"
+                            }
+                          ],
+                          "filter": {
+                            "expression": "db.system.name EXISTS AND service.name IN $service_name"
+                          },
+                          "groupBy": [
+                            {
+                              "name": "service.name",
+                              "fieldContext": "resource"
+                            }
+                          ],
+                          "legend": "{{service.name}}"
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "001a3b01-7639-53c9-801d-efc7c773e87e": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "Failed DB calls per service",
+            "description": "Database calls per second that ended with an error."
+          },
+          "plugin": {
+            "kind": "signoz/TimeSeriesPanel",
+            "spec": {
+              "visualization": {
+                "timePreference": "global_time"
+              },
+              "formatting": {
+                "unit": "reqps",
+                "decimalPrecision": "2"
+              },
+              "legend": {
+                "position": "bottom"
+              },
+              "chartAppearance": {
+                "lineStyle": "solid",
+                "lineInterpolation": "spline",
+                "fillMode": "none"
+              }
+            }
+          },
+          "queries": [
+            {
+              "kind": "time_series",
+              "spec": {
+                "plugin": {
+                  "kind": "signoz/CompositeQuery",
+                  "spec": {
+                    "queries": [
+                      {
+                        "type": "builder_query",
+                        "spec": {
+                          "name": "A",
+                          "signal": "traces",
+                          "stepInterval": 0,
+                          "disabled": false,
+                          "aggregations": [
+                            {
+                              "expression": "rate()"
+                            }
+                          ],
+                          "filter": {
+                            "expression": "db.system.name EXISTS AND service.name IN $service_name AND has_error = true"
+                          },
+                          "groupBy": [
+                            {
+                              "name": "service.name",
+                              "fieldContext": "resource"
+                            }
+                          ],
+                          "legend": "{{service.name}}"
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "f9ad756b-fc37-5bed-8f31-c4df86af9658": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "p95 operation duration (metrics)",
+            "description": "95th percentile from the db.client.operation.duration histogram, by database server."
+          },
+          "plugin": {
+            "kind": "signoz/TimeSeriesPanel",
+            "spec": {
+              "visualization": {
+                "timePreference": "global_time"
+              },
+              "formatting": {
+                "unit": "s",
+                "decimalPrecision": "2"
+              },
+              "legend": {
+                "position": "bottom"
+              },
+              "chartAppearance": {
+                "lineStyle": "solid",
+                "lineInterpolation": "spline",
+                "fillMode": "none"
+              }
+            }
+          },
+          "queries": [
+            {
+              "kind": "time_series",
+              "spec": {
+                "plugin": {
+                  "kind": "signoz/CompositeQuery",
+                  "spec": {
+                    "queries": [
+                      {
+                        "type": "builder_query",
+                        "spec": {
+                          "name": "A",
+                          "signal": "metrics",
+                          "stepInterval": 0,
+                          "disabled": false,
+                          "aggregations": [
+                            {
+                              "metricName": "db.client.operation.duration.bucket",
+                              "timeAggregation": "rate",
+                              "spaceAggregation": "p95"
+                            }
+                          ],
+                          "filter": {
+                            "expression": "service.name IN $service_name"
+                          },
+                          "groupBy": [
+                            {
+                              "name": "service.name",
+                              "fieldContext": "resource"
+                            },
+                            {
+                              "name": "server.address",
+                              "fieldContext": "attribute"
+                            }
+                          ],
+                          "legend": "{{service.name}} {{server.address}}"
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "8c34fd93-1389-554e-90af-a6c5482f256a": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "Slowest statements",
+            "description": "Statements by 95th percentile, with calls."
+          },
+          "plugin": {
+            "kind": "signoz/TablePanel",
+            "spec": {
+              "visualization": {
+                "timePreference": "global_time"
+              },
+              "formatting": {
+                "columnUnits": {
+                  "A": "ns",
+                  "B": "short"
+                },
+                "decimalPrecision": "2"
+              }
+            }
+          },
+          "queries": [
+            {
+              "kind": "scalar",
+              "spec": {
+                "plugin": {
+                  "kind": "signoz/CompositeQuery",
+                  "spec": {
+                    "queries": [
+                      {
+                        "type": "builder_query",
+                        "spec": {
+                          "name": "A",
+                          "signal": "traces",
+                          "stepInterval": 0,
+                          "disabled": false,
+                          "aggregations": [
+                            {
+                              "expression": "p95(duration_nano)"
+                            }
+                          ],
+                          "filter": {
+                            "expression": "db.system.name EXISTS AND service.name IN $service_name"
+                          },
+                          "groupBy": [
+                            {
+                              "name": "service.name",
+                              "fieldContext": "resource"
+                            },
+                            {
+                              "name": "db.query.text",
+                              "fieldContext": "attribute"
+                            }
+                          ],
+                          "order": [
+                            {
+                              "key": {
+                                "name": "p95(duration_nano)"
+                              },
+                              "direction": "desc"
+                            }
+                          ],
+                          "limit": 15
+                        }
+                      },
+                      {
+                        "type": "builder_query",
+                        "spec": {
+                          "name": "B",
+                          "signal": "traces",
+                          "stepInterval": 0,
+                          "disabled": false,
+                          "aggregations": [
+                            {
+                              "expression": "count()"
+                            }
+                          ],
+                          "filter": {
+                            "expression": "db.system.name EXISTS AND service.name IN $service_name"
+                          },
+                          "groupBy": [
+                            {
+                              "name": "service.name",
+                              "fieldContext": "resource"
+                            },
+                            {
+                              "name": "db.query.text",
+                              "fieldContext": "attribute"
+                            }
+                          ],
+                          "limit": 15
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "873dbb3c-5f0a-50ed-9857-3efdea8cce7a": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "Connections",
+            "description": "Connections of the pools by state (metric db.client.connection.count)."
+          },
+          "plugin": {
+            "kind": "signoz/TimeSeriesPanel",
+            "spec": {
+              "visualization": {
+                "timePreference": "global_time"
+              },
+              "formatting": {
+                "unit": "short",
+                "decimalPrecision": "2"
+              },
+              "legend": {
+                "position": "bottom"
+              },
+              "chartAppearance": {
+                "lineStyle": "solid",
+                "lineInterpolation": "spline",
+                "fillMode": "none"
+              }
+            }
+          },
+          "queries": [
+            {
+              "kind": "time_series",
+              "spec": {
+                "plugin": {
+                  "kind": "signoz/CompositeQuery",
+                  "spec": {
+                    "queries": [
+                      {
+                        "type": "builder_query",
+                        "spec": {
+                          "name": "A",
+                          "signal": "metrics",
+                          "stepInterval": 0,
+                          "disabled": false,
+                          "aggregations": [
+                            {
+                              "metricName": "db.client.connection.count",
+                              "timeAggregation": "avg",
+                              "spaceAggregation": "sum"
+                            }
+                          ],
+                          "filter": {
+                            "expression": "service.name IN $service_name"
+                          },
+                          "groupBy": [
+                            {
+                              "name": "service.name",
+                              "fieldContext": "resource"
+                            },
+                            {
+                              "name": "db.client.connection.state",
+                              "fieldContext": "attribute"
+                            }
+                          ],
+                          "legend": "{{service.name}} {{db.client.connection.state}}"
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "layouts": [
+      {
+        "kind": "Grid",
+        "spec": {
+          "items": [
+            {
+              "x": 0,
+              "y": 0,
+              "width": 4,
+              "height": 3,
+              "content": {
+                "$ref": "#/spec/panels/0981d164-4e8c-51e1-bdad-0b49d22e3dcb"
+              }
+            },
+            {
+              "x": 4,
+              "y": 0,
+              "width": 4,
+              "height": 3,
+              "content": {
+                "$ref": "#/spec/panels/e708bbc8-a5fc-5987-b760-61f93f252656"
+              }
+            },
+            {
+              "x": 8,
+              "y": 0,
+              "width": 4,
+              "height": 3,
+              "content": {
+                "$ref": "#/spec/panels/2c1f3e58-34fc-50fe-a22b-062ec613a9e5"
+              }
+            }
+          ]
+        }
+      },
+      {
+        "kind": "Grid",
+        "spec": {
+          "items": [
+            {
+              "x": 0,
+              "y": 0,
+              "width": 6,
+              "height": 6,
+              "content": {
+                "$ref": "#/spec/panels/c2012d24-e9c4-5975-a153-e2360c105eeb"
+              }
+            },
+            {
+              "x": 6,
+              "y": 0,
+              "width": 6,
+              "height": 6,
+              "content": {
+                "$ref": "#/spec/panels/cd41f224-96e1-5fc2-b44e-8c09737f49fa"
+              }
+            },
+            {
+              "x": 0,
+              "y": 6,
+              "width": 6,
+              "height": 6,
+              "content": {
+                "$ref": "#/spec/panels/001a3b01-7639-53c9-801d-efc7c773e87e"
+              }
+            },
+            {
+              "x": 6,
+              "y": 6,
+              "width": 6,
+              "height": 6,
+              "content": {
+                "$ref": "#/spec/panels/f9ad756b-fc37-5bed-8f31-c4df86af9658"
+              }
+            }
+          ],
+          "display": {
+            "title": "Calls and latency"
+          }
+        }
+      },
+      {
+        "kind": "Grid",
+        "spec": {
+          "items": [
+            {
+              "x": 0,
+              "y": 0,
+              "width": 12,
+              "height": 7,
+              "content": {
+                "$ref": "#/spec/panels/8c34fd93-1389-554e-90af-a6c5482f256a"
+              }
+            },
+            {
+              "x": 0,
+              "y": 7,
+              "width": 6,
+              "height": 6,
+              "content": {
+                "$ref": "#/spec/panels/873dbb3c-5f0a-50ed-9857-3efdea8cce7a"
+              }
+            }
+          ],
+          "display": {
+            "title": "Statements"
+          }
+        }
+      }
+    ],
+    "duration": "1h",
+    "refreshInterval": "30s",
+    "links": []
+  }
+}

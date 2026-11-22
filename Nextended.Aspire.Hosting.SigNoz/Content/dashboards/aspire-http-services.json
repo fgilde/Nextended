@@ -1,0 +1,1106 @@
+{
+  "schemaVersion": "v6",
+  "name": "aspire-http-services",
+  "tags": [
+    {
+      "key": "stack",
+      "value": "aspire"
+    }
+  ],
+  "spec": {
+    "display": {
+      "name": "HTTP services",
+      "description": "Requests, errors and latency of every service from its server spans (RED), status codes and routes from the ASP.NET Core metrics."
+    },
+    "variables": [
+      {
+        "kind": "ListVariable",
+        "spec": {
+          "name": "service_name",
+          "display": {
+            "name": "service",
+            "description": "Services to show"
+          },
+          "allowMultiple": true,
+          "allowAllValue": true,
+          "sort": "alphabetical-asc",
+          "plugin": {
+            "kind": "signoz/DynamicVariable",
+            "spec": {
+              "name": "service.name",
+              "signal": "traces"
+            }
+          }
+        }
+      }
+    ],
+    "panels": {
+      "6663674a-3451-59a7-8312-d70f255efad1": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "Requests / s",
+            "description": "Incoming requests of the selected services per second."
+          },
+          "plugin": {
+            "kind": "signoz/NumberPanel",
+            "spec": {
+              "visualization": {
+                "timePreference": "global_time"
+              },
+              "formatting": {
+                "unit": "reqps",
+                "decimalPrecision": "2"
+              }
+            }
+          },
+          "queries": [
+            {
+              "kind": "scalar",
+              "spec": {
+                "plugin": {
+                  "kind": "signoz/CompositeQuery",
+                  "spec": {
+                    "queries": [
+                      {
+                        "type": "builder_query",
+                        "spec": {
+                          "name": "A",
+                          "signal": "traces",
+                          "stepInterval": 0,
+                          "disabled": false,
+                          "aggregations": [
+                            {
+                              "expression": "rate()"
+                            }
+                          ],
+                          "filter": {
+                            "expression": "kind_string = 'Server' AND service.name IN $service_name"
+                          }
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "f5a82d08-ba88-57bf-a08a-fbf42993f569": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "Error rate",
+            "description": "Share of incoming requests that ended with an error."
+          },
+          "plugin": {
+            "kind": "signoz/NumberPanel",
+            "spec": {
+              "visualization": {
+                "timePreference": "global_time"
+              },
+              "formatting": {
+                "unit": "percent",
+                "decimalPrecision": "2"
+              }
+            }
+          },
+          "queries": [
+            {
+              "kind": "scalar",
+              "spec": {
+                "plugin": {
+                  "kind": "signoz/CompositeQuery",
+                  "spec": {
+                    "queries": [
+                      {
+                        "type": "builder_query",
+                        "spec": {
+                          "name": "A",
+                          "signal": "traces",
+                          "stepInterval": 0,
+                          "disabled": true,
+                          "aggregations": [
+                            {
+                              "expression": "count()"
+                            }
+                          ],
+                          "filter": {
+                            "expression": "kind_string = 'Server' AND service.name IN $service_name AND has_error = true"
+                          }
+                        }
+                      },
+                      {
+                        "type": "builder_query",
+                        "spec": {
+                          "name": "B",
+                          "signal": "traces",
+                          "stepInterval": 0,
+                          "disabled": true,
+                          "aggregations": [
+                            {
+                              "expression": "count()"
+                            }
+                          ],
+                          "filter": {
+                            "expression": "kind_string = 'Server' AND service.name IN $service_name"
+                          }
+                        }
+                      },
+                      {
+                        "type": "builder_formula",
+                        "spec": {
+                          "name": "F1",
+                          "expression": "A * 100 / B"
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "0948f95d-c515-5fac-8a7d-e17868b7d24b": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "p95 latency",
+            "description": "95% of the incoming requests were faster."
+          },
+          "plugin": {
+            "kind": "signoz/NumberPanel",
+            "spec": {
+              "visualization": {
+                "timePreference": "global_time"
+              },
+              "formatting": {
+                "unit": "ns",
+                "decimalPrecision": "2"
+              }
+            }
+          },
+          "queries": [
+            {
+              "kind": "scalar",
+              "spec": {
+                "plugin": {
+                  "kind": "signoz/CompositeQuery",
+                  "spec": {
+                    "queries": [
+                      {
+                        "type": "builder_query",
+                        "spec": {
+                          "name": "A",
+                          "signal": "traces",
+                          "stepInterval": 0,
+                          "disabled": false,
+                          "aggregations": [
+                            {
+                              "expression": "p95(duration_nano)"
+                            }
+                          ],
+                          "filter": {
+                            "expression": "kind_string = 'Server' AND service.name IN $service_name"
+                          }
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "e28469b5-d805-5a07-ae52-766ee1c60079": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "Errors",
+            "description": "Incoming requests that ended with an error."
+          },
+          "plugin": {
+            "kind": "signoz/NumberPanel",
+            "spec": {
+              "visualization": {
+                "timePreference": "global_time"
+              },
+              "formatting": {
+                "unit": "short",
+                "decimalPrecision": "2"
+              }
+            }
+          },
+          "queries": [
+            {
+              "kind": "scalar",
+              "spec": {
+                "plugin": {
+                  "kind": "signoz/CompositeQuery",
+                  "spec": {
+                    "queries": [
+                      {
+                        "type": "builder_query",
+                        "spec": {
+                          "name": "A",
+                          "signal": "traces",
+                          "stepInterval": 0,
+                          "disabled": false,
+                          "aggregations": [
+                            {
+                              "expression": "count()"
+                            }
+                          ],
+                          "filter": {
+                            "expression": "kind_string = 'Server' AND service.name IN $service_name AND has_error = true"
+                          }
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "817635d1-f4f6-56aa-9866-0f74198f60f1": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "Requests per service",
+            "description": "Incoming requests per second."
+          },
+          "plugin": {
+            "kind": "signoz/TimeSeriesPanel",
+            "spec": {
+              "visualization": {
+                "timePreference": "global_time"
+              },
+              "formatting": {
+                "unit": "reqps",
+                "decimalPrecision": "2"
+              },
+              "legend": {
+                "position": "bottom"
+              },
+              "chartAppearance": {
+                "lineStyle": "solid",
+                "lineInterpolation": "spline",
+                "fillMode": "none"
+              }
+            }
+          },
+          "queries": [
+            {
+              "kind": "time_series",
+              "spec": {
+                "plugin": {
+                  "kind": "signoz/CompositeQuery",
+                  "spec": {
+                    "queries": [
+                      {
+                        "type": "builder_query",
+                        "spec": {
+                          "name": "A",
+                          "signal": "traces",
+                          "stepInterval": 0,
+                          "disabled": false,
+                          "aggregations": [
+                            {
+                              "expression": "rate()"
+                            }
+                          ],
+                          "filter": {
+                            "expression": "kind_string = 'Server' AND service.name IN $service_name"
+                          },
+                          "groupBy": [
+                            {
+                              "name": "service.name",
+                              "fieldContext": "resource"
+                            }
+                          ],
+                          "legend": "{{service.name}}"
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "f0a0f932-9297-5719-a437-6655d7adba57": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "Errors per service",
+            "description": "Incoming requests per second that ended with an error."
+          },
+          "plugin": {
+            "kind": "signoz/TimeSeriesPanel",
+            "spec": {
+              "visualization": {
+                "timePreference": "global_time"
+              },
+              "formatting": {
+                "unit": "reqps",
+                "decimalPrecision": "2"
+              },
+              "legend": {
+                "position": "bottom"
+              },
+              "chartAppearance": {
+                "lineStyle": "solid",
+                "lineInterpolation": "spline",
+                "fillMode": "none"
+              }
+            }
+          },
+          "queries": [
+            {
+              "kind": "time_series",
+              "spec": {
+                "plugin": {
+                  "kind": "signoz/CompositeQuery",
+                  "spec": {
+                    "queries": [
+                      {
+                        "type": "builder_query",
+                        "spec": {
+                          "name": "A",
+                          "signal": "traces",
+                          "stepInterval": 0,
+                          "disabled": false,
+                          "aggregations": [
+                            {
+                              "expression": "rate()"
+                            }
+                          ],
+                          "filter": {
+                            "expression": "kind_string = 'Server' AND service.name IN $service_name AND has_error = true"
+                          },
+                          "groupBy": [
+                            {
+                              "name": "service.name",
+                              "fieldContext": "resource"
+                            }
+                          ],
+                          "legend": "{{service.name}}"
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "ee2383eb-5f34-5878-b52b-370efb080077": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "p95 latency per service",
+            "description": "95th percentile of the request duration."
+          },
+          "plugin": {
+            "kind": "signoz/TimeSeriesPanel",
+            "spec": {
+              "visualization": {
+                "timePreference": "global_time"
+              },
+              "formatting": {
+                "unit": "ns",
+                "decimalPrecision": "2"
+              },
+              "legend": {
+                "position": "bottom"
+              },
+              "chartAppearance": {
+                "lineStyle": "solid",
+                "lineInterpolation": "spline",
+                "fillMode": "none"
+              }
+            }
+          },
+          "queries": [
+            {
+              "kind": "time_series",
+              "spec": {
+                "plugin": {
+                  "kind": "signoz/CompositeQuery",
+                  "spec": {
+                    "queries": [
+                      {
+                        "type": "builder_query",
+                        "spec": {
+                          "name": "A",
+                          "signal": "traces",
+                          "stepInterval": 0,
+                          "disabled": false,
+                          "aggregations": [
+                            {
+                              "expression": "p95(duration_nano)"
+                            }
+                          ],
+                          "filter": {
+                            "expression": "kind_string = 'Server' AND service.name IN $service_name"
+                          },
+                          "groupBy": [
+                            {
+                              "name": "service.name",
+                              "fieldContext": "resource"
+                            }
+                          ],
+                          "legend": "{{service.name}}"
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "615293af-7f57-5507-ac78-8c0350cbd94e": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "p50 / p99 latency",
+            "description": "Median and 99th percentile of all selected services."
+          },
+          "plugin": {
+            "kind": "signoz/TimeSeriesPanel",
+            "spec": {
+              "visualization": {
+                "timePreference": "global_time"
+              },
+              "formatting": {
+                "unit": "ns",
+                "decimalPrecision": "2"
+              },
+              "legend": {
+                "position": "bottom"
+              },
+              "chartAppearance": {
+                "lineStyle": "solid",
+                "lineInterpolation": "spline",
+                "fillMode": "none"
+              }
+            }
+          },
+          "queries": [
+            {
+              "kind": "time_series",
+              "spec": {
+                "plugin": {
+                  "kind": "signoz/CompositeQuery",
+                  "spec": {
+                    "queries": [
+                      {
+                        "type": "builder_query",
+                        "spec": {
+                          "name": "A",
+                          "signal": "traces",
+                          "stepInterval": 0,
+                          "disabled": false,
+                          "aggregations": [
+                            {
+                              "expression": "p50(duration_nano)"
+                            }
+                          ],
+                          "filter": {
+                            "expression": "kind_string = 'Server' AND service.name IN $service_name"
+                          },
+                          "legend": "p50"
+                        }
+                      },
+                      {
+                        "type": "builder_query",
+                        "spec": {
+                          "name": "B",
+                          "signal": "traces",
+                          "stepInterval": 0,
+                          "disabled": false,
+                          "aggregations": [
+                            {
+                              "expression": "p99(duration_nano)"
+                            }
+                          ],
+                          "filter": {
+                            "expression": "kind_string = 'Server' AND service.name IN $service_name"
+                          },
+                          "legend": "p99"
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "f96e9dfc-3d78-5110-86ab-ec36895db993": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "Responses by status code",
+            "description": "ASP.NET Core responses per second by HTTP status code (metric http.server.request.duration)."
+          },
+          "plugin": {
+            "kind": "signoz/TimeSeriesPanel",
+            "spec": {
+              "visualization": {
+                "timePreference": "global_time"
+              },
+              "formatting": {
+                "unit": "reqps",
+                "decimalPrecision": "2"
+              },
+              "legend": {
+                "position": "bottom"
+              },
+              "chartAppearance": {
+                "lineStyle": "solid",
+                "lineInterpolation": "spline",
+                "fillMode": "none"
+              }
+            }
+          },
+          "queries": [
+            {
+              "kind": "time_series",
+              "spec": {
+                "plugin": {
+                  "kind": "signoz/CompositeQuery",
+                  "spec": {
+                    "queries": [
+                      {
+                        "type": "builder_query",
+                        "spec": {
+                          "name": "A",
+                          "signal": "metrics",
+                          "stepInterval": 0,
+                          "disabled": false,
+                          "aggregations": [
+                            {
+                              "metricName": "http.server.request.duration.count",
+                              "timeAggregation": "rate",
+                              "spaceAggregation": "sum"
+                            }
+                          ],
+                          "filter": {
+                            "expression": "service.name IN $service_name"
+                          },
+                          "groupBy": [
+                            {
+                              "name": "http.response.status_code",
+                              "fieldContext": "attribute"
+                            }
+                          ],
+                          "legend": "{{http.response.status_code}}"
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "1ffe578e-f2b5-5d36-9fdd-e015c386a660": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "p95 latency by route (metrics)",
+            "description": "95th percentile from the http.server.request.duration histogram, per route."
+          },
+          "plugin": {
+            "kind": "signoz/TimeSeriesPanel",
+            "spec": {
+              "visualization": {
+                "timePreference": "global_time"
+              },
+              "formatting": {
+                "unit": "s",
+                "decimalPrecision": "2"
+              },
+              "legend": {
+                "position": "bottom"
+              },
+              "chartAppearance": {
+                "lineStyle": "solid",
+                "lineInterpolation": "spline",
+                "fillMode": "none"
+              }
+            }
+          },
+          "queries": [
+            {
+              "kind": "time_series",
+              "spec": {
+                "plugin": {
+                  "kind": "signoz/CompositeQuery",
+                  "spec": {
+                    "queries": [
+                      {
+                        "type": "builder_query",
+                        "spec": {
+                          "name": "A",
+                          "signal": "metrics",
+                          "stepInterval": 0,
+                          "disabled": false,
+                          "aggregations": [
+                            {
+                              "metricName": "http.server.request.duration.bucket",
+                              "timeAggregation": "rate",
+                              "spaceAggregation": "p95"
+                            }
+                          ],
+                          "filter": {
+                            "expression": "service.name IN $service_name"
+                          },
+                          "groupBy": [
+                            {
+                              "name": "http.route",
+                              "fieldContext": "attribute"
+                            }
+                          ],
+                          "legend": "{{http.route}}"
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "5ed3b3e1-cf23-5451-aad1-f650f5f99f5d": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "Slowest endpoints",
+            "description": "Routes by 95th percentile, with calls and errors."
+          },
+          "plugin": {
+            "kind": "signoz/TablePanel",
+            "spec": {
+              "visualization": {
+                "timePreference": "global_time"
+              },
+              "formatting": {
+                "columnUnits": {
+                  "A": "ns",
+                  "B": "short",
+                  "C": "short"
+                },
+                "decimalPrecision": "2"
+              }
+            }
+          },
+          "queries": [
+            {
+              "kind": "scalar",
+              "spec": {
+                "plugin": {
+                  "kind": "signoz/CompositeQuery",
+                  "spec": {
+                    "queries": [
+                      {
+                        "type": "builder_query",
+                        "spec": {
+                          "name": "A",
+                          "signal": "traces",
+                          "stepInterval": 0,
+                          "disabled": false,
+                          "aggregations": [
+                            {
+                              "expression": "p95(duration_nano)"
+                            }
+                          ],
+                          "filter": {
+                            "expression": "kind_string = 'Server' AND service.name IN $service_name"
+                          },
+                          "groupBy": [
+                            {
+                              "name": "service.name",
+                              "fieldContext": "resource"
+                            },
+                            {
+                              "name": "http.route",
+                              "fieldContext": "attribute"
+                            }
+                          ],
+                          "order": [
+                            {
+                              "key": {
+                                "name": "p95(duration_nano)"
+                              },
+                              "direction": "desc"
+                            }
+                          ],
+                          "limit": 15
+                        }
+                      },
+                      {
+                        "type": "builder_query",
+                        "spec": {
+                          "name": "B",
+                          "signal": "traces",
+                          "stepInterval": 0,
+                          "disabled": false,
+                          "aggregations": [
+                            {
+                              "expression": "count()"
+                            }
+                          ],
+                          "filter": {
+                            "expression": "kind_string = 'Server' AND service.name IN $service_name"
+                          },
+                          "groupBy": [
+                            {
+                              "name": "service.name",
+                              "fieldContext": "resource"
+                            },
+                            {
+                              "name": "http.route",
+                              "fieldContext": "attribute"
+                            }
+                          ],
+                          "limit": 15
+                        }
+                      },
+                      {
+                        "type": "builder_query",
+                        "spec": {
+                          "name": "C",
+                          "signal": "traces",
+                          "stepInterval": 0,
+                          "disabled": false,
+                          "aggregations": [
+                            {
+                              "expression": "count()"
+                            }
+                          ],
+                          "filter": {
+                            "expression": "kind_string = 'Server' AND service.name IN $service_name AND has_error = true"
+                          },
+                          "groupBy": [
+                            {
+                              "name": "service.name",
+                              "fieldContext": "resource"
+                            },
+                            {
+                              "name": "http.route",
+                              "fieldContext": "attribute"
+                            }
+                          ],
+                          "limit": 15
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "94d8c3a0-f463-5eb1-a43e-77de363b5184": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "Outgoing HTTP calls",
+            "description": "Calls to other services per second, by target host (client spans with an HTTP method)."
+          },
+          "plugin": {
+            "kind": "signoz/TimeSeriesPanel",
+            "spec": {
+              "visualization": {
+                "timePreference": "global_time"
+              },
+              "formatting": {
+                "unit": "reqps",
+                "decimalPrecision": "2"
+              },
+              "legend": {
+                "position": "bottom"
+              },
+              "chartAppearance": {
+                "lineStyle": "solid",
+                "lineInterpolation": "spline",
+                "fillMode": "none"
+              }
+            }
+          },
+          "queries": [
+            {
+              "kind": "time_series",
+              "spec": {
+                "plugin": {
+                  "kind": "signoz/CompositeQuery",
+                  "spec": {
+                    "queries": [
+                      {
+                        "type": "builder_query",
+                        "spec": {
+                          "name": "A",
+                          "signal": "traces",
+                          "stepInterval": 0,
+                          "disabled": false,
+                          "aggregations": [
+                            {
+                              "expression": "rate()"
+                            }
+                          ],
+                          "filter": {
+                            "expression": "kind_string = 'Client' AND http.request.method EXISTS AND service.name IN $service_name"
+                          },
+                          "groupBy": [
+                            {
+                              "name": "server.address",
+                              "fieldContext": "attribute"
+                            }
+                          ],
+                          "legend": "{{server.address}}"
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "b1ef53f6-1707-5f8c-9195-f05dc4402d60": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "Active requests",
+            "description": "Requests in progress (metric http.server.active_requests)."
+          },
+          "plugin": {
+            "kind": "signoz/TimeSeriesPanel",
+            "spec": {
+              "visualization": {
+                "timePreference": "global_time"
+              },
+              "formatting": {
+                "unit": "short",
+                "decimalPrecision": "2"
+              },
+              "legend": {
+                "position": "bottom"
+              },
+              "chartAppearance": {
+                "lineStyle": "solid",
+                "lineInterpolation": "spline",
+                "fillMode": "none"
+              }
+            }
+          },
+          "queries": [
+            {
+              "kind": "time_series",
+              "spec": {
+                "plugin": {
+                  "kind": "signoz/CompositeQuery",
+                  "spec": {
+                    "queries": [
+                      {
+                        "type": "builder_query",
+                        "spec": {
+                          "name": "A",
+                          "signal": "metrics",
+                          "stepInterval": 0,
+                          "disabled": false,
+                          "aggregations": [
+                            {
+                              "metricName": "http.server.active_requests",
+                              "timeAggregation": "avg",
+                              "spaceAggregation": "sum"
+                            }
+                          ],
+                          "filter": {
+                            "expression": "service.name IN $service_name"
+                          },
+                          "groupBy": [
+                            {
+                              "name": "service.name",
+                              "fieldContext": "resource"
+                            }
+                          ],
+                          "legend": "{{service.name}}"
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "layouts": [
+      {
+        "kind": "Grid",
+        "spec": {
+          "items": [
+            {
+              "x": 0,
+              "y": 0,
+              "width": 3,
+              "height": 3,
+              "content": {
+                "$ref": "#/spec/panels/6663674a-3451-59a7-8312-d70f255efad1"
+              }
+            },
+            {
+              "x": 3,
+              "y": 0,
+              "width": 3,
+              "height": 3,
+              "content": {
+                "$ref": "#/spec/panels/f5a82d08-ba88-57bf-a08a-fbf42993f569"
+              }
+            },
+            {
+              "x": 6,
+              "y": 0,
+              "width": 3,
+              "height": 3,
+              "content": {
+                "$ref": "#/spec/panels/0948f95d-c515-5fac-8a7d-e17868b7d24b"
+              }
+            },
+            {
+              "x": 9,
+              "y": 0,
+              "width": 3,
+              "height": 3,
+              "content": {
+                "$ref": "#/spec/panels/e28469b5-d805-5a07-ae52-766ee1c60079"
+              }
+            }
+          ]
+        }
+      },
+      {
+        "kind": "Grid",
+        "spec": {
+          "items": [
+            {
+              "x": 0,
+              "y": 0,
+              "width": 6,
+              "height": 6,
+              "content": {
+                "$ref": "#/spec/panels/817635d1-f4f6-56aa-9866-0f74198f60f1"
+              }
+            },
+            {
+              "x": 6,
+              "y": 0,
+              "width": 6,
+              "height": 6,
+              "content": {
+                "$ref": "#/spec/panels/f0a0f932-9297-5719-a437-6655d7adba57"
+              }
+            },
+            {
+              "x": 0,
+              "y": 6,
+              "width": 6,
+              "height": 6,
+              "content": {
+                "$ref": "#/spec/panels/ee2383eb-5f34-5878-b52b-370efb080077"
+              }
+            },
+            {
+              "x": 6,
+              "y": 6,
+              "width": 6,
+              "height": 6,
+              "content": {
+                "$ref": "#/spec/panels/615293af-7f57-5507-ac78-8c0350cbd94e"
+              }
+            }
+          ],
+          "display": {
+            "title": "Rate, errors, duration"
+          }
+        }
+      },
+      {
+        "kind": "Grid",
+        "spec": {
+          "items": [
+            {
+              "x": 0,
+              "y": 0,
+              "width": 6,
+              "height": 6,
+              "content": {
+                "$ref": "#/spec/panels/f96e9dfc-3d78-5110-86ab-ec36895db993"
+              }
+            },
+            {
+              "x": 6,
+              "y": 0,
+              "width": 6,
+              "height": 6,
+              "content": {
+                "$ref": "#/spec/panels/1ffe578e-f2b5-5d36-9fdd-e015c386a660"
+              }
+            },
+            {
+              "x": 0,
+              "y": 6,
+              "width": 12,
+              "height": 7,
+              "content": {
+                "$ref": "#/spec/panels/5ed3b3e1-cf23-5451-aad1-f650f5f99f5d"
+              }
+            },
+            {
+              "x": 0,
+              "y": 13,
+              "width": 6,
+              "height": 6,
+              "content": {
+                "$ref": "#/spec/panels/94d8c3a0-f463-5eb1-a43e-77de363b5184"
+              }
+            },
+            {
+              "x": 6,
+              "y": 13,
+              "width": 6,
+              "height": 6,
+              "content": {
+                "$ref": "#/spec/panels/b1ef53f6-1707-5f8c-9195-f05dc4402d60"
+              }
+            }
+          ],
+          "display": {
+            "title": "Status codes and routes"
+          }
+        }
+      }
+    ],
+    "duration": "1h",
+    "refreshInterval": "30s",
+    "links": []
+  }
+}

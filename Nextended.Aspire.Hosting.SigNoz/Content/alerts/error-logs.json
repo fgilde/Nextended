@@ -1,0 +1,81 @@
+{
+  "alert": "Error logs",
+  "alertType": "LOGS_BASED_ALERT",
+  "description": "Log records at error level and above, per service, over five minutes.",
+  "ruleType": "threshold_rule",
+  "schemaVersion": "v2alpha1",
+  "condition": {
+    "compositeQuery": {
+      "queryType": "builder",
+      "panelType": "graph",
+      "unit": "short",
+      "queries": [
+        {
+          "type": "builder_query",
+          "spec": {
+            "name": "A",
+            "signal": "logs",
+            "stepInterval": 60,
+            "disabled": false,
+            "aggregations": [
+              {
+                "expression": "count()"
+              }
+            ],
+            "groupBy": [
+              {
+                "name": "service.name",
+                "fieldContext": "resource",
+                "fieldDataType": "string"
+              }
+            ],
+            "filter": {
+              "expression": "severity_number >= 17"
+            }
+          }
+        }
+      ]
+    },
+    "selectedQueryName": "A",
+    "thresholds": {
+      "kind": "basic",
+      "spec": [
+        {
+          "name": "warning",
+          "op": "above",
+          "matchType": "on_average",
+          "target": 10,
+          "channels": []
+        }
+      ]
+    }
+  },
+  "evaluation": {
+    "kind": "rolling",
+    "spec": {
+      "evalWindow": "5m",
+      "frequency": "1m"
+    }
+  },
+  "notificationSettings": {
+    "usePolicy": true,
+    "groupBy": [
+      "service.name"
+    ],
+    "renotify": {
+      "enabled": true,
+      "interval": "30m",
+      "alertStates": [
+        "firing"
+      ]
+    }
+  },
+  "labels": {
+    "severity": "warning",
+    "source": "aspire"
+  },
+  "annotations": {
+    "description": "Log records at error level and above, per service, over five minutes. {{$service.name}}: {{$value}}",
+    "summary": "Error logs"
+  }
+}

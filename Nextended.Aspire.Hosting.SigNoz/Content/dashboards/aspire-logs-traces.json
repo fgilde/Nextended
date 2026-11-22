@@ -1,0 +1,353 @@
+{
+  "schemaVersion": "v6",
+  "name": "aspire-logs-traces",
+  "tags": [
+    {
+      "key": "stack",
+      "value": "aspire"
+    }
+  ],
+  "spec": {
+    "display": {
+      "name": "Logs and traces",
+      "description": "Log volume by level and service, the latest errors and failed traces of every service."
+    },
+    "variables": [
+      {
+        "kind": "ListVariable",
+        "spec": {
+          "name": "service_name",
+          "display": {
+            "name": "service",
+            "description": "Services to show"
+          },
+          "allowMultiple": true,
+          "allowAllValue": true,
+          "sort": "alphabetical-asc",
+          "plugin": {
+            "kind": "signoz/DynamicVariable",
+            "spec": {
+              "name": "service.name",
+              "signal": "all"
+            }
+          }
+        }
+      }
+    ],
+    "panels": {
+      "8d062e86-8c6b-5e46-acb0-80b971c053bb": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "Logs by level",
+            "description": "Log records per second by severity."
+          },
+          "plugin": {
+            "kind": "signoz/BarChartPanel",
+            "spec": {
+              "visualization": {
+                "timePreference": "global_time",
+                "stackedBarChart": true
+              },
+              "legend": {
+                "position": "bottom"
+              }
+            }
+          },
+          "queries": [
+            {
+              "kind": "time_series",
+              "spec": {
+                "plugin": {
+                  "kind": "signoz/CompositeQuery",
+                  "spec": {
+                    "queries": [
+                      {
+                        "type": "builder_query",
+                        "spec": {
+                          "name": "A",
+                          "signal": "logs",
+                          "stepInterval": 0,
+                          "disabled": false,
+                          "aggregations": [
+                            {
+                              "expression": "count()"
+                            }
+                          ],
+                          "filter": {
+                            "expression": "service.name IN $service_name"
+                          },
+                          "groupBy": [
+                            {
+                              "name": "severity_text"
+                            }
+                          ],
+                          "legend": "{{severity_text}}"
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "b553fe19-80eb-50ef-ac77-6b32e7911f18": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "Errors and warnings per service",
+            "description": "Log records at warning level and above per service."
+          },
+          "plugin": {
+            "kind": "signoz/TimeSeriesPanel",
+            "spec": {
+              "visualization": {
+                "timePreference": "global_time"
+              },
+              "formatting": {
+                "unit": "short",
+                "decimalPrecision": "2"
+              },
+              "legend": {
+                "position": "bottom"
+              },
+              "chartAppearance": {
+                "lineStyle": "solid",
+                "lineInterpolation": "spline",
+                "fillMode": "none"
+              }
+            }
+          },
+          "queries": [
+            {
+              "kind": "time_series",
+              "spec": {
+                "plugin": {
+                  "kind": "signoz/CompositeQuery",
+                  "spec": {
+                    "queries": [
+                      {
+                        "type": "builder_query",
+                        "spec": {
+                          "name": "A",
+                          "signal": "logs",
+                          "stepInterval": 0,
+                          "disabled": false,
+                          "aggregations": [
+                            {
+                              "expression": "count()"
+                            }
+                          ],
+                          "filter": {
+                            "expression": "severity_number >= 13 AND service.name IN $service_name"
+                          },
+                          "groupBy": [
+                            {
+                              "name": "service.name",
+                              "fieldContext": "resource"
+                            }
+                          ],
+                          "legend": "{{service.name}}"
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "65ed9ae0-18fb-509b-89bd-70b5f51c6b59": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "Error logs",
+            "description": "The latest log records at error level and above."
+          },
+          "plugin": {
+            "kind": "signoz/ListPanel",
+            "spec": {
+              "selectFields": [
+                {
+                  "name": "service.name",
+                  "fieldContext": "resource"
+                },
+                {
+                  "name": "severity_text",
+                  "fieldContext": "log"
+                },
+                {
+                  "name": "body",
+                  "fieldContext": "log"
+                }
+              ]
+            }
+          },
+          "queries": [
+            {
+              "kind": "raw",
+              "spec": {
+                "plugin": {
+                  "kind": "signoz/BuilderQuery",
+                  "spec": {
+                    "name": "A",
+                    "signal": "logs",
+                    "stepInterval": 0,
+                    "disabled": false,
+                    "aggregations": [
+                      {
+                        "expression": "count()"
+                      }
+                    ],
+                    "filter": {
+                      "expression": "severity_number >= 17 AND service.name IN $service_name"
+                    },
+                    "order": [
+                      {
+                        "key": {
+                          "name": "timestamp"
+                        },
+                        "direction": "desc"
+                      }
+                    ],
+                    "limit": 50
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "cce87953-5290-5a55-bbc6-ad55522bde6c": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "Failed spans",
+            "description": "The latest spans that ended with an error; open one for its trace."
+          },
+          "plugin": {
+            "kind": "signoz/ListPanel",
+            "spec": {
+              "selectFields": [
+                {
+                  "name": "service.name",
+                  "fieldContext": "resource"
+                },
+                {
+                  "name": "http.route",
+                  "fieldContext": "attribute"
+                },
+                {
+                  "name": "response_status_code",
+                  "fieldContext": "span"
+                },
+                {
+                  "name": "duration_nano",
+                  "fieldContext": "span"
+                },
+                {
+                  "name": "trace_id",
+                  "fieldContext": "span"
+                }
+              ]
+            }
+          },
+          "queries": [
+            {
+              "kind": "raw",
+              "spec": {
+                "plugin": {
+                  "kind": "signoz/BuilderQuery",
+                  "spec": {
+                    "name": "A",
+                    "signal": "traces",
+                    "stepInterval": 0,
+                    "disabled": false,
+                    "aggregations": [
+                      {
+                        "expression": "count()"
+                      }
+                    ],
+                    "filter": {
+                      "expression": "has_error = true AND service.name IN $service_name"
+                    },
+                    "order": [
+                      {
+                        "key": {
+                          "name": "timestamp"
+                        },
+                        "direction": "desc"
+                      }
+                    ],
+                    "limit": 50
+                  }
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "layouts": [
+      {
+        "kind": "Grid",
+        "spec": {
+          "items": [
+            {
+              "x": 0,
+              "y": 0,
+              "width": 6,
+              "height": 6,
+              "content": {
+                "$ref": "#/spec/panels/8d062e86-8c6b-5e46-acb0-80b971c053bb"
+              }
+            },
+            {
+              "x": 6,
+              "y": 0,
+              "width": 6,
+              "height": 6,
+              "content": {
+                "$ref": "#/spec/panels/b553fe19-80eb-50ef-ac77-6b32e7911f18"
+              }
+            }
+          ]
+        }
+      },
+      {
+        "kind": "Grid",
+        "spec": {
+          "items": [
+            {
+              "x": 0,
+              "y": 0,
+              "width": 12,
+              "height": 8,
+              "content": {
+                "$ref": "#/spec/panels/65ed9ae0-18fb-509b-89bd-70b5f51c6b59"
+              }
+            },
+            {
+              "x": 0,
+              "y": 8,
+              "width": 12,
+              "height": 8,
+              "content": {
+                "$ref": "#/spec/panels/cce87953-5290-5a55-bbc6-ad55522bde6c"
+              }
+            }
+          ],
+          "display": {
+            "title": "Latest errors"
+          }
+        }
+      }
+    ],
+    "duration": "1h",
+    "refreshInterval": "30s",
+    "links": []
+  }
+}

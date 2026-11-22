@@ -72,7 +72,7 @@ features:
     linkText: .NET Aspire
   - title: Ganze Stacks als eine Ressource
     details: >
-      Supabase, n8n, Grafana mit seinem Observability-Stack, ein Browser-Datenbankstudio, der
+      Supabase, n8n, Grafana mit seinem Observability-Stack, SigNoz, ein Browser-Datenbankstudio, der
       visuelle AppHost-Builder, selbst gehostete multimodale KI und PHP-Endpunkte — jeweils mit
       ausführbarem Beispiel-AppHost.
     link: /de/projects/aspire-supabase

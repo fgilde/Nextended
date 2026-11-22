@@ -1,0 +1,78 @@
+path: /var/lib/clickhouse/
+tmp_path: /var/lib/clickhouse/tmp/
+user_files_path: /var/lib/clickhouse/user_files/
+format_schema_path: /var/lib/clickhouse/format_schemas/
+user_scripts_path: /var/lib/clickhouse/user_scripts/
+user_defined_executable_functions_config: '*functions.yaml'
+listen_host: 0.0.0.0
+http_port: 8123
+tcp_port: 9000
+interserver_http_port: 9009
+logger:
+  console: 1
+  level: warning
+display_name: cluster
+macros:
+  replica: "00"
+  shard: "00"
+remote_servers:
+  cluster:
+    shard:
+    - replica:
+      - host: 127.0.0.1
+        port: 9000
+keeper_server:
+  tcp_port: 9181
+  server_id: 0
+  log_storage_path: /var/lib/clickhouse/coordination/log
+  snapshot_storage_path: /var/lib/clickhouse/coordination/snapshots
+  coordination_settings:
+    operation_timeout_ms: 10000
+    session_timeout_ms: 30000
+    raft_logs_level: warning
+  raft_configuration:
+    server:
+    - id: 0
+      hostname: 127.0.0.1
+      port: 9234
+zookeeper:
+  node:
+  - host: 127.0.0.1
+    port: 9181
+distributed_ddl:
+  path: /clickhouse/task_queue/ddl
+profiles:
+  default:
+    load_balancing: random
+quotas:
+  default:
+    interval:
+      duration: 3600
+      errors: 0
+      execution_time: 0
+      queries: 0
+      read_rows: 0
+      result_rows: 0
+user_directories:
+  users_xml:
+    path: /etc/clickhouse-server/signoz/config.yaml
+users:
+  default:
+    access_management: 1
+    networks:
+      ip: ::/0
+    password: ""
+    profile: default
+    quota: default
+query_log:
+  ttl: event_date + INTERVAL 1 DAY DELETE
+metric_log:
+  ttl: event_date + INTERVAL 1 DAY DELETE
+asynchronous_metric_log:
+  ttl: event_date + INTERVAL 1 DAY DELETE
+trace_log:
+  ttl: event_date + INTERVAL 1 DAY DELETE
+text_log:
+  ttl: event_date + INTERVAL 1 DAY DELETE
+part_log:
+  ttl: event_date + INTERVAL 1 DAY DELETE

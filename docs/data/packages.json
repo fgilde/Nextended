@@ -340,6 +340,29 @@
       }
     },
     {
+      "id": "aspire-signoz",
+      "name": "Nextended.Aspire.Hosting.SigNoz",
+      "category": "aspire",
+      "slug": "aspire-signoz",
+      "platform": "Cross-platform",
+      "frameworks": [
+        "net10.0"
+      ],
+      "dependencies": [
+        "Aspire.Hosting.AppHost"
+      ],
+      "sample": "Tests/TestProjects/SigNoz.AppHost",
+      "summary": {
+        "en": "SigNoz — traces, metrics, logs, dashboards and alerts in one UI on ClickHouse — with a provisioned admin, ready-made dashboards and alert rules for .NET services, and OpenID Connect sign-in in front.",
+        "de": "SigNoz — Traces, Metriken, Logs, Dashboards und Alerts in einer Oberfläche auf ClickHouse — mit bereitgestelltem Admin, fertigen Dashboards und Alert-Regeln für .NET-Dienste und OpenID-Connect-Anmeldung davor."
+      },
+      "product": {
+        "name": "SigNoz",
+        "site": "https://signoz.io/",
+        "logo": "https://raw.githubusercontent.com/SigNoz/signoz/main/frontend/src/assets/Logos/signoz-brand-logo.svg"
+      }
+    },
+    {
       "id": "aspire-webdatastudio",
       "name": "Nextended.Aspire.Hosting.WebDataStudio",
       "category": "aspire",

@@ -97,6 +97,7 @@ Nextended.Core ─┬─ Nextended.Cache ─── Nextended.Imaging
 Nextended.Aspire.Hosting.Grafana ──────────────────────────────────────────┘
 
 standalone (Aspire.Hosting.AppHost only):
+  Nextended.Aspire.Hosting.SigNoz
   Nextended.Aspire.Hosting.WebDataStudio
   Nextended.Aspire.Hosting.AspireUI
   Nextended.Aspire.Hosting.Php
@@ -124,7 +125,7 @@ build-time only:
 | Resize, crop or sniff images on Windows | [Nextended.Imaging](/projects/imaging) |
 | Generate DTOs, or classes from JSON/XML/Excel | [Nextended.CodeGen](/projects/codegen) |
 | Remove `if` branches from my Aspire AppHost | [Nextended.Aspire](/projects/aspire) |
-| Run Supabase, n8n, Grafana, PHP or LocalAI in Aspire | the matching `Nextended.Aspire.Hosting.*` package |
+| Run Supabase, n8n, Grafana, SigNoz, PHP or LocalAI in Aspire | the matching `Nextended.Aspire.Hosting.*` package |
 
 ## Getting help
 

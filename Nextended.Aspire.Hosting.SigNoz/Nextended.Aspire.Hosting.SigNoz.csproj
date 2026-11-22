@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="..\Shared.props" />
+
+  <PropertyGroup>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <IsPackable>true</IsPackable>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <Description>SigNoz for .NET Aspire — ClickHouse, the SigNoz OpenTelemetry collector and SigNoz (traces, metrics, logs, dashboards and alerts in one UI) as composable container resources, with a provisioned admin, ready-made dashboards and alert rules for .NET services, and OpenID Connect sign-in in front.</Description>
+    <PackageTags>Aspire, extensions, signoz, clickhouse, opentelemetry, observability, monitoring, apm, tracing, logs, metrics</PackageTags>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Aspire.Hosting.AppHost" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Nextended.Aspire.Hosting.SigNoz.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- configs, scripts, dashboards and alert rules, written to {configRoot}/.generated/signoz/<name> when the app host starts -->
+    <EmbeddedResource Include="Content\**\*" LogicalName="SigNoz/%(RecursiveDir)%(Filename)%(Extension)" />
+  </ItemGroup>
+
+</Project>

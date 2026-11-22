@@ -96,6 +96,7 @@ Nextended.Core ─┬─ Nextended.Cache ─── Nextended.Imaging
 Nextended.Aspire.Hosting.Grafana ──────────────────────────────────────────┘
 
 eigenständig (nur Aspire.Hosting.AppHost):
+  Nextended.Aspire.Hosting.SigNoz
   Nextended.Aspire.Hosting.WebDataStudio
   Nextended.Aspire.Hosting.AspireUI
   Nextended.Aspire.Hosting.Php
@@ -123,7 +124,7 @@ nur zur Buildzeit:
 | Bilder unter Windows skalieren, zuschneiden oder prüfen | [Nextended.Imaging](/de/projects/imaging) |
 | DTOs erzeugen oder Klassen aus JSON/XML/Excel | [Nextended.CodeGen](/de/projects/codegen) |
 | `if`-Verzweigungen aus meinem Aspire-AppHost entfernen | [Nextended.Aspire](/de/projects/aspire) |
-| Supabase, n8n, Grafana, PHP oder LocalAI in Aspire betreiben | das passende `Nextended.Aspire.Hosting.*`-Paket |
+| Supabase, n8n, Grafana, SigNoz, PHP oder LocalAI in Aspire betreiben | das passende `Nextended.Aspire.Hosting.*`-Paket |
 
 ## Hilfe
 

@@ -1,0 +1,113 @@
+{
+  "alert": "HTTP error rate above 5%",
+  "alertType": "TRACES_BASED_ALERT",
+  "description": "Share of incoming requests that failed, per service, over five minutes.",
+  "ruleType": "threshold_rule",
+  "schemaVersion": "v2alpha1",
+  "condition": {
+    "compositeQuery": {
+      "queryType": "builder",
+      "panelType": "graph",
+      "unit": "percent",
+      "queries": [
+        {
+          "type": "builder_query",
+          "spec": {
+            "name": "A",
+            "signal": "traces",
+            "stepInterval": 60,
+            "disabled": true,
+            "aggregations": [
+              {
+                "expression": "count()"
+              }
+            ],
+            "groupBy": [
+              {
+                "name": "service.name",
+                "fieldContext": "resource",
+                "fieldDataType": "string"
+              }
+            ],
+            "filter": {
+              "expression": "kind_string = 'Server' AND has_error = true"
+            }
+          }
+        },
+        {
+          "type": "builder_query",
+          "spec": {
+            "name": "B",
+            "signal": "traces",
+            "stepInterval": 60,
+            "disabled": true,
+            "aggregations": [
+              {
+                "expression": "count()"
+              }
+            ],
+            "groupBy": [
+              {
+                "name": "service.name",
+                "fieldContext": "resource",
+                "fieldDataType": "string"
+              }
+            ],
+            "filter": {
+              "expression": "kind_string = 'Server'"
+            }
+          }
+        },
+        {
+          "type": "builder_formula",
+          "spec": {
+            "name": "F1",
+            "expression": "A * 100 / B",
+            "legend": "{{service.name}}"
+          }
+        }
+      ]
+    },
+    "selectedQueryName": "F1",
+    "thresholds": {
+      "kind": "basic",
+      "spec": [
+        {
+          "name": "critical",
+          "op": "above",
+          "matchType": "on_average",
+          "target": 5,
+          "channels": []
+        }
+      ]
+    }
+  },
+  "evaluation": {
+    "kind": "rolling",
+    "spec": {
+      "evalWindow": "5m",
+      "frequency": "1m"
+    }
+  },
+  "notificationSettings": {
+    "usePolicy": true,
+    "groupBy": [
+      "service.name"
+    ],
+    "renotify": {
+      "enabled": true,
+      "interval": "30m",
+      "alertStates": [
+        "firing"
+      ]
+    }
+  },
+  "labels": {
+    "severity": "critical",
+    "source": "aspire"
+  },
+  "annotations": {
+    "description": "Share of incoming requests that failed, per service, over five minutes. {{$service.name}}: {{$value}}",
+    "summary": "HTTP error rate above 5%"
+  }
+}
