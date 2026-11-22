@@ -172,7 +172,7 @@ Im Publish-Modus kommt der Stack ohne Bind-Mounts aus:
 - **Eigene TCP-Ports.** Ein TCP-Port ist je Container-Apps-Umgebung eindeutig, und der Collector von Grafana belegt womöglich schon 4317/4318. ClickHouse ist deshalb als `signoz-clickhouse:29000` veröffentlicht, und der Collector nimmt OTLP über HTTP auf `signoz-collector:14318` an. `WithSigNozTelemetry` löst beides auf. Azure Container Apps reserviert einige Ports als Zielports (darunter 19000), deshalb sind es Ports, die es annimmt.
 - **Kein OpAMP.** Der Collector läuft mit seiner statischen Konfiguration; die Log-Pipelines von SigNoz (per OpAMP verteilt) gibt es also nur lokal.
 
-Für ein Deployment ClickHouse und SigNoz Volumes geben (`WithDataVolume`). ClickHouse mit mindestens 1 CPU und 2 GiB ausstatten.
+Für ein Deployment ClickHouse und SigNoz Volumes geben (`WithDataVolume`). ClickHouse mit mindestens 1 CPU und 2 GiB ausstatten. Ein ClickHouse-Volume braucht ein POSIX-Dateisystem (lokale Platte, NFS): Auf Azure Files über SMB (das Standard-Volume von Azure Container Apps) kann ClickHouse weder Dateizeiten setzen noch Hardlinks anlegen, jeder Insert scheitert mit `Cannot set modification time`. Dort das ClickHouse-Volume weglassen oder eine NFS-Freigabe einhängen.
 
 ## Hinweise
 

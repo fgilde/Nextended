@@ -332,7 +332,7 @@ public static class SigNozBuilderExtensions
     public static IResourceBuilder<SigNozResource> WithDataVolume(this IResourceBuilder<SigNozResource> signoz, string? name = null) =>
         signoz.WithVolume(name ?? $"{signoz.Resource.Name}-data", "/var/lib/signoz");
 
-    /// <summary>Keeps the telemetry (and the Keeper's state) in a named volume.</summary>
+    /// <summary>Keeps the telemetry (and the Keeper's state) in a named volume. Needs a POSIX file system: on Azure Files over SMB every insert fails.</summary>
     public static IResourceBuilder<SigNozClickHouseResource> WithDataVolume(this IResourceBuilder<SigNozClickHouseResource> clickHouse, string? name = null) =>
         clickHouse.WithVolume(name ?? $"{clickHouse.Resource.Name}-data", "/var/lib/clickhouse");
 
