@@ -187,13 +187,24 @@ public class SigNozTests : IDisposable
     }
 
     [Fact]
+    public void Published_ports_are_none_that_Container_Apps_reserves()
+    {
+        // the ports Azure Container Apps refuses as a target port (its error lists them; 19000 was the first choice and was refused)
+        int[] reserved = [53, 1601, 1602, 8578, 12356, 19000, 23040, 23042, 23044, 23045, 23143, 23148, 53827, 53828];
+
+        Assert.DoesNotContain(SigNozStack.PublishedClickHousePort, reserved);
+        Assert.DoesNotContain(SigNozStack.PublishedOtlpHttpPort, reserved);
+        Assert.DoesNotContain(SigNozStack.PublishedOpAmpPort, reserved);
+    }
+
+    [Fact]
     public async Task Publishing_uses_own_TCP_ports_OTLP_over_HTTP_and_no_OpAmp()
     {
         var builder = PublishBuilder();
         var signoz = Add(builder);
         var service = builder.AddContainer("svc", "nginx").WithSigNozTelemetry(signoz);
 
-        Assert.Contains(Endpoints(signoz.Resource.ClickHouse), e => e.Name == "native" && e.Port == 19000 && e.TargetPort == 19000 && e.UriScheme == "tcp");
+        Assert.Contains(Endpoints(signoz.Resource.ClickHouse), e => e.Name == "native" && e.Port == 29000 && e.TargetPort == 29000 && e.UriScheme == "tcp");
         Assert.DoesNotContain(Endpoints(signoz.Resource.ClickHouse), e => e.Name == "http");
         Assert.DoesNotContain(Endpoints(signoz.Resource.Collector), e => e.Name == "otlp-grpc");
         Assert.Contains(Endpoints(signoz.Resource.Collector), e => e.Name == "otlp-http" && e.Port == 14318 && e.TargetPort == 14318 && e.UriScheme == "tcp");
@@ -223,7 +234,7 @@ public class SigNozTests : IDisposable
         Assert.Contains(":14320/", File.ReadAllText(Path.Combine(_root, ".generated", "signoz", "signoz", "collector", "opamp.yaml")));
         // Container Apps exposes a TCP ingress on its target port: the containers listen on the published ports themselves
         var clickHouse = File.ReadAllText(Path.Combine(_root, ".generated", "signoz", "signoz", "clickhouse", "config.yaml"));
-        Assert.Contains("tcp_port: 19000", clickHouse);
+        Assert.Contains("tcp_port: 29000", clickHouse);
         Assert.DoesNotContain("port: 9000", clickHouse);
         Assert.Contains("0.0.0.0:14318", File.ReadAllText(Path.Combine(_root, ".generated", "signoz", "signoz", "collector", "config.yaml")));
     }

@@ -173,7 +173,7 @@ With `IssuerUrl` alone, the proxy reads the provider's discovery document. Set `
 In publish mode the stack deploys without bind mounts:
 
 - **Configs baked into images.** The generated configs, scripts, dashboards and rules are baked into small images under `{configRoot}/.generated/signoz/<name>/publish/<resource>/`. Each is built `FROM` the component's image with one `COPY` per folder.
-- **TCP ports of their own.** A TCP port is unique per Container Apps environment, and Grafana's collector may already use 4317/4318. So ClickHouse is published as `signoz-clickhouse:19000` and the collector receives OTLP over HTTP on `signoz-collector:14318`. `WithSigNozTelemetry` resolves both.
+- **TCP ports of their own.** A TCP port is unique per Container Apps environment, and Grafana's collector may already use 4317/4318. So ClickHouse is published as `signoz-clickhouse:29000` and the collector receives OTLP over HTTP on `signoz-collector:14318`. `WithSigNozTelemetry` resolves both. Azure Container Apps reserves some ports as target ports (19000 among them), so these are ports it accepts.
 - **No OpAMP.** The collector runs with its static configuration, so SigNoz's log pipelines (pushed over OpAMP) are a local feature.
 
 For a deployment, give ClickHouse and SigNoz volumes (`WithDataVolume`). Size ClickHouse with at least 1 CPU and 2 GiB.

@@ -16,7 +16,7 @@ internal sealed class SigNozStack
     /// The ports ClickHouse and the collector listen on in a deployment: a TCP port is unique per Container Apps environment (Grafana's collector
     /// already takes 4318), and Container Apps exposes a TCP ingress on its target port, so the containers themselves listen elsewhere.
     /// </summary>
-    public const int PublishedClickHousePort = 19000;
+    public const int PublishedClickHousePort = 29000;
     public const int PublishedOtlpHttpPort = 14318;
     public const int PublishedOpAmpPort = 14320;
 
