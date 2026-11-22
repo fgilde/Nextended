@@ -193,10 +193,10 @@ public class SigNozTests : IDisposable
         var signoz = Add(builder);
         var service = builder.AddContainer("svc", "nginx").WithSigNozTelemetry(signoz);
 
-        Assert.Contains(Endpoints(signoz.Resource.ClickHouse), e => e.Name == "native" && e.Port == 19000 && e.TargetPort == 9000 && e.UriScheme == "tcp");
+        Assert.Contains(Endpoints(signoz.Resource.ClickHouse), e => e.Name == "native" && e.Port == 19000 && e.TargetPort == 19000 && e.UriScheme == "tcp");
         Assert.DoesNotContain(Endpoints(signoz.Resource.ClickHouse), e => e.Name == "http");
         Assert.DoesNotContain(Endpoints(signoz.Resource.Collector), e => e.Name == "otlp-grpc");
-        Assert.Contains(Endpoints(signoz.Resource.Collector), e => e.Name == "otlp-http" && e.Port == 14318 && e.UriScheme == "tcp");
+        Assert.Contains(Endpoints(signoz.Resource.Collector), e => e.Name == "otlp-http" && e.Port == 14318 && e.TargetPort == 14318 && e.UriScheme == "tcp");
         Assert.DoesNotContain(Endpoints(signoz.Resource), e => e.Name == "opamp");
 
         var env = await EnvOf(service.Resource, publishing: true);
@@ -221,6 +221,11 @@ public class SigNozTests : IDisposable
 
         Assert.DoesNotContain("--manager-config", string.Join(' ', ArgsOf(signoz.Resource.Collector)));
         Assert.Contains(":14320/", File.ReadAllText(Path.Combine(_root, ".generated", "signoz", "signoz", "collector", "opamp.yaml")));
+        // Container Apps exposes a TCP ingress on its target port: the containers listen on the published ports themselves
+        var clickHouse = File.ReadAllText(Path.Combine(_root, ".generated", "signoz", "signoz", "clickhouse", "config.yaml"));
+        Assert.Contains("tcp_port: 19000", clickHouse);
+        Assert.DoesNotContain("port: 9000", clickHouse);
+        Assert.Contains("0.0.0.0:14318", File.ReadAllText(Path.Combine(_root, ".generated", "signoz", "signoz", "collector", "config.yaml")));
     }
 
     private static List<string> ArgsOf(IResource resource)
@@ -258,6 +263,8 @@ public class SigNozTests : IDisposable
         foreach (var script in new[] { "signoz/start.sh", "signoz/provision.sh", "clickhouse/start.sh" })
             Assert.DoesNotContain("\r", File.ReadAllText(Path.Combine(dir, script)));
         Assert.Equal("server_endpoint: ws://signoz:4320/v1/opamp\n", File.ReadAllText(Path.Combine(dir, "collector", "opamp.yaml")));
+        Assert.Contains("tcp_port: 9000", File.ReadAllText(Path.Combine(dir, "clickhouse", "config.yaml")));
+        Assert.Contains("0.0.0.0:4318", File.ReadAllText(Path.Combine(dir, "collector", "config.yaml")));
         Assert.True(File.Exists(Path.Combine(dir, "signoz", "dashboards", "orders.json")));
         Assert.Contains("\"mine\":true", File.ReadAllText(Path.Combine(dir, "signoz", "dashboards", "aspire-http-services.json")));
         Assert.True(File.Exists(Path.Combine(dir, "signoz", "dashboards", "aspire-dotnet-runtime.json")));

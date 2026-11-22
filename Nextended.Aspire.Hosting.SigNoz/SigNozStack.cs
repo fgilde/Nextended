@@ -12,7 +12,10 @@ namespace Nextended.Aspire.Hosting.SigNoz;
 /// </summary>
 internal sealed class SigNozStack
 {
-    /// <summary>Exposed ports in a deployment: a TCP port is unique per Container Apps environment, and Grafana's collector already takes 4317/4318.</summary>
+    /// <summary>
+    /// The ports ClickHouse and the collector listen on in a deployment: a TCP port is unique per Container Apps environment (Grafana's collector
+    /// already takes 4318), and Container Apps exposes a TCP ingress on its target port, so the containers themselves listen elsewhere.
+    /// </summary>
     public const int PublishedClickHousePort = 19000;
     public const int PublishedOtlpHttpPort = 14318;
     public const int PublishedOpAmpPort = 14320;
@@ -73,12 +76,21 @@ internal sealed class SigNozStack
     internal void WriteConfigs()
     {
         var clickHouse = Recreate(Path.Combine(GeneratedDir, "clickhouse"));
-        Write(clickHouse, "config.yaml", Content("clickhouse/config.yaml"));
+        var clickHouseConfig = Content("clickhouse/config.yaml");
+        var collectorConfig = Content("collector/config.yaml");
+        if (IsPublishMode)
+        {
+            clickHouseConfig = clickHouseConfig.Replace("tcp_port: 9000", $"tcp_port: {PublishedClickHousePort}", StringComparison.Ordinal)
+                .Replace("port: 9000", $"port: {PublishedClickHousePort}", StringComparison.Ordinal);
+            collectorConfig = collectorConfig.Replace("0.0.0.0:4318", $"0.0.0.0:{PublishedOtlpHttpPort}", StringComparison.Ordinal);
+        }
+
+        Write(clickHouse, "config.yaml", clickHouseConfig);
         Write(clickHouse, "functions.yaml", Content("clickhouse/functions.yaml"));
         Write(clickHouse, "start.sh", Content("clickhouse/start.sh"));
 
         var collector = Recreate(Path.Combine(GeneratedDir, "collector"));
-        Write(collector, "config.yaml", Content("collector/config.yaml"));
+        Write(collector, "config.yaml", collectorConfig);
         var opAmpPort = IsPublishMode ? PublishedOpAmpPort : SigNozResource.OpAmpTargetPort;
         Write(collector, "opamp.yaml", $"server_endpoint: ws://{SigNoz.Resource.Name}:{opAmpPort}/v1/opamp\n");
 

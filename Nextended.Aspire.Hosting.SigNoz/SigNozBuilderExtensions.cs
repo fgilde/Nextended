@@ -35,7 +35,7 @@ public static class SigNozBuilderExtensions
 
         var clickHouse = builder.AddResource(new SigNozClickHouseResource($"{name}-clickhouse"))
             .WithImage(SigNozDefaults.ClickHouseImage, SigNozDefaults.ClickHouseTag)
-            .WithEndpoint(targetPort: SigNozClickHouseResource.NativeTargetPort, port: publishing ? SigNozStack.PublishedClickHousePort : null,
+            .WithEndpoint(targetPort: publishing ? SigNozStack.PublishedClickHousePort : SigNozClickHouseResource.NativeTargetPort, port: publishing ? SigNozStack.PublishedClickHousePort : null,
                 name: SigNozClickHouseResource.NativeEndpointName, scheme: "tcp")
             .WithEntrypoint("/bin/bash")
             .WithArgs($"{SigNozStack.ClickHouseConfigDir}/start.sh")
@@ -92,7 +92,7 @@ public static class SigNozBuilderExtensions
             collector.WithEndpoint(targetPort: SigNozCollectorResource.OtlpGrpcTargetPort, name: SigNozCollectorResource.OtlpGrpcEndpointName, scheme: "http");
         }
 
-        collector.WithEndpoint(targetPort: SigNozCollectorResource.OtlpHttpTargetPort, port: publishing ? SigNozStack.PublishedOtlpHttpPort : null,
+        collector.WithEndpoint(targetPort: publishing ? SigNozStack.PublishedOtlpHttpPort : SigNozCollectorResource.OtlpHttpTargetPort, port: publishing ? SigNozStack.PublishedOtlpHttpPort : null,
             name: SigNozCollectorResource.OtlpHttpEndpointName, scheme: scheme);
 
         stack.ClickHouse = stack.MountConfig(clickHouse, Path.Combine(stack.GeneratedDir, "clickhouse"), SigNozStack.ClickHouseConfigDir);
