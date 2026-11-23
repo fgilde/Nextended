@@ -143,6 +143,7 @@ public class SigNozTests : IDisposable
         Assert.Equal("true", env["OAUTH2_PROXY_SKIP_OIDC_DISCOVERY"]);
         Assert.Equal("signoz:admin", env["OAUTH2_PROXY_ALLOWED_ROLES"]);
         Assert.Contains("signoz.bindings.http", env["OAUTH2_PROXY_UPSTREAMS"]);
+        Assert.Equal("false", env["OAUTH2_PROXY_PASS_HOST_HEADER"]);
 
         var signozEnv = await EnvOf(signoz.Resource);
         Assert.Equal("true", signozEnv["SIGNOZ_IDENTN_IMPERSONATION_ENABLED"]);

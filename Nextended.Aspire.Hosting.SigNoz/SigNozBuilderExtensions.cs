@@ -222,6 +222,8 @@ public static class SigNozBuilderExtensions
             .WithEnvironment("OAUTH2_PROXY_EMAIL_DOMAINS", string.Join(',', oidc.AllowedEmailDomains))
             .WithEnvironment("OAUTH2_PROXY_SKIP_PROVIDER_BUTTON", "true")
             .WithEnvironment("OAUTH2_PROXY_UPSTREAMS", signoz.GetEndpoint(SigNozResource.HttpEndpointName))
+            // the upstream gets its own host name: Azure Container Apps routes by host and answered the proxy's public one with 404
+            .WithEnvironment("OAUTH2_PROXY_PASS_HOST_HEADER", "false")
             .WithEnvironment("OAUTH2_PROXY_HTTP_ADDRESS", "0.0.0.0:4180")
             .WithEnvironment("OAUTH2_PROXY_COOKIE_SECRET", builder.AddParameter($"{signoz.Resource.Name}-signin-cookie-secret",
                 new GenerateParameterDefault { MinLength = 32, Special = false }, secret: true, persist: true))
