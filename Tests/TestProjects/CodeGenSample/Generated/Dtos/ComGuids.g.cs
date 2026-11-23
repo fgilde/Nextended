@@ -3,10 +3,11 @@
 using System;
 namespace MyGenerated.Code.Test {
 	#region ComGuids
+	[global::System.CodeDom.Compiler.GeneratedCode("Nextended.CodeGen", null)]
 	public static partial class ComGuids
 	{
-		public const string IdAddressDto = "32361505-0e23-40ea-af73-d5e44a6d566e";
-		public const string IdUserLevelDto = "cb394c94-7163-4cbb-aa46-4cedcece951d";
+		public const string IdUserLevelDto = "5dc16059-f6bd-458a-acfa-fcc32ff7cdb8";
+		public const string IdAddressDto = "52732abb-1c09-4333-98d7-d3c8ee0324d7";
 	}
 	#endregion ComGuids
 

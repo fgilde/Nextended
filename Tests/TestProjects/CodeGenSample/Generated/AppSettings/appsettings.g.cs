@@ -1,10 +1,11 @@
 /// <summary>
-/// --- AUTO GENERATED CODE (06.11.2026 02:05:23) ---
+/// --- AUTO GENERATED CODE (23.11.2026 07:49:04) ---
 /// --- ServerConfiguration ---
 /// </summary>
 
 namespace AppSettings
 {
+	[global::System.CodeDom.Compiler.GeneratedCode("Nextended.CodeGen", null)]
 	public partial record ServerConfiguration
 	{
 		public string ClientUrl { get; set; }
@@ -18,11 +19,13 @@ namespace AppSettings
 		public CfgBackupOptions BackupOptions { get; set; }
 	}
 
+	[global::System.CodeDom.Compiler.GeneratedCode("Nextended.CodeGen", null)]
 	public partial record CfgBackupOptions
 	{
 		public string BucketName { get; set; }
 	}
 
+	[global::System.CodeDom.Compiler.GeneratedCode("Nextended.CodeGen", null)]
 	public partial record CfgMailConfiguration
 	{
 		public string SendGridApiKey { get; set; }
@@ -34,6 +37,7 @@ namespace AppSettings
 		public string DisplayName { get; set; }
 	}
 
+	[global::System.CodeDom.Compiler.GeneratedCode("Nextended.CodeGen", null)]
 	public partial record CfgApiDocumentation
 	{
 		public bool RequireLogin { get; set; }
@@ -44,6 +48,7 @@ namespace AppSettings
 		public CfgLicense License { get; set; }
 	}
 
+	[global::System.CodeDom.Compiler.GeneratedCode("Nextended.CodeGen", null)]
 	public partial record CfgLicense
 	{
 		public string Name { get; set; }
@@ -51,6 +56,7 @@ namespace AppSettings
 		public string Url { get; set; }
 	}
 
+	[global::System.CodeDom.Compiler.GeneratedCode("Nextended.CodeGen", null)]
 	public partial record CfgContact
 	{
 		public string Name { get; set; }
@@ -58,12 +64,14 @@ namespace AppSettings
 		public string Url { get; set; }
 	}
 
+	[global::System.CodeDom.Compiler.GeneratedCode("Nextended.CodeGen", null)]
 	public partial record CfgCognitiveServices
 	{
 		public CfgOpenAi OpenAi { get; set; }
 		public CfgTranslation Translation { get; set; }
 	}
 
+	[global::System.CodeDom.Compiler.GeneratedCode("Nextended.CodeGen", null)]
 	public partial record CfgTranslation
 	{
 		public string Key { get; set; }
@@ -72,18 +80,21 @@ namespace AppSettings
 		public string Region { get; set; }
 	}
 
+	[global::System.CodeDom.Compiler.GeneratedCode("Nextended.CodeGen", null)]
 	public partial record CfgOpenAi
 	{
 		public string ApiKey { get; set; }
 		public string Model { get; set; }
 	}
 
+	[global::System.CodeDom.Compiler.GeneratedCode("Nextended.CodeGen", null)]
 	public partial record CfgAppConfiguration
 	{
 		public CfgIdHashing IdHashing { get; set; }
 		public string Secret { get; set; }
 	}
 
+	[global::System.CodeDom.Compiler.GeneratedCode("Nextended.CodeGen", null)]
 	public partial record CfgIdHashing
 	{
 		public bool Enabled { get; set; }
@@ -92,6 +103,7 @@ namespace AppSettings
 		public string Salt { get; set; }
 	}
 
+	[global::System.CodeDom.Compiler.GeneratedCode("Nextended.CodeGen", null)]
 	public partial record CfgPublicSettings
 	{
 		public bool AssistantAvailable { get; set; }
@@ -101,6 +113,7 @@ namespace AppSettings
 		public CfgLoginSettings LoginSettings { get; set; }
 	}
 
+	[global::System.CodeDom.Compiler.GeneratedCode("Nextended.CodeGen", null)]
 	public partial record CfgLoginSettings
 	{
 		public string LoginMode { get; set; }
@@ -108,6 +121,7 @@ namespace AppSettings
 		public System.Collections.Generic.List<string> AllowedEmails { get; set; }
 	}
 
+	[global::System.CodeDom.Compiler.GeneratedCode("Nextended.CodeGen", null)]
 	public partial record CfgUserRegistration
 	{
 		public bool Enabled { get; set; }
@@ -122,6 +136,7 @@ namespace AppSettings
 		public System.Collections.Generic.List<string> AllowedEmails { get; set; }
 	}
 
+	[global::System.CodeDom.Compiler.GeneratedCode("Nextended.CodeGen", null)]
 	public partial record CfgPasswordRules
 	{
 		public int MinLength { get; set; }
@@ -130,6 +145,7 @@ namespace AppSettings
 		public bool NumberRequired { get; set; }
 	}
 
+	[global::System.CodeDom.Compiler.GeneratedCode("Nextended.CodeGen", null)]
 	public partial record CfgUsernameRules
 	{
 		public int MinLength { get; set; }
@@ -137,6 +153,7 @@ namespace AppSettings
 		public bool EmailCanChangedAfterRegistration { get; set; }
 	}
 
+	[global::System.CodeDom.Compiler.GeneratedCode("Nextended.CodeGen", null)]
 	public partial record CfgConnectionStrings
 	{
 		public string DefaultConnection { get; set; }

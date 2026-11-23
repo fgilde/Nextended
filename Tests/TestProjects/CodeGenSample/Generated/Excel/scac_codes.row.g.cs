@@ -1,10 +1,11 @@
 /// <summary>
-/// --- AUTO GENERATED CODE (06.11.2026 02:05:24) ---
+/// --- AUTO GENERATED CODE (23.11.2026 07:49:04) ---
 /// --- ScacCode ---
 /// </summary>
 
 namespace Generated.ScacCodes
 {
+    [global::System.CodeDom.Compiler.GeneratedCode("Nextended.CodeGen", null)]
     public partial record struct ScacCode
     {
 
