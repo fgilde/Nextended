@@ -7,10 +7,10 @@ namespace Nextended.Core.Types.Ranges.Math;
 public sealed class UniversalRangeMath<T> : IRangeMath<T>
 {
     private static ClassMappingSettings? _mappingSettings;
-    public UniversalRangeMath()
-    {
-        _mappingSettings ??= ClassMappingSettings.Default.AddAllLoadedTypeConverters();
-    }
+
+    // Only needed when Convert cannot handle T. Loading every TypeConverter is slow and throws
+    // (and swallows) exceptions for converters without a usable constructor, so numbers never pay for it.
+    private static ClassMappingSettings MappingSettings => _mappingSettings ??= ClassMappingSettings.Default.AddAllLoadedTypeConverters();
 
     public double ToDouble(T value)
     {
@@ -20,7 +20,7 @@ public sealed class UniversalRangeMath<T> : IRangeMath<T>
         }
         catch (Exception)
         {
-            return value?.MapTo<double>(_mappingSettings ?? ClassMappingSettings.Default) ?? 0;
+            return value?.MapTo<double>(MappingSettings) ?? 0;
 
         }
     }
@@ -33,7 +33,7 @@ public sealed class UniversalRangeMath<T> : IRangeMath<T>
         }
         catch (Exception)
         {
-            return value.MapTo<T>(_mappingSettings ?? ClassMappingSettings.Default);
+            return value.MapTo<T>(MappingSettings);
         }
     }
 
